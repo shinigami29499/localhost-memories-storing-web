@@ -1,7 +1,0 @@
-{
-  "explorer.excludeGitIgnore": true,
-  "files.exclude": {
-    "**/bin": true,
-    "**/obj": true
-  }
-}
