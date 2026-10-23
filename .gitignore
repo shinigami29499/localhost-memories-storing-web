@@ -21,3 +21,11 @@ Backend/user.secret.key
 .idea/
 .DS_Store
 Thumbs.db
+
+# Local agent and workspace configuration
+/AGENTS.md
+/.agents/
+/.opencode/
+/.vscode/
+/opencode.json
+/skills-lock.json
