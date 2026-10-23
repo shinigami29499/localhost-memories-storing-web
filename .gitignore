@@ -1,0 +1,23 @@
+# .NET build outputs
+[Bb]in/
+[Oo]bj/
+.vs/
+*.user
+*.suo
+
+# Frontend dependencies and build outputs
+node_modules/
+dist/
+.vite/
+
+# Local environment and user-specific secrets
+**/.env
+**/.env.local
+**/.env.*.local
+**/appsettings.*.UserSecrets.json
+Backend/user.secret.key
+
+# IDE and operating system files
+.idea/
+.DS_Store
+Thumbs.db

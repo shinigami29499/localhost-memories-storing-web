@@ -1,2 +1,167 @@
-# localhost-memories-storing-web
-Created this project as a place to store img and video about my kids
+# ShinigaCim — Local Media-Sharing Site
+
+A locally hosted media-sharing web application: registered users upload images/Videos to a
+feed, comment, react, and manage their own posts. The backend is an ASP.NET Core 8 Web API
+backed by PostgreSQL; the frontend is React 18 + Vite + TypeScript.
+
+Everything runs on one machine — no cloud services are required.
+
+## Technology Stack
+
+| Layer      | Technology                                                            |
+|------------|-----------------------------------------------------------------------|
+| Backend    | ASP.NET Core 8.0 Web API, JWT (access + rotating refresh)             |
+| Database   | PostgreSQL 16+ (local Windows install also works, e.g. PG 18)         |
+| ORM        | EF Core 8 + Npgsql, snake_case naming conventions                     |
+| Storage    | Local filesystem (`Backend/Storage/Media` + `Backend/Storage/Trash`)  |
+| Frontend   | React 18, Vite 6, TypeScript, TanStack Query, Zustand, React Router   |
+| Validation | Backend builds only; Vitest for frontend tests                       |
+
+## Architecture
+
+```
+Frontend (React, http://localhost:3000)
+        │  REST + JWT
+        ▼
+Backend ASP.NET Core Web API (http://localhost:8000)
+  ├─ Api (controllers, middleware, HTTP identity adapter)
+  ├─ Service (workflows, contracts, IMapper)
+  ├─ Data (EF Core DbContext, migrations)
+  ├─ Adapter (media storage)
+  └─ Domain (entities, enums)
+        │                │
+        ▼                ▼
+ PostgreSQL          Local filesystem
+ shinigacim_db       media/ + trash/
+```
+
+### Backend layout (`Backend/`)
+- `Api` — controllers, seeding, middleware, HTTP current-user implementation
+- `Service` — separate class library with interfaces, implementations, DTOs, requests, responses, mappings, and JWT options
+- `Data` — `ApplicationDbContext`, migrations, audit-actor interface
+- `Adapter` — `MediaStorageService`
+- `Domain` — one entity or enum per file
+- `Scripts/` — legacy helpers; not validated for the renamed project paths
+
+Project and assembly names omit the `ShinigaCim` prefix. The restricted security source retains
+its original namespace, and restricted scripts remain unchanged. Existing build outputs may remain
+in old prefixed folders; those folders are no longer solution projects.
+
+## Getting Started
+
+### 1. PostgreSQL
+Create a database `shinigacim_db` on a local PostgreSQL instance, e.g.:
+
+```powershell
+$env:PGPASSWORD = '<postgres password>'
+&E:\DB\PostgreSQL\18\bin\psql.exe -U postgres -h localhost -c "CREATE DATABASE shinigacim_db;"
+```
+
+The connection string lives in [Backend/Api/appsettings.json](Backend/Api/appsettings.json)
+(host/port/user/password) — change it to match your machine.
+
+### 2. Backend
+
+```powershell
+cd Backend
+dotnet run --project Api
+```
+
+First start applies migrations automatically, creates `storage/Media` and `storage/Trash`,
+and seeds the admin account (config: `Seed:AdminUsername`, `Seed:AdminPassword`;
+defaults `admin` / `ChangeMeAdmin!1` — dev-only).
+
+Passwords are stored as plaintext in `users.password` and compared exactly during login.
+This is unsafe for production; use only disposable local-development credentials.
+The initial migration targets a fresh database. Existing hashed passwords are not converted,
+and existing accounts are not overwritten by seeding.
+
+Swagger UI: http://localhost:8000/swagger
+
+### 3. Frontend
+
+```powershell
+cd Frontend
+npm install
+npm run dev
+```
+
+Open http://localhost:3000. `Frontend/.env` sets `VITE_API_URL=http://localhost:8000`.
+
+### Validation
+
+Do not write, modify, or run backend tests, API smoke tests, or verification scripts.
+Use direct build commands rather than unverified helper scripts:
+
+```powershell
+cd Backend
+dotnet build ShinigaCim.sln
+dotnet build ShinigaCim.sln -c Release --no-restore
+```
+
+Frontend tests remain permitted:
+
+```powershell
+cd Frontend
+npm test -- --run
+```
+
+## Features
+
+- **Interface:** original Zenith AI-inspired styling with charcoal surfaces, pink/violet
+  gradients, pill controls, a responsive sign-in screen, and a community feed layout.
+  Existing authentication and media-sharing workflows are unchanged. Decorative artwork
+  is CSS-only; no paid template code, assets, fonts, or external UI services are required.
+- **Auth:** public registration, plaintext passwords (local development only),
+  JWT access tokens (15 min) + rotating refresh tokens (7 days, stored as SHA-256
+  hashes). Refresh-token reuse revokes the whole token family (theft detection).
+- **Feed:** paged, newest-first; posts with captions + multiple media attachments.
+- **Media:** images (jpg/jpeg/png/gif/webp) and videos (mp4/webm/mov/m4v/avi/mkv), up to
+  100 MB each (configurable). Files live on disk; the DB stores metadata only. Serving
+  supports HTTP range requests (video seeking) and authenticates via Authorization header
+  **or** `?accessToken=` (browser `<img>`/`<video>` cannot send headers).
+- **Comments:** add/edit/delete, author-or-admin authorization, oldest-first paging.
+- **Reactions:** multiple types (`like`, `heart`, `laugh`), idempotent add/remove; removing
+  is a soft delete; unique per (post, user, type) among active rows via a partial index.
+- **Audit columns on every entity:** `created_by/created_at`, `updated_by/updated_at`,
+  `deleted_by/deleted_at`, stamped centrally in `SaveChangesAsync` from the authenticated
+  principal (never client input).
+- **Soft delete everywhere:** `Remove()` throws — physical DB deletes are impossible
+  through the API or context. Deleted rows are hidden by global query filters while
+  remaining in the table.
+- **Media trash workflow:** deleting a post/Media moves the file(s) into
+  `storage/Trash/<kind>/` and records `trash_relative_path`/`trashed_at` while keeping the
+  original `relative_path` for restoration (`POST /api/Media/{id}/restore`). Filesystem
+  and DB steps are kept consistent with verify-copy + compensation-rollback logic.
+- **Foreign keys never cascade** (`DeleteBehavior.NoAction` everywhere).
+
+## REST API overview (all under `/api`, Bearer JWT except where noted)
+
+| Endpoint                              | Method(s)   | Notes                             |
+|---------------------------------------|-------------|-----------------------------------|
+| `/auth/register`, `/auth/login`, `/auth/refresh` | POST | anonymous                     |
+| `/auth/logout`, `/auth/me`            | POST, GET   | authorized                        |
+| `/posts?offset=&limit=`               | GET         | feed                              |
+| `/posts`                              | POST        | multipart: caption + files[]      |
+| `/posts/{id}`                         | GET/PUT/DELETE | PUT = caption; DELETE = soft delete + trash |
+| `/posts/{id}/comments`                | GET/POST    |                                   |
+| `/comments/{id}`                      | PUT/DELETE  | soft delete, idempotent           |
+| `/posts/{id}/reactions`               | POST        | body: `{ reactionType }`          |
+| `/posts/{id}/reactions/{type}`        | DELETE      | idempotent                        |
+| `/Media/{id}/file`                    | GET         | anonymous w/ header or `?accessToken=` |
+| `/Media/{id}` / `/Media/{id}/restore` | DELETE/POST | per-file trash/restore            |
+
+Errors are RFC 7807 problem details (`application/problem+json`).
+
+## Configuration highlights ([Backend/Api/appsettings.json](Backend/Api/appsettings.json))
+
+- `ConnectionStrings:Default` — PostgreSQL DSN
+- `Jwt:Key` — dev key; replace with user-secrets/env for anything beyond local dev
+- `MediaStorage:Root` — storage tree root (empty → `<Backend>/Storage`)
+- `MediaStorage:MaxFileMegabytes` — per-file upload limit
+- `Cors:AllowedOrigins` — `http://localhost:3000` by default
+- `Seed:*` — admin account seeding + auto-migrate toggle
+
+See the [project overview](.opencode/instructions/overview.md) for AI guidance, [architecture](.opencode/instructions/architecture.md) for target layout conventions, and [code map](.opencode/instructions/code-map.md) for current implementation paths.
+
+Know-what-to-run next: see `MIGRATION.md` for the local-to-production checklist.
