@@ -10,6 +10,11 @@
 - Frontend: PascalCase for React components and types, camelCase for functions and variables, and `use` prefixes for hooks. Follow existing feature-folder naming.
 - Use short project, folder, assembly, and C# namespace names without the `ShinigaCim` prefix. Preserve product branding, including the `ShinigaCim.sln` solution filename. The restricted `ShinigaCim.Infrastructure.Security` namespace and its required references are exempt; do not edit the restricted source. If Windows denies a containing-folder rename, keep project references valid at the existing path rather than copying restricted files.
 
+## Frontend UI
+
+- Use named imports from `lucide-react` for UI icons, including navigation, reactions, and loading indicators. Keep decorative icons hidden from assistive technology and label the containing action.
+- Do not render text buttons inside list row records. Row-level actions are always icon buttons (small square `*IconBtn`-style buttons) with `aria-label` and `title` describing the action. IconButton-style buttons must render a spinner instead of the icon while busy.
+
 ## Backend Classes and Mapping
 
 - Always use C# primary constructors for backend classes needing constructor parameters, including dependency injection. Do not introduce explicit constructors for dependency assignment.

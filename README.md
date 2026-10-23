@@ -6,6 +6,27 @@ backed by PostgreSQL; the frontend is React 18 + Vite + TypeScript.
 
 Everything runs on one machine — no cloud services are required.
 
+The home feed displays one post at a time. Use the post arrow icons
+or focus the post viewer and press the arrow keys to switch posts. More posts
+load when you reach the end of the current batch. Multi-photo posts show one
+image/video at a time with separate media arrows. Videos
+retain their native playback controls; use the post arrows to move past a video.
+Click the left or right quarter of an image to go previous/next (photos within
+multi-photo posts, or posts for single-image posts). Click the middle half to zoom.
+Drag/swipe navigation is disabled. Image filenames and sizes are not displayed
+below images. Post cards use a consistent dark surface without colored zones.
+The compact reaction bar uses outline reaction/comment icons with counts and
+colored badges summarizing reactions on the right.
+Frontend UI icons and loading indicators use `lucide-react`; branding letters
+and user initials remain text.
+Administrators can use a post's X icon to open a deletion warning. Confirm moves
+the post to trash; the underlined permanent-delete link opens a separate
+irreversible-delete confirmation. Cancel, Escape, the dialog X, or clicking outside
+dismisses the dialog before submission. Actions are locked while deletion is in progress.
+Manage Posts uses the same deletion dialog (already-trashed posts require permanent
+deletion confirmation). Restoring a post, approving a user, and deleting a user
+also require an explicit confirmation popup before the action is submitted.
+
 ## Technology Stack
 
 | Layer      | Technology                                                            |
@@ -116,6 +137,11 @@ npm test -- --run
   JWT access tokens (15 min) + rotating refresh tokens (7 days, stored as SHA-256
   hashes). Refresh-token reuse revokes the whole token family (theft detection).
 - **Feed:** paged, newest-first; posts with captions + multiple media attachments.
+- **Admin post layout:** choose 1-6 posts per row. The saved column count applies
+  on entry and reload at every screen width; column widths reset evenly when the count changes.
+- **Admin media preview:** open a post thumbnail or preview icon to browse its images
+  and videos. Deleted-post media is previewed directly from trash without restoring it.
+  The file endpoint's `includeDeleted=true` option requires an admin token.
 - **Media:** images (jpg/jpeg/png/gif/webp) and videos (mp4/webm/mov/m4v/avi/mkv), up to
   100 MB each (configurable). Files live on disk; the DB stores metadata only. Serving
   supports HTTP range requests (video seeking) and authenticates via Authorization header
@@ -139,8 +165,11 @@ npm test -- --run
 
 | Endpoint                              | Method(s)   | Notes                             |
 |---------------------------------------|-------------|-----------------------------------|
-| `/auth/register`, `/auth/login`, `/auth/refresh` | POST | anonymous                     |
+| `/auth/register`, `/auth/login`, `/auth/refresh` | POST | anonymous (`register` creates a `PendingApproval` account) |
 | `/auth/logout`, `/auth/me`            | POST, GET   | authorized                        |
+| `/users?`                             | GET         | admin — all accounts, pending first |
+| `/users/{id}/approve`                 | POST        | admin — activates a pending account |
+| `/users/{id}`                         | DELETE      | admin — soft delete + session revoke |
 | `/posts?offset=&limit=`               | GET         | feed                              |
 | `/posts`                              | POST        | multipart: caption + files[]      |
 | `/posts/{id}`                         | GET/PUT/DELETE | PUT = caption; DELETE = soft delete + trash |

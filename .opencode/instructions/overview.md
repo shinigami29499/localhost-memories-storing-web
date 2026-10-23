@@ -22,6 +22,7 @@ The architecture guide describes the **target**; the code map describes the **cu
 
 ## Backend Validation: No Tests
 
+- Do not run any tests unless the user explicitly requests a test run.
 - Do not write, add, generate, modify, or run backend tests.
 - Do not create backend test projects, fixtures, snapshots, or test dependencies.
 - Do not run `dotnet test`, backend test runners, API verification scripts, smoke tests, or integration-test commands, directly or through wrappers.

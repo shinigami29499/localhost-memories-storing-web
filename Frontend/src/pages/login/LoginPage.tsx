@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { ArrowRight } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { authService } from "../../services/authService";
 import { useAuthStore } from "../../store/authStore";
 import { Button, Input } from "../../components/ui";
@@ -68,9 +69,11 @@ export function LoginPage() {
         {error ? <ErrorState message={error} /> : null}
 
         <Button type="submit" busy={busy}>
-          Sign in <span aria-hidden="true">&rarr;</span>
+          Sign in <ArrowRight size={18} aria-hidden="true" />
         </Button>
-        <p className="login__footnote">A little inspiration is waiting on the other side.</p>
+        <p className="login__footnote">
+          New to ShinigaCim? <Link className="login__swap" to="/register">Create an account</Link>
+        </p>
         </form>
       </main>
       <footer className="login__footer">

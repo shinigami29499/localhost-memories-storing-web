@@ -1,30 +1,87 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { ArrowLeft, ArrowRight, X } from "lucide-react";
 import type { MediaFile } from "../../types";
-import { mediaUrl, formatBytes } from "../../utils/Media";
+import { mediaUrl } from "../../utils/media";
 
-/**
- * Renders the media files of a post. Images get immediate previews; videos use a
- * native <video> element with range-supported streaming from the backend.
- */
-export function MediaGallery({ media }: { media: MediaFile[] }) {
-  const [lightbox, setLightbox] = useState<MediaFile | null>(null);
+interface Props {
+  media: MediaFile[];
+  onPreviousPost?: () => void;
+  onNextPost?: () => void;
+}
 
-  if (media.length === 0) return null;
+export function MediaGallery({ media, onPreviousPost, onNextPost }: Props) {
+  const [index, setIndex] = useState(0);
+  const [lightbox, setLightbox] = useState(false);
+  const [failedId, setFailedId] = useState<string | null>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const activeIndex = Math.min(index, Math.max(0, media.length - 1));
+  const file = media[activeIndex];
+  const previous = () => setIndex(Math.max(0, activeIndex - 1));
+  const next = () => setIndex(Math.min(media.length - 1, activeIndex + 1));
+
+  useEffect(() => {
+    if (!lightbox) return;
+    const dialog = dialogRef.current;
+    const opener = document.activeElement;
+    dialog?.showModal();
+    return () => {
+      dialog?.close();
+      if (opener instanceof HTMLElement && opener.isConnected) opener.focus();
+    };
+  }, [lightbox]);
+
+  if (!file) return null;
 
   return (
-    <div className={`media-gallery ${media.length > 1 ? "media-gallery--grid" : ""}`}>
-      {media.map((file) => (
-        <figure
-          key={file.id}
-          className="media-gallery__item"
-          onClick={() => file.mediaKind === "image" && setLightbox(file)}
-        >
-          {file.mediaKind === "image" ? (
+    <div
+      className="media-gallery"
+      role="region"
+      aria-label={media.length > 1 ? "Post photos and videos" : "Post media"}
+      aria-roledescription="carousel"
+      tabIndex={media.length > 1 ? 0 : undefined}
+      onKeyDown={(event) => {
+        if (event.target !== event.currentTarget) return;
+        if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+          event.preventDefault();
+          if (event.key === "ArrowLeft") previous();
+          else next();
+        }
+      }}
+    >
+      <figure className="media-gallery__item">
+        <div className="media-gallery__stage" key={file.id}>
+          {failedId === file.id ? (
+            <p className="media-gallery__unsupported" role="alert">Could not load this media.</p>
+          ) : file.mediaKind === "image" ? (
             <img
               src={mediaUrl(file.id)}
               alt={file.originalFilename}
-              loading="lazy"
+              loading="eager"
+              draggable={false}
               className="media-gallery__image"
+              role="button"
+              tabIndex={0}
+              aria-label="Image: click edges to navigate or center to enlarge"
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  setLightbox(true);
+                }
+              }}
+              onClick={(event) => {
+                const bounds = event.currentTarget.getBoundingClientRect();
+                const position = (event.clientX - bounds.left) / bounds.width;
+                if (position < 0.25) {
+                  if (media.length > 1) previous();
+                  else onPreviousPost?.();
+                } else if (position > 0.75) {
+                  if (media.length > 1) next();
+                  else onNextPost?.();
+                } else {
+                  setLightbox(true);
+                }
+              }}
+              onError={() => setFailedId(file.id)}
             />
           ) : file.mediaKind === "video" ? (
             <video
@@ -32,25 +89,40 @@ export function MediaGallery({ media }: { media: MediaFile[] }) {
               controls
               preload="metadata"
               className="media-gallery__video"
+              onError={() => setFailedId(file.id)}
             />
           ) : (
             <div className="media-gallery__unsupported">
               <p>Unsupported media type ({file.mimeType})</p>
-              <a href={mediaUrl(file.id)} download={file.originalFilename}>
-                Download
-              </a>
+              <a href={mediaUrl(file.id)} download={file.originalFilename}>Download</a>
             </div>
           )}
-          <figcaption className="media-gallery__meta">
-            {file.originalFilename} · {formatBytes(file.fileSizeBytes)}
-          </figcaption>
-        </figure>
-      ))}
-
-      {lightbox ? (
-        <div className="media-lightbox" onClick={() => setLightbox(null)} role="dialog" aria-label={lightbox.originalFilename}>
-          <img src={mediaUrl(lightbox.id)} alt={lightbox.originalFilename} />
         </div>
+      </figure>
+      {media.length > 1 ? (
+        <div className="media-gallery__navigation">
+          <button type="button" className="viewer-icon-btn" aria-label="Previous photo or video" title="Previous photo or video" disabled={activeIndex === 0} onClick={previous}>
+            <ArrowLeft size={20} aria-hidden="true" />
+          </button>
+          <span role="status">{activeIndex + 1} of {media.length}</span>
+          <button type="button" className="viewer-icon-btn" aria-label="Next photo or video" title="Next photo or video" disabled={activeIndex === media.length - 1} onClick={next}>
+            <ArrowRight size={20} aria-hidden="true" />
+          </button>
+        </div>
+      ) : null}
+      {lightbox ? (
+        <dialog
+          ref={dialogRef}
+          className="media-lightbox"
+          aria-label={file.originalFilename}
+          onCancel={(event) => { event.preventDefault(); setLightbox(false); }}
+          onClick={(event) => { if (event.target === event.currentTarget) setLightbox(false); }}
+        >
+          <button type="button" className="viewer-icon-btn media-lightbox__close" aria-label="Close image preview" title="Close image preview" onClick={() => setLightbox(false)}>
+            <X size={20} aria-hidden="true" />
+          </button>
+          <img src={mediaUrl(file.id)} alt={file.originalFilename} />
+        </dialog>
       ) : null}
     </div>
   );

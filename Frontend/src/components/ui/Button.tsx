@@ -1,4 +1,5 @@
 import type { ReactNode, ButtonHTMLAttributes } from "react";
+import { LoaderCircle } from "lucide-react";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "secondary" | "ghost" | "danger";
@@ -14,7 +15,7 @@ export function Button({ variant = "primary", busy, disabled, children, ...rest 
       aria-busy={busy || undefined}
       {...rest}
     >
-      {busy ? <span className="btn__spinner" aria-hidden /> : null}
+      {busy ? <LoaderCircle className="btn__spinner" aria-hidden="true" /> : null}
       {children}
     </button>
   );

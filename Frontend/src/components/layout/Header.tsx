@@ -1,4 +1,6 @@
-import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { ChevronDown } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
 import { authService } from "../../services/authService";
 import { Brand } from "./Brand";
@@ -6,6 +8,8 @@ import { Brand } from "./Brand";
 export function Header() {
   const user = useAuthStore((s) => s.user);
   const navigate = useNavigate();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const isAdmin = user?.role?.toLowerCase() === "admin";
 
   const logout = async () => {
     const { accessToken, refreshToken, clear } = useAuthStore.getState();
@@ -24,18 +28,40 @@ export function Header() {
   return (
     <header className="header">
       <Brand />
-      <nav className="header__nav" aria-label="Main navigation">
-        <a href="#feed" aria-current="page">Community feed</a>
-        <a href="#create-post">Share a moment <span aria-hidden="true">&rarr;</span></a>
-      </nav>
       <div className="header__user">
         {user ? (
-          <>
-            <span className="header__username">{user.username}</span>
-            <button className="btn btn--ghost" onClick={logout}>
-              Log out
+          <div
+            className={`header__menu-wrap${menuOpen ? " is-open" : ""}`}
+            onMouseEnter={() => setMenuOpen(true)}
+            onMouseLeave={() => setMenuOpen(false)}
+          >
+            <button
+              type="button"
+              className="header__username"
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+              onClick={() => setMenuOpen((open) => !open)}
+            >
+              {user.username}
+              <ChevronDown size={14} aria-hidden="true" />
             </button>
-          </>
+            <div className="header__menu" role="menu">
+              {isAdmin ? (
+                <>
+                  <Link className="header__menu-item" role="menuitem" to="/admin/users" onClick={() => setMenuOpen(false)}>
+                    Manage users
+                  </Link>
+                  <Link className="header__menu-item" role="menuitem" to="/admin/posts" onClick={() => setMenuOpen(false)}>
+                    Manage posts
+                  </Link>
+                </>
+              ) : null}
+              <div className="header__menu-separator" role="separator" />
+              <button type="button" className="header__menu-item header__menu-item--danger" role="menuitem" onClick={logout}>
+                Log out
+              </button>
+            </div>
+          </div>
         ) : null}
       </div>
     </header>

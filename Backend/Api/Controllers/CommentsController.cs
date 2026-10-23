@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Api.Authorization;
 using Service.Models.Comments;
 using Service.Requests.Comments;
 using Service.Interfaces;
@@ -30,6 +31,7 @@ public class CommentsController(ICommentService commentService, ICurrentUserCont
         => Ok(await _commentService.UpdateCommentAsync(
             commentId, _currentUser.RequireUserId(), _currentUser.IsAdmin, request.Content, cancellationToken));
 
+    [RequireAdmin]
     [HttpDelete("api/comments/{commentId:guid}")]
     public async Task<IActionResult> DeleteCommentAsync(Guid commentId, CancellationToken cancellationToken)
     {

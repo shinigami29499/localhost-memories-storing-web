@@ -20,3 +20,4 @@ appsettings.*.UserSecrets.json
 .env
 .env.local
 
+**/storage/

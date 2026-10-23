@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { postService } from "../../services/postService";
 import { Button } from "../ui";
+import { Paperclip, PencilLine, X } from "lucide-react";
 import { ErrorState } from "../ui/Status";
 import type { Post } from "../../types";
 
@@ -53,7 +54,9 @@ export function NewPostForm({ onCreated }: Props) {
   return (
     <section className="new-post" id="create-post" aria-labelledby="new-post-title">
       <div className="new-post__heading">
-        <span className="new-post__symbol" aria-hidden="true">+</span>
+        <span className="new-post__symbol" aria-hidden="true">
+          <PencilLine size={18} aria-hidden="true" />
+        </span>
         <div>
           <h3 id="new-post-title">What is your moment?</h3>
           <p>A little of your world, shared with everyone.</p>
@@ -70,7 +73,7 @@ export function NewPostForm({ onCreated }: Props) {
 
       <div className="new-post__row">
         <label className="btn btn--secondary new-post__pick">
-          📎 Attach media
+          <Paperclip size={18} aria-hidden="true" /> Attach media
           <input
             ref={fileInput}
             type="file"
@@ -95,7 +98,7 @@ export function NewPostForm({ onCreated }: Props) {
               onClick={() => setFiles((prev) => prev.filter((_, i) => i !== index))}
               aria-label={`Remove ${file.name}`}
             >
-              ✕
+              <X size={14} aria-hidden="true" />
             </button>
           </span>
         ))}

@@ -145,6 +145,22 @@ public sealed class MediaStorageService(
             trashRelativePath, targetRelativePath);
     }
 
+    public Task DeleteAsync(string relativePath, CancellationToken cancellationToken = default)
+    {
+        // Missing files are tolerated so permanent deletion stays idempotent.
+        ValidateOwnedPath(relativePath);
+        var absolute = ResolveAbsolute(relativePath);
+        if (!File.Exists(absolute))
+        {
+            _logger.LogWarning("Storage file '{RelativePath}' is already gone", relativePath);
+            return Task.CompletedTask;
+        }
+
+        File.Delete(absolute);
+        _logger.LogInformation("Deleted storage file {RelativePath}", relativePath);
+        return Task.CompletedTask;
+    }
+
     public Task<bool> ExistsAsync(string relativePath)
         => Task.FromResult(File.Exists(ResolveAbsolute(relativePath)));
 

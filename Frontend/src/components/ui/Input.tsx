@@ -9,6 +9,9 @@ interface InputProps extends Omit<HTMLAttributes<HTMLInputElement>, "onChange"> 
   required?: boolean;
   ariaLabel?: string;
   maxLength?: number;
+  minLength?: number;
+  pattern?: string;
+  title?: string;
 }
 
 export function Input({ value, onChange, ...rest }: InputProps) {

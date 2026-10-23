@@ -36,4 +36,34 @@ internal static class PostMappings
         commentCount,
         reactionCounts,
         myReactions);
+
+    internal static AdminPostDto ToAdminDto(AdminPostSource source) => new(
+        source.Post.Id,
+        source.Post.Caption,
+        source.Post.CreatedAt,
+        source.Post.UpdatedAt,
+        source.Post.DeletedAt,
+        new UserSummaryDto(source.Post.User.Id, source.Post.User.Username),
+        source.DeletedBy is null ? null : new UserSummaryDto(source.DeletedBy.Id, source.DeletedBy.Username),
+        source.MediaCount,
+        source.CommentCount,
+        source.Post.MediaFiles
+            .OrderBy(m => m.CreatedAt)
+            .Select(m => new AdminPostMediaDto(m.Id, m.MediaKind, m.MimeType))
+            .ToList());
+
+    internal static DeletedPostDto ToDeletedDto(
+        Post post,
+        User? deletedBy,
+        int mediaCount,
+        long commentCount) => new(
+        post.Id,
+        post.Caption,
+        post.CreatedAt,
+        post.UpdatedAt,
+        post.DeletedAt!.Value,
+        new UserSummaryDto(post.User.Id, post.User.Username),
+        deletedBy is null ? null : new UserSummaryDto(deletedBy.Id, deletedBy.Username),
+        mediaCount,
+        commentCount);
 }

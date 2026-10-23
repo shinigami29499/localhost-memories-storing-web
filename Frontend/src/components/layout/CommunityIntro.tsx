@@ -1,3 +1,5 @@
+import { Plus } from "lucide-react";
+
 export function CommunityIntro({ variant }: { variant: "login" | "feed" }) {
   const isLogin = variant === "login";
 
@@ -25,7 +27,7 @@ export function CommunityIntro({ variant }: { variant: "login" | "feed" }) {
             <span>A different perspective</span>
           </div>
           <div className="community-art__card community-art__card--front">
-            <span className="community-art__spark">+</span>
+            <span className="community-art__spark"><Plus size={24} /></span>
             <strong>Share. Connect. Belong.</strong>
             <span>Small moments. Real connections.</span>
           </div>

@@ -26,4 +26,10 @@ public sealed class Mapper : IMapper
         IReadOnlyList<ReactionCountDto> reactionCounts,
         IReadOnlyList<string> myReactions)
         => PostMappings.ToDto(post, commentCount, reactionCounts, myReactions);
+
+    public DeletedPostDto Map(Post post, User? deletedBy, int mediaCount, long commentCount)
+        => PostMappings.ToDeletedDto(post, deletedBy, mediaCount, commentCount);
+
+    public AdminPostDto Map(AdminPostSource source)
+        => PostMappings.ToAdminDto(source);
 }

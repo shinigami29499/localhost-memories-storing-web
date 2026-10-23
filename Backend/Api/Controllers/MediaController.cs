@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using Api.Authorization;
 using Service.Options;
 using Service.Exceptions;
 using Service.Interfaces;
@@ -30,29 +31,47 @@ public class MediaController(
     private readonly ICurrentUserContext _currentUser = currentUser;
     private readonly JwtOptions _jwtOptions = jwtOptions.Value;
 
-    /// <summary>Streams media; browser elements may authenticate with ?accessToken=.</summary>
+    /// <summary>Streams media; includeDeleted allows admins to preview files in trash without restoring them.</summary>
     [HttpGet("{mediaId:guid}/file")]
     [AllowAnonymous]
-    public async Task<IActionResult> GetFileAsync(Guid mediaId, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetFileAsync(
+        Guid mediaId, CancellationToken cancellationToken, [FromQuery] bool includeDeleted = false)
     {
         var accessTokenQuery = (string?)Request.Query["accessToken"];
         if (_currentUser.UserId is null && !TryResolveAccessTokenUser(accessTokenQuery))
             throw new UnauthorizedAccessException("A valid access token (header or ?accessToken=) is required.");
 
-        var media = await _db.MediaFiles.AsNoTracking()
+        if (includeDeleted && !_currentUser.IsAdmin)
+            throw new ForbiddenException("Only administrators may preview deleted media.");
+
+        var mediaQuery = _db.MediaFiles.AsNoTracking();
+        var postQuery = _db.Posts.AsNoTracking();
+        if (includeDeleted)
+        {
+            mediaQuery = mediaQuery.IgnoreQueryFilters();
+            postQuery = postQuery.IgnoreQueryFilters();
+            Response.Headers.CacheControl = "no-store";
+        }
+
+        var media = await mediaQuery
             .FirstOrDefaultAsync(m => m.Id == mediaId, cancellationToken)
             ?? throw new NotFoundException($"Media '{mediaId}' was not found.");
 
-        if (!await _db.Posts.AsNoTracking().AnyAsync(p => p.Id == media.PostId, cancellationToken))
+        if (!await postQuery.AnyAsync(p => p.Id == media.PostId, cancellationToken))
             throw new NotFoundException($"Media '{mediaId}' belongs to an unavailable post.");
 
-        if (!await _storage.ExistsAsync(media.RelativePath))
+        var relativePath = media.DeletedAt is null
+            ? media.RelativePath
+            : media.TrashRelativePath
+                ?? throw new NotFoundException($"Media '{mediaId}' has no file in trash.");
+
+        if (!await _storage.ExistsAsync(relativePath))
         {
             throw new NotFoundException(
                 $"Media '{mediaId}' is present in the database but missing on disk.");
         }
 
-        var stream = await _storage.OpenAsync(media.RelativePath);
+        var stream = await _storage.OpenAsync(relativePath);
         return File(
             stream,
             media.MimeType,
@@ -60,6 +79,7 @@ public class MediaController(
             enableRangeProcessing: true);
     }
 
+    [RequireAdmin]
     [HttpDelete("{mediaId:guid}")]
     public async Task<IActionResult> DeleteMediaAsync(Guid mediaId, CancellationToken cancellationToken)
     {

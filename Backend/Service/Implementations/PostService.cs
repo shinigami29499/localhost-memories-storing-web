@@ -270,6 +270,266 @@ public class PostService(
             postId, actorId, media.Count);
     }
 
+    public async Task<PagedFeedResponse<DeletedPostDto>> GetDeletedPostsAsync(
+        int offset, int limit, CancellationToken cancellationToken = default)
+    {
+        if (limit < 1 || limit > FeedRequest.MaxLimit)
+            throw new ValidationException(
+                "Invalid feed page.",
+                new Dictionary<string, string[]> { ["limit"] = [$"Must be between 1 and {FeedRequest.MaxLimit}."] });
+        if (offset < 0)
+            throw new ValidationException(
+                "Invalid feed page.",
+                new Dictionary<string, string[]> { ["offset"] = ["Must be zero or greater."] });
+
+        var query = _db.Posts.IgnoreQueryFilters().AsNoTracking()
+            .Where(p => p.DeletedAt != null);
+
+        var page = await query
+            .Include(p => p.User)
+            .OrderByDescending(p => p.DeletedAt)
+            .ThenByDescending(p => p.Id)
+            .Skip(offset)
+            .Take(limit)
+            .ToListAsync(cancellationToken);
+
+        var total = await query.LongCountAsync(cancellationToken);
+
+        if (page.Count == 0)
+            return new PagedFeedResponse<DeletedPostDto>(offset, limit, total, []);
+
+        var postIds = page.Select(p => p.Id).ToList();
+
+        var mediaCounts = await _db.MediaFiles.IgnoreQueryFilters().AsNoTracking()
+            .Where(m => postIds.Contains(m.PostId))
+            .GroupBy(m => m.PostId)
+            .Select(g => new { g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.Key, x => x.Count, cancellationToken);
+
+        var commentCounts = await _db.Comments.IgnoreQueryFilters().AsNoTracking()
+            .Where(c => postIds.Contains(c.PostId))
+            .GroupBy(c => c.PostId)
+            .Select(g => new { g.Key, Count = g.LongCount() })
+            .ToDictionaryAsync(x => x.Key, x => x.Count, cancellationToken);
+
+        var deletedByIds = page
+            .Where(p => p.DeletedBy.HasValue)
+            .Select(p => p.DeletedBy!.Value)
+            .Distinct()
+            .ToList();
+        var deleters = deletedByIds.Count == 0
+            ? new Dictionary<Guid, User>()
+            : await _db.Users.IgnoreQueryFilters().AsNoTracking()
+                .Where(u => deletedByIds.Contains(u.Id))
+                .ToDictionaryAsync(u => u.Id, cancellationToken);
+
+        var items = page.Select(p => mapper.Map(
+            p,
+            p.DeletedBy.HasValue ? deleters.GetValueOrDefault(p.DeletedBy.Value) : null,
+            mediaCounts.GetValueOrDefault(p.Id),
+            commentCounts.GetValueOrDefault(p.Id))).ToList();
+
+        return new PagedFeedResponse<DeletedPostDto>(offset, limit, total, items);
+    }
+
+    public async Task<PagedFeedResponse<AdminPostDto>> GetAllPostsAsync(
+        int offset, int limit, CancellationToken cancellationToken = default)
+    {
+        if (limit < 1 || limit > FeedRequest.MaxLimit)
+            throw new ValidationException(
+                "Invalid feed page.",
+                new Dictionary<string, string[]> { ["limit"] = [$"Must be between 1 and {FeedRequest.MaxLimit}."] });
+        if (offset < 0)
+            throw new ValidationException(
+                "Invalid feed page.",
+                new Dictionary<string, string[]> { ["offset"] = ["Must be zero or greater."] });
+
+        var query = _db.Posts.IgnoreQueryFilters().AsNoTracking();
+
+        var page = await query
+            .Include(p => p.User)
+            .Include(p => p.MediaFiles)
+            .OrderByDescending(p => p.CreatedAt)
+            .ThenByDescending(p => p.Id)
+            .Skip(offset)
+            .Take(limit)
+            .ToListAsync(cancellationToken);
+
+        var total = await query.LongCountAsync(cancellationToken);
+
+        if (page.Count == 0)
+            return new PagedFeedResponse<AdminPostDto>(offset, limit, total, []);
+
+        var postIds = page.Select(p => p.Id).ToList();
+
+        var commentCounts = await _db.Comments.IgnoreQueryFilters().AsNoTracking()
+            .Where(c => postIds.Contains(c.PostId))
+            .GroupBy(c => c.PostId)
+            .Select(g => new { g.Key, Count = g.LongCount() })
+            .ToDictionaryAsync(x => x.Key, x => x.Count, cancellationToken);
+
+        var deletedByIds = page
+            .Where(p => p.DeletedBy.HasValue)
+            .Select(p => p.DeletedBy!.Value)
+            .Distinct()
+            .ToList();
+        var deleters = deletedByIds.Count == 0
+            ? new Dictionary<Guid, User>()
+            : await _db.Users.IgnoreQueryFilters().AsNoTracking()
+                .Where(u => deletedByIds.Contains(u.Id))
+                .ToDictionaryAsync(u => u.Id, cancellationToken);
+
+        var items = page.Select(p => mapper.Map(new AdminPostSource(
+            p,
+            p.DeletedBy.HasValue ? deleters.GetValueOrDefault(p.DeletedBy.Value) : null,
+            p.MediaFiles.Count,
+            commentCounts.GetValueOrDefault(p.Id)))).ToList();
+
+        return new PagedFeedResponse<AdminPostDto>(offset, limit, total, items);
+    }
+
+    public async Task RestorePostAsync(Guid postId, Guid actorId, CancellationToken cancellationToken = default)
+    {
+        var post = await _db.Posts.IgnoreQueryFilters()
+            .FirstOrDefaultAsync(p => p.Id == postId, cancellationToken)
+            ?? throw new NotFoundException($"Post '{postId}' was not found.");
+
+        if (post.DeletedAt is null)
+            throw new ConflictException($"Post '{postId}' is not deleted and cannot be restored.");
+
+        var deletedAt = post.DeletedAt.Value;
+        var deletedBy = post.DeletedBy;
+
+        var media = await _db.MediaFiles.IgnoreQueryFilters()
+            .Where(m => m.PostId == postId)
+            .ToListAsync(cancellationToken);
+
+        var trashed = media
+            .Where(m => m.TrashRelativePath is not null)
+            .Select(m => (File: m, TrashPath: m.TrashRelativePath!))
+            .ToList();
+
+        var restoredFiles = new List<MediaFile>();
+        try
+        {
+            foreach (var item in trashed)
+            {
+                await _storage.RestoreFromTrashAsync(item.TrashPath, item.File.RelativePath, cancellationToken);
+                restoredFiles.Add(item.File);
+            }
+
+            await using var tx = await _db.Database.BeginTransactionAsync(cancellationToken);
+
+            post.DeletedAt = null;
+            post.DeletedBy = null;
+
+            foreach (var file in media)
+            {
+                file.DeletedAt = null;
+                file.DeletedBy = null;
+                file.TrashRelativePath = null;
+                file.TrashedAt = null;
+            }
+
+            await _db.Comments.IgnoreQueryFilters()
+                .Where(c => c.PostId == postId && c.DeletedAt == deletedAt && c.DeletedBy == deletedBy)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(c => c.DeletedAt, (DateTime?)null)
+                    .SetProperty(c => c.DeletedBy, (Guid?)null)
+                    .SetProperty(c => c.UpdatedAt, DateTime.UtcNow)
+                    .SetProperty(c => c.UpdatedBy, actorId),
+                    cancellationToken);
+
+            await _db.Reactions.IgnoreQueryFilters()
+                .Where(r => r.PostId == postId && r.DeletedAt == deletedAt && r.DeletedBy == deletedBy)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(r => r.DeletedAt, (DateTime?)null)
+                    .SetProperty(r => r.DeletedBy, (Guid?)null)
+                    .SetProperty(r => r.UpdatedAt, DateTime.UtcNow)
+                    .SetProperty(r => r.UpdatedBy, actorId),
+                    cancellationToken);
+
+            await _db.SaveChangesAsync(cancellationToken);
+            await tx.CommitAsync(cancellationToken);
+        }
+        catch
+        {
+            // Compensate filesystem moves when the restore fails, so the trash state matches the database.
+            _logger.LogError("Post {PostId} restore failed; returning files to trash", postId);
+            foreach (var file in restoredFiles)
+            {
+                try
+                {
+                    await _storage.MoveToTrashAsync(file.RelativePath, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex,
+                        "Compensation failed: restored file {RelativePath} could not be returned to trash",
+                        file.RelativePath);
+                }
+            }
+            throw;
+        }
+
+        _logger.LogInformation(
+            "Post {PostId} restored by {ActorId}: {MediaCount} media file(s) untrashed",
+            postId, actorId, trashed.Count);
+    }
+
+    public async Task PurgePostAsync(Guid postId, Guid actorId, CancellationToken cancellationToken = default)
+    {
+        var post = await _db.Posts.IgnoreQueryFilters()
+            .FirstOrDefaultAsync(p => p.Id == postId, cancellationToken)
+            ?? throw new NotFoundException($"Post '{postId}' was not found.");
+
+        // Soft-deleted posts keep their files in trash; active posts keep them in media storage.
+        var filePaths = await _db.MediaFiles.IgnoreQueryFilters()
+            .Where(m => m.PostId == postId)
+            .Select(m => new { m.RelativePath, m.TrashRelativePath })
+            .ToListAsync(cancellationToken);
+
+        var files = filePaths
+            .Select(m => m.TrashRelativePath ?? m.RelativePath)
+            .ToList();
+
+        await using var tx = await _db.Database.BeginTransactionAsync(cancellationToken);
+
+        await _db.Comments.IgnoreQueryFilters()
+            .Where(c => c.PostId == postId)
+            .ExecuteDeleteAsync(cancellationToken);
+        await _db.Reactions.IgnoreQueryFilters()
+            .Where(r => r.PostId == postId)
+            .ExecuteDeleteAsync(cancellationToken);
+        await _db.MediaFiles.IgnoreQueryFilters()
+            .Where(m => m.PostId == postId)
+            .ExecuteDeleteAsync(cancellationToken);
+        await _db.Posts.IgnoreQueryFilters()
+            .Where(p => p.Id == postId)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        await tx.CommitAsync(cancellationToken);
+
+        // Database rows are gone, so the files become best-effort garbage removal.
+        foreach (var filePath in files)
+        {
+            try
+            {
+                await _storage.DeleteAsync(filePath, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex,
+                    "Media file '{FilePath}' could not be removed after purging post {PostId}",
+                    filePath, postId);
+            }
+        }
+
+        _logger.LogInformation(
+            "Post {PostId} permanently deleted by {ActorId}: {FileCount} media file(s) removed",
+            postId, actorId, files.Count);
+    }
+
     private async Task<Post> LoadOwnedPostAsync(
         Guid postId, Guid actorId, bool isAdmin, CancellationToken cancellationToken)
     {

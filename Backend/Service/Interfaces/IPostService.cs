@@ -14,4 +14,8 @@ public interface IPostService
     Task<PostSummaryDto> UpdateCaptionAsync(
         Guid postId, Guid actorId, bool isAdmin, string caption, CancellationToken cancellationToken = default);
     Task DeletePostAsync(Guid postId, Guid actorId, bool isAdmin, CancellationToken cancellationToken = default);
+    Task<PagedFeedResponse<DeletedPostDto>> GetDeletedPostsAsync(int offset, int limit, CancellationToken cancellationToken = default);
+    Task<PagedFeedResponse<AdminPostDto>> GetAllPostsAsync(int offset, int limit, CancellationToken cancellationToken = default);
+    Task RestorePostAsync(Guid postId, Guid actorId, CancellationToken cancellationToken = default);
+    Task PurgePostAsync(Guid postId, Guid actorId, CancellationToken cancellationToken = default);
 }

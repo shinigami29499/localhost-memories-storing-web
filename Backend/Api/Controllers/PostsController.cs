@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Api.Authorization;
 using Service.Models.Posts;
 using Service.Requests.Posts;
 using Service.Responses.Posts;
@@ -40,11 +41,42 @@ public class PostsController(IPostService postService, ICurrentUserContext curre
         => Ok(await _postService.UpdateCaptionAsync(
             postId, _currentUser.RequireUserId(), _currentUser.IsAdmin, request.Caption, cancellationToken));
 
+    [RequireAdmin]
     [HttpDelete("{postId:guid}")]
     public async Task<IActionResult> DeletePostAsync(Guid postId, CancellationToken cancellationToken)
     {
         await _postService.DeletePostAsync(
             postId, _currentUser.RequireUserId(), _currentUser.IsAdmin, cancellationToken);
+        return NoContent();
+    }
+
+    /// <summary>Admin-only listing of soft-deleted posts.</summary>
+    [RequireAdmin]
+    [HttpGet("deleted")]
+    public async Task<ActionResult<PagedFeedResponse<DeletedPostDto>>> GetDeletedAsync(
+        [FromQuery] FeedRequest request, CancellationToken cancellationToken)
+        => Ok(await _postService.GetDeletedPostsAsync(request.Offset, request.Limit, cancellationToken));
+
+    /// <summary>Admin-only listing of all posts, active and soft-deleted.</summary>
+    [RequireAdmin]
+    [HttpGet("all")]
+    public async Task<ActionResult<PagedFeedResponse<AdminPostDto>>> GetAllAsync(
+        [FromQuery] FeedRequest request, CancellationToken cancellationToken)
+        => Ok(await _postService.GetAllPostsAsync(request.Offset, request.Limit, cancellationToken));
+
+    [RequireAdmin]
+    [HttpPost("{postId:guid}/restore")]
+    public async Task<IActionResult> RestorePostAsync(Guid postId, CancellationToken cancellationToken)
+    {
+        await _postService.RestorePostAsync(postId, _currentUser.RequireUserId(), cancellationToken);
+        return NoContent();
+    }
+
+    [RequireAdmin]
+    [HttpDelete("{postId:guid}/permanent")]
+    public async Task<IActionResult> PurgePostAsync(Guid postId, CancellationToken cancellationToken)
+    {
+        await _postService.PurgePostAsync(postId, _currentUser.RequireUserId(), cancellationToken);
         return NoContent();
     }
 }

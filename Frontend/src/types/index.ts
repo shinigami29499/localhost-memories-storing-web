@@ -1,8 +1,10 @@
+export type AccountStatus = "active" | "disabled" | "pending_approval";
+
 export interface AuthUser {
   id: string;
   username: string;
   role: string;
-  status: string;
+  status: AccountStatus;
   createdAt: string;
 }
 
@@ -42,6 +44,37 @@ export interface Post {
   commentCount: number;
   reactionCounts: ReactionCount[];
   myReactionTypes: string[];
+}
+
+export interface DeletedPost {
+  id: string;
+  caption: string;
+  createdAt: string;
+  updatedAt: string | null;
+  deletedAt: string;
+  author: UserSummary;
+  deletedBy: UserSummary | null;
+  mediaCount: number;
+  commentCount: number;
+}
+
+export interface AdminPostMedia {
+  id: string;
+  mediaKind: "image" | "video" | string;
+  mimeType: string;
+}
+
+export interface AdminPost {
+  id: string;
+  caption: string;
+  createdAt: string;
+  updatedAt: string | null;
+  deletedAt: string | null;
+  author: UserSummary;
+  deletedBy: UserSummary | null;
+  mediaCount: number;
+  commentCount: number;
+  media: AdminPostMedia[];
 }
 
 export interface PagedFeed<T> {

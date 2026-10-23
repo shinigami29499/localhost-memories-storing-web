@@ -12,6 +12,7 @@ public static class Constants
         public const string SubClaim = "sub";
         public const string UsernameClaim = "username";
         public const string RoleClaim = "role";
+        public const string AdminPolicy = "AdminOnly";
 
         /// <summary>Reasons recorded on refresh-token revocation.</summary>
         public static class RevocationReasons
@@ -19,6 +20,7 @@ public static class Constants
             public const string Rotated = "rotated";
             public const string Logout = "logout";
             public const string ReuseDetected = "reuse-detected";
+            public const string UserDeleted = "user-deleted";
         }
     }
 }

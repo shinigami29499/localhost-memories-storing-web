@@ -18,4 +18,6 @@ public interface IMapper
         long commentCount,
         IReadOnlyList<ReactionCountDto> reactionCounts,
         IReadOnlyList<string> myReactions);
+    DeletedPostDto Map(Post post, User? deletedBy, int mediaCount, long commentCount);
+    AdminPostDto Map(AdminPostSource source);
 }

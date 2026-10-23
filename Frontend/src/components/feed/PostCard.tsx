@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
+import { X } from "lucide-react";
 import type { Comment, Post } from "../../types";
 import { commentService, postService, reactionService } from "../../services/postService";
-import { formatTimestamp } from "../../utils/Media";
+import { formatTimestamp } from "../../utils/media";
 import { MediaGallery } from "./MediaGallery";
 import { CommentSection } from "./CommentSection";
-import { ReactionControls, type ReactionType } from "./ReactionControls";
+import { REACTION_TYPES, ReactionControls, type ReactionType } from "./ReactionControls";
+import { ReactionIcon } from "./ReactionIcon";
+import { DeletePostDialog } from "./DeletePostDialog";
 import { useAuthStore } from "../../store/authStore";
 
 interface Props {
@@ -12,13 +15,14 @@ interface Props {
   /** Whenever post data changes the parent should replace the card. */
   onChanged: (updated: Post) => void;
   onDeleted: (postId: string) => void;
+  onPreviousPost?: () => void;
+  onNextPost?: () => void;
 }
 
 /** One feed card: media, caption, author, reactions, comments, owner actions. */
-export function PostCard({ post, onChanged, onDeleted }: Props) {
+export function PostCard({ post, onChanged, onDeleted, onPreviousPost, onNextPost }: Props) {
   const me = useAuthStore((s) => s.user);
-  const isAdmin = me?.role === "Admin";
-  const canEdit = isAdmin || me?.id === post.author.id;
+  const isAdmin = me?.role?.toLowerCase() === "admin";
 
   const [comments, setComments] = useState<Comment[]>([]);
   const [showComments, setShowComments] = useState(false);
@@ -53,16 +57,6 @@ export function PostCard({ post, onChanged, onDeleted }: Props) {
     }
   };
 
-  const removePost = async () => {
-    try {
-      await postService.remove(post.id);
-      onDeleted(post.id);
-    } catch {
-      setError("Could not delete this post.");
-      setConfirmingDelete(false);
-    }
-  };
-
   return (
     <article className="post-card">
       <header className="post-card__header">
@@ -78,33 +72,27 @@ export function PostCard({ post, onChanged, onDeleted }: Props) {
             </time>
           </div>
         </div>
-        {canEdit ? (
+        {isAdmin ? (
           <div className="post-card__actions">
-            {confirmingDelete ? (
-              <>
-                <button className="btn btn--danger" onClick={removePost}>
-                  Confirm
-                </button>
-                <button className="btn btn--ghost" onClick={() => setConfirmingDelete(false)}>
-                  Cancel
-                </button>
-              </>
-            ) : (
               <button
-                className="btn btn--ghost"
+                type="button"
+                className="btn btn--ghost post-card__delete"
                 onClick={() => setConfirmingDelete(true)}
                 aria-label="Delete post"
+                title="Delete post"
               >
-                Delete
+                <X size={20} aria-hidden="true" />
               </button>
-            )}
           </div>
         ) : null}
       </header>
+      {confirmingDelete ? (
+        <DeletePostDialog postId={post.id} onClose={() => setConfirmingDelete(false)} onDeleted={onDeleted} />
+      ) : null}
 
       <p className="post-card__caption">{post.caption}</p>
 
-      <MediaGallery media={post.media} />
+      <MediaGallery media={post.media} onPreviousPost={onPreviousPost} onNextPost={onNextPost} />
 
       {error ? <p className="post-card__error" role="alert">{error}</p> : null}
 
@@ -113,15 +101,33 @@ export function PostCard({ post, onChanged, onDeleted }: Props) {
           counts={post.reactionCounts}
           mine={post.myReactionTypes}
           onToggle={toggleReaction}
+          canRemove={isAdmin}
           busy={reactionBusy}
         />
         <button
-          className="btn btn--ghost"
+          type="button"
+          className="post-card__comment-action"
           onClick={() => setShowComments((v) => !v)}
           aria-expanded={showComments}
+          aria-label={`${showComments ? "Hide" : "Show"} ${post.commentCount} comments`}
+          title={showComments ? "Hide comments" : "Show comments"}
         >
-          💬 {post.commentCount} {post.commentCount === 1 ? "comment" : "comments"}
+          <ReactionIcon type="comment" />
+          <span>{post.commentCount}</span>
         </button>
+        <div className="post-card__reaction-summary" aria-label="Reaction totals">
+          {REACTION_TYPES.filter((type) => post.reactionCounts.some((count) => count.reactionType === type && count.count > 0)).map((type) => (
+            <span
+              key={type}
+              className={`post-card__reaction-badge post-card__reaction-badge--${type}`}
+              role="img"
+              aria-label={`${post.reactionCounts.find((count) => count.reactionType === type)?.count ?? 0} ${type} reactions`}
+              title={`${post.reactionCounts.find((count) => count.reactionType === type)?.count ?? 0} ${type} reactions`}
+            >
+              <ReactionIcon type={type} size={12} />
+            </span>
+          ))}
+        </div>
       </div>
 
       {showComments ? (

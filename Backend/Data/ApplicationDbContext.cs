@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Data.Interfaces;
 using Domain.Entities;
+using Domain.Enums;
 
 namespace Data;
 
@@ -20,9 +21,15 @@ public class ApplicationDbContext(
     {
         base.OnModelCreating(modelBuilder);
 
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            entityType.FindProperty(nameof(Entity.Id))?.SetDefaultValueSql("gen_random_uuid()");
+        }
+
         modelBuilder.Entity<User>(entity =>
         {
-            entity.HasIndex(u => u.Username).IsUnique();
+            entity.HasIndex(u => u.Username).IsUnique().HasFilter("deleted_at IS NULL");
+            entity.Property(u => u.Status).HasDefaultValue(AccountStatus.Active);
 
             entity.Property(u => u.Username).HasMaxLength(64).IsRequired();
             entity.Property(u => u.Password).HasMaxLength(128).IsRequired();

@@ -94,6 +94,11 @@
   font-size: 0.78rem;
 }
 
+.login__swap {
+  color: var(--accent-soft);
+  font-weight: 600;
+}
+
 .login__footer {
   border-top: 1px solid var(--border);
 }

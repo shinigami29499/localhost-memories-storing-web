@@ -5,10 +5,10 @@ import { useAuthStore } from "../store/authStore";
  * (<img>/<video> src) cannot attach Authorization headers, so the access token
  * is passed via the ?accessToken= query parameter (supported by the file endpoint only).
  */
-export function mediaUrl(mediaId: string): string {
+export function mediaUrl(mediaId: string, includeDeleted = false): string {
   const base = (import.meta.env.VITE_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
   const token = useAuthStore.getState().accessToken ?? "";
-  return `${base}/api/Media/${mediaId}/file?accessToken=${encodeURIComponent(token)}`;
+  return `${base}/api/Media/${mediaId}/file?accessToken=${encodeURIComponent(token)}${includeDeleted ? "&includeDeleted=true" : ""}`;
 }
 
 export function formatTimestamp(iso: string): string {

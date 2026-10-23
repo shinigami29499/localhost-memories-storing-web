@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
+import { X } from "lucide-react";
 import type { Comment } from "../../types";
 import { commentService } from "../../services/postService";
 import { useAuthStore } from "../../store/authStore";
-import { formatTimestamp } from "../../utils/Media";
+import { formatTimestamp } from "../../utils/media";
 import { Button, Input } from "../ui";
 import { ErrorState, Spinner } from "../ui/Status";
 
@@ -16,6 +17,7 @@ interface Props {
 /** Inline comment list + composer for one post. */
 export function CommentSection({ postId, comments, onAdded, reload }: Props) {
   const me = useAuthStore((s) => s.user);
+  const isAdmin = me?.role?.toLowerCase() === "admin";
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -75,13 +77,14 @@ export function CommentSection({ postId, comments, onAdded, reload }: Props) {
               <div className="comments__head">
                 <strong>{comment.author.username}</strong>
                 <time dateTime={comment.createdAt}>{formatTimestamp(comment.createdAt)}</time>
-                {me?.id === comment.author.id ? (
+                {isAdmin ? (
                   <button
                     className=" comments__delete"
                     onClick={() => remove(comment.id)}
                     aria-label="Delete comment"
+                    title="Delete comment"
                   >
-                    ✕
+                    <X size={16} aria-hidden="true" />
                   </button>
                 ) : null}
               </div>

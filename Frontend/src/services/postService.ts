@@ -1,5 +1,5 @@
 import { api } from "./api";
-import type { Comment, PagedFeed, Post, ReactionCount } from "../types";
+import type { AdminPost, Comment, DeletedPost, PagedFeed, Post, ReactionCount } from "../types";
 
 export const postService = {
   feed(offset = 0, limit = 10): Promise<PagedFeed<Post>> {
@@ -23,6 +23,23 @@ export const postService = {
 
   remove(postId: string): Promise<void> {
     return api<void>(`/api/posts/${postId}`, { method: "DELETE" });
+  },
+
+  listDeleted(offset = 0, limit = 50): Promise<PagedFeed<DeletedPost>> {
+    return api(`/api/posts/deleted?offset=${offset}&limit=${limit}`);
+  },
+
+  /** Admin listing of every post, active and soft-deleted. */
+  listAll(offset = 0, limit = 50): Promise<PagedFeed<AdminPost>> {
+    return api(`/api/posts/all?offset=${offset}&limit=${limit}`);
+  },
+
+  restore(postId: string): Promise<void> {
+    return api<void>(`/api/posts/${postId}/restore`, { method: "POST" });
+  },
+
+  purge(postId: string): Promise<void> {
+    return api<void>(`/api/posts/${postId}/permanent`, { method: "DELETE" });
   },
 };
 

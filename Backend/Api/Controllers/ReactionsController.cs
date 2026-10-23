@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Api.Authorization;
 using Service.Models.Posts;
 using Service.Requests.Reactions;
 using Service.Interfaces;
@@ -20,6 +21,7 @@ public class ReactionsController(IReactionService reactionService, ICurrentUserC
         => Ok(await _reactionService.ReactAsync(
             postId, _currentUser.RequireUserId(), request.ReactionType, cancellationToken));
 
+    [RequireAdmin]
     [HttpDelete("{reactionType}")]
     public async Task<ActionResult<IReadOnlyList<ReactionCountDto>>> UnreactAsync(
         Guid postId, string reactionType, CancellationToken cancellationToken)

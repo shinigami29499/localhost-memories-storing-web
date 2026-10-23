@@ -29,9 +29,8 @@ public class AuthService(
     {
         var username = request.Username.Trim();
 
-        // Username uniqueness includes deleted accounts.
+        // Username uniqueness only covers accounts that are not soft deleted.
         var nameTaken = await _db.Users
-            .IgnoreQueryFilters()
             .AnyAsync(u => u.Username == username, cancellationToken);
         if (nameTaken)
             throw new ConflictException("Username is already taken.");
@@ -53,12 +52,16 @@ public class AuthService(
             u => u.Username == request.Username.Trim(), cancellationToken);
 
         if (user is null
-            || !string.Equals(request.Password, user.Password, StringComparison.Ordinal)
-            || user.Status != AccountStatus.Active)
+            || !string.Equals(request.Password, user.Password, StringComparison.Ordinal))
         {
             _logger.LogWarning("Failed login attempt for username '{Username}'", request.Username);
             throw new UnauthorizedAccessException("Invalid username or password.");
         }
+
+        if (user.Status == AccountStatus.PendingApproval)
+            throw new ForbiddenException("Account is pending admin approval.");
+        if (user.Status == AccountStatus.Disabled)
+            throw new ForbiddenException("Account is disabled.");
 
         return await IssueTokenPairAsync(user, cancellationToken);
     }

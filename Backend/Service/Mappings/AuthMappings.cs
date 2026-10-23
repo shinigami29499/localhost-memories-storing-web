@@ -12,13 +12,19 @@ internal static class AuthMappings
     {
         Username = request.Username.Trim(),
         Password = request.Password,
-        Status = AccountStatus.Active,
+        Role = UserRole.User,
+        Status = AccountStatus.PendingApproval,
     };
 
     internal static UserResponse ToResponse(User user) => new(
         user.Id,
         user.Username,
         user.Role == UserRole.Admin ? Constants.Roles.Admin : Constants.Roles.User,
-        user.Status == AccountStatus.Active ? "active" : "disabled",
+        user.Status switch
+        {
+            AccountStatus.PendingApproval => "pending_approval",
+            AccountStatus.Disabled => "disabled",
+            _ => "active",
+        },
         user.CreatedAt);
 }

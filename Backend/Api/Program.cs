@@ -105,12 +105,14 @@ builder.Services
         };
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy(Constants.Auth.AdminPolicy, policy => policy.RequireRole(Constants.Roles.Admin));
 
 builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<MediaStorageOptions>>().Value);
 builder.Services.AddSingleton<IMediaStorageService, MediaStorageService>();
 
 builder.Services.AddSingleton<IMapper, Mapper>();
+builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IPostService, PostService>();

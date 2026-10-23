@@ -2,6 +2,7 @@ namespace Domain.Enums;
 
 public enum AccountStatus
 {
-    Active = 0,
-    Disabled = 1,
+    Disabled = 0,
+    Active = 1,
+    PendingApproval = 2,
 }

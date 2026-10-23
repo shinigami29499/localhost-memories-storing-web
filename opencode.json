@@ -5,7 +5,7 @@
         ".opencode\\instructions\\architecture.md",
         ".opencode\\instructions\\code-map.md"
     ],
-    "model": "qwen2.5-coder:7b",
+    "model": "qwen2.5-coder:14b",
     "providers": {
         "ollama": {
             "package": "@opencode/ai/providers/openai-compatible",
@@ -15,33 +15,53 @@
                 "apiKey": "ollama"
             },
             "models": {
-                "qwen3.5:9b": {
-                    "name": "Qwen 3.5 9B (Big Brain General)",
+                "qwen2.5:14b": {
+                    "name": "Qwen 2.5 14B (Architect Planner)",
                     "capabilities": {
-                        "tools": true
+                        "tools": false
                     },
                     "limit": {
-                        "context": 32768,
+                        "context": 4096,
                         "output": 4096
                     }
                 },
                 "qwen2.5-coder:7b": {
                     "name": "Qwen 2.5 Coder 7B (Heavy Build)",
                     "capabilities": {
-                        "tools": true
+                        "tools": false
                     },
                     "limit": {
-                        "context": 16384,
+                        "context": 8192,
                         "output": 4048
                     }
                 },
-                "deepseek-r1:8b": {
-                    "name": "DeepSeek R1 Distill 8B (Deep Review)",
+                "qwen2.5-coder:1.5b-base": {
+                    "name": "Qwen 2.5 Coder 1.5B Base (Auto Complete)",
                     "capabilities": {
-                        "tools": true
+                        "tools": false
+                    },
+                    "limit": {
+                        "context": 32768,
+                        "output": 2048
+                    }
+                },
+                "qwen2.5-coder:3b": {
+                    "name": "Qwen 2.5 Coder 3B (Fast Syntax Scan)",
+                    "capabilities": {
+                        "tools": false
                     },
                     "limit": {
                         "context": 16384,
+                        "output": 2048
+                    }
+                },
+                "deepseek-r1:8b": {
+                    "name": "DeepSeek R1 Distill 8B (Deep Logic Review)",
+                    "capabilities": {
+                        "tools": false
+                    },
+                    "limit": {
+                        "context": 8192,
                         "output": 8192
                     }
                 }
@@ -50,20 +70,24 @@
     },
     "agent": {
         "general": {
-            "model": "ollama/qwen3.5:9b",
-            "description": "The big-brain conversational workspace layer for overall architectural mapping, logic patterns, and project concepts."
+            "model": "ollama/qwen2.5:14b",
+            "description": "The command-center layer for overall mapping, contextual persistence, and delegating instructions to subagents."
         },
-        "plan": {
-            "model": "ollama/qwen2.5-coder:7b",
-            "description": "Step-by-step feature breakdown and system design planning."
+        "planner": {
+            "model": "ollama/qwen2.5:14b",
+            "description": "Parses architecture maps and transforms feature requirements into sequential steps, checklists, and edge-case lists."
         },
         "build": {
             "model": "ollama/qwen2.5-coder:7b",
-            "description": "Heavy implementation engine used for generating whole files, blocks of code, and core scripts."
+            "description": "The core implementation engine. Generates functional code, modular scripts, and full component files based on the plan."
         },
-        "explore": {
+        "reviewer_1": {
+            "model": "ollama/qwen2.5-coder:3b",
+            "description": "Fast-pass review layer. Automatically triggers to parse syntax validity, look for missing exports, and enforce clean styling."
+        },
+        "reviewer_2": {
             "model": "ollama/deepseek-r1:8b",
-            "description": "Used exclusively for heavy-duty diagnostics, code reviews, and deep reasoning bug optimization loops."
+            "description": "Deep logic gates. Uses advanced chain-of-thought to find race conditions, security vectors, and architectural divergence."
         }
     },
     "permissions": [

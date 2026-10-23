@@ -5,8 +5,7 @@ import { useFeed } from "../../hooks/useFeed";
 import { Header } from "../../components/layout/Header";
 import { CommunityIntro } from "../../components/layout/CommunityIntro";
 import { NewPostForm } from "../../components/feed/NewPostForm";
-import { PostCard } from "../../components/feed/PostCard";
-import { Button } from "../../components/ui";
+import { PostViewer } from "../../components/feed/PostViewer";
 import { EmptyState, ErrorState, Spinner } from "../../components/ui/Status";
 import type { Post } from "../../types";
 import "./home.css";
@@ -16,33 +15,32 @@ function mapPost(
   mutate: (post: Post) => Post | undefined,
 ): InfiniteData<{ items: Post[]; total: number; nextOffset: number | undefined }, number> | undefined {
   if (!existing) return undefined;
+  const pages = existing.pages.map((page) => ({
+    ...page,
+    items: page.items.flatMap((post) => {
+      const replacement = mutate(post);
+      return replacement ? [replacement] : []; // undefined removes the post
+    }),
+  }));
+  const removed = existing.pages.reduce((count, page, index) => count + page.items.length - pages[index].items.length, 0);
   return {
     ...existing,
-    pages: existing.pages.map((page) => ({
-      ...page,
-      items: page.items.flatMap((post) => {
-        const replacement = mutate(post);
-        return replacement ? [replacement] : []; // undefined removes the post
-      }),
-    })),
+    pages: pages.map((page) => ({ ...page, total: Math.max(0, page.total - removed) })),
   };
 }
 
 export function HomePage() {
   const feed = useFeed(5);
   const queryClient = useQueryClient();
-  const [loadingMore, setLoadingMore] = useState(false);
+  const [viewerVersion, setViewerVersion] = useState(0);
 
   const posts: Post[] = feed.data?.pages.flatMap((page) => page.items) ?? [];
   const hasMore = feed.hasNextPage;
 
   const loadMore = async () => {
-    setLoadingMore(true);
-    try {
-      await feed.fetchNextPage();
-    } finally {
-      setLoadingMore(false);
-    }
+    const result = await feed.fetchNextPage();
+    if (result.isFetchNextPageError) throw result.error;
+    return result.data?.pages.flatMap((page) => page.items) ?? [];
   };
 
   const onChanged = (updated: Post) => {
@@ -64,9 +62,10 @@ export function HomePage() {
     void queryClient.setQueryData<InfiniteData<{ items: Post[]; total: number; nextOffset: number | undefined }, number>>(
       ["feed", 5],
       (existing) => (existing
-        ? { ...existing, pages: [{ items: [post, ...existing.pages[0].items], total: existing.pages[0].total, nextOffset: undefined }, ...existing.pages.slice(1)] }
+        ? { ...existing, pages: [{ items: [post, ...existing.pages[0].items], total: existing.pages[0].total + 1, nextOffset: undefined }, ...existing.pages.slice(1)] }
         : { pages: [{ items: [post], total: 1, nextOffset: undefined }], pageParams: [0] }),
     );
+    setViewerVersion((version) => version + 1);
     void feed.refetch();
   };
 
@@ -84,7 +83,7 @@ export function HomePage() {
           <NewPostForm onCreated={onCreated} />
 
         {feed.isLoading ? <Spinner label="Loading your feed…" /> : null}
-        {feed.isError ? (
+        {feed.isError && !feed.data ? (
           <ErrorState message="Could not load the feed." onRetry={() => void feed.refetch()} />
         ) : null}
         {!feed.isLoading && !feed.isError && posts.length === 0 ? (
@@ -94,33 +93,16 @@ export function HomePage() {
           />
         ) : null}
 
-        <div className="feed__list">
-          {posts.map((post) => (
-            <PostCard key={post.id} post={post} onChanged={onChanged} onDeleted={onDeleted} />
-          ))}
-        </div>
-
-        {hasMore && !feed.isLoading ? (
-          <div className="feed__more">
-            <Button variant="secondary" onClick={loadMore} busy={loadingMore}>
-              Load more
-            </Button>
-          </div>
-        ) : null}
+        <PostViewer
+          key={viewerVersion}
+          posts={posts}
+          total={feed.data?.pages[0]?.total ?? posts.length}
+          hasMore={hasMore}
+          loadMore={loadMore}
+          onChanged={onChanged}
+          onDeleted={onDeleted}
+        />
         </section>
-        <aside className="community-notes" aria-labelledby="community-notes-title">
-          <span className="community-notes__symbol" aria-hidden="true">+</span>
-          <p className="eyebrow">A little inspiration</p>
-          <h2 id="community-notes-title">Make it <span className="gradient-text">a moment.</span></h2>
-          <p>There is a story in the everyday. Give yours a place to live.</p>
-          <ul className="community-notes__list">
-            <li><span>01</span><div><strong>Share your world</strong><p>Bring a photo or video and a few words.</p></div></li>
-            <li><span>02</span><div><strong>Start a conversation</strong><p>Leave a comment. Find common ground.</p></div></li>
-            <li><span>03</span><div><strong>Spread the good</strong><p>React to the moments that make you smile.</p></div></li>
-          </ul>
-          <a className="btn btn--primary" href="#create-post">Create a post <span aria-hidden="true">&rarr;</span></a>
-          <p className="community-notes__footer">Different perspectives. One community.</p>
-        </aside>
         </div>
       </main>
     </>
