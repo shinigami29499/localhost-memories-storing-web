@@ -1,0 +1,136 @@
+.login-shell {
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse at 12% 80%, rgba(113, 69, 235, 0.12), transparent 48%),
+    radial-gradient(ellipse at 92% 18%, rgba(224, 64, 148, 0.07), transparent 35%);
+}
+
+.login__header,
+.login__footer {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 28px 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.login__header-note,
+.login__footer {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.login {
+  max-width: 1280px;
+  min-height: calc(100vh - 192px);
+  margin: 0 auto;
+  padding: 64px 48px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.9fr);
+  align-items: center;
+  gap: 80px;
+}
+
+.login__card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 40px;
+  background: linear-gradient(145deg, rgba(46, 43, 57, 0.95), rgba(29, 31, 37, 0.96));
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.18);
+}
+
+.login__badge {
+  color: var(--accent-soft);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  margin-bottom: 18px;
+}
+
+.login__title {
+  margin: 0;
+  font-size: clamp(1.7rem, 3vw, 2.2rem);
+  line-height: 1.2;
+  letter-spacing: -0.04em;
+  color: var(--text-strong);
+}
+
+.login__subtitle {
+  margin: 12px 0 28px;
+  color: var(--text-muted);
+  font-size: 0.92rem;
+}
+
+.login__label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.login__card input {
+  padding: 13px 16px;
+  margin-bottom: 20px;
+}
+
+.login__card > .btn {
+  justify-content: space-between;
+  padding: 14px 22px;
+  margin-top: 8px;
+}
+
+.login__card .error-state {
+  margin-bottom: 16px;
+}
+
+.login__footnote {
+  margin: 22px 0 0;
+  color: var(--text-muted);
+  text-align: center;
+  font-size: 0.78rem;
+}
+
+.login__footer {
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 1000px) {
+  .login {
+    gap: 36px;
+    padding: 44px 32px;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .login__card {
+    padding: 28px;
+  }
+}
+
+@media (max-width: 720px) {
+  .login__header,
+  .login__footer {
+    padding: 22px 24px;
+  }
+
+  .login__header-note,
+  .community-art {
+    display: none;
+  }
+
+  .login {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 32px 24px 48px;
+    gap: 32px;
+    max-width: 520px;
+    min-height: auto;
+  }
+
+  .login__footer {
+    flex-wrap: wrap;
+    font-size: 0.75rem;
+  }
+}

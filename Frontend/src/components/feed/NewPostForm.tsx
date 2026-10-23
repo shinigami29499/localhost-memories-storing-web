@@ -1,0 +1,108 @@
+import { useRef, useState } from "react";
+import { postService } from "../../services/postService";
+import { Button } from "../ui";
+import { ErrorState } from "../ui/Status";
+import type { Post } from "../../types";
+
+const ACCEPTED = "image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,video/quicktime";
+const MAX_MB = 100;
+const MAX_BYTES = MAX_MB * 1024 * 1024;
+
+interface Props {
+  onCreated: (post: Post) => void;
+}
+
+/** Upload composer: caption + one or more image/Video files → POST /api/posts. */
+export function NewPostForm({ onCreated }: Props) {
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [caption, setCaption] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const pick = (picked: FileList | null) => {
+    setError(null);
+    const chosen: File[] = [];
+    for (const file of Array.from(picked ?? [])) {
+      if (file.size > MAX_BYTES) {
+        setError(`'${file.name}' exceeds the ${MAX_MB} MB limit.`);
+        continue;
+      }
+      chosen.push(file);
+    }
+    setFiles((prev) => [...prev, ...chosen]);
+  };
+
+  const submit = async () => {
+    if (!caption.trim() || files.length === 0) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const created = await postService.create(caption.trim(), files);
+      onCreated(created);
+      setCaption("");
+      setFiles([]);
+      if (fileInput.current) fileInput.current.value = "";
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Upload failed.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className="new-post" id="create-post" aria-labelledby="new-post-title">
+      <div className="new-post__heading">
+        <span className="new-post__symbol" aria-hidden="true">+</span>
+        <div>
+          <h3 id="new-post-title">What is your moment?</h3>
+          <p>A little of your world, shared with everyone.</p>
+        </div>
+      </div>
+      <textarea
+        className="new-post__caption"
+        placeholder="Share media with the community… (caption)"
+        value={caption}
+        maxLength={4000}
+        onChange={(e) => setCaption(e.target.value)}
+        aria-label="Post caption"
+      />
+
+      <div className="new-post__row">
+        <label className="btn btn--secondary new-post__pick">
+          📎 Attach media
+          <input
+            ref={fileInput}
+            type="file"
+            accept={ACCEPTED}
+            multiple
+            aria-hidden="false"
+            className="sr-only"
+            onChange={(e) => pick(e.target.files)}
+          />
+        </label>
+        <Button onClick={submit} busy={busy} disabled={!caption.trim() || files.length === 0}>
+          Post
+        </Button>
+      </div>
+
+      <div className="new-post__attachments">
+        {files.map((file, index) => (
+          <span key={`${file.name}-${index}`} className="new-post__chip">
+            {file.name}
+            <button
+              className="new-post__chip-remove"
+              onClick={() => setFiles((prev) => prev.filter((_, i) => i !== index))}
+              aria-label={`Remove ${file.name}`}
+            >
+              ✕
+            </button>
+          </span>
+        ))}
+      </div>
+      <p className="new-post__hint">Images (jpg, png, gif, webp) and videos (mp4, webm, mov) up to {MAX_MB} MB each.</p>
+
+      {error ? <ErrorState message={error} /> : null}
+    </section>
+  );
+}

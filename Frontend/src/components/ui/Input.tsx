@@ -1,0 +1,22 @@
+import type { ChangeEvent, HTMLAttributes } from "react";
+
+interface InputProps extends Omit<HTMLAttributes<HTMLInputElement>, "onChange"> {
+  value: string;
+  onChange: (value: string) => void;
+  type?: string;
+  placeholder?: string;
+  autoComplete?: string;
+  required?: boolean;
+  ariaLabel?: string;
+  maxLength?: number;
+}
+
+export function Input({ value, onChange, ...rest }: InputProps) {
+  return (
+    <input
+      value={value}
+      onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
+      {...rest}
+    />
+  );
+}
