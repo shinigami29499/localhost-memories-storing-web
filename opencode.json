@@ -1,0 +1,91 @@
+{
+    "instructions": [
+        ".opencode\\instructions\\overview.md",
+        ".opencode\\instructions\\conventions.md",
+        ".opencode\\instructions\\architecture.md",
+        ".opencode\\instructions\\code-map.md"
+    ],
+    "model": "qwen2.5-coder:7b",
+    "providers": {
+        "ollama": {
+            "package": "@opencode/ai/providers/openai-compatible",
+            "name": "Ollama (Local)",
+            "settings": {
+                "baseURL": "http://127.0.0.1:11434/v1",
+                "apiKey": "ollama"
+            },
+            "models": {
+                "qwen3.5:9b": {
+                    "name": "Qwen 3.5 9B (Big Brain General)",
+                    "capabilities": {
+                        "tools": true
+                    },
+                    "limit": {
+                        "context": 32768,
+                        "output": 4096
+                    }
+                },
+                "qwen2.5-coder:7b": {
+                    "name": "Qwen 2.5 Coder 7B (Heavy Build)",
+                    "capabilities": {
+                        "tools": true
+                    },
+                    "limit": {
+                        "context": 16384,
+                        "output": 4048
+                    }
+                },
+                "deepseek-r1:8b": {
+                    "name": "DeepSeek R1 Distill 8B (Deep Review)",
+                    "capabilities": {
+                        "tools": true
+                    },
+                    "limit": {
+                        "context": 16384,
+                        "output": 8192
+                    }
+                }
+            }
+        }
+    },
+    "agent": {
+        "general": {
+            "model": "ollama/qwen3.5:9b",
+            "description": "The big-brain conversational workspace layer for overall architectural mapping, logic patterns, and project concepts."
+        },
+        "plan": {
+            "model": "ollama/qwen2.5-coder:7b",
+            "description": "Step-by-step feature breakdown and system design planning."
+        },
+        "build": {
+            "model": "ollama/qwen2.5-coder:7b",
+            "description": "Heavy implementation engine used for generating whole files, blocks of code, and core scripts."
+        },
+        "explore": {
+            "model": "ollama/deepseek-r1:8b",
+            "description": "Used exclusively for heavy-duty diagnostics, code reviews, and deep reasoning bug optimization loops."
+        }
+    },
+    "permissions": [
+        {
+            "action": "read",
+            "resource": "*",
+            "effect": "allow"
+        },
+        {
+            "action": "edit",
+            "resource": "*",
+            "effect": "allow"
+        },
+        {
+            "action": "write",
+            "resource": "*",
+            "effect": "allow"
+        },
+        {
+            "action": "bash",
+            "resource": "*",
+            "effect": "ask"
+        }
+    ]
+}
