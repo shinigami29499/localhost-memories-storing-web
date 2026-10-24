@@ -1,89 +1,42 @@
 {
   "instructions": [
-    ".opencode\\instructions\\overview.md",
-    ".opencode\\instructions\\conventions.md",
-    ".opencode\\instructions\\architecture.md",
-    ".opencode\\instructions\\code-map.md"
+    ".opencode/instructions/overview.md",
+    ".opencode/instructions/conventions.md",
+    ".opencode/instructions/architecture.md",
+    ".opencode/instructions/code-map.md"
   ],
   "compaction": {
-    "auto": false,
-    "prune": false
+    "auto": true,
+    "prune": true
   },
-
-  "model": "qwen2.5:7b-instruct",
+  "model": "qwen2.5-coder:7b-instruct",
   "providers": {
     "ollama": {
       "package": "@opencode/ai/providers/openai-compatible",
       "name": "Ollama (Local)",
       "settings": {
-        "baseURL": "http://127.0.0.1:11434/v1",
+        "baseURL": "http://127.0.0.1:11434",
         "apiKey": "ollama"
       },
       "models": {
-        "qwen2.5:7b-instruct": {
-          "limit": {
-            "context": 8192,
-            "output": 4048
-          },
-          "tools": {
-            "edit": false,
-            "write": true
-          }
-        },
-        "qwen2.5-coder:7b": {
-          "limit": {
-            "context": 8192,
-            "output": 4048
-          },
-          "tools": {
-            "edit": false,
-            "write": true
-          }
-        },
-        "qwen2.5-coder:1.5b": {
-          "limit": {
-            "context": 32768,
-            "output": 2048
-          },
-          "tools": {
-            "edit": false,
-            "write": true
-          }
-        },
-        "qwen2.5-coder:3b": {
+        "qwen2.5-coder:7b-instruct": {
           "limit": {
             "context": 16384,
-            "output": 2048
+            "output": 4096
           },
           "tools": {
-            "edit": false,
+            "edit": true,
             "write": true
           }
         }
       }
     }
   },
-  "default_agent": "general",
+  "default_agent": "developer",
   "agent": {
-    "general": {
-      "model": "ollama/qwen2.5:7b-instruct",
-      "description": "The command-center layer for overall mapping, contextual persistence, and delegating instructions to subagents."
-    },
-    "plan": {
-      "model": "ollama/qwen2.5:7b-instruct",
-      "description": "Parses architecture maps and transforms feature requirements into sequential steps, checklists, and edge-case lists."
-    },
-    "build": {
-      "model": "ollama/qwen2.5:7b-instruct",
-      "description": "The core implementation engine. Generates functional code, modular scripts, and full component files based on the plan."
-    },
-    "reviewer ": {
-      "model": "ollama/qwen2.5-coder:3b",
-      "description": "Fast-pass review layer. Automatically triggers to parse syntax validity, look for missing exports, and enforce clean styling."
-    },
-    "explore": {
-      "model": "ollama/deepseek-r1:8b",
-      "description": "Deep logic gates. Uses advanced chain-of-thought to find race conditions, security vectors, and architectural divergence."
+    "developer": {
+      "model": "ollama/qwen2.5-coder:7b-instruct",
+      "description": "Unified senior full-stack developer managing brainstorming, architectural planning, minimalist implementation, and testing inside an 8GB VRAM hardware window."
     }
   },
   "permissions": [
