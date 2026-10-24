@@ -5,7 +5,11 @@
         ".opencode\\instructions\\architecture.md",
         ".opencode\\instructions\\code-map.md"
     ],
-    "model": "qwen2.5-coder:14b",
+    "compaction": {
+        "auto": false,
+        "prune": false
+    },
+    "model": "qwen2.5:7b-instruct",
     "providers": {
         "ollama": {
             "package": "@opencode/ai/providers/openai-compatible",
@@ -19,30 +23,40 @@
                     "limit": {
                         "context": 8192,
                         "output": 4048
+                    },
+                    "tools": {
+                        "edit": false,
+                        "write": true
                     }
                 },
                 "qwen2.5-coder:7b": {
                     "limit": {
                         "context": 8192,
                         "output": 4048
+                    },
+                    "tools": {
+                        "edit": false,
+                        "write": true
                     }
                 },
                 "qwen2.5-coder:1.5b": {
                     "limit": {
                         "context": 32768,
                         "output": 2048
+                    },
+                    "tools": {
+                        "edit": false,
+                        "write": true
                     }
                 },
                 "qwen2.5-coder:3b": {
                     "limit": {
                         "context": 16384,
                         "output": 2048
-                    }
-                },
-                "deepseek-r1:8b": {
-                    "limit": {
-                        "context": 8192,
-                        "output": 8192
+                    },
+                    "tools": {
+                        "edit": false,
+                        "write": true
                     }
                 }
             }
@@ -59,7 +73,7 @@
             "description": "Parses architecture maps and transforms feature requirements into sequential steps, checklists, and edge-case lists."
         },
         "build": {
-            "model": "ollama/qwen2.5-coder:7b",
+            "model": "ollama/qwen2.5:7b-instruct",
             "description": "The core implementation engine. Generates functional code, modular scripts, and full component files based on the plan."
         },
         "reviewer ": {
