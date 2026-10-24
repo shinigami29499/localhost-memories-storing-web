@@ -9,7 +9,7 @@
     "auto": false,
     "prune": false
   },
-  "model": "lms/qwen2.5-coder-1.5b-instruct",
+  "model": "lms/qwen2.5-3b-instruct",
   "provider": {
     "lms": {
       "npm": "@ai-sdk/openai-compatible",
@@ -18,7 +18,7 @@
         "apiKey": "no-key-needed"
       },
       "models": {
-        "qwen2.5-coder-1.5b-instruct": {
+        "qwen2.5-3b-instruct": {
           "limit": {
             "context": 131072,
             "output": 4096
@@ -46,7 +46,7 @@
   "default_agent": "developer",
   "agent": {
     "developer": {
-      "model": "lms/qwen2.5-coder-1.5b-instruct",
+      "model": "lms/qwen2.5-3b-instruct",
       "description": "Unified senior full-stack developer managing architectural planning, minimalist code implementation, modifications, and testing inside an 8GB VRAM hardware window."
     }
   },
