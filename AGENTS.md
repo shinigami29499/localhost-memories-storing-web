@@ -4,7 +4,7 @@ This document defines the specialized agent system layout and rules for orchestr
 
 ## Core Infrastructure
 
-- **Active Underlying Model Core:** `qwen3.5-4b-super-coder` (Unified Core)
+- **Active Underlying Model Core:** `qwen/qwen3.5-9b` (Unified Core)
 - **Default Execution Mode:** Single-Model Consolidated Execution (`developer` primary agent)
 
 ---
