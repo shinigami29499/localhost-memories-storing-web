@@ -15,51 +15,31 @@
                 "apiKey": "ollama"
             },
             "models": {
-                "qwen2.5:14b": {
-                    "name": "Qwen 2.5 14B (Architect Planner)",
-                    "capabilities": {
-                        "tools": false
-                    },
-                    "limit": {
-                        "context": 4096,
-                        "output": 4096
-                    }
-                },
-                "qwen2.5-coder:7b": {
-                    "name": "Qwen 2.5 Coder 7B (Heavy Build)",
-                    "capabilities": {
-                        "tools": false
-                    },
+                "qwen2.5:7b-instruct": {
                     "limit": {
                         "context": 8192,
                         "output": 4048
                     }
                 },
-                "qwen2.5-coder:1.5b-base": {
-                    "name": "Qwen 2.5 Coder 1.5B Base (Auto Complete)",
-                    "capabilities": {
-                        "tools": false
-                    },
+                "qwen2.5-coder:7b": {
+                    "limit": {
+                        "context": 8192,
+                        "output": 4048
+                    }
+                },
+                "qwen2.5-coder:1.5b": {
                     "limit": {
                         "context": 32768,
                         "output": 2048
                     }
                 },
                 "qwen2.5-coder:3b": {
-                    "name": "Qwen 2.5 Coder 3B (Fast Syntax Scan)",
-                    "capabilities": {
-                        "tools": false
-                    },
                     "limit": {
                         "context": 16384,
                         "output": 2048
                     }
                 },
                 "deepseek-r1:8b": {
-                    "name": "DeepSeek R1 Distill 8B (Deep Logic Review)",
-                    "capabilities": {
-                        "tools": false
-                    },
                     "limit": {
                         "context": 8192,
                         "output": 8192
@@ -68,24 +48,25 @@
             }
         }
     },
+    "default_agent": "general",
     "agent": {
         "general": {
-            "model": "ollama/qwen2.5:14b",
+            "model": "ollama/qwen2.5:7b-instruct",
             "description": "The command-center layer for overall mapping, contextual persistence, and delegating instructions to subagents."
         },
-        "planner": {
-            "model": "ollama/qwen2.5:14b",
+        "plan": {
+            "model": "ollama/qwen2.5:7b-instruct",
             "description": "Parses architecture maps and transforms feature requirements into sequential steps, checklists, and edge-case lists."
         },
         "build": {
             "model": "ollama/qwen2.5-coder:7b",
             "description": "The core implementation engine. Generates functional code, modular scripts, and full component files based on the plan."
         },
-        "reviewer_1": {
+        "reviewer ": {
             "model": "ollama/qwen2.5-coder:3b",
             "description": "Fast-pass review layer. Automatically triggers to parse syntax validity, look for missing exports, and enforce clean styling."
         },
-        "reviewer_2": {
+        "explore": {
             "model": "ollama/deepseek-r1:8b",
             "description": "Deep logic gates. Uses advanced chain-of-thought to find race conditions, security vectors, and architectural divergence."
         }

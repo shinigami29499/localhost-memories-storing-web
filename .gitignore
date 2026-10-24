@@ -23,6 +23,6 @@ Backend/user.secret.key
 Thumbs.db
 
 # Local agent and workspace configuration
-/.agents/
+# /.agents/
 /.vscode/
 /skills-lock.json
