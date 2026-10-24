@@ -9,19 +9,18 @@
     "auto": false,
     "prune": false
   },
-  "model": "qwen2.5:7b-instruct",
-  "providers": {
-    "ollama": {
-      "package": "@opencode/ai/providers/openai-compatible",
-      "name": "Ollama (Local)",
-      "settings": {
-        "baseURL": "http://127.0.0.1:11434/v1",
-        "apiKey": "ollama"
+  "model": "lms/qwen2.5-coder-1.5b-instruct",
+  "provider": {
+    "lms": {
+      "npm": "@ai-sdk/openai-compatible",
+      "options": {
+        "baseURL": "http://localhost:1235/v1",
+        "apiKey": "no-key-needed"
       },
       "models": {
-        "qwen2.5:7b-instruct": {
+        "qwen2.5-coder-1.5b-instruct": {
           "limit": {
-            "context": 255000,
+            "context": 131072,
             "output": 4096
           },
           "tools": {
@@ -29,7 +28,16 @@
             "write": true,
             "execute": true,
             "shell": true,
-            "bash": true
+            "read": true,
+            "grep": true,
+            "glob": true,
+            "skill": true,
+            "todowrite": true,
+            "question": true,
+            "webfetch": true,
+            "websearch": true,
+            "bash": true,
+            "lsp": true
           }
         }
       }
@@ -38,30 +46,21 @@
   "default_agent": "developer",
   "agent": {
     "developer": {
-      "model": "ollama/qwen2.5:7b-instruct",
+      "model": "lms/qwen2.5-coder-1.5b-instruct",
       "description": "Unified senior full-stack developer managing architectural planning, minimalist code implementation, modifications, and testing inside an 8GB VRAM hardware window."
     }
   },
-  "permissions": [
-    {
-      "action": "read",
-      "resource": "*",
-      "effect": "allow"
-    },
-    {
-      "action": "edit",
-      "resource": "*",
-      "effect": "allow"
-    },
-    {
-      "action": "write",
-      "resource": "*",
-      "effect": "allow"
-    },
-    {
-      "action": "bash",
-      "resource": "*",
-      "effect": "ask"
-    }
-  ]
+  "permission": {
+    "read": "allow",
+    "edit": "allow",
+    "grep": "allow",
+    "glob": "allow",
+    "skill": "allow",
+    "todowrite": "allow",
+    "question": "allow",
+    "webfetch": "allow",
+    "websearch": "allow",
+    "bash": "ask",
+    "lsp": "ask"
+  }
 }
