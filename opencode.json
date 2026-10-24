@@ -21,7 +21,7 @@
       "models": {
         "qwen2.5:7b-instruct": {
           "limit": {
-            "context": 16384,
+            "context": 255000,
             "output": 4096
           },
           "tools": {
