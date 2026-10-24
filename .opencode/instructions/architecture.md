@@ -4,13 +4,13 @@ This defines project ownership. The main backend split is implemented; see the [
 
 ## Backend Ownership
 
-| Project folder | Owns |
-|---|---|
-| `Api` | Controllers, HTTP handling, middleware, configuration, application composition |
-| `Service` | Business services, request/response contracts, mapping definitions |
-| `Domain` | Entities, domain base classes, domain enums |
-| `Data` | EF Core DbContext, persistence, migrations |
-| `Adapter` | External integrations and filesystem storage |
+| Project folder | Owns                                                                           |
+| -------------- | ------------------------------------------------------------------------------ |
+| `Api`          | Controllers, HTTP handling, middleware, configuration, application composition |
+| `Service`      | Business services, request/response contracts, mapping definitions             |
+| `Domain`       | Entities, domain base classes, domain enums                                    |
+| `Data`         | EF Core DbContext, persistence, migrations                                     |
+| `Adapter`      | External integrations and filesystem storage                                   |
 
 `Service` is a separate class-library project alongside `Data` and `Domain`, not a folder inside `Api`. HTTP identity resolution stays in `Api/Implementations`, implementing the service-layer identity contract.
 

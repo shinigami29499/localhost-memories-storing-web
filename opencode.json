@@ -6,8 +6,8 @@
     ".opencode/instructions/code-map.md"
   ],
   "compaction": {
-    "auto": true,
-    "prune": true
+    "auto": false,
+    "prune": false
   },
   "model": "qwen2.5-coder:7b-instruct",
   "providers": {
@@ -15,28 +15,42 @@
       "package": "@opencode/ai/providers/openai-compatible",
       "name": "Ollama (Local)",
       "settings": {
-        "baseURL": "http://127.0.0.1:11434",
+        "baseURL": "http://127.0.0.1:11434/v1",
         "apiKey": "ollama"
       },
       "models": {
+        "qwen2.5:7b-instruct": {
+          "limit": {
+            "context": 16384,
+            "output": 4096
+          },
+          "tools": {
+            "edit": false,
+            "write": true
+          }
+        },
         "qwen2.5-coder:7b-instruct": {
           "limit": {
             "context": 16384,
             "output": 4096
           },
           "tools": {
-            "edit": true,
+            "edit": false,
             "write": true
           }
         }
       }
     }
   },
-  "default_agent": "developer",
+  "default_agent": "communicator",
   "agent": {
+    "communicator": {
+      "model": "ollama/qwen2.5:7b-instruct",
+      "description": "Human-friendly interface and proxy. Clarifies requirements, translates technical issues into clear conversation, manages user workflow, and passes concise goals to the developer."
+    },
     "developer": {
       "model": "ollama/qwen2.5-coder:7b-instruct",
-      "description": "Unified senior full-stack developer managing brainstorming, architectural planning, minimalist implementation, and testing inside an 8GB VRAM hardware window."
+      "description": "Unified senior full-stack developer managing architectural planning, minimalist code implementation, modifications, and testing inside an 8GB VRAM hardware window."
     }
   },
   "permissions": [

@@ -4,18 +4,35 @@ This document defines the specialized agent system layout and rules for orchestr
 
 ## Core Infrastructure
 
-- **Active Underlying Model Core:** `qwen2.5-coder:7b-instruct` (Primary Local Engine)
-- **Default Execution Mode:** Single-Session Inline Execution (`executing-plans`)
+- **Active Underlying Model Core:** `qwen2.5-coder:7b-instruct` / `qwen2.5:7b-instruct`
+- **Default Execution Mode:** Dual-Role Contextual Execution (`communicator` primary fallback)
 
 ---
 
-## Unified Developer Execution Directives
+## Dual-Agent Orchestration & Sequential Relay Pipeline
 
-Rather than spawning fragmented subagents, the active agent operates as a senior full-stack architect controlling the software development lifecycle directly within the primary session:
+Rather than running independent or disconnected prompts, the active environment implements a structured two-stage relay workflow to optimize human communication and execution precision within an 8GB VRAM window:
 
-1. **Context & Planning:** Prioritize detailed code mapping and step-by-step written blueprints (`superpowers:writing-plans`) before creating or changing files.
-2. **Minimalist Implementation:** Enforce strict token and structural efficiency (`ponytail`). The best code changes are clean, modular, and reuse existing internal primitives over writing boilerplate.
-3. **Quality Gates:** Apply Test-Driven Development loops (`superpowers:test-driven-development`) alongside performance and accessibility audits (`addyosmani/frontend-ui-engineering`) for all interface tasks.
+```text
+[User Prompt] ──> (1. Communicator) ──[Handoff Spec]──> (2. Developer) ──> [Code Execution]
+```
+
+### 1. Stage 1: Communicator Role (Understanding & Scoping)
+
+- **Objective:** Functions as the primary human-friendly proxy interface to listen and understand user goals.
+- **Directives:**
+  - Actively interpret loose, messy, or high-level human prompts into exact requirements.
+  - Translate technical system blockages into natural conversation.
+  - **The Handoff:** Once the goal is clear, the communicator compiles a clean, unambiguous task specification and hands it directly off to the developer agent to be built.
+
+### 2. Stage 2: Developer Role (Implementation & Execution)
+
+- **Objective:** Functions as the technical execution engine inside your terminal and filesystem workspace.
+- **Directives:**
+  - **Acceptance Criteria:** Pick up the task specification handed down by the communicator and immediately begin implementation without re-prompting the user.
+  - **Context & Planning:** Prioritize detailed code mapping and step-by-step written blueprints (`superpowers:writing-plans`) before creating or changing files.
+  - **Minimalist Implementation:** Enforce strict token and structural efficiency (`ponytail`). Re-use internal primitives over writing boilerplate code.
+  - **Quality Gates:** Apply Test-Driven Development loops (`superpowers:test-driven-development`) alongside performance and accessibility audits (`addyosmani/frontend-ui-engineering`) for all interface tasks.
 
 ---
 

@@ -10,11 +10,11 @@ ShinigaCim is an authenticated social feed with posts, comments, reactions, and 
 
 ## Guide Index
 
-| Guide | Read when | Maintains |
-|---|---|---|
-| [Conventions](conventions.md) | Creating or modifying code | Naming, constructors, mapping, comments |
-| [Architecture](architecture.md) | Choosing file locations or dependencies | Target layout and ownership |
-| [Code map](code-map.md) | Finding existing code or tracing a feature | Current paths and execution flows |
+| Guide                           | Read when                                  | Maintains                               |
+| ------------------------------- | ------------------------------------------ | --------------------------------------- |
+| [Conventions](conventions.md)   | Creating or modifying code                 | Naming, constructors, mapping, comments |
+| [Architecture](architecture.md) | Choosing file locations or dependencies    | Target layout and ownership             |
+| [Code map](code-map.md)         | Finding existing code or tracing a feature | Current paths and execution flows       |
 
 These guides consolidate the former project-structure document and Copilot-specific instructions. They define project policy and override conflicting older documentation.
 
