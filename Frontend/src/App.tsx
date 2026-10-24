@@ -7,6 +7,7 @@ import { RegisterPage } from "./pages/register/RegisterPage";
 import { HomePage } from "./pages/home/HomePage";
 import { AdminUsersPage } from "./pages/admin/AdminUsersPage";
 import { AdminPostsPage } from "./pages/admin/AdminPostsPage";
+import { LoadingOverlay } from "./components/ui/LoadingOverlay";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 15_000, refetchOnWindowFocus: false } },
@@ -59,9 +60,13 @@ function RequireAdmin({ children }: { children: ReactNode }) {
 }
 
 export function App() {
+  const routerState = false; // Placeholder for future route state management
+
   return (
     <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
+      <LoadingOverlay isLoading={routerState}>
+        <RouterProvider router={router} />
+      </LoadingOverlay>
     </QueryClientProvider>
   );
 }

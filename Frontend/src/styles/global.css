@@ -1128,3 +1128,38 @@ textarea::placeholder {
     transition: none !important;
   }
 }
+
+/* Loading overlay styles */
+.loading-overlay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  inset: 0;
+  position: fixed;
+  z-index: 9999;
+}
+
+.loading-transition {
+  animation: fadeInOut 0.3s ease-in-out both;
+}
+
+@keyframes fadeInOut {
+  0% {
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.6;
+  }
+  25% {
+    opacity: 0.4;
+  }
+  35% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 0;
+  }
+}
