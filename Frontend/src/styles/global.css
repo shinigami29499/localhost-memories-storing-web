@@ -1141,6 +1141,12 @@ textarea::placeholder {
   flex-direction: column;
   gap: 10px;
   scroll-margin-top: 110px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.new-post--dragging {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(48, 128, 255, 0.25), 0 12px 32px rgba(23, 131, 255, 0.12);
 }
 
 .new-post__heading {

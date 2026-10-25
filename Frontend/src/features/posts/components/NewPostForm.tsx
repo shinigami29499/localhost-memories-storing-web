@@ -20,6 +20,7 @@ export function NewPostForm({ onCreated }: Props) {
   const [files, setFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   const pick = (picked: FileList | null) => {
     setError(null);
@@ -32,6 +33,34 @@ export function NewPostForm({ onCreated }: Props) {
       chosen.push(file);
     }
     setFiles((prev) => [...prev, ...chosen]);
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDragEnter = (e: React.DragEvent<HTMLElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setIsDragging(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      pick(e.dataTransfer.files);
+    }
   };
 
   const submit = async () => {
@@ -52,7 +81,15 @@ export function NewPostForm({ onCreated }: Props) {
   };
 
   return (
-    <section className="new-post" id="create-post" aria-labelledby="new-post-title">
+    <section
+      className={`new-post ${isDragging ? "new-post--dragging" : ""}`}
+      id="create-post"
+      aria-labelledby="new-post-title"
+      onDragOver={handleDragOver}
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
       <div className="new-post__heading">
         <span className="new-post__symbol" aria-hidden="true">
           <PencilLine size={18} aria-hidden="true" />
