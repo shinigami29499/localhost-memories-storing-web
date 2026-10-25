@@ -51,7 +51,7 @@
 /* Right rail — sticky composer zone */
 .community-rail {
   position: sticky;
-  top: calc(var(--header-height, 65px) + 16px);
+  top: 24px;
   display: flex;
   flex-direction: column;
   gap: 16px;

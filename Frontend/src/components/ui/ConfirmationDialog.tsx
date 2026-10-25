@@ -1,8 +1,9 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { X } from "@/components/animate-ui/icons/x";
 import type { ReactNode } from "react";
 import { ApiError } from "../../services/api";
 import { Button } from "./Button";
+import { AlertDialog } from "@animate-ui/react/primitives/base-ui/alert-dialog";
 
 interface Props {
   title: string;
@@ -13,29 +14,10 @@ interface Props {
 }
 
 export function ConfirmationDialog({ title, children, danger, onConfirm, onClose }: Props) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const pending = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const titleId = useId();
-  const warningId = useId();
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    const opener = document.activeElement;
-    dialog?.showModal();
-    cancelRef.current?.focus();
-    return () => {
-      dialog?.close();
-      if (opener instanceof HTMLElement && opener.isConnected) opener.focus();
-    };
-  }, []);
-
-  useEffect(() => {
-    setError(null);
-    cancelRef.current?.focus();
-  }, [title]);
 
   const cancel = () => {
     if (!pending.current) onClose();
@@ -58,31 +40,30 @@ export function ConfirmationDialog({ title, children, danger, onConfirm, onClose
   };
 
   return (
-    <dialog
-      ref={dialogRef}
-      className="delete-post-dialog"
-      aria-labelledby={titleId}
-      aria-describedby={warningId}
-      aria-busy={busy}
-      onCancel={(event) => { event.preventDefault(); cancel(); }}
-      onClick={(event) => {
-        if (event.target !== event.currentTarget) return;
-        const bounds = event.currentTarget.getBoundingClientRect();
-        if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) cancel();
-      }}
-    >
-      <button type="button" className="btn btn--ghost post-card__delete delete-post-dialog__close" aria-label="Cancel action" title="Cancel action" disabled={busy} onClick={cancel}>
-        <X size={20} aria-hidden="true" />
-      </button>
-      <h2 id={titleId}>{title}</h2>
-      <div id={warningId}>
-        <fieldset className="confirmation-dialog__message" disabled={busy}>{children}</fieldset>
-      </div>
-      {error ? <p className="delete-post-dialog__error" role="alert">{error}</p> : null}
-      <div className="delete-post-dialog__actions">
-        <Button type="button" variant={danger ? "danger" : "primary"} busy={busy} onClick={() => void confirm()}>Confirm</Button>
-        <button ref={cancelRef} type="button" className="btn btn--secondary" disabled={busy} onClick={cancel}>Cancel</button>
-      </div>
-    </dialog>
+    <AlertDialog.Root defaultOpen onOpenChange={(open) => { if (!open) cancel(); }}>
+      <AlertDialog.Portal>
+        <AlertDialog.Backdrop className="alert-dialog-backdrop" />
+        <AlertDialog.Popup className="delete-post-dialog">
+          <AlertDialog.Close asChild>
+            <button type="button" className="btn btn--ghost post-card__delete delete-post-dialog__close" aria-label="Cancel action" title="Cancel action" disabled={busy} onClick={cancel}>
+              <X size={20} aria-hidden="true" />
+            </button>
+          </AlertDialog.Close>
+          <AlertDialog.Title asChild>
+            <h2>{title}</h2>
+          </AlertDialog.Title>
+          <AlertDialog.Description asChild>
+            <div>
+              <fieldset className="confirmation-dialog__message" disabled={busy}>{children}</fieldset>
+            </div>
+          </AlertDialog.Description>
+          {error ? <p className="delete-post-dialog__error" role="alert">{error}</p> : null}
+          <div className="delete-post-dialog__actions">
+            <Button type="button" variant={danger ? "danger" : "primary"} busy={busy} onClick={() => void confirm()}>Confirm</Button>
+            <button ref={cancelRef} type="button" className="btn btn--secondary" disabled={busy} onClick={cancel}>Cancel</button>
+          </div>
+        </AlertDialog.Popup>
+      </AlertDialog.Portal>
+    </AlertDialog.Root>
   );
 }

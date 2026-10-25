@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { postService } from "../services/postService";
-import { ConfirmationDialog } from "../../../components/ui/ConfirmationDialog";
+import { ConfirmationDialog, showToast } from "../../../components/ui";
 
 interface Props {
   postId: string;
@@ -20,6 +20,7 @@ export function DeletePostDialog({ postId, isDeleted = false, onClose, onDeleted
       onConfirm={async () => {
         if (permanent) await postService.purge(postId);
         else await postService.remove(postId);
+        showToast.success("Post deleted successfully");
         onDeleted(postId);
       }}
     >

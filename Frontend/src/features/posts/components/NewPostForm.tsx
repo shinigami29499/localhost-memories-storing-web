@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { postService } from "../services/postService";
-import { Button } from "../../../components/ui";
+import { Button, showToast } from "../../../components/ui";
 import { Paperclip } from "@/components/animate-ui/icons/paperclip";
 import { PencilLine } from "@/components/animate-ui/icons/pencil-line";
 import { X } from "@/components/animate-ui/icons/x";
@@ -72,6 +72,7 @@ export function NewPostForm({ onCreated }: Props) {
     try {
       const created = await postService.create(caption.trim(), files);
       onCreated(created);
+      showToast.success("Post successfully");
       setCaption("");
       setFiles([]);
       if (fileInput.current) fileInput.current.value = "";

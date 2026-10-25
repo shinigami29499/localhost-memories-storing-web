@@ -3,7 +3,7 @@ import { ArrowRight } from "@/components/animate-ui/icons/arrow-right";
 import { Link, useNavigate } from "react-router-dom";
 import { authService } from "../../features/auth";
 import { useAuthStore } from "../../store/authStore";
-import { Button, Input } from "../../components/ui";
+import { Button, Input, showToast } from "../../components/ui";
 import { ErrorState } from "../../components/ui/Status";
 import { Brand } from "../../components/layout/Brand";
 import { CommunityIntro } from "../../components/layout/CommunityIntro";
@@ -23,6 +23,7 @@ export function LoginPage() {
     try {
       const session = await authService.login(username.trim(), password);
       useAuthStore.getState().setSession(session);
+      showToast.success(`Login as ${session.user.username} successfully`);
       navigate("/", { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed.");

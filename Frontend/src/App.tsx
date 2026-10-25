@@ -11,6 +11,7 @@ import { AdminUsersPage } from "./pages/admin/AdminUsersPage";
 import { AdminPostsPage } from "./pages/admin/AdminPostsPage";
 import { LoadingOverlay } from "./components/ui/LoadingOverlay";
 import { GravityStarsBackground } from "./components/ui/GravityStarsBackground";
+import { ToastProvider } from "./components/ui";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 15_000, refetchOnWindowFocus: false } },
@@ -66,10 +67,12 @@ export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AnimateUIProvider tempo={1}>
-        <LoadingOverlay isLoading={routerState}>
-          <GravityStarsBackground className="fixed inset-0 pointer-events-none -z-10" />
-          <RouterProvider router={router} />
-        </LoadingOverlay>
+        <ToastProvider>
+          <LoadingOverlay isLoading={routerState}>
+            <GravityStarsBackground className="fixed inset-0 pointer-events-none -z-10" />
+            <RouterProvider router={router} />
+          </LoadingOverlay>
+        </ToastProvider>
       </AnimateUIProvider>
     </QueryClientProvider>
   );

@@ -58,5 +58,6 @@ Protected media uses the authenticated query-token URL form because browser `<im
 - Deleted-media previews use the existing media endpoint with `includeDeleted=true`; the backend validates admin access before bypassing soft-delete filters.
 - Deleted media streams from stored trash paths without restoration, and caching is disabled for deleted-media requests.
 - Global styles and theme tokens are in `src/styles/global.css`; follow the existing Zeneth AI-inspired theme tokens when adding styles.
+- Sidebar styles live in `src/styles/sidebar.css`. `AuthenticatedLayout` owns the shared Animate UI sidebar provider; the sidebar spacer is a sibling of the fixed panel so content and footer stay aligned with its collapse timing. Narrow screens start with a compact rail that can expand over the content.
 
 For shared guidance, see [architecture.md](../Instructions/architecture.md) and [conventions.md](../Instructions/conventions.md).

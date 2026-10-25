@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DeletePostDialog, postService, type AdminPost, type PagedFeed } from "../../features/posts";
 import { ApiError } from "../../services/api";
-import { EmptyState, ErrorState, Spinner } from "../../components/ui/Status";
+import { EmptyState, ErrorState, Spinner, showToast } from "../../components/ui";
 import { ArrowLeft } from "@/components/animate-ui/icons/arrow-left";
 import { Eye } from "@/components/animate-ui/icons/eye";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
@@ -69,7 +69,10 @@ export function AdminPostsPage() {
 
   const restore = useMutation({
     mutationFn: (postId: string) => postService.restore(postId),
-    onSuccess: (_data, postId) => copyRemoved(postId),
+    onSuccess: (_data, postId) => {
+      showToast.success("Post restored successfully");
+      copyRemoved(postId);
+    },
     onError: (err) => setError(err instanceof ApiError ? err.message : "Could not restore the post."),
   });
 
