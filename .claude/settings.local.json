@@ -1,0 +1,7 @@
+{
+  "env": {
+    "ANTHROPIC_BASE_URL": "http://localhost:20128/v1",
+    "ANTHROPIC_MODEL": "omni-shinigami",
+    "ANTHROPIC_API_KEY": "sk-31a2321c170cacc7-54abab-44fa93ab"
+  }
+}

@@ -1,10 +1,10 @@
-import { useRef, useState, type CSSProperties } from "react";
+import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { postService } from "../../services/postService";
 import { ApiError } from "../../services/api";
 import { EmptyState, ErrorState, Spinner } from "../../components/ui/Status";
-import { ArrowLeft, Eye, LoaderCircle, Minus, Plus, RotateCcw, Trash2 } from "lucide-react";
+import { ArrowLeft, ChevronFirst, ChevronLast, Eye, LoaderCircle, RotateCcw, Trash2 } from "lucide-react";
 import { DeletePostDialog } from "../../components/feed/DeletePostDialog";
 import { ConfirmationDialog } from "../../components/ui/ConfirmationDialog";
 import { mediaUrl } from "../../utils/media";
@@ -12,13 +12,8 @@ import type { AdminPost, PagedFeed } from "../../types";
 import { AdminMediaPreview } from "./AdminMediaPreview";
 import "./admin.css";
 
-const PAGE_LIMIT = 50;
-const DEFAULT_COLUMNS = 3;
-const MIN_COLUMNS = 1;
-const MAX_COLUMNS = 6;
-/** Floor for a single column width, in fr units, so a card always stays usable. */
-const MIN_FRACTION = 0.35;
-const COLUMNS_STORAGE_KEY = "admin-posts.columns";
+const PAGE_LIMIT = 50; // Max page size (configurable in settings, default: 20)
+const ITEMS_PER_PAGE_DEFAULT = 20; // Default items per page
 
 export function AdminPostsPage() {
   const queryClient = useQueryClient();
@@ -27,26 +22,40 @@ export function AdminPostsPage() {
   const [previewPost, setPreviewPost] = useState<AdminPost | null>(null);
   const [deletePost, setDeletePost] = useState<AdminPost | null>(null);
   const [restorePost, setRestorePost] = useState<AdminPost | null>(null);
-  const [columns, setColumns] = useState<number>(() => {
-    const stored = Number(window.localStorage.getItem(COLUMNS_STORAGE_KEY));
-    return Number.isInteger(stored) && stored >= MIN_COLUMNS && stored <= MAX_COLUMNS
-      ? stored
-      : DEFAULT_COLUMNS;
+  /** Pagination state */
+  const [offset, setOffset] = useState(0);
+  const [limit, setLimit] = useState<number>(() => {
+    const stored = Number(window.localStorage.getItem("admin-posts.limit"));
+    return Number.isInteger(stored) && stored > 0 ? Math.min(PAGE_LIMIT, stored) : ITEMS_PER_PAGE_DEFAULT;
   });
-  /** Per-column widths for drag resizing, in fr units; reset whenever the column count changes. */
-  const [fractions, setFractions] = useState<number[]>(() => Array(columns).fill(1));
+
+  /** Change page size (items per page), limited to PAGE_LIMIT */
+  const changeLimit = (next: number) => {
+    const clamped = Math.min(PAGE_LIMIT, Math.max(ITEMS_PER_PAGE_DEFAULT, next));
+    setLimit(clamped);
+    window.localStorage.setItem("admin-posts.limit", String(clamped));
+  };
 
   const posts = useQuery({
-    queryKey: ["admin-all-posts"],
-    queryFn: () => postService.listAll(0, PAGE_LIMIT),
+    queryKey: ["admin-all-posts", offset, limit],
+    queryFn: () => postService.listAll(offset, limit),
   });
 
-  const changeColumns = (next: number) => {
-    const clamped = Math.min(MAX_COLUMNS, Math.max(MIN_COLUMNS, next));
-    setColumns(clamped);
-    setFractions(Array(clamped).fill(1));
-    window.localStorage.setItem(COLUMNS_STORAGE_KEY, String(clamped));
+  /** Calculate total pages */
+  const totalPages = Math.ceil((posts.data?.total || 0) / limit);
+
+  /** Pagination handlers */
+  const nextPage = () => {
+    if (posts.data?.total && offset + limit < posts.data.total) setOffset(offset + limit);
   };
+
+  const prevPage = () => {
+    if (offset > 0) setOffset(offset - limit);
+  };
+
+  const firstPage = () => setOffset(0);
+
+  const lastPage = () => setOffset((totalPages - 1) * limit);
 
   const copyRemoved = (id: string) => {
     void queryClient.setQueryData<PagedFeed<AdminPost>>(["admin-all-posts"], (existing) =>
@@ -62,24 +71,6 @@ export function AdminPostsPage() {
     onError: (err) => setError(err instanceof ApiError ? err.message : "Could not restore the post."),
   });
 
-  const resizeColumns = (index: number, deltaX: number) => {
-    const width = gridRef.current?.offsetWidth;
-    if (!width || index >= fractions.length - 1) return;
-    setFractions((prev) => {
-      // One handle step equals that pixel shift converted to the current fr scale.
-      const deltaFr = (deltaX / width) * columns;
-      const left = Math.max(MIN_FRACTION, prev[index] + deltaFr);
-      const right = Math.max(MIN_FRACTION, prev[index + 1] - deltaFr);
-      if (left === prev[index] && right === prev[index + 1]) return prev;
-      const next = [...prev];
-      next[index] = left;
-      next[index + 1] = right;
-      return next;
-    });
-  };
-
-  const template = fractions.map((fraction) => `minmax(0, ${fraction}fr)`).join(" ");
-
   return (
     <>
       <main className="admin-page">
@@ -90,31 +81,80 @@ export function AdminPostsPage() {
           </div>
 
           <div className="admin__toolbar">
-            <span className="admin__toolbar-label" id="admin-columns-label">Columns</span>
-            <div className="admin__stepper" role="group" aria-labelledby="admin-columns-label">
+            <span className="admin__toolbar-label" id="admin-limit-label">Items per page</span>
+            <div className="admin__stepper" role="group" aria-labelledby="admin-limit-label">
               <button
                 type="button"
                 className="btn btn--secondary admin-step-btn"
-                disabled={columns === MIN_COLUMNS}
-                aria-label="Fewer columns"
-                title="Fewer columns"
-                onClick={() => changeColumns(columns - 1)}
+                disabled={limit === ITEMS_PER_PAGE_DEFAULT}
+                aria-label="Smaller items per page"
+                title="Fewer items per page"
+                onClick={() => changeLimit(limit - 5)}
               >
-                <Minus size={18} aria-hidden="true" />
+                <ChevronFirst size={16} aria-hidden="true" />
               </button>
-              <span className="admin__stepper-value" aria-live="polite">{columns} per row</span>
+              <span className="admin__stepper-value" aria-live="polite">{limit}</span>
               <button
                 type="button"
                 className="btn btn--secondary admin-step-btn"
-                disabled={columns === MAX_COLUMNS}
-                aria-label="More columns"
-                title="More columns"
-                onClick={() => changeColumns(columns + 1)}
+                disabled={limit === PAGE_LIMIT}
+                aria-label="Larger items per page"
+                title="More items per page"
+                onClick={() => changeLimit(limit + 5)}
               >
-                <Plus size={18} aria-hidden="true" />
+                <ChevronLast size={16} aria-hidden="true" />
               </button>
             </div>
-            <span className="admin__toolbar-hint">Drag column edges to resize.</span>
+
+            {/* Pagination controls */}
+            <div className="admin__pagination-wrap" style={{ marginLeft: "auto", display: "flex", gap: "8px", alignItems: "center" }}>
+              <span className="admin__page-label">Page</span>
+              <button
+                type="button"
+                className="btn btn--secondary admin-page-btn"
+                disabled={offset === 0}
+                aria-label="Go to first page"
+                onClick={firstPage}
+              >
+                <ChevronFirst size={14} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                className="btn btn--secondary admin-page-btn"
+                disabled={posts.data?.total ? offset + limit >= posts.data.total : false}
+                aria-label="Go to last page"
+                onClick={lastPage}
+              >
+                <ChevronLast size={14} aria-hidden="true" />
+              </button>
+              {totalPages > 1 && (
+                <>
+                  <span className="admin__page-info">
+                    <strong>{Math.floor(offset / limit) + 1}</strong> of <strong>{totalPages}</strong> pages
+                  </span>
+                  <button
+                    type="button"
+                    className="btn btn--secondary admin-page-btn"
+                    disabled={offset === 0}
+                    aria-label="Previous page"
+                    onClick={prevPage}
+                  >
+                    ← Prev
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn--secondary admin-page-btn"
+                    disabled={posts.data?.total ? offset + limit >= posts.data.total : false}
+                    aria-label="Next page"
+                    onClick={nextPage}
+                  >
+                    Next →
+                  </button>
+                </>
+              )}
+            </div>
+
+            <span className="admin__toolbar-hint">Show {limit} items, {posts.data?.items.length || 0} posts loaded</span>
           </div>
 
           {error ? <ErrorState message={error} onRetry={() => setError(null)} /> : null}
@@ -132,14 +172,11 @@ export function AdminPostsPage() {
             <div
               ref={gridRef}
               className="admin-grid"
-              style={{ "--admin-grid-template": template } as CSSProperties}
             >
-              {posts.data.items.map((post, index) => (
+              {posts.data.items.map((post) => (
                 <AdminPostCard
                   key={post.id}
                   post={post}
-                  showHandle={index < columns - 1}
-                  onHandleDrag={(deltaX) => resizeColumns(index, deltaX)}
                   onPreview={() => setPreviewPost(post)}
                   isLoading={restore.isPending || deletePost !== null || restorePost !== null}
                   isRestoring={restore.isPending && restore.variables === post.id}
@@ -178,26 +215,20 @@ export function AdminPostsPage() {
 
 interface AdminPostCardProps {
   post: AdminPost;
-  /** True when this card owns a resize handle for the gap to its next column. */
-  showHandle: boolean;
-  onHandleDrag: (deltaX: number) => void;
   onPreview: () => void;
-  /** Any action in flight disables the card's buttons. */
   isLoading: boolean;
-  /** Per-action flags keep the spinner on the exact card and button that started it. */
   isRestoring: boolean;
   onRestore: () => void;
   onDelete: () => void;
 }
 
 function AdminPostCard({
-  post, showHandle, onHandleDrag, onPreview, isLoading, isRestoring, onRestore, onDelete,
+  post, onPreview, isLoading, isRestoring, onRestore, onDelete,
 }: AdminPostCardProps) {
   const isDeleted = post.deletedAt !== null;
 
   return (
     <article className={`admin-post${isDeleted ? " admin-post--deleted" : ""}`}>
-      {showHandle ? <ColumnResizeHandle onDrag={onHandleDrag} /> : null}
 
       <button
         type="button"
@@ -277,37 +308,5 @@ function AdminPostCard({
         </div>
       </div>
     </article>
-  );
-}
-
-/** Invisible drag strip covering the gap between a card and its right-hand neighbour. */
-function ColumnResizeHandle({ onDrag }: { onDrag: (deltaX: number) => void }) {
-  const drag = useRef<{ startX: number } | null>(null);
-
-  const stop = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    }
-    drag.current = null;
-  };
-
-  return (
-    <div
-      role="separator"
-      aria-hidden="true"
-      className="admin-post__resize"
-      onPointerDown={(event) => {
-        event.preventDefault();
-        event.currentTarget.setPointerCapture(event.pointerId);
-        drag.current = { startX: event.clientX };
-      }}
-      onPointerMove={(event) => {
-        if (!drag.current) return;
-        onDrag(event.clientX - drag.current.startX);
-        drag.current.startX = event.clientX;
-      }}
-      onPointerUp={stop}
-      onPointerCancel={stop}
-    />
   );
 }

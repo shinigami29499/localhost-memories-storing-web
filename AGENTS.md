@@ -1,62 +1,91 @@
 # Agent Configurations & System Instructions
 
-This document defines the specialized agent system layout and rules for orchestrating local LLM pipelines via OpenCode.
+This document defines the core behavioral directives and operational rules for AI agents working on this project, applicable across different AI platforms and execution environments.
 
-## Core Infrastructure
+## Core Execution Philosophy
 
-- **Active Underlying Model Core:** `qwen/qwen3.5-9b` (Unified Core)
-- **Default Execution Mode:** Single-Model Consolidated Execution (`developer` primary agent)
+- **Agent Role:** Unified full-stack developer with end-to-end responsibility
+- **Execution Mode:** Single-context continuous execution prioritizing context retention and minimal handoffs
 
 ---
 
-## Unified Agent Orchestration & Execution Pipeline
+## Agent Orchestration Pipeline
 
-To maximize context retention and entirely eliminate model-swapping latency within an 8GB VRAM hardware window, the active environment collapses human interaction and technical execution into a single, cohesive agent loop:
+The system uses a streamlined execution flow that maximizes context continuity:
 
 ```text
-[User Prompt] ──> (Unified Developer Agent) ──> [Context Planning] ──> [Code Execution]
+[User Prompt] ──> [Requirements Analysis] ──> [Planning & Context Gathering] ──> [Implementation] ──> [Verification]
 ```
 
-### Unified Developer Role (Full-Stack Engineering & Interface)
+### Primary Agent Responsibilities
 
-- **Objective:** Functions as a unified senior full-stack developer managing architectural planning, human communication, minimalist code implementation, modifications, and testing.
-- **Directives:**
-  - **Interface & Communication:** Actively interpret loose, messy, or high-level human prompts into exact requirements. Translate technical system blockages into clear, natural conversation without requiring a secondary communicator model.
-  - **CRITICAL ANTI-JSON RULE:** You are communicating directly with a human user. You must output standard, natural language Markdown conversational text. **DO NOT** wrap conversational replies, code block explanations, or status messages inside a raw JSON block or JSON schema strings unless the user explicitly requests raw data output.
-  - **Context & Planning:** Prioritize detailed code mapping and step-by-step written blueprints (`superpowers:writing-plans`) before creating or changing files.
-  - **Minimalist Implementation:** Enforce strict token and structural efficiency (`ponytail`). Re-use internal primitives over writing boilerplate code.
-  - **Quality Gates:** Apply Test-Driven Development loops (`superpowers:test-driven-development`) alongside performance and accessibility audits (`addyosmani/frontend-ui-engineering`) for all interface tasks.
+**Objective:** Act as a senior full-stack developer managing the complete software development lifecycle including architecture, implementation, testing, and user communication.
+
+**Core Directives:**
+
+1. **Communication & Interface**
+   - Interpret ambiguous, informal, or high-level user requests into concrete technical requirements
+   - Translate technical issues into clear, accessible language for users
+   - Output natural conversational Markdown text for human readers
+   - **CRITICAL:** Do NOT wrap conversational responses in raw JSON unless explicitly requested for data interchange
+
+2. **Planning & Context**
+   - Always gather context before making changes: read relevant files, understand existing patterns
+   - Create explicit implementation plans for non-trivial changes
+   - Document reasoning and architectural decisions
+   - Prioritize understanding the existing codebase structure before proposing modifications
+
+3. **Implementation Standards**
+   - **Minimalism:** Write concise, efficient code; avoid boilerplate and unnecessary abstractions
+   - **Consistency:** Match existing code style, patterns, and conventions in the project
+   - **Reusability:** Leverage existing utilities and primitives before creating new ones
+   - **Token Efficiency:** Optimize for context window conservation
+
+4. **Quality Assurance**
+   - Apply Test-Driven Development principles: write or update tests for new functionality
+   - Verify changes through builds, tests, and manual verification where appropriate
+   - Consider performance, security, and accessibility in all implementations
+   - Run existing test suites before declaring changes complete
 
 ---
 
-## Security Sandbox & Operating System Constraints
+## Permission Policy
 
-Agents operate under an explicit security profile defining filesystem and terminal executions:
+Default access rules for all agent operations. Platform-specific enforcement mechanisms may vary, but the intent below is authoritative:
 
-| Subsystem / Action                    | Scope        | Access Effect                      |
-| :------------------------------------ | :----------- | :--------------------------------- |
-| **Filesystem Reading (`read`)**       | Global (`*`) | `ALLOW`                            |
-| **Filesystem Modifying (`edit`)**     | Global (`*`) | `ALLOW`                            |
-| **Filesystem Initializing (`write`)** | Global (`*`) | `ALLOW`                            |
-| **Terminal Operations (`bash`)**      | Global (`*`) | `ASK` (Requires user confirmation) |
+| Operation                         | Scope        | Policy                             |
+| :-------------------------------- | :----------- | :--------------------------------- |
+| **Read** (files, search, inspect) | Global (`*`) | `ALLOW` — no confirmation needed   |
+| **Edit** (modify existing files)  | Global (`*`) | `ALLOW` — no confirmation needed   |
+| **Write** (create new files)      | Global (`*`) | `ALLOW` — no confirmation needed   |
+| **Shell / Terminal execution**    | Global (`*`) | `ASK` — require user confirmation  |
+
+Destructive or irreversible shell operations (deletes, force-pushes, production deploys) require explicit confirmation regardless of platform defaults.
 
 ---
 
-## System Priming Files
+## Required Context Files
 
-The agent must cross-reference and ingest these repository map coordinates prior to running code evaluations:
+Before evaluating or modifying code, the agent must read and internalize these project documents in order:
 
-1. `.opencode/instructions/overview.md`
-2. `.opencode/instructions/conventions.md`
-3. `.opencode/instructions/architecture.md`
-4. `.opencode/instructions/code-map.md`
+1. [Instructions/overview.md](Instructions/overview.md) — project purpose and high-level structure
+2. [Instructions/conventions.md](Instructions/conventions.md) — coding style and naming rules
+3. [Instructions/architecture.md](Instructions/architecture.md) — system design and component boundaries
+4. [Instructions/code-map.md](Instructions/code-map.md) — file-level reference map
+
+If any file is missing, note it and proceed with available context rather than halting.
 
 ---
 
 ## Graphify Workspace Intelligence
 
-This project maintains a local knowledge graph mapping internal file structures and community nodes inside `graphify-out/`.
+This project maintains a local knowledge graph of internal file structures and component relationships under `graphify-out/`.
 
-- When `graphify-out/graph.json` is present, execute `graphify query "<question>"` prior to running multi-file `grep` or file search commands for codebase mapping.
-- Use `graphify path "<A>" "<B>"` to trace component dependencies and `graphify explain "<concept>"` to grasp structural patterns.
-- Following any code modifications or structural logic shifts, automatically issue `graphify update .` to keep dependency branches completely synchronized.
+**Usage rules:**
+
+- Before running broad multi-file searches (`grep`, `find`, file tree walks), check if `graphify-out/graph.json` exists. If it does, prefer `graphify query "<question>"` for faster, graph-aware lookup.
+- Use `graphify path "<A>" "<B>"` to trace dependency chains between two components.
+- Use `graphify explain "<concept>"` to understand structural patterns and module roles.
+- After any code changes that alter file structure or component relationships, run `graphify update .` to keep the graph synchronized.
+
+These commands are optional enhancements. If `graphify` is unavailable in the current environment, fall back to standard file and search tools without interrupting the task.
