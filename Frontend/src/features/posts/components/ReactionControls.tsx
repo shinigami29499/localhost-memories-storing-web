@@ -1,5 +1,5 @@
 import type { ReactionCount } from "../types";
-import { LoaderCircle } from "lucide-react";
+import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import { ReactionIcon } from "./ReactionIcon";
 
 export const REACTION_TYPES = ["like", "heart", "laugh"] as const;

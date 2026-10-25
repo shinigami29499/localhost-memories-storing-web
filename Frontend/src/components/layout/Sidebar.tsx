@@ -1,5 +1,12 @@
 import { useState } from "react";
-import { Home, Users, FileText, LogOut, PanelLeftClose, PanelLeftOpen, ShieldCheck, ChevronDown } from "lucide-react";
+import { Home } from "lucide-react";
+import { Users } from "@/components/animate-ui/icons/users";
+import { FileText } from "@/components/animate-ui/icons/file-text";
+import { LogOut } from "@/components/animate-ui/icons/log-out";
+import { PanelLeftClose } from "@/components/animate-ui/icons/panel-left-close";
+import { PanelLeftOpen } from "@/components/animate-ui/icons/panel-left-open";
+import { ShieldCheck } from "@/components/animate-ui/icons/shield-check";
+import { ChevronDown } from "@/components/animate-ui/icons/chevron-down";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
 import { authService } from "../../features/auth";

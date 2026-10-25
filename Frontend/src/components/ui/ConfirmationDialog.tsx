@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
-import { X } from "lucide-react";
+import { X } from "@/components/animate-ui/icons/x";
 import type { ReactNode } from "react";
 import { ApiError } from "../../services/api";
 import { Button } from "./Button";

@@ -1,5 +1,6 @@
 import { useId, useRef } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft } from "@/components/animate-ui/icons/chevron-left";
+import { ChevronRight } from "@/components/animate-ui/icons/chevron-right";
 import "./Pagination.css";
 
 export const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;

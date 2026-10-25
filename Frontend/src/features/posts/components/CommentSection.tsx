@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { X } from "lucide-react";
+import { X } from "@/components/animate-ui/icons/x";
 import type { Comment } from "../types";
 import { commentService } from "../services/postService";
 import { useAuthStore } from "../../../store/authStore";

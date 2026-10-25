@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { Plus } from "@/components/animate-ui/icons/plus";
 
 export function CommunityIntro({ variant }: { variant: "login" | "feed" }) {
   const isLogin = variant === "login";

@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, X } from "lucide-react";
+import { ArrowLeft } from "@/components/animate-ui/icons/arrow-left";
+import { ArrowRight } from "@/components/animate-ui/icons/arrow-right";
+import { X } from "@/components/animate-ui/icons/x";
 import type { AdminPost } from "../../features/posts";
 import { mediaUrl } from "../../utils/media";
 

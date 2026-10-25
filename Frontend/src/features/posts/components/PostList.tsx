@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { LoaderCircle } from "lucide-react";
+import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import type { Post } from "../types";
 import { Pagination } from "../../../components/ui/Pagination";
 import { PostCard } from "./PostCard";

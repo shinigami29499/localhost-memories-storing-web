@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight } from "@/components/animate-ui/icons/arrow-right";
 import { Link } from "react-router-dom";
 import { authService } from "../../features/auth";
 import { Button, Input } from "../../components/ui";

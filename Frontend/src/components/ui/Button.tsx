@@ -1,5 +1,5 @@
 import type { ReactNode, ButtonHTMLAttributes } from "react";
-import { LoaderCircle } from "lucide-react";
+import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "secondary" | "ghost" | "danger";

@@ -1,7 +1,9 @@
 import { useRef, useState } from "react";
 import { postService } from "../services/postService";
 import { Button } from "../../../components/ui";
-import { Paperclip, PencilLine, X } from "lucide-react";
+import { Paperclip } from "@/components/animate-ui/icons/paperclip";
+import { PencilLine } from "@/components/animate-ui/icons/pencil-line";
+import { X } from "@/components/animate-ui/icons/x";
 import { ErrorState } from "../../../components/ui/Status";
 import type { Post } from "../types";
 

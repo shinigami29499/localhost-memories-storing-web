@@ -1,4 +1,4 @@
-import { LoaderCircle } from "lucide-react";
+import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 
 export function Spinner({ label = "Loading…" }: { label?: string }) {
   return (

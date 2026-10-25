@@ -1,4 +1,7 @@
-import { Heart, Laugh, MessageCircle, ThumbsUp } from "lucide-react";
+import { Heart } from "@/components/animate-ui/icons/heart";
+import { Laugh } from "lucide-react";
+import { MessageCircle } from "@/components/animate-ui/icons/message-circle";
+import { ThumbsUp } from "@/components/animate-ui/icons/thumbs-up";
 import type { ReactionType } from "./ReactionControls";
 
 const icons = { like: ThumbsUp, heart: Heart, laugh: Laugh, comment: MessageCircle };

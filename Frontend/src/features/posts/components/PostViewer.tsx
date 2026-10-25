@@ -1,5 +1,7 @@
 import { useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, LoaderCircle } from "lucide-react";
+import { ArrowLeft } from "@/components/animate-ui/icons/arrow-left";
+import { ArrowRight } from "@/components/animate-ui/icons/arrow-right";
+import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import type { Post } from "../types";
 import { ErrorState } from "../../../components/ui/Status";
 import { PostCard } from "./PostCard";

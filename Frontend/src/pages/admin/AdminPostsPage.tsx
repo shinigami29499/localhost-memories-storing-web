@@ -4,7 +4,12 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import { DeletePostDialog, postService, type AdminPost, type PagedFeed } from "../../features/posts";
 import { ApiError } from "../../services/api";
 import { EmptyState, ErrorState, Spinner } from "../../components/ui/Status";
-import { ArrowLeft, Eye, LoaderCircle, RotateCcw, Trash2, ChevronFirst, ChevronLast } from "lucide-react";
+import { ArrowLeft } from "@/components/animate-ui/icons/arrow-left";
+import { Eye } from "@/components/animate-ui/icons/eye";
+import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
+import { RotateCcw } from "@/components/animate-ui/icons/rotate-ccw";
+import { Trash2 } from "@/components/animate-ui/icons/trash-2";
+import { ChevronFirst, ChevronLast } from "lucide-react";
 import { ConfirmationDialog } from "../../components/ui/ConfirmationDialog";
 import { Pagination, DEFAULT_PAGE_SIZE } from "../../components/ui/Pagination";
 import { mediaUrl } from "../../utils/media";
