@@ -5,7 +5,7 @@ describe("mediaUrl", () => {
   it("keeps regular media requests separate from admin deleted-media previews", () => {
     const regular = new URL(mediaUrl("media-1"));
     const preview = new URL(mediaUrl("media-1", true));
-    expect(regular.pathname).toBe("/api/Media/media-1/file");
+    expect(regular.pathname).toBe("/api/media/media-1/file");
     expect(regular.searchParams.has("includeDeleted")).toBe(false);
     expect(preview.pathname).toBe(regular.pathname);
     expect(preview.searchParams.get("includeDeleted")).toBe("true");

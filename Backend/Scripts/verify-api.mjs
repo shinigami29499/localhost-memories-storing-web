@@ -112,11 +112,11 @@ async function main() {
 
   // media serving: header auth AND ?accessToken= (browser <video> path)
   const mediaId = post.media.find(m => m.mediaKind === "image").id;
-  r = await fetch(`${BASE}/api/Media/${mediaId}/file`, { headers: H });
+  r = await fetch(`${BASE}/api/media/${mediaId}/file`, { headers: H });
   check("media GET via header auth", r.status === 200 && r.headers.get("content-type").startsWith("image/png"));
-  r = await fetch(`${BASE}/api/Media/${mediaId}/file?accessToken=${login.accessToken}`);
+  r = await fetch(`${BASE}/api/media/${mediaId}/file?accessToken=${login.accessToken}`);
   check("media GET via ?accessToken", r.status === 200);
-  r = await fetch(`${BASE}/api/Media/${mediaId}/file?accessToken=garbage`);
+  r = await fetch(`${BASE}/api/media/${mediaId}/file?accessToken=garbage`);
   check("media GET bad token 401", r.status === 401);
 
   // other user cannot delete my post
@@ -153,7 +153,7 @@ async function main() {
   const feed2 = await r.json();
   check("feed excludes soft-deleted post", !feed2.items.some(p => p.id === post.id));
 
-  r = await fetch(`${BASE}/api/Media/${mediaId}/file`, { headers: H });
+  r = await fetch(`${BASE}/api/media/${mediaId}/file`, { headers: H });
   check("media of deleted post unavailable", r.status === 404);
 
   r = await fetch(`${BASE}/api/posts/${post.id}/comments`, { headers: H });
@@ -180,7 +180,7 @@ async function main() {
   check("deleted post's files present in trash", trashedBoth);
 
   // restore with admin user (any active media? post is deleted → restore blocked by policy)
-  r = await fetch(`${BASE}/api/Media/${mediaId}/restore`, { method: "POST", headers: { Authorization: `Bearer ${admin.accessToken}` } });
+  r = await fetch(`${BASE}/api/media/${mediaId}/restore`, { method: "POST", headers: { Authorization: `Bearer ${admin.accessToken}` } });
   check("restore into deleted post blocked 409", r.status === 409);
 
   console.log(failed.length === 0 ? "\nALL CHECKS PASSED" : `\n${failed.length} CHECKS FAILED: ${failed.join("; ")}`);

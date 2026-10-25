@@ -23,10 +23,10 @@ Run commands from the repository root unless a `cd` is shown.
  dotnet build Backend\ShinigaCim.sln -c Release --no-restore
 
 # Run the API (startup applies configured migrations/seeding and creates storage directories)
- dotnet run --project Backend\Api
+ dotnet run --project Backend\Apis
 ```
 
-The API listens on `http://localhost:8000`; Swagger is at `/swagger`. Configure the local PostgreSQL connection and seed settings in `Backend/Api/appsettings.json` or through normal ASP.NET configuration overrides before running it.
+The API listens on `http://localhost:8000`; Swagger is at `/swagger`. Configure the local PostgreSQL connection and seed settings in `Backend/Apis/appsettings.json` or through normal ASP.NET configuration overrides before running it.
 
 Do not run `dotnet test`, backend test runners, API smoke tests, or verification scripts. Do not use `dotnet run` as a read-only validation step because API startup may change the database and filesystem.
 
@@ -55,18 +55,22 @@ Frontend (React + Vite, :3000)
                                       |
                                       v
 Backend (ASP.NET Core, :8000)
-  Api -> Service -> Data/Domain and Adapter -> PostgreSQL/filesystem
+  Apis -> Services -> Domains
+    |
+    └── Infrastructures -> Services, Domains
+          ├── Data -> PostgreSQL
+          └── Adapters -> filesystem
 ```
 
 ### Backend boundaries
 
-- `Backend/Api` owns HTTP concerns: `Program.cs` composition and configuration, controllers, middleware, authorization attributes, startup seeding, and the HTTP-backed current-user/audit adapter.
-- `Backend/Service` owns business workflows and contracts: interfaces, implementations, requests, responses, DTO models, mappings, exceptions, token handling, and options. It must not depend on `Api`.
-- `Backend/Domain` owns entities, base classes, and enums. Keep domain types independent of application and infrastructure layers.
-- `Backend/Data` owns `ApplicationDbContext`, EF configuration, migrations, async persistence, global soft-delete filters, and centralized audit stamping.
-- `Backend/Adapter` owns external integrations, especially filesystem media storage and the media-storage abstractions.
+- `Backend/Apis` owns HTTP concerns: `Program.cs` composition and configuration, controllers, middleware, authorization attributes, startup seeding, and the HTTP-backed current-user/audit adapter.
+- `Backend/Services` owns public use-case interfaces, shared application contracts, requests, responses, DTO models, mappings, exceptions, token handling, and options. It depends on `Domains`, not on infrastructure projects or `Apis`.
+- `Backend/Domains` owns entities, base classes, and enums. Keep domain types independent of application and infrastructure layers.
+- `Backend/Infrastructures/Data` owns its repository, unit-of-work, transaction, and audit interfaces; their implementations; and workflow services that use them. It also owns `ApplicationDbContext`, EF configuration, migrations, async persistence, global soft-delete filters, and centralized audit stamping.
+- `Backend/Infrastructures/Adapters` owns external integrations, especially filesystem media storage, and implements application-owned interfaces.
 
-The normal request path is controller -> service -> `ApplicationDbContext` and/or media storage -> mapped response. Controllers should remain thin. Use the existing `IMapper` abstraction and mapping definitions in `Service/Mappings` rather than duplicating entity/DTO mapping in controllers or workflows. Project references are directed downward: `Api` references the application and infrastructure projects; lower layers do not reference `Api`.
+The normal request path is controller -> public use-case interface -> workflow service in `Infrastructures/Data/ApplicationServices` -> Data-owned repository/unit-of-work interfaces -> Data implementations -> mapped response. Controllers should remain thin. Use the existing `IMapper` abstraction and mapping definitions in `Services/Mappings` rather than duplicating entity/DTO mapping in controllers or workflows. `Apis` composes the projects; `Services` references `Domains`; the single `Infrastructures` project references `Services` and `Domains` and contains Data and Adapters as source areas.
 
 Persistence and media operations have important cross-cutting invariants:
 
@@ -89,7 +93,7 @@ For a feature, trace it from the routed page/component through its hook or servi
 
 ## Configuration and data flow
 
-- PostgreSQL database: `shinigacim_db` by default; the connection string is in `Backend/Api/appsettings.json` and should be overridden for machine-specific credentials.
+- PostgreSQL database: `shinigacim_db` by default; the connection string is in `Backend/Apis/appsettings.json` and should be overridden for machine-specific credentials.
 - Backend storage: `MediaStorage:Root` defaults to the backend storage tree; active files and trash files must remain available for restoration workflows.
 - Frontend API base URL: `VITE_API_URL`.
 - CORS origins and seed/migration behavior are configured in the backend app settings.

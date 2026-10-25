@@ -13,7 +13,7 @@ code changes.
   `ConnectionStrings__Default="Host=…;Username=…;Password=…"`.
 - Migration state ships in the repository; on deploy either let `Seed:AutoMigrate=true`
   apply pending migrations at startup, or run
-  `dotnet ef database update --project Backend\Data --startup-project Backend\Api`.
+  `dotnet ef database update --project Backend\Infrastructures\Infrastructures.csproj --startup-project Backend\Apis\Apis.csproj`.
 
 ## 2. Storage
 

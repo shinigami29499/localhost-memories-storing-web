@@ -51,10 +51,10 @@ Keep the existing use-case/service pattern unless a change benefits from a diffe
 
 - Use PascalCase for types, methods, properties, and enum members; camelCase for parameters and locals.
 - Name async methods with the `Async` suffix, DTOs with `Dto`, and service input/output contracts with `Request` or `Response`.
-- Prefix interfaces with `I`; place each interface in an `Interfaces/` folder within the project that owns the contract. Keep implementations in their owning project's implementation folder.
+- Prefix interfaces with `I`; every interface belongs in an `Interfaces/` folder inside the project that owns it. Keep the interface and its owning implementation in the same project when they define that project's API—for example, `IMediaStorageService` belongs in `Infrastructures/Adapters/Interfaces/` alongside `MediaStorageService`. Do not put a project's interface in another project's `Interfaces/` folder.
 - Name infrastructure implementations for their role (for example, `UnitOfWork`, `PostRepository`, `MediaStorageService`); do not add technology prefixes such as `Ef`.
 - Use C# primary constructors for dependency assignment; do not add empty constructors.
-- Keep application ports/contracts owned by the application layer; infrastructure projects implement them rather than making use cases depend on infrastructure implementations.
+- Keep use-case ports owned by the application layer when application workflows depend on them; place those interfaces in `Services/Interfaces/`. Interfaces that define an infrastructure project's own API belong in that infrastructure project's `Interfaces/` folder.
 - Use the existing `IMapper` abstraction and definitions in `Service/Mappings` for entity/DTO/request/response mapping.
 - Preserve the current short project and namespace naming; keep the solution filename `ShinigaCim.sln`.
 - Keep comments limited to necessary facts or non-obvious constraints.

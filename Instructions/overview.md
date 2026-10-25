@@ -6,7 +6,7 @@ ShinigaCim is an authenticated social feed with posts, comments, reactions, and 
 
 - Backend: ASP.NET Core 8, EF Core, PostgreSQL, and JWT authentication.
 - Frontend: React, TypeScript, Vite, TanStack Query, and Zustand.
-- Start with [README](../../README.md) for setup and [MIGRATION](../../MIGRATION.md) for deployment.
+- Start with [README](../README.md) for setup and [MIGRATION](../MIGRATION.md) for deployment.
 
 ## Guide index
 

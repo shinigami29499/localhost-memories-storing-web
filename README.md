@@ -29,13 +29,13 @@ also require an explicit confirmation popup before the action is submitted.
 
 ## Technology Stack
 
-| Layer      | Technology                                                            |
-|------------|-----------------------------------------------------------------------|
-| Backend    | ASP.NET Core 8.0 Web API, JWT (access + rotating refresh)             |
-| Database   | PostgreSQL 16+ (local Windows install also works, e.g. PG 18)         |
-| ORM        | EF Core 8 + Npgsql, snake_case naming conventions                     |
-| Storage    | Local filesystem (`Backend/Storage/Media` + `Backend/Storage/Trash`)  |
-| Frontend   | React 18, Vite 6, TypeScript, TanStack Query, Zustand, React Router   |
+| Layer      | Technology                                                           |
+| ---------- | -------------------------------------------------------------------- |
+| Backend    | ASP.NET Core 8.0 Web API, JWT (access + rotating refresh)            |
+| Database   | PostgreSQL 16+ (local Windows install also works, e.g. PG 18)        |
+| ORM        | EF Core 8 + Npgsql, snake_case naming conventions                    |
+| Storage    | Local filesystem (`Backend/Storage/Media` + `Backend/Storage/Trash`) |
+| Frontend   | React 18, Vite 6, TypeScript, TanStack Query, Zustand, React Router  |
 | Validation | Backend builds only; Vitest for frontend tests                       |
 
 ## Architecture
@@ -45,11 +45,12 @@ Frontend (React, http://localhost:3000)
         │  REST + JWT
         ▼
 Backend ASP.NET Core Web API (http://localhost:8000)
-  ├─ Api (controllers, middleware, HTTP identity adapter)
-  ├─ Service (workflows, contracts, IMapper)
-  ├─ Data (EF Core DbContext, migrations)
-  ├─ Adapter (media storage)
-  └─ Domain (entities, enums)
+  ├─ Apis (controllers, middleware, HTTP identity adapter)
+  ├─ Services (public use-case contracts, shared models, IMapper)
+  ├─ Domains (entities, enums)
+  └─ Infrastructures (single project)
+      ├─ Data (workflows, EF Core DbContext, migrations, repositories)
+      └─ Adapters (media storage)
         │                │
         ▼                ▼
  PostgreSQL          Local filesystem
@@ -57,11 +58,13 @@ Backend ASP.NET Core Web API (http://localhost:8000)
 ```
 
 ### Backend layout (`Backend/`)
-- `Api` — controllers, seeding, middleware, HTTP current-user implementation
-- `Service` — separate class library with interfaces, implementations, DTOs, requests, responses, mappings, and JWT options
-- `Data` — `ApplicationDbContext`, migrations, audit-actor interface
-- `Adapter` — `MediaStorageService`
-- `Domain` — one entity or enum per file
+
+- `Apis` — controllers, seeding, middleware, HTTP current-user implementation
+- `Services` — public use-case interfaces, shared contracts, DTOs, requests, responses, mappings, and JWT options
+- `Domains` — one entity or enum per file
+- `Infrastructures` — one project (`Infrastructures.csproj`) containing the Data and Adapters source areas
+- `Infrastructures/Data` — workflow services, persistence interfaces, `ApplicationDbContext`, migrations, and EF repositories
+- `Infrastructures/Adapters` — `MediaStorageService`
 - `Scripts/` — legacy helpers; not validated for the renamed project paths
 
 Project and assembly names omit the `ShinigaCim` prefix. The restricted security source retains
@@ -71,6 +74,7 @@ in old prefixed folders; those folders are no longer solution projects.
 ## Getting Started
 
 ### 1. PostgreSQL
+
 Create a database `shinigacim_db` on a local PostgreSQL instance, e.g.:
 
 ```powershell
@@ -78,14 +82,14 @@ $env:PGPASSWORD = '<postgres password>'
 &E:\DB\PostgreSQL\18\bin\psql.exe -U postgres -h localhost -c "CREATE DATABASE shinigacim_db;"
 ```
 
-The connection string lives in [Backend/Api/appsettings.json](Backend/Api/appsettings.json)
+The connection string lives in [Backend/Apis/appsettings.json](Backend/Apis/appsettings.json)
 (host/port/user/password) — change it to match your machine.
 
 ### 2. Backend
 
 ```powershell
 cd Backend
-dotnet run --project Api
+dotnet run --project Apis
 ```
 
 First start applies migrations automatically, creates `storage/Media` and `storage/Trash`,
@@ -157,32 +161,32 @@ npm test -- --run
   remaining in the table.
 - **Media trash workflow:** deleting a post/Media moves the file(s) into
   `storage/Trash/<kind>/` and records `trash_relative_path`/`trashed_at` while keeping the
-  original `relative_path` for restoration (`POST /api/Media/{id}/restore`). Filesystem
+  original `relative_path` for restoration (`POST /api/media/{id}/restore`). Filesystem
   and DB steps are kept consistent with verify-copy + compensation-rollback logic.
 - **Foreign keys never cascade** (`DeleteBehavior.NoAction` everywhere).
 
 ## REST API overview (all under `/api`, Bearer JWT except where noted)
 
-| Endpoint                              | Method(s)   | Notes                             |
-|---------------------------------------|-------------|-----------------------------------|
-| `/auth/register`, `/auth/login`, `/auth/refresh` | POST | anonymous (`register` creates a `PendingApproval` account) |
-| `/auth/logout`, `/auth/me`            | POST, GET   | authorized                        |
-| `/users?`                             | GET         | admin — all accounts, pending first |
-| `/users/{id}/approve`                 | POST        | admin — activates a pending account |
-| `/users/{id}`                         | DELETE      | admin — soft delete + session revoke |
-| `/posts?offset=&limit=`               | GET         | feed                              |
-| `/posts`                              | POST        | multipart: caption + files[]      |
-| `/posts/{id}`                         | GET/PUT/DELETE | PUT = caption; DELETE = soft delete + trash |
-| `/posts/{id}/comments`                | GET/POST    |                                   |
-| `/comments/{id}`                      | PUT/DELETE  | soft delete, idempotent           |
-| `/posts/{id}/reactions`               | POST        | body: `{ reactionType }`          |
-| `/posts/{id}/reactions/{type}`        | DELETE      | idempotent                        |
-| `/Media/{id}/file`                    | GET         | anonymous w/ header or `?accessToken=` |
-| `/Media/{id}` / `/Media/{id}/restore` | DELETE/POST | per-file trash/restore            |
+| Endpoint                                         | Method(s)      | Notes                                                      |
+| ------------------------------------------------ | -------------- | ---------------------------------------------------------- |
+| `/auth/register`, `/auth/login`, `/auth/refresh` | POST           | anonymous (`register` creates a `PendingApproval` account) |
+| `/auth/logout`, `/auth/me`                       | POST, GET      | authorized                                                 |
+| `/users?`                                        | GET            | admin — all accounts, pending first                        |
+| `/users/{id}/approve`                            | POST           | admin — activates a pending account                        |
+| `/users/{id}`                                    | DELETE         | admin — soft delete + session revoke                       |
+| `/posts?offset=&limit=`                          | GET            | feed                                                       |
+| `/posts`                                         | POST           | multipart: caption + files[]                               |
+| `/posts/{id}`                                    | GET/PUT/DELETE | PUT = caption; DELETE = soft delete + trash                |
+| `/posts/{id}/comments`                           | GET/POST       |                                                            |
+| `/comments/{id}`                                 | PUT/DELETE     | soft delete, idempotent                                    |
+| `/posts/{id}/reactions`                          | POST           | body: `{ reactionType }`                                   |
+| `/posts/{id}/reactions/{type}`                   | DELETE         | idempotent                                                 |
+| `/Media/{id}/file`                               | GET            | anonymous w/ header or `?accessToken=`                     |
+| `/Media/{id}` / `/Media/{id}/restore`            | DELETE/POST    | per-file trash/restore                                     |
 
 Errors are RFC 7807 problem details (`application/problem+json`).
 
-## Configuration highlights ([Backend/Api/appsettings.json](Backend/Api/appsettings.json))
+## Configuration highlights ([Backend/Apis/appsettings.json](Backend/Apis/appsettings.json))
 
 - `ConnectionStrings:Default` — PostgreSQL DSN
 - `Jwt:Key` — dev key; replace with user-secrets/env for anything beyond local dev

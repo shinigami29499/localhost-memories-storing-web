@@ -140,7 +140,7 @@ describe("AdminPostsPage", () => {
     queryClient.setQueryData(["admin-all-posts"], { ...posts, items: [post], total: 1 });
     renderPage();
     const thumbnail = container.querySelector<HTMLImageElement>(".admin-post__media img");
-    expect(thumbnail?.src).toContain("/api/Media/image-1/file?");
+    expect(thumbnail?.src).toContain("/api/media/image-1/file?");
     expect(thumbnail?.src).toContain("includeDeleted=true");
     act(() => container.querySelector<HTMLButtonElement>(".admin-post__media")!.click());
 
@@ -149,20 +149,20 @@ describe("AdminPostsPage", () => {
     expect(dialog.getAttribute("aria-label")).toBe("Media preview for post by alice");
     expect(dialog.textContent).toContain("Media 1 of 2");
     expect(dialog.textContent?.includes("Preview from trash")).toBe(deletedAt !== null);
-    expect(dialog.querySelector("img")?.src).toContain("/api/Media/image-1/file?");
+    expect(dialog.querySelector("img")?.src).toContain("/api/media/image-1/file?");
     expect(dialog.querySelector("img")?.src).toContain("includeDeleted=true");
     expect(dialog.querySelector<HTMLButtonElement>('[aria-label="Previous media"]')?.disabled).toBe(true);
 
     act(() => dialog.querySelector<HTMLButtonElement>('[aria-label="Next media"]')!.click());
     expect(dialog.querySelector("img")).toBeNull();
-    expect(dialog.querySelector("video")?.src).toContain("/api/Media/video-2/file?");
+    expect(dialog.querySelector("video")?.src).toContain("/api/media/video-2/file?");
     expect(dialog.querySelector("video")?.controls).toBe(true);
     expect(dialog.textContent).toContain("Media 2 of 2");
     expect(dialog.querySelector<HTMLButtonElement>('[aria-label="Next media"]')?.disabled).toBe(true);
 
     act(() => dialog.querySelector<HTMLButtonElement>('[aria-label="Previous media"]')!.click());
     expect(dialog.querySelector("video")).toBeNull();
-    expect(dialog.querySelector("img")?.src).toContain("/api/Media/image-1/file?");
+    expect(dialog.querySelector("img")?.src).toContain("/api/media/image-1/file?");
     act(() => dialog.querySelector<HTMLButtonElement>('[aria-label="Close media preview"]')!.click());
     expect(container.querySelector("dialog")).toBeNull();
     expect(container.querySelector(".admin-post__status")?.textContent).toBe(deletedAt ? "Deleted" : "Active");
