@@ -162,37 +162,9 @@
 .admin-grid {
   display: grid;
   gap: 16px;
-  /* Responsive columns based on screen width */
-  grid-template-columns: 
-    repeat(auto-fill, minmax(min(280px, (100vw - 32px) / var(--admin-max-cols, 5)), 1fr));
-  /* Set max columns per row - adjusts automatically with viewport */
-  --admin-max-cols: calc(min(6, ceil((100vw - 64px) / 280px)));
+  grid-template-columns: var(--admin-grid-template, repeat(3, minmax(0, 1fr)));
 }
 
-/* Show fewer columns on smaller screens */
-@media (max-width: 1024px) {
-  .admin-grid {
-    --admin-max-cols: 4;
-  }
-}
-
-@media (max-width: 768px) {
-  .admin-grid {
-    --admin-max-cols: 3;
-  }
-}
-
-@media (max-width: 512px) {
-  .admin-grid {
-    --admin-max-cols: 2;
-  }
-}
-
-@media (max-width: 400px) {
-  .admin-grid {
-    grid-template-columns: repeat(var(--admin-max-cols, 1), minmax(0, 1fr));
-  }
-}
 
 .admin-post {
   background: linear-gradient(150deg, #282a33, var(--surface) 65%);
@@ -267,6 +239,16 @@
   flex: 1;
   gap: 8px;
   padding: 14px;
+}
+
+.admin-post__resize {
+  position: absolute;
+  top: 0;
+  right: -9px;
+  z-index: 1;
+  width: 2px;
+  height: 100%;
+  background: var(--border);
 }
 
 .admin-post__topline {

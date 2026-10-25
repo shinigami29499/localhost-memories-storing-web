@@ -1,7 +1,13 @@
 {
+  "model": "omni-shinigami",
+  "autoCompactEnabled": false,
+  "permissions": {
+    "allow": ["Read", "Edit", "Glob", "Grep", "WebFetch", "WebSearch", "Task"],
+    "ask": ["Bash", "LSP"]
+  },
   "env": {
+    "CLAUDE_CODE_AUTO_MODE_SERVER": "0",
     "ANTHROPIC_BASE_URL": "http://localhost:20128/v1",
-    "ANTHROPIC_MODEL": "omni-shinigami",
     "ANTHROPIC_API_KEY": "sk-31a2321c170cacc7-54abab-44fa93ab"
   }
 }

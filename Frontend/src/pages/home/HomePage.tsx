@@ -1,72 +1,69 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import type { InfiniteData } from "@tanstack/react-query";
-import { useFeed } from "../../hooks/useFeed";
+import { usePagedFeed, type PagedFeed } from "../../hooks/usePagedFeed";
+import { DEFAULT_PAGE_SIZE } from "../../components/ui/Pagination";
 import { Header } from "../../components/layout/Header";
 import { CommunityIntro } from "../../components/layout/CommunityIntro";
 import { NewPostForm } from "../../components/feed/NewPostForm";
-import { PostViewer } from "../../components/feed/PostViewer";
-import { EmptyState, ErrorState, Spinner } from "../../components/ui/Status";
+import { PostList } from "../../components/feed/PostList";
+import { EmptyState, ErrorState } from "../../components/ui/Status";
 import type { Post } from "../../types";
 import "./home.css";
 
-function mapPost(
-  existing: InfiniteData<{ items: Post[]; total: number; nextOffset: number | undefined }, number> | undefined,
-  mutate: (post: Post) => Post | undefined,
-): InfiniteData<{ items: Post[]; total: number; nextOffset: number | undefined }, number> | undefined {
-  if (!existing) return undefined;
-  const pages = existing.pages.map((page) => ({
-    ...page,
-    items: page.items.flatMap((post) => {
-      const replacement = mutate(post);
-      return replacement ? [replacement] : []; // undefined removes the post
-    }),
-  }));
-  const removed = existing.pages.reduce((count, page, index) => count + page.items.length - pages[index].items.length, 0);
-  return {
-    ...existing,
-    pages: pages.map((page) => ({ ...page, total: Math.max(0, page.total - removed) })),
-  };
-}
-
 export function HomePage() {
-  const feed = useFeed(5);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(() => {
+    const stored = Number(window.localStorage.getItem("feed.pageSize"));
+    return [10, 20, 50, 100].includes(stored) ? stored : DEFAULT_PAGE_SIZE;
+  });
+  const feed = usePagedFeed(page, pageSize);
   const queryClient = useQueryClient();
-  const [viewerVersion, setViewerVersion] = useState(0);
 
-  const posts: Post[] = feed.data?.pages.flatMap((page) => page.items) ?? [];
-  const hasMore = feed.hasNextPage;
-
-  const loadMore = async () => {
-    const result = await feed.fetchNextPage();
-    if (result.isFetchNextPageError) throw result.error;
-    return result.data?.pages.flatMap((page) => page.items) ?? [];
-  };
+  const posts: Post[] = feed.data?.items ?? [];
+  const total = feed.data?.total ?? 0;
 
   const onChanged = (updated: Post) => {
-    void queryClient.setQueryData<InfiniteData<{ items: Post[]; total: number; nextOffset: number | undefined }, number>>(
-      ["feed", 5],
-      (existing) => mapPost(existing, (post) => (post.id === updated.id ? { ...post, ...updated } : post)),
+    void queryClient.setQueryData(
+      ["feed", "paged", pageSize, (page - 1) * pageSize],
+      (existing: PagedFeed | undefined) => (existing
+        ? { ...existing, items: existing.items.map((post) => (post.id === updated.id ? { ...post, ...updated } : post)) }
+        : undefined),
     );
   };
 
   const onDeleted = (postId: string) => {
-    void queryClient.setQueryData<InfiniteData<{ items: Post[]; total: number; nextOffset: number | undefined }, number>>(
-      ["feed", 5],
-      (existing) => mapPost(existing, (post) => (post.id === postId ? undefined : post)),
+    void queryClient.setQueryData(
+      ["feed", "paged", pageSize, (page - 1) * pageSize],
+      (existing: PagedFeed | undefined) => (existing
+        ? { ...existing, items: existing.items.filter((post) => post.id !== postId), total: existing.total - 1 }
+        : undefined),
     );
   };
 
   const onCreated = (post: Post) => {
-    // Optimistic insert followed by a refetch for authoritative paging data.
-    void queryClient.setQueryData<InfiniteData<{ items: Post[]; total: number; nextOffset: number | undefined }, number>>(
-      ["feed", 5],
-      (existing) => (existing
-        ? { ...existing, pages: [{ items: [post, ...existing.pages[0].items], total: existing.pages[0].total + 1, nextOffset: undefined }, ...existing.pages.slice(1)] }
-        : { pages: [{ items: [post], total: 1, nextOffset: undefined }], pageParams: [0] }),
+    // Add to current page and refetch for authoritative data
+    void queryClient.setQueryData(
+      ["feed", "paged", pageSize, (page - 1) * pageSize],
+      (existing: PagedFeed | undefined) => (existing
+        ? { ...existing, items: [post, ...existing.items], total: existing.total + 1 }
+        : undefined),
     );
-    setViewerVersion((version) => version + 1);
     void feed.refetch();
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+    // Scroll to top of feed when page changes
+    const feedElement = document.getElementById("feed");
+    if (feedElement) {
+      feedElement.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
+  const handlePageSizeChange = (newPageSize: number) => {
+    setPageSize(newPageSize);
+    setPage(1);
+    window.localStorage.setItem("feed.pageSize", String(newPageSize));
   };
 
   return (
@@ -82,23 +79,25 @@ export function HomePage() {
           </div>
           <NewPostForm onCreated={onCreated} />
 
-        {feed.isLoading ? <Spinner label="Loading your feed…" /> : null}
-        {feed.isError && !feed.data ? (
+        {feed.isError ? (
           <ErrorState message="Could not load the feed." onRetry={() => void feed.refetch()} />
         ) : null}
-        {!feed.isLoading && !feed.isError && posts.length === 0 ? (
+        {!feed.isError && !feed.isLoading && posts.length === 0 ? (
           <EmptyState
             title="Nothing here yet"
             hint="Be the first to share an image or video with the community."
           />
         ) : null}
 
-        <PostViewer
-          key={viewerVersion}
+        <PostList
           posts={posts}
-          total={feed.data?.pages[0]?.total ?? posts.length}
-          hasMore={hasMore}
-          loadMore={loadMore}
+          total={total}
+          page={page}
+          pageSize={pageSize}
+          isLoading={feed.isLoading}
+          isFetching={feed.isFetching}
+          onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
           onChanged={onChanged}
           onDeleted={onDeleted}
         />

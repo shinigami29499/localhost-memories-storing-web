@@ -1,0 +1,32 @@
+.post-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.post-list__container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.post-list-loading,
+.post-list-empty,
+.post-list-fetching {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 2rem;
+  color: var(--color-text-secondary);
+}
+
+.post-list-empty__message {
+  margin: 0;
+}
+
+.post-list-fetching {
+  padding: 1rem;
+  border-top: 1px solid var(--color-border);
+  margin-top: 1rem;
+}
