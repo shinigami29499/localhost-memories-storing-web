@@ -2,7 +2,7 @@ import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { postService } from "../services/postService";
 import type { Post } from "../types";
 
-export interface PagedFeed {
+export interface PagedFeedResult {
   items: Post[];
   total: number;
   offset: number;
@@ -15,7 +15,7 @@ export function usePagedFeed(page = 1, limit = 10) {
 
   return useQuery({
     queryKey: ["feed", "paged", limit, offset],
-    queryFn: async (): Promise<PagedFeed> => {
+    queryFn: async (): Promise<PagedFeedResult> => {
       const result = await postService.feed(offset, limit);
       return {
         items: result.items,

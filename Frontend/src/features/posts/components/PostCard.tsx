@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { X } from "lucide-react";
-import type { Comment, Post } from "../../types";
-import { commentService, postService, reactionService } from "../../services/postService";
-import { formatTimestamp } from "../../utils/media";
+import type { Comment, Post } from "../types";
+import { commentService, postService, reactionService } from "../services/postService";
+import { formatTimestamp } from "../../../utils/media";
 import { MediaGallery } from "./MediaGallery";
 import { CommentSection } from "./CommentSection";
 import { REACTION_TYPES, ReactionControls, type ReactionType } from "./ReactionControls";
 import { ReactionIcon } from "./ReactionIcon";
 import { DeletePostDialog } from "./DeletePostDialog";
-import { useAuthStore } from "../../store/authStore";
+import { useAuthStore } from "../../../store/authStore";
 
 interface Props {
   post: Post;

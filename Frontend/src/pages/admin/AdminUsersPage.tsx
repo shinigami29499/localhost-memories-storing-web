@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { userService } from "../../services/userService";
+import { userService } from "../../features/users";
 import { ApiError } from "../../services/api";
 import { useAuthStore } from "../../store/authStore";
 import { EmptyState, ErrorState, Spinner } from "../../components/ui/Status";
 import { ArrowLeft, Check, LoaderCircle, Trash2 } from "lucide-react";
 import { ConfirmationDialog } from "../../components/ui/ConfirmationDialog";
-import type { AuthUser } from "../../types";
+import type { AuthUser } from "../../features/auth";
 import "./admin.css";
 
 const statusLabels: Record<string, string> = {

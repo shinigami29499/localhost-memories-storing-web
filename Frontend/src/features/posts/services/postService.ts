@@ -1,4 +1,4 @@
-import { api } from "./api";
+import { api } from "../../../services/api";
 import type { AdminPost, Comment, DeletedPost, PagedFeed, Post, ReactionCount } from "../types";
 
 export const postService = {

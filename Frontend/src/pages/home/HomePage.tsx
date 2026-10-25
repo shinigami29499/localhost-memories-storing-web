@@ -1,12 +1,9 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { usePagedFeed, type PagedFeed } from "../../hooks/usePagedFeed";
+import { NewPostForm, PostList, usePagedFeed, type PagedFeedResult, type Post } from "../../features/posts";
 import { DEFAULT_PAGE_SIZE } from "../../components/ui/Pagination";
 import { CommunityIntro } from "../../components/layout/CommunityIntro";
-import { NewPostForm } from "../../components/feed/NewPostForm";
-import { PostList } from "../../components/feed/PostList";
 import { EmptyState, ErrorState } from "../../components/ui/Status";
-import type { Post } from "../../types";
 import "./home.css";
 
 export function HomePage() {
@@ -24,7 +21,7 @@ export function HomePage() {
   const onChanged = (updated: Post) => {
     void queryClient.setQueryData(
       ["feed", "paged", pageSize, (page - 1) * pageSize],
-      (existing: PagedFeed | undefined) => (existing
+      (existing: PagedFeedResult | undefined) => (existing
         ? { ...existing, items: existing.items.map((post) => (post.id === updated.id ? { ...post, ...updated } : post)) }
         : undefined),
     );
@@ -33,7 +30,7 @@ export function HomePage() {
   const onDeleted = (postId: string) => {
     void queryClient.setQueryData(
       ["feed", "paged", pageSize, (page - 1) * pageSize],
-      (existing: PagedFeed | undefined) => (existing
+      (existing: PagedFeedResult | undefined) => (existing
         ? { ...existing, items: existing.items.filter((post) => post.id !== postId), total: existing.total - 1 }
         : undefined),
     );
@@ -43,7 +40,7 @@ export function HomePage() {
     // Add to current page and refetch for authoritative data
     void queryClient.setQueryData(
       ["feed", "paged", pageSize, (page - 1) * pageSize],
-      (existing: PagedFeed | undefined) => (existing
+      (existing: PagedFeedResult | undefined) => (existing
         ? { ...existing, items: [post, ...existing.items], total: existing.total + 1 }
         : undefined),
     );

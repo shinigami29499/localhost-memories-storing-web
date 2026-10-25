@@ -5,13 +5,13 @@ import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { AdminPostsPage } from "./AdminPostsPage";
-import type { AdminPost, PagedFeed } from "../../types";
+import type { AdminPost, PagedFeed } from "../../features/posts";
 
-vi.mock("../../services/postService", () => ({ postService: {} }));
+vi.mock("../../features/posts/services/postService", () => ({ postService: {} }));
 
 const posts: PagedFeed<AdminPost> = {
   offset: 0,
-  limit: 50,
+  limit: 10,
   total: 6,
   items: Array.from({ length: 6 }, (_, index) => ({
     id: `post-${index}`,
@@ -59,7 +59,7 @@ describe("AdminPostsPage", () => {
     queryClient = new QueryClient({
       defaultOptions: { queries: { staleTime: Infinity, retry: false } },
     });
-    queryClient.setQueryData(["admin-all-posts"], posts);
+    queryClient.setQueryData(["admin-all-posts", 0, 10], posts);
   });
 
   afterEach(() => {
@@ -137,7 +137,7 @@ describe("AdminPostsPage", () => {
         { id: "video-2", mediaKind: "video", mimeType: "video/mp4" },
       ],
     };
-    queryClient.setQueryData(["admin-all-posts"], { ...posts, items: [post], total: 1 });
+    queryClient.setQueryData(["admin-all-posts", 0, 10], { ...posts, items: [post], total: 1 });
     renderPage();
     const thumbnail = container.querySelector<HTMLImageElement>(".admin-post__media img");
     expect(thumbnail?.src).toContain("/api/media/image-1/file?");
@@ -169,7 +169,7 @@ describe("AdminPostsPage", () => {
   });
 
   it("reports media loading errors and supports opening again and cancelling", () => {
-    queryClient.setQueryData(["admin-all-posts"], {
+    queryClient.setQueryData(["admin-all-posts", 0, 10], {
       ...posts,
       items: [{
         ...posts.items[0],

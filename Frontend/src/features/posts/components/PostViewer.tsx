@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, LoaderCircle } from "lucide-react";
-import type { Post } from "../../types";
-import { ErrorState } from "../ui/Status";
+import type { Post } from "../types";
+import { ErrorState } from "../../../components/ui/Status";
 import { PostCard } from "./PostCard";
 
 interface Props {

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { useAuthStore } from "./authStore";
-import type { AuthSession } from "../types";
+import type { AuthSession } from "../features/auth/types";
 
 const session: AuthSession = {
   accessToken: "at-1",

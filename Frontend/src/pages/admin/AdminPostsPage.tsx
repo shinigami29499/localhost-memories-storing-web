@@ -1,15 +1,13 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { Link } from "react-router-dom";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { postService } from "../../services/postService";
+import { DeletePostDialog, postService, type AdminPost, type PagedFeed } from "../../features/posts";
 import { ApiError } from "../../services/api";
 import { EmptyState, ErrorState, Spinner } from "../../components/ui/Status";
 import { ArrowLeft, Eye, LoaderCircle, RotateCcw, Trash2, ChevronFirst, ChevronLast } from "lucide-react";
-import { DeletePostDialog } from "../../components/feed/DeletePostDialog";
 import { ConfirmationDialog } from "../../components/ui/ConfirmationDialog";
 import { Pagination, DEFAULT_PAGE_SIZE } from "../../components/ui/Pagination";
 import { mediaUrl } from "../../utils/media";
-import type { AdminPost, PagedFeed } from "../../types";
 import { AdminMediaPreview } from "./AdminMediaPreview";
 import "./admin.css";
 

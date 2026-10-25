@@ -1,9 +1,9 @@
 import { useRef, useState } from "react";
-import { postService } from "../../services/postService";
-import { Button } from "../ui";
+import { postService } from "../services/postService";
+import { Button } from "../../../components/ui";
 import { Paperclip, PencilLine, X } from "lucide-react";
-import { ErrorState } from "../ui/Status";
-import type { Post } from "../../types";
+import { ErrorState } from "../../../components/ui/Status";
+import type { Post } from "../types";
 
 const ACCEPTED = "image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,video/quicktime";
 const MAX_MB = 100;

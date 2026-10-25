@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, X } from "lucide-react";
-import type { MediaFile } from "../../types";
-import { mediaUrl } from "../../utils/media";
+import type { MediaFile } from "../types";
+import { mediaUrl } from "../../../utils/media";
 
 interface Props {
   media: MediaFile[];

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, X } from "lucide-react";
-import type { AdminPost } from "../../types";
+import type { AdminPost } from "../../features/posts";
 import { mediaUrl } from "../../utils/media";
 
 export function AdminMediaPreview({ post, onClose }: { post: AdminPost; onClose: () => void }) {

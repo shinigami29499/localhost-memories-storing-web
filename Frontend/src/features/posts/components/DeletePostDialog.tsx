@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { postService } from "../../services/postService";
-import { ConfirmationDialog } from "../ui/ConfirmationDialog";
+import { postService } from "../services/postService";
+import { ConfirmationDialog } from "../../../components/ui/ConfirmationDialog";
 
 interface Props {
   postId: string;

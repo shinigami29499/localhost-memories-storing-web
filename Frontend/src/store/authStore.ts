@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { AuthSession, AuthUser } from "../types";
+import type { AuthSession, AuthUser } from "../features/auth/types";
 
 /**
  * Authentication state. Persisted to localStorage so a page reload keeps the

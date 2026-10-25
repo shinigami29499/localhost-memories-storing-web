@@ -1,4 +1,4 @@
-import { api } from "./api";
+import { api } from "../../../services/api";
 import type { AuthSession, AuthUser } from "../types";
 
 /** Endpoints under /api/auth. `skipAuthRefresh` prevents refresh loops on auth calls. */

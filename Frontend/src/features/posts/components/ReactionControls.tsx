@@ -1,4 +1,4 @@
-import type { ReactionCount } from "../../types";
+import type { ReactionCount } from "../types";
 import { LoaderCircle } from "lucide-react";
 import { ReactionIcon } from "./ReactionIcon";
 

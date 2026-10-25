@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { LoaderCircle } from "lucide-react";
-import type { Post } from "../../types";
-import { Pagination } from "../ui/Pagination";
+import type { Post } from "../types";
+import { Pagination } from "../../../components/ui/Pagination";
 import { PostCard } from "./PostCard";
 import "./PostList.css";
 

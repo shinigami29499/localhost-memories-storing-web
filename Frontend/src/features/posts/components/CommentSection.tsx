@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { X } from "lucide-react";
-import type { Comment } from "../../types";
-import { commentService } from "../../services/postService";
-import { useAuthStore } from "../../store/authStore";
-import { formatTimestamp } from "../../utils/media";
-import { Button, Input } from "../ui";
-import { ErrorState, Spinner } from "../ui/Status";
+import type { Comment } from "../types";
+import { commentService } from "../services/postService";
+import { useAuthStore } from "../../../store/authStore";
+import { formatTimestamp } from "../../../utils/media";
+import { Button, Input } from "../../../components/ui";
+import { ErrorState, Spinner } from "../../../components/ui/Status";
 
 interface Props {
   postId: string;

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
-import { authService } from "../../services/authService";
+import { authService } from "../../features/auth";
 import { Button, Input } from "../../components/ui";
 import { ErrorState } from "../../components/ui/Status";
 import { Brand } from "../../components/layout/Brand";

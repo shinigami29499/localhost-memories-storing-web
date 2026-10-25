@@ -1,5 +1,5 @@
-import { api } from "./api";
-import type { AuthUser } from "../types";
+import { api } from "../../../services/api";
+import type { AuthUser } from "../../auth/types";
 
 /** Admin-only user management endpoints under /api/users. */
 export const userService = {

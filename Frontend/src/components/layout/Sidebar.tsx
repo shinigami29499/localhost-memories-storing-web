@@ -1,7 +1,7 @@
 import { Home, Users, FileText, LogOut, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
-import { authService } from "../../services/authService";
+import { authService } from "../../features/auth";
 import { Brand } from "./Brand";
 
 interface SidebarProps {

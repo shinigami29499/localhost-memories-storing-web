@@ -1,5 +1,5 @@
 import { useAuthStore } from "../store/authStore";
-import type { AuthSession } from "../types";
+import type { AuthSession } from "../features/auth/types";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 

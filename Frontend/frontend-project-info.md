@@ -6,21 +6,19 @@ Use the [`fe-a-overview` skill](../.agents/skills/fe-a-overview/SKILL.md) for fr
 
 | Component             | Current path                  |
 | --------------------- | ----------------------------- |
-| React entry           | `src/main.tsx`                |
-| App shell and routing | `src/App.tsx`                 |
-| API client            | `src/services/api.ts`         |
-| Auth service          | `src/services/authService.ts` |
-| Post service          | `src/services/postService.ts` |
-| User service          | `src/services/userService.ts` |
-| Auth store (Zustand)  | `src/store/authStore.ts`      |
-| Feed hook             | `src/hooks/useFeed.ts`        |
-| Pages                 | `src/pages/`                  |
-| UI components         | `src/components/ui/`          |
-| Layout components     | `src/components/layout/`      |
-| Feed components       | `src/components/feed/`        |
-| Shared styles         | `src/styles/global.css`       |
-| Vite config           | `vite.config.ts`              |
-| Package manifest      | `package.json`                |
+| React entry           | `src/main.tsx`                 |
+| App shell and routing | `src/App.tsx`                  |
+| Shared API client     | `src/services/api.ts`          |
+| Auth feature          | `src/features/auth/`           |
+| Posts/feed feature    | `src/features/posts/`          |
+| User-management API   | `src/features/users/`          |
+| Auth store (Zustand)  | `src/store/authStore.ts`       |
+| Pages                 | `src/pages/`                   |
+| UI components         | `src/components/ui/`           |
+| Layout components     | `src/components/layout/`       |
+| Shared styles         | `src/styles/global.css`        |
+| Vite config           | `vite.config.ts`               |
+| Package manifest      | `package.json`                 |
 
 ## Runtime and development
 
@@ -43,12 +41,14 @@ Request flow:
 
 ```text
 Page or component
-    → query hook or resource service (src/services/*)
+    → feature query hook or resource service (src/features/*)
     → API client (src/services/api.ts)
     → Backend REST API
 ```
 
 The API client handles bearer-token injection, problem-details parsing, single-flight token refresh after a 401, and one retry of the original request. Successful refresh replaces the stored session tokens; failed authentication clears the session.
+
+Feature-specific components, hooks, services, and types live in `src/features/<feature>/`. Route-level screens remain in `src/pages/`, while the API client, Zustand auth store, shared UI, and cross-feature helpers remain in their shared top-level folders.
 
 Protected media uses the authenticated query-token URL form because browser `<img>` and `<video>` elements cannot attach an Authorization header.
 
