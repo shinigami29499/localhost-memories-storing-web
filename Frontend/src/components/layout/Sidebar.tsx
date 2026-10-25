@@ -1,10 +1,15 @@
-import { Home, Users, FileText, LogOut } from "lucide-react";
+import { Home, Users, FileText, LogOut, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
 import { authService } from "../../services/authService";
 import { Brand } from "./Brand";
 
-export function Sidebar() {
+interface SidebarProps {
+  collapsed: boolean;
+  onToggle: () => void;
+}
+
+export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const user = useAuthStore((s) => s.user);
   const navigate = useNavigate();
   const isAdmin = user?.role?.toLowerCase() === "admin";
@@ -24,9 +29,18 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar${collapsed ? " sidebar--collapsed" : ""}`}>
       <div className="sidebar__brand">
         <Brand />
+        <button
+          type="button"
+          className="sidebar__toggle"
+          onClick={onToggle}
+          aria-label={collapsed ? "Expand navigation" : "Collapse navigation"}
+          title={collapsed ? "Expand navigation" : "Collapse navigation"}
+        >
+          {collapsed ? <PanelLeftOpen size={18} aria-hidden="true" /> : <PanelLeftClose size={18} aria-hidden="true" />}
+        </button>
       </div>
       <nav className="sidebar__nav" aria-label="Main navigation">
         <NavLink to="/" className={({ isActive }) => `sidebar__link${isActive ? " sidebar__link--active" : ""}`} end>

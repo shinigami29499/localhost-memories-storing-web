@@ -1,12 +1,14 @@
 .community-page {
-  max-width: 1180px;
+  max-width: 1280px;
   margin: 0 auto;
-  padding: 64px 32px 80px;
+  padding: 48px 32px 80px;
 }
 
 .community-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) 320px;
+  align-items: start;
+  gap: 28px;
 }
 
 .feed {
@@ -44,6 +46,15 @@
   background: var(--accent-soft);
   border-radius: 50%;
   margin-right: 8px;
+}
+
+/* Right rail — sticky composer zone */
+.community-rail {
+  position: sticky;
+  top: calc(var(--header-height, 65px) + 16px);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .post-viewer {
@@ -96,14 +107,47 @@
   outline-offset: 4px;
 }
 
+.community-intro--feed {
+  padding-top: 28px;
+  padding-bottom: 28px;
+  margin-bottom: 32px;
+  margin-left: -32px;
+  margin-right: -32px;
+  padding-left: 32px;
+  padding-right: 32px;
+  border-bottom: 1px solid var(--border);
+  background:
+    radial-gradient(ellipse at 80% 50%, rgba(48, 128, 255, 0.12), transparent 60%),
+    var(--community-intro-bg);
+  background-attachment: local, fixed;
+}
+
+@media (max-width: 1100px) {
+  .community-layout {
+    grid-template-columns: minmax(0, 1fr) 280px;
+    gap: 20px;
+  }
+}
+
 @media (max-width: 900px) {
   .community-page {
     max-width: 744px;
+    padding: 36px 20px 80px;
+  }
+
+  .community-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Rail moves below the feed on narrow screens */
+  .community-rail {
+    position: static;
+    order: -1;
   }
 }
 
 @media (max-width: 560px) {
   .community-page {
-    padding: 38px 16px 48px;
+    padding: 24px 16px 48px;
   }
 }

@@ -70,12 +70,6 @@ export function HomePage() {
       <CommunityIntro variant="feed" />
       <div className="community-layout">
         <section className="feed" id="feed" aria-labelledby="feed-title">
-          <div className="feed__heading">
-            <h2 id="feed-title">Community feed</h2>
-            <span className="feed__order">Latest moments</span>
-          </div>
-          <NewPostForm onCreated={onCreated} />
-
           {feed.isError ? (
             <ErrorState message="Could not load the feed." onRetry={() => void feed.refetch()} />
           ) : null}
@@ -99,6 +93,9 @@ export function HomePage() {
             onDeleted={onDeleted}
           />
         </section>
+        <aside className="community-rail" aria-label="Create a post">
+          <NewPostForm onCreated={onCreated} />
+        </aside>
       </div>
     </main>
   );

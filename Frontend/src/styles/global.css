@@ -3,6 +3,7 @@
   --bg: #070a12;
   --surface: #0d1018;
   --surface-raised: #12161f;
+  --community-intro-bg: #0a0f1b;
   --border: #1f2633;
   --text: #d9e1ef;
   --text-muted: #8c98ae;
@@ -33,7 +34,13 @@ body,
 }
 
 body {
-  background: var(--bg);
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    radial-gradient(circle at 78% 8%, rgba(48, 128, 255, 0.08), transparent 28%);
+  background-size: 32px 32px, 32px 32px, 100% 100%;
+  background-attachment: fixed;
   color: var(--text);
   font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
   font-size: 15px;
@@ -378,14 +385,15 @@ textarea::placeholder {
 .header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 24px;
-  padding: 20px max(32px, calc((100vw - 1116px) / 2));
+  padding: 16px max(32px, calc((100vw - 1116px) / 2));
   background: rgba(11, 15, 26, 0.94);
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
   z-index: 10;
+  --header-height: 57px;
 }
 
 .header__user {
@@ -515,6 +523,11 @@ textarea::placeholder {
   flex-direction: column;
   margin-left: var(--sidebar-width);
   min-width: 0;
+  transition: margin-left 0.2s ease;
+}
+
+.app-shell--sidebar-collapsed {
+  --sidebar-width: 72px;
 }
 
 .app-shell__content {
@@ -536,8 +549,54 @@ textarea::placeholder {
 }
 
 .sidebar__brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   padding: 20px 16px;
   border-bottom: 1px solid var(--border);
+}
+
+.sidebar__toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.sidebar__toggle:hover {
+  border-color: var(--accent);
+  color: var(--text-strong);
+}
+
+.sidebar--collapsed {
+  width: 72px;
+}
+
+.sidebar--collapsed .sidebar__brand {
+  flex-direction: column;
+  padding-inline: 12px;
+}
+
+.sidebar--collapsed .sidebar__brand .brand {
+  justify-content: center;
+}
+
+.sidebar--collapsed .sidebar__brand .brand > span:last-child,
+.sidebar--collapsed .sidebar__link span {
+  display: none;
+}
+
+.sidebar--collapsed .sidebar__link {
+  justify-content: center;
+  padding-inline: 12px;
 }
 
 .sidebar__nav {
