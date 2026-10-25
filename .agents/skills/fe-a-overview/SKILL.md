@@ -46,8 +46,6 @@ src/
 
 This is a guide, not a requirement to create every directory. Prefer colocating a component's styles and tests with the component or feature. Keep route-level pages focused on composition; business behavior belongs in features. Keep shared `services/`, `hooks/`, `types/`, and `utils/` limited to functionality used across features.
 
-Reference: [Recommended Industry-Standard React.js Folder Structure](https://dev.to/pramod_boda/recommended-folder-structure-for-react-2025-48mc).
-
 ## Frontend conventions
 
 - Use PascalCase for React components and TypeScript types; use camelCase for functions, variables, and object properties.
