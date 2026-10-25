@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository-specific guidance
 
-- Read [AGENTS.md](AGENTS.md) and the guides under [Instructions/](Instructions/) before making changes. The guides define the current architecture, conventions, code map, and validation restrictions.
+- Read [AGENTS.md](AGENTS.md) and load the matching backend/frontend overview skill before making changes. Consult [Instructions/overview.md](Instructions/overview.md) and its shared guides when needed; stack-specific policy lives in the overview skills.
 - The application is intentionally local-first: PostgreSQL and media files are local dependencies, and startup can mutate the database and storage directories.
 - Do not read or edit the restricted `Backend/Adapter/Security` source or helper scripts under `Backend/Scripts`.
 - Do not add backend tests or run backend test/API verification commands. Backend changes are validated with compilation/build checks and focused review. Frontend tests are allowed.
