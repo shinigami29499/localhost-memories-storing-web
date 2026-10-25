@@ -1,18 +1,19 @@
 :root {
   color-scheme: dark;
-  --bg: #1c1f24;
-  --surface: #23262d;
-  --surface-raised: #2c2e38;
-  --border: #3d3d49;
-  --text: #e6e4ed;
-  --text-muted: #b0acbe;
-  --text-strong: #faf9fc;
-  --accent: #965bf1;
-  --accent-strong: #8043dc;
-  --accent-soft: #d5adff;
-  --gradient: linear-gradient(105deg, #b52675, #713ddd);
-  --danger: #f17889;
-  --radius: 20px;
+  --bg: #070a12;
+  --surface: #0d1018;
+  --surface-raised: #12161f;
+  --border: #1f2633;
+  --text: #d9e1ef;
+  --text-muted: #8c98ae;
+  --text-strong: #f5f7fb;
+  --accent: #3080ff;
+  --accent-strong: #1783ff;
+  --accent-soft: #8fc4ff;
+  --gradient: linear-gradient(105deg, #1783ff, #8d54ff);
+  --danger: #e54d5e;
+  --radius: 14px;
+  --sidebar-width: 240px;
 }
 
 * {
@@ -60,7 +61,7 @@ textarea {
 }
 
 ::selection {
-  background: #743da1;
+  background: #1783ff;
   color: #fff;
 }
 
@@ -81,21 +82,21 @@ textarea {
   height: 40px;
   display: grid;
   place-items: center;
-  border-radius: 50%;
+  border-radius: 10px;
   background: var(--gradient);
   color: #fff;
   font-size: 1.4rem;
   font-style: italic;
-  box-shadow: 0 4px 24px #a446d32b;
+  box-shadow: 0 4px 24px rgba(48, 128, 255, 0.22);
 }
 
 .brand__dot {
-  color: #d891ef;
+  color: #31f889;
 }
 
 .gradient-text {
   color: var(--accent-soft);
-  background: linear-gradient(100deg, #f16eb7, #b783ff);
+  background: linear-gradient(100deg, #31f889, #00a5ef);
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -135,7 +136,7 @@ textarea {
   padding-bottom: 56px;
   margin-bottom: 36px;
   border-bottom: 1px solid var(--border);
-  background: radial-gradient(ellipse at 80% 50%, #7541b415, transparent 60%);
+  background: radial-gradient(ellipse at 80% 50%, rgba(48, 128, 255, 0.12), transparent 60%);
 }
 
 .community-intro--feed .community-intro__description {
@@ -257,7 +258,7 @@ textarea {
 }
 
 .btn--primary:hover:not(:disabled) {
-  background: linear-gradient(105deg, #a51e6c, #6131c7);
+  background: linear-gradient(105deg, #006ee6, #7540db);
 }
 
 .btn--secondary {
@@ -281,7 +282,7 @@ textarea {
 }
 
 .btn--danger {
-  background: #a43249;
+  background: #c93d4d;
   color: #fff;
 }
 
@@ -308,7 +309,7 @@ input,
 textarea {
   width: 100%;
   padding: 10px 12px;
-  background: #1d1f27;
+  background: #0e1420;
   border: 1px solid var(--border);
   border-radius: 10px;
   color: var(--text-strong);
@@ -380,7 +381,7 @@ textarea::placeholder {
   justify-content: space-between;
   gap: 24px;
   padding: 20px max(32px, calc((100vw - 1116px) / 2));
-  background: #1c1f24f5;
+  background: rgba(11, 15, 26, 0.94);
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
@@ -440,7 +441,7 @@ textarea::placeholder {
   min-width: 220px;
   flex-direction: column;
   padding: 8px;
-  background: #23262e;
+  background: var(--surface-raised);
   border: 1px solid var(--border);
   border-radius: 14px;
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
@@ -499,6 +500,131 @@ textarea::placeholder {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Shared authenticated shell ------------------------------------------------ */
+
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+.app-shell__main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  margin-left: var(--sidebar-width);
+  min-width: 0;
+}
+
+.app-shell__content {
+  flex: 1;
+  padding-bottom: 80px;
+}
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: var(--sidebar-width);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  z-index: 20;
+}
+
+.sidebar__brand {
+  padding: 20px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar__nav {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 12px;
+}
+
+.sidebar__link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.sidebar__link:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-strong);
+}
+
+.sidebar__link--active {
+  background: rgba(48, 128, 255, 0.12);
+  color: var(--accent-soft);
+}
+
+.sidebar__link--danger {
+  color: var(--danger);
+}
+
+.sidebar__link--danger:hover {
+  background: rgba(229, 77, 94, 0.12);
+  color: var(--danger);
+}
+
+.sidebar__footer {
+  padding: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.site-footer {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: var(--sidebar-width);
+  z-index: 10;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: 0 -12px 28px rgba(0, 0, 0, 0.16);
+}
+
+.site-footer__content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 24px 32px;
+}
+
+.site-footer__content .brand {
+  font-size: 1rem;
+}
+
+.site-footer__content .brand__mark {
+  width: 32px;
+  height: 32px;
+  font-size: 1.1rem;
+}
+
+.site-footer__message,
+.site-footer__copyright {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.8rem;
 }
 
 /* Post card ---------------------------------------------------------------- */
@@ -948,7 +1074,7 @@ textarea::placeholder {
 /* New post form -------------------------------------------------------------- */
 
 .new-post {
-  background: linear-gradient(145deg, #302a38, var(--surface) 65%);
+  background: linear-gradient(145deg, #18233a, var(--surface) 65%);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 22px;
@@ -1054,6 +1180,28 @@ textarea::placeholder {
     padding: 18px 24px;
   }
 
+  .sidebar {
+    width: 64px;
+  }
+
+  .sidebar__brand .brand span:last-child,
+  .sidebar__link span {
+    display: none;
+  }
+
+  .sidebar__link {
+    justify-content: center;
+    padding: 12px;
+  }
+
+  .app-shell__main {
+    margin-left: 64px;
+  }
+
+  .site-footer {
+    left: 64px;
+  }
+
   .feed,
   .new-post {
     scroll-margin-top: 160px;
@@ -1087,6 +1235,16 @@ textarea::placeholder {
     width: 32px;
     height: 32px;
     font-size: 1.1rem;
+  }
+
+  .app-shell__content {
+    padding-bottom: 152px;
+  }
+
+  .site-footer__content {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 20px 16px;
   }
 
   .community-intro--feed {

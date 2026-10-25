@@ -167,7 +167,7 @@
 
 
 .admin-post {
-  background: linear-gradient(150deg, #282a33, var(--surface) 65%);
+  background: linear-gradient(150deg, #18233a, var(--surface) 65%);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   display: flex;

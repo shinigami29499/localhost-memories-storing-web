@@ -1,7 +1,8 @@
-import { Navigate, Route, RouterProvider, createBrowserRouter } from "react-router-dom";
+import { Navigate, RouterProvider, createBrowserRouter } from "react-router-dom";
 import type { ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useAuthStore } from "./store/authStore";
+import { AuthenticatedLayout } from "./components/layout/AuthenticatedLayout";
 import { LoginPage } from "./pages/login/LoginPage";
 import { RegisterPage } from "./pages/register/RegisterPage";
 import { HomePage } from "./pages/home/HomePage";
@@ -16,32 +17,30 @@ const queryClient = new QueryClient({
 /** / is the protected feed; unauthenticated visitors land on /login or /register. */
 const router = createBrowserRouter([
   {
-    path: "/",
     element: (
       <RequireAuth>
-        <HomePage />
+        <AuthenticatedLayout />
       </RequireAuth>
     ),
-  },
-  {
-    path: "/admin/users",
-    element: (
-      <RequireAuth>
-        <RequireAdmin>
-          <AdminUsersPage />
-        </RequireAdmin>
-      </RequireAuth>
-    ),
-  },
-  {
-    path: "/admin/posts",
-    element: (
-      <RequireAuth>
-        <RequireAdmin>
-          <AdminPostsPage />
-        </RequireAdmin>
-      </RequireAuth>
-    ),
+    children: [
+      { path: "/", element: <HomePage /> },
+      {
+        path: "/admin/users",
+        element: (
+          <RequireAdmin>
+            <AdminUsersPage />
+          </RequireAdmin>
+        ),
+      },
+      {
+        path: "/admin/posts",
+        element: (
+          <RequireAdmin>
+            <AdminPostsPage />
+          </RequireAdmin>
+        ),
+      },
+    ],
   },
   { path: "/login", element: <LoginPage /> },
   { path: "/register", element: <RegisterPage /> },

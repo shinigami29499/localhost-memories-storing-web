@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePagedFeed, type PagedFeed } from "../../hooks/usePagedFeed";
 import { DEFAULT_PAGE_SIZE } from "../../components/ui/Pagination";
-import { Header } from "../../components/layout/Header";
 import { CommunityIntro } from "../../components/layout/CommunityIntro";
 import { NewPostForm } from "../../components/feed/NewPostForm";
 import { PostList } from "../../components/feed/PostList";
@@ -67,11 +66,9 @@ export function HomePage() {
   };
 
   return (
-    <>
-      <Header />
-      <main className="community-page">
-        <CommunityIntro variant="feed" />
-        <div className="community-layout">
+    <main className="community-page">
+      <CommunityIntro variant="feed" />
+      <div className="community-layout">
         <section className="feed" id="feed" aria-labelledby="feed-title">
           <div className="feed__heading">
             <h2 id="feed-title">Community feed</h2>
@@ -79,31 +76,30 @@ export function HomePage() {
           </div>
           <NewPostForm onCreated={onCreated} />
 
-        {feed.isError ? (
-          <ErrorState message="Could not load the feed." onRetry={() => void feed.refetch()} />
-        ) : null}
-        {!feed.isError && !feed.isLoading && posts.length === 0 ? (
-          <EmptyState
-            title="Nothing here yet"
-            hint="Be the first to share an image or video with the community."
-          />
-        ) : null}
+          {feed.isError ? (
+            <ErrorState message="Could not load the feed." onRetry={() => void feed.refetch()} />
+          ) : null}
+          {!feed.isError && !feed.isLoading && posts.length === 0 ? (
+            <EmptyState
+              title="Nothing here yet"
+              hint="Be the first to share an image or video with the community."
+            />
+          ) : null}
 
-        <PostList
-          posts={posts}
-          total={total}
-          page={page}
-          pageSize={pageSize}
-          isLoading={feed.isLoading}
-          isFetching={feed.isFetching}
-          onPageChange={handlePageChange}
-          onPageSizeChange={handlePageSizeChange}
-          onChanged={onChanged}
-          onDeleted={onDeleted}
-        />
+          <PostList
+            posts={posts}
+            total={total}
+            page={page}
+            pageSize={pageSize}
+            isLoading={feed.isLoading}
+            isFetching={feed.isFetching}
+            onPageChange={handlePageChange}
+            onPageSizeChange={handlePageSizeChange}
+            onChanged={onChanged}
+            onDeleted={onDeleted}
+          />
         </section>
-        </div>
-      </main>
-    </>
+      </div>
+    </main>
   );
 }
