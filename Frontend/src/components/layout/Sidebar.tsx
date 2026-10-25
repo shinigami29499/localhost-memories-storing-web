@@ -1,5 +1,6 @@
-import { Home, Users, FileText, LogOut, PanelLeftClose, PanelLeftOpen } from "lucide-react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { Home, Users, FileText, LogOut, PanelLeftClose, PanelLeftOpen, ShieldCheck, ChevronDown } from "lucide-react";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
 import { authService } from "../../features/auth";
 import { Brand } from "./Brand";
@@ -12,7 +13,11 @@ interface SidebarProps {
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const user = useAuthStore((s) => s.user);
   const navigate = useNavigate();
+  const location = useLocation();
   const isAdmin = user?.role?.toLowerCase() === "admin";
+
+  const isAdminRoute = location.pathname.startsWith("/admin");
+  const [adminOpen, setAdminOpen] = useState(isAdminRoute);
 
   const logout = async () => {
     const { accessToken, refreshToken, clear } = useAuthStore.getState();
@@ -48,16 +53,41 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           <span>Feed</span>
         </NavLink>
         {isAdmin ? (
-          <>
-            <NavLink to="/admin/users" className={({ isActive }) => `sidebar__link${isActive ? " sidebar__link--active" : ""}`}>
-              <Users size={18} aria-hidden="true" />
-              <span>Manage users</span>
-            </NavLink>
-            <NavLink to="/admin/posts" className={({ isActive }) => `sidebar__link${isActive ? " sidebar__link--active" : ""}`}>
-              <FileText size={18} aria-hidden="true" />
-              <span>Manage posts</span>
-            </NavLink>
-          </>
+          <div className={`sidebar__group${isAdminRoute ? " sidebar__group--active" : ""}`}>
+            <button
+              type="button"
+              className={`sidebar__link sidebar__group-toggle${isAdminRoute && collapsed ? " sidebar__link--active" : ""}`}
+              onClick={() => setAdminOpen((o) => !o)}
+              aria-expanded={adminOpen}
+              title="Admin"
+            >
+              <ShieldCheck size={18} aria-hidden="true" />
+              <span>Admin</span>
+              <ChevronDown
+                size={14}
+                aria-hidden="true"
+                className={`sidebar__chevron${adminOpen ? " sidebar__chevron--open" : ""}`}
+              />
+            </button>
+            {adminOpen && !collapsed ? (
+              <div className="sidebar__sub-nav" role="group" aria-label="Admin pages">
+                <NavLink
+                  to="/admin/users"
+                  className={({ isActive }) => `sidebar__link sidebar__sub-link${isActive ? " sidebar__link--active" : ""}`}
+                >
+                  <Users size={16} aria-hidden="true" />
+                  <span>Manage users</span>
+                </NavLink>
+                <NavLink
+                  to="/admin/posts"
+                  className={({ isActive }) => `sidebar__link sidebar__sub-link${isActive ? " sidebar__link--active" : ""}`}
+                >
+                  <FileText size={16} aria-hidden="true" />
+                  <span>Manage posts</span>
+                </NavLink>
+              </div>
+            ) : null}
+          </div>
         ) : null}
       </nav>
       <div className="sidebar__footer">
