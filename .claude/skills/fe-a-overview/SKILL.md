@@ -53,7 +53,7 @@ This is a guide, not a requirement to create every directory. Prefer colocating 
 - Prefer named exports for components and hooks.
 - Components must not call `fetch` directly; use services.
 - Use TanStack Query for remote/server state and Zustand for shared client state.
-- Use named imports from `lucide-react`; do not add another icon library.
+- Use local animated icon components from `src/components/animate-ui/icons`.
 - Row-level actions are icon buttons with descriptive `aria-label` and `title`; show a spinner while busy. Hide decorative icons from assistive technology.
 - Do not define a component inside another component's body.
 - Keep comments limited to necessary facts or non-obvious constraints.

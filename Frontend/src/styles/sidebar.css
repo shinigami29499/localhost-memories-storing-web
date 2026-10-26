@@ -56,7 +56,7 @@
   border: 1px solid var(--border);
   border-radius: 8px;
   background: transparent;
-  color: var(--text-muted);
+  color: var(--text-strong);
   cursor: pointer;
 }
 
@@ -88,7 +88,7 @@
   border: 0;
   border-radius: 10px;
   background: transparent;
-  color: var(--text-muted);
+  color: var(--text-strong);
   font: inherit;
   font-size: 0.95rem;
   font-weight: 500;
@@ -110,7 +110,7 @@
 
 .sidebar__link--active {
   background: transparent;
-  color: var(--text-muted);
+  color: var(--text-strong);
 }
 
 .sidebar__link--danger {
@@ -130,7 +130,7 @@
 
 .sidebar__group--active .sidebar__group-toggle {
   background: transparent;
-  color: var(--text-muted);
+  color: var(--text-strong);
 }
 
 .sidebar__group-toggle {
@@ -141,7 +141,7 @@
   border: 0;
   border-radius: 10px;
   background: transparent;
-  color: var(--text-muted);
+  color: var(--text-strong);
   font: inherit;
   font-size: 0.95rem;
   font-weight: 500;
@@ -192,7 +192,7 @@
 
 .sidebar__sub-link.sidebar__link--active {
   background: transparent;
-  color: var(--text-muted);
+  color: var(--text-strong);
 }
 
 .sidebar__sub-link.sidebar__link--active:hover {

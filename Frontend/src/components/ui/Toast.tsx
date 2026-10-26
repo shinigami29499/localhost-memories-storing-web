@@ -1,5 +1,7 @@
 import { Toast as AnimateToast } from '@animate-ui/react/primitives/base-ui/toast';
-import { Check, X, ShieldCheck } from 'lucide-react';
+import { Check } from '@/components/animate-ui/icons/check';
+import { ShieldCheck } from '@/components/animate-ui/icons/shield-check';
+import { X } from '@/components/animate-ui/icons/x';
 import './toast.css';
 
 export const toastManager = AnimateToast.createToastManager();

@@ -1,5 +1,12 @@
 import { useState } from "react";
-import { Home, Users, FileText, LogOut, PanelLeft, ShieldCheck, ChevronDown } from "lucide-react";
+import { ChevronDown } from "@/components/animate-ui/icons/chevron-down";
+import { FileText } from "@/components/animate-ui/icons/file-text";
+import { Home } from "@/components/animate-ui/icons/home";
+import { LogOut } from "@/components/animate-ui/icons/log-out";
+import { PanelLeftClose } from "@/components/animate-ui/icons/panel-left-close";
+import { PanelLeftOpen } from "@/components/animate-ui/icons/panel-left-open";
+import { ShieldCheck } from "@/components/animate-ui/icons/shield-check";
+import { Users } from "@/components/animate-ui/icons/users";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
 import { authService } from "../../features/auth";
@@ -53,7 +60,11 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
               aria-expanded={!collapsed}
               aria-controls="sidebar-navigation"
             >
-              <PanelLeft size={18} aria-hidden="true" />
+              {collapsed ? (
+                <PanelLeftOpen size={18} aria-hidden="true" />
+              ) : (
+                <PanelLeftClose size={18} aria-hidden="true" />
+              )}
             </button>
           </div>
           <nav id="sidebar-navigation" className="sidebar__nav" aria-label="Main navigation">

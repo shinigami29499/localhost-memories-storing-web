@@ -112,7 +112,7 @@ export function PostCard({ post, onChanged, onDeleted, onPreviousPost, onNextPos
           aria-label={`${showComments ? "Hide" : "Show"} ${post.commentCount} comments`}
           title={showComments ? "Hide comments" : "Show comments"}
         >
-          <ReactionIcon type="comment" />
+          <ReactionIcon type="comment" animate />
           <span>{post.commentCount}</span>
         </button>
         <div className="post-card__reaction-summary" aria-label="Reaction totals">

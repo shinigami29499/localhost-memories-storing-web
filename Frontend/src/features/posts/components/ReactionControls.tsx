@@ -30,7 +30,7 @@ export function ReactionControls({ counts, mine, onToggle, canRemove, busy }: Pr
           aria-label={`${active(t) ? "Remove" : "Add"} ${t} reaction${active(t) && !canRemove ? " (admin only)" : ""}`}
           title={active(t) && !canRemove ? "Only administrators can remove reactions" : `${active(t) ? "Remove" : "Add"} ${t} reaction`}
         >
-          {busy ? <LoaderCircle className="spinner__wheel" aria-hidden="true" /> : <ReactionIcon type={t} />}
+          {busy ? <LoaderCircle className="spinner__wheel" aria-hidden="true" /> : <ReactionIcon type={t} animate />}
           <span className="reactions__count">{countOf(t)}</span>
         </button>
       ))}

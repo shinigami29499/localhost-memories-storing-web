@@ -5,11 +5,11 @@ import { DeletePostDialog, postService, type AdminPost, type PagedFeed } from ".
 import { ApiError } from "../../services/api";
 import { EmptyState, ErrorState, Spinner, showToast } from "../../components/ui";
 import { ArrowLeft } from "@/components/animate-ui/icons/arrow-left";
+import { ArrowRight } from "@/components/animate-ui/icons/arrow-right";
 import { Eye } from "@/components/animate-ui/icons/eye";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import { RotateCcw } from "@/components/animate-ui/icons/rotate-ccw";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
-import { ChevronFirst, ChevronLast } from "lucide-react";
 import { ConfirmationDialog } from "../../components/ui/ConfirmationDialog";
 import { Pagination, DEFAULT_PAGE_SIZE } from "../../components/ui/Pagination";
 import { mediaUrl } from "../../utils/media";
@@ -96,7 +96,7 @@ export function AdminPostsPage() {
                 title="Fewer columns"
                 onClick={() => changeColumns(columns - 1)}
               >
-                <ChevronFirst size={16} aria-hidden="true" />
+                <ArrowLeft size={16} aria-hidden="true" />
               </button>
               <span className="admin__stepper-value" aria-live="polite">{columns} per row</span>
               <button
@@ -107,7 +107,7 @@ export function AdminPostsPage() {
                 title="More columns"
                 onClick={() => changeColumns(columns + 1)}
               >
-                <ChevronLast size={16} aria-hidden="true" />
+                <ArrowRight size={16} aria-hidden="true" />
               </button>
             </div>
           </div>
