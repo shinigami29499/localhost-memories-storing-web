@@ -1,4 +1,5 @@
 import { Plus } from "@/components/animate-ui/icons/plus";
+import { AnimateIcon } from "@animate-ui/react/icons";
 
 export function CommunityIntro({ variant }: { variant: "login" | "feed" }) {
   const isLogin = variant === "login";
@@ -27,7 +28,9 @@ export function CommunityIntro({ variant }: { variant: "login" | "feed" }) {
             <span>A different perspective</span>
           </div>
           <div className="community-art__card community-art__card--front">
-            <span className="community-art__spark"><Plus size={24} /></span>
+            <AnimateIcon animateOnHover asChild>
+              <span className="community-art__spark"><Plus size={24} /></span>
+            </AnimateIcon>
             <strong>Share. Connect. Belong.</strong>
             <span>Small moments. Real connections.</span>
           </div>

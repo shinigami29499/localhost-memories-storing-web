@@ -1,3 +1,4 @@
+import { AnimateIcon } from "@animate-ui/react/icons";
 import { useCallback, useEffect, useState } from "react";
 import { X } from "@/components/animate-ui/icons/x";
 import type { Comment } from "../types";
@@ -78,14 +79,16 @@ export function CommentSection({ postId, comments, onAdded, reload }: Props) {
                 <strong>{comment.author.username}</strong>
                 <time dateTime={comment.createdAt}>{formatTimestamp(comment.createdAt)}</time>
                 {isAdmin ? (
-                  <button
-                    className=" comments__delete"
-                    onClick={() => remove(comment.id)}
-                    aria-label="Delete comment"
-                    title="Delete comment"
-                  >
-                    <X size={16} aria-hidden="true" />
-                  </button>
+                  <AnimateIcon animateOnHover asChild>
+                    <button
+                      className=" comments__delete"
+                      onClick={() => remove(comment.id)}
+                      aria-label="Delete comment"
+                      title="Delete comment"
+                    >
+                      <X size={16} aria-hidden="true" />
+                    </button>
+                  </AnimateIcon>
                 ) : null}
               </div>
               <p className="comments__content">{comment.content}</p>

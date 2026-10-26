@@ -52,6 +52,24 @@ describe("AdminPostsPage", () => {
 
   beforeEach(() => {
     vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+    vi.stubGlobal("ResizeObserver", class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    });
+    vi.stubGlobal("matchMedia", vi.fn((query: string) => ({
+      matches: false,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+    })));
+    vi.stubGlobal("IntersectionObserver", class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    });
     window.localStorage.clear();
     container = document.createElement("div");
     document.body.append(container);
@@ -81,47 +99,29 @@ describe("AdminPostsPage", () => {
     ));
   }
 
-  function expectColumns(count: number) {
-    expect(container.querySelector(".admin__stepper-value")?.textContent).toBe(`${count} per row`);
-    const grid = container.querySelector<HTMLElement>(".admin-grid");
-    expect(grid?.style.getPropertyValue("--admin-grid-template"))
-      .toBe(Array(count).fill("minmax(0, 1fr)").join(" "));
-    expect(container.querySelectorAll(".admin-post__resize")).toHaveLength(count - 1);
-  }
-
-  it.each([1, 2, 3, 4, 5, 6])("applies saved column count %i on entry", (count) => {
-    window.localStorage.setItem("admin-posts.columns", String(count));
+  it("renders posts in order without an enclosing panel, heading, or column controls", () => {
     renderPage();
-    expectColumns(count);
+    expect(container.querySelector("main")?.getAttribute("aria-label")).toBe("Post management");
+    expect(container.querySelector(".admin-page--posts")).not.toBeNull();
+    expect(container.querySelector(".admin__layout")).toBeNull();
+    expect(container.querySelector("h2")).toBeNull();
+    expect(container.querySelector(".admin__toolbar")).toBeNull();
+    expect(container.querySelectorAll(".admin-post__resize")).toHaveLength(0);
+    expect(Array.from(container.querySelectorAll(".admin-grid > .admin-post .admin-post__caption"),
+      (caption) => caption.textContent)).toEqual(posts.items.map((post) => post.caption));
+    expect(container.querySelector(".admin__back")?.getAttribute("href")).toBe("/");
+    expect(container.querySelector('[aria-label="posts pagination"]')).not.toBeNull();
   });
 
   it.each([
-    { name: "missing", value: null },
-    { name: "non-numeric", value: "invalid" },
-    { name: "below minimum", value: "0" },
-    { name: "above maximum", value: "7" },
-    { name: "fractional", value: "2.5" },
-  ])("uses three columns for $name saved settings", ({ value }) => {
+    null, "1", "3", "6", "invalid",
+  ])("uses automatic wrapping regardless of the obsolete column setting %s", (value) => {
     if (value !== null) window.localStorage.setItem("admin-posts.columns", value);
     renderPage();
-    expectColumns(3);
-  });
-
-  it("keeps valid widths when changing columns and reopening the page", () => {
-    window.localStorage.setItem("admin-posts.columns", "4");
-    renderPage();
-    act(() => container.querySelector<HTMLButtonElement>('[aria-label="More columns"]')!.click());
-    expectColumns(5);
-    expect(window.localStorage.getItem("admin-posts.columns")).toBe("5");
-
-    act(() => root.unmount());
-    root = createRoot(container);
-    renderPage();
-    expectColumns(5);
-
-    act(() => container.querySelector<HTMLButtonElement>('[aria-label="Fewer columns"]')!.click());
-    expectColumns(4);
-    expect(window.localStorage.getItem("admin-posts.columns")).toBe("4");
+    expect(container.querySelector(".admin-grid")?.getAttribute("style")).toBeNull();
+    expect(container.querySelector('[aria-label="More columns"]')).toBeNull();
+    expect(container.querySelector('[aria-label="Fewer columns"]')).toBeNull();
+    expect(container.querySelectorAll(".admin-post")).toHaveLength(posts.items.length);
   });
 
   it.each([
@@ -202,5 +202,50 @@ describe("AdminPostsPage", () => {
     expect(container.querySelector<HTMLButtonElement>(".admin-post__media")?.disabled).toBe(true);
     expect(container.querySelector<HTMLButtonElement>('[aria-label="Open media preview for post by alice"]')?.disabled).toBe(true);
     expect(container.querySelector("dialog")).toBeNull();
+  });
+
+  it("pages through posts without remounting the animated pagination", () => {
+    queryClient.setQueryData(["admin-all-posts", 0, 10], { ...posts, total: 26 });
+    queryClient.setQueryData(["admin-all-posts", 10, 10], {
+      ...posts,
+      offset: 10,
+      total: 26,
+      items: [{ ...posts.items[0], id: "page-two-post", caption: "Second page post" }],
+    });
+    renderPage();
+
+    const pagination = container.querySelector('[aria-label="posts pagination"]');
+    expect(pagination?.hasAttribute("data-animate-ui-pagination")).toBe(true);
+    expect(container.querySelector<HTMLButtonElement>('[aria-label="Previous page"]')?.disabled).toBe(true);
+
+    act(() => container.querySelector<HTMLButtonElement>('[aria-label="Next page"]')!.click());
+
+    expect(container.querySelector('[aria-label="posts pagination"]')).toBe(pagination);
+    expect(container.querySelector('[aria-current="page"]')?.getAttribute("aria-label")).toBe("Page 2");
+    expect(container.querySelector(".admin-post__caption")?.textContent).toBe("Second page post");
+
+    act(() => container.querySelector<HTMLButtonElement>('[aria-label="Previous page"]')!.click());
+    expect(container.querySelector('[aria-current="page"]')?.textContent).toBe("1");
+    expect(container.querySelectorAll(".admin-post")).toHaveLength(posts.items.length);
+  });
+
+  it("resets to the first page and saves a changed page size", () => {
+    queryClient.setQueryData(["admin-all-posts", 0, 10], { ...posts, total: 26 });
+    queryClient.setQueryData(["admin-all-posts", 10, 10], { ...posts, offset: 10, total: 26 });
+    queryClient.setQueryData(["admin-all-posts", 0, 20], { ...posts, limit: 20, total: 26 });
+    renderPage();
+    act(() => container.querySelector<HTMLButtonElement>('[aria-label="Next page"]')!.click());
+    expect(container.querySelector('[aria-current="page"]')?.textContent).toBe("2");
+
+    const select = container.querySelector<HTMLSelectElement>(".pagination__page-size select")!;
+    act(() => {
+      select.value = "20";
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+
+    expect(window.localStorage.getItem("admin-posts.limit")).toBe("20");
+    expect(select.value).toBe("20");
+    expect(container.querySelector('[aria-current="page"]')?.textContent).toBe("1");
+    expect(container.querySelectorAll('[data-slot="pagination-link"]')).toHaveLength(2);
   });
 });

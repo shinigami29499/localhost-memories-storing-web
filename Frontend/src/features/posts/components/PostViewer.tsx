@@ -1,3 +1,4 @@
+import { AnimateIcon } from "@animate-ui/react/icons";
 import { useRef, useState } from "react";
 import { ArrowLeft } from "@/components/animate-ui/icons/arrow-left";
 import { ArrowRight } from "@/components/animate-ui/icons/arrow-right";
@@ -63,26 +64,30 @@ export function PostViewer({ posts, total, hasMore, loadMore, onChanged, onDelet
           </p>
         </div>
         <div className="post-viewer__navigation" aria-label="Post navigation">
-          <button
-            type="button"
-            className="viewer-icon-btn"
-            aria-label="Previous post"
-            title="Previous post"
-            disabled={index === 0 || loading}
-            onClick={previous}
-          >
-            <ArrowLeft size={20} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            className="viewer-icon-btn"
-            aria-label={loading ? "Loading next post" : "Next post"}
-            title="Next post"
-            disabled={(index === posts.length - 1 && !hasMore) || loading}
-            onClick={() => void next()}
-          >
-            {loading ? <LoaderCircle className="spinner__wheel" aria-hidden="true" /> : <ArrowRight size={20} aria-hidden="true" />}
-          </button>
+          <AnimateIcon animateOnHover asChild>
+            <button
+              type="button"
+              className="viewer-icon-btn"
+              aria-label="Previous post"
+              title="Previous post"
+              disabled={index === 0 || loading}
+              onClick={previous}
+            >
+              <ArrowLeft size={20} aria-hidden="true" />
+            </button>
+          </AnimateIcon>
+          <AnimateIcon animateOnHover asChild>
+            <button
+              type="button"
+              className="viewer-icon-btn"
+              aria-label={loading ? "Loading next post" : "Next post"}
+              title="Next post"
+              disabled={(index === posts.length - 1 && !hasMore) || loading}
+              onClick={() => void next()}
+            >
+              {loading ? <LoaderCircle animate={false} className="spinner__wheel" aria-hidden="true" /> : <ArrowRight size={20} aria-hidden="true" />}
+            </button>
+          </AnimateIcon>
         </div>
       </div>
       <p className="post-viewer__hint" id="post-viewer-hint">

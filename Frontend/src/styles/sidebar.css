@@ -25,9 +25,7 @@
 
 .sidebar__brand {
   display: flex;
-  align-items: flex-start;
-  flex-direction: column;
-  gap: 10px;
+  align-items: center;
   padding: 20px 16px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
@@ -47,13 +45,17 @@
 }
 
 .sidebar__toggle {
+  position: fixed;
+  top: 16px;
+  left: min(calc(var(--sidebar-width) + 4px), calc(100vw - 48px));
+  z-index: 21;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 44px;
+  height: 44px;
   flex-shrink: 0;
-  border: 1px solid var(--border);
+  border: 0;
   border-radius: 8px;
   background: transparent;
   color: var(--text-strong);
@@ -61,7 +63,7 @@
 }
 
 .sidebar__toggle:hover {
-  border-color: var(--accent);
+  background: rgba(255, 255, 255, 0.05);
   color: var(--text-strong);
 }
 
@@ -108,11 +110,6 @@
   color: var(--text-strong);
 }
 
-.sidebar__link--active {
-  background: transparent;
-  color: var(--text-strong);
-}
-
 .sidebar__link--danger {
   color: var(--danger);
 }
@@ -126,11 +123,6 @@
   display: flex;
   flex-direction: column;
   margin: 4px 0;
-}
-
-.sidebar__group--active .sidebar__group-toggle {
-  background: transparent;
-  color: var(--text-strong);
 }
 
 .sidebar__group-toggle {
@@ -207,6 +199,11 @@
   flex: 0 0 auto;
   flex-direction: column;
   margin-top: auto;
+}
+
+.sidebar__footer > .theme-toggler {
+  align-self: flex-start;
+  margin-bottom: 8px;
 }
 
 @media (max-width: 900px) {

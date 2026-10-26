@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { AnimateIcon } from "@animate-ui/react/icons";
 import { X } from "@/components/animate-ui/icons/x";
 import type { ReactNode } from "react";
 import { ApiError } from "../../services/api";
@@ -43,26 +44,30 @@ export function ConfirmationDialog({ title, children, danger, onConfirm, onClose
     <AlertDialog.Root defaultOpen onOpenChange={(open) => { if (!open) cancel(); }}>
       <AlertDialog.Portal>
         <AlertDialog.Backdrop className="alert-dialog-backdrop" />
-        <AlertDialog.Popup className="delete-post-dialog">
-          <AlertDialog.Close asChild>
-            <button type="button" className="btn btn--ghost post-card__delete delete-post-dialog__close" aria-label="Cancel action" title="Cancel action" disabled={busy} onClick={cancel}>
-              <X size={20} aria-hidden="true" />
-            </button>
-          </AlertDialog.Close>
-          <AlertDialog.Title asChild>
-            <h2>{title}</h2>
-          </AlertDialog.Title>
-          <AlertDialog.Description asChild>
-            <div>
-              <fieldset className="confirmation-dialog__message" disabled={busy}>{children}</fieldset>
+        <AlertDialog.Viewport className="confirmation-dialog-viewport">
+          <AlertDialog.Popup className="delete-post-dialog">
+            <AnimateIcon animateOnHover asChild>
+              <AlertDialog.Close asChild>
+                <button type="button" className="btn btn--ghost post-card__delete delete-post-dialog__close" aria-label="Cancel action" title="Cancel action" disabled={busy} onClick={cancel}>
+                  <X size={20} aria-hidden="true" />
+                </button>
+              </AlertDialog.Close>
+            </AnimateIcon>
+            <AlertDialog.Title asChild>
+              <h2>{title}</h2>
+            </AlertDialog.Title>
+            <AlertDialog.Description asChild>
+              <div>
+                <fieldset className="confirmation-dialog__message" disabled={busy}>{children}</fieldset>
+              </div>
+            </AlertDialog.Description>
+            {error ? <p className="delete-post-dialog__error" role="alert">{error}</p> : null}
+            <div className="delete-post-dialog__actions">
+              <Button type="button" variant={danger ? "danger" : "primary"} busy={busy} onClick={() => void confirm()}>Confirm</Button>
+              <button ref={cancelRef} type="button" className="btn btn--secondary" disabled={busy} onClick={cancel}>Cancel</button>
             </div>
-          </AlertDialog.Description>
-          {error ? <p className="delete-post-dialog__error" role="alert">{error}</p> : null}
-          <div className="delete-post-dialog__actions">
-            <Button type="button" variant={danger ? "danger" : "primary"} busy={busy} onClick={() => void confirm()}>Confirm</Button>
-            <button ref={cancelRef} type="button" className="btn btn--secondary" disabled={busy} onClick={cancel}>Cancel</button>
-          </div>
-        </AlertDialog.Popup>
+          </AlertDialog.Popup>
+        </AlertDialog.Viewport>
       </AlertDialog.Portal>
     </AlertDialog.Root>
   );

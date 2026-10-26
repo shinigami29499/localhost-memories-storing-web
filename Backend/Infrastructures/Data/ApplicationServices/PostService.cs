@@ -77,19 +77,14 @@ public class PostService(
     }
 
     public async Task<PostSummaryDto> CreatePostAsync(
-        Guid authorId, string caption, IReadOnlyList<IFormFile> mediaFiles, CancellationToken cancellationToken = default)
+        Guid authorId, string? caption, IReadOnlyList<IFormFile> mediaFiles, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(caption))
-            throw new ValidationException(
-                "Caption is required.",
-                new Dictionary<string, string[]> { ["caption"] = ["Provide a caption or description."] });
-
-        if (caption.Length > 4000)
+        if (caption?.Length > 4000)
             throw new ValidationException(
                 "Caption is too long.",
                 new Dictionary<string, string[]> { ["caption"] = ["Maximum length is 4000 characters."] });
 
-        var post = new Post { Caption = caption.Trim(), UserId = authorId };
+        var post = new Post { Caption = caption?.Trim() ?? string.Empty, UserId = authorId };
         _repository.AddPost(post);
 
         var uploaded = new List<MediaFile>();

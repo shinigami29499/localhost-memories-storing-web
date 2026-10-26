@@ -27,11 +27,11 @@ public class PostsController(IPostService postService, ICurrentUserContext curre
     public async Task<ActionResult<PostSummaryDto>> GetPostAsync(Guid postId, CancellationToken cancellationToken)
         => Ok(await _postService.GetPostAsync(postId, _currentUser.RequireUserId(), cancellationToken));
 
-    /// <summary>Accepts multipart caption and files.</summary>
+    /// <summary>Accepts multipart files and an optional caption.</summary>
     [HttpPost]
     public async Task<ActionResult<PostSummaryDto>> CreatePostAsync(
         CancellationToken cancellationToken,
-        [FromForm] string caption,
+        [FromForm] string? caption = null,
         IFormFileCollection files = null!)
         => Ok(await _postService.CreatePostAsync(
             _currentUser.RequireUserId(), caption, (files ?? new FormFileCollection()).ToList(), cancellationToken));

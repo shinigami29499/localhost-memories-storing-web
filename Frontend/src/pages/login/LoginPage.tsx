@@ -7,6 +7,7 @@ import { Button, Input, showToast } from "../../components/ui";
 import { ErrorState } from "../../components/ui/Status";
 import { Brand } from "../../components/layout/Brand";
 import { CommunityIntro } from "../../components/layout/CommunityIntro";
+import { ThemeTogglerButton } from "../../components/ui/ThemeTogglerButton";
 import "./login.css";
 
 export function LoginPage() {
@@ -36,7 +37,10 @@ export function LoginPage() {
     <div className="login-shell">
       <header className="login__header">
         <Brand />
-        <span className="login__header-note">Your world. Your community.</span>
+        <div className="login__header-actions">
+          <span className="login__header-note">Your world. Your community.</span>
+          <ThemeTogglerButton />
+        </div>
       </header>
       <main className="login">
         <CommunityIntro variant="login" />

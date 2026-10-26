@@ -4,6 +4,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
 import { AnimateUIProvider } from "@animate-ui/react/provider";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { ThemeProvider } from "../../context/ThemeContext";
 import { useAuthStore } from "../../store/authStore";
 import { AuthenticatedLayout } from "./AuthenticatedLayout";
 
@@ -15,7 +16,13 @@ describe("AuthenticatedLayout sidebar", () => {
 
   beforeEach(() => {
     narrowScreen = false;
+    window.localStorage.removeItem("shinigacim.theme");
     vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+    vi.stubGlobal("IntersectionObserver", class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    });
     vi.stubGlobal("matchMedia", vi.fn((query: string) => ({
       matches: query === "(max-width: 900px)" && narrowScreen,
       media: query,
@@ -37,6 +44,8 @@ describe("AuthenticatedLayout sidebar", () => {
     act(() => root.unmount());
     container.remove();
     useAuthStore.getState().clear();
+    window.localStorage.removeItem("shinigacim.theme");
+    document.documentElement.removeAttribute("data-theme");
     if (originalAnimate) Object.defineProperty(Element.prototype, "animate", originalAnimate);
     else Reflect.deleteProperty(Element.prototype, "animate");
     vi.restoreAllMocks();
@@ -46,11 +55,13 @@ describe("AuthenticatedLayout sidebar", () => {
   async function renderLayout() {
     await act(async () => {
       root.render(
-        <AnimateUIProvider reducedMotion="always">
-          <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-            <AuthenticatedLayout />
-          </MemoryRouter>
-        </AnimateUIProvider>,
+        <ThemeProvider>
+          <AnimateUIProvider reducedMotion="always">
+            <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+              <AuthenticatedLayout />
+            </MemoryRouter>
+          </AnimateUIProvider>
+        </ThemeProvider>,
       );
     });
   }
@@ -60,6 +71,7 @@ describe("AuthenticatedLayout sidebar", () => {
     const shell = container.querySelector(".app-shell");
     expect(container.querySelector(".sidebar-gap")?.parentElement).toBe(shell);
     expect(container.querySelector(".sidebar")?.parentElement).toBe(shell);
+    expect(container.querySelector(".sidebar__toggle")?.parentElement).toBe(shell);
     expect(container.querySelector(".app-shell__main")?.parentElement).toBe(shell);
     expect(shell?.getAttribute("data-state")).toBe("expanded");
 
@@ -92,5 +104,17 @@ describe("AuthenticatedLayout sidebar", () => {
     expect(container.querySelector(".app-shell")?.getAttribute("data-state")).toBe("expanded");
     expect(admin.getAttribute("aria-expanded")).toBe("true");
     expect(container.querySelector('[href="/admin/users"]')).not.toBeNull();
+  });
+
+  it("toggles and persists the selected color theme", async () => {
+    await renderLayout();
+    const themeButton = container.querySelector<HTMLButtonElement>(".theme-toggler")!;
+    expect(themeButton.dataset.theme).toBe("dark");
+
+    await act(async () => themeButton.click());
+
+    expect(themeButton.dataset.theme).toBe("light");
+    expect(document.documentElement.dataset.theme).toBe("light");
+    expect(window.localStorage.getItem("shinigacim.theme")).toBe("light");
   });
 });

@@ -11,6 +11,7 @@ import { AdminUsersPage } from "./pages/admin/AdminUsersPage";
 import { AdminPostsPage } from "./pages/admin/AdminPostsPage";
 import { LoadingOverlay } from "./components/ui/LoadingOverlay";
 import { GravityStarsBackground } from "./components/ui/GravityStarsBackground";
+import { ThemeProvider } from "./context/ThemeContext";
 import { ToastProvider } from "./components/ui";
 
 const queryClient = new QueryClient({
@@ -65,15 +66,17 @@ export function App() {
   const routerState = false; // Placeholder for future route state management
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <AnimateUIProvider tempo={1}>
-        <ToastProvider>
-          <LoadingOverlay isLoading={routerState}>
-            <GravityStarsBackground className="fixed inset-0 pointer-events-none -z-10" />
-            <RouterProvider router={router} />
-          </LoadingOverlay>
-        </ToastProvider>
-      </AnimateUIProvider>
-    </QueryClientProvider>
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <AnimateUIProvider tempo={1}>
+          <ToastProvider>
+            <LoadingOverlay isLoading={routerState}>
+              <GravityStarsBackground className="fixed inset-0 pointer-events-none -z-10" />
+              <RouterProvider router={router} />
+            </LoadingOverlay>
+          </ToastProvider>
+        </AnimateUIProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }

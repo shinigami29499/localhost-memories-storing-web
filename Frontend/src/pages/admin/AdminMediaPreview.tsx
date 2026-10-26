@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { AnimateIcon } from "@animate-ui/react/icons";
 import { ArrowLeft } from "@/components/animate-ui/icons/arrow-left";
 import { ArrowRight } from "@/components/animate-ui/icons/arrow-right";
 import { X } from "@/components/animate-ui/icons/x";
@@ -48,15 +49,17 @@ export function AdminMediaPreview({ post, onClose }: { post: AdminPost; onClose:
         <div className="admin-preview__toolbar">
           <span aria-live="polite">Media {index + 1} of {post.media.length}</span>
           {post.deletedAt !== null ? <span>Preview from trash</span> : null}
-          <button
-            type="button"
-            className="btn btn--secondary admin-icon-btn"
-            aria-label="Close media preview"
-            title="Close media preview"
-            onClick={onClose}
-          >
-            <X size={20} aria-hidden="true" />
-          </button>
+          <AnimateIcon animateOnHover asChild>
+            <button
+              type="button"
+              className="btn btn--secondary admin-icon-btn"
+              aria-label="Close media preview"
+              title="Close media preview"
+              onClick={onClose}
+            >
+              <X size={20} aria-hidden="true" />
+            </button>
+          </AnimateIcon>
         </div>
         <div className="admin-preview__media" key={file.id}>
           {failedId === file.id ? (
@@ -80,26 +83,30 @@ export function AdminMediaPreview({ post, onClose }: { post: AdminPost; onClose:
           )}
         </div>
         <div className="admin-preview__navigation">
-          <button
-            type="button"
-            className="btn btn--secondary admin-icon-btn"
-            aria-label="Previous media"
-            title="Previous media"
-            disabled={index === 0}
-            onClick={() => changeMedia(index - 1)}
-          >
-            <ArrowLeft size={20} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            className="btn btn--secondary admin-icon-btn"
-            aria-label="Next media"
-            title="Next media"
-            disabled={index === post.media.length - 1}
-            onClick={() => changeMedia(index + 1)}
-          >
-            <ArrowRight size={20} aria-hidden="true" />
-          </button>
+          <AnimateIcon animateOnHover asChild>
+            <button
+              type="button"
+              className="btn btn--secondary admin-icon-btn"
+              aria-label="Previous media"
+              title="Previous media"
+              disabled={index === 0}
+              onClick={() => changeMedia(index - 1)}
+            >
+              <ArrowLeft size={20} aria-hidden="true" />
+            </button>
+          </AnimateIcon>
+          <AnimateIcon animateOnHover asChild>
+            <button
+              type="button"
+              className="btn btn--secondary admin-icon-btn"
+              aria-label="Next media"
+              title="Next media"
+              disabled={index === post.media.length - 1}
+              onClick={() => changeMedia(index + 1)}
+            >
+              <ArrowRight size={20} aria-hidden="true" />
+            </button>
+          </AnimateIcon>
         </div>
       </div>
     </dialog>

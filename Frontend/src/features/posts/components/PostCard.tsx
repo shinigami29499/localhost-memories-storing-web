@@ -1,12 +1,13 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { X } from "@/components/animate-ui/icons/x";
+import { AnimateIcon } from "@animate-ui/react/icons";
 import type { Comment, Post } from "../types";
 import { commentService, postService, reactionService } from "../services/postService";
 import { formatTimestamp } from "../../../utils/media";
 import { MediaGallery } from "./MediaGallery";
 import { CommentSection } from "./CommentSection";
-import { REACTION_TYPES, ReactionControls, type ReactionType } from "./ReactionControls";
-import { ReactionIcon } from "./ReactionIcon";
+import { ReactionControls, type ReactionType } from "./ReactionControls";
+import { CommentIcon } from "./CommentIcon";
 import { DeletePostDialog } from "./DeletePostDialog";
 import { useAuthStore } from "../../../store/authStore";
 
@@ -27,6 +28,7 @@ export function PostCard({ post, onChanged, onDeleted, onPreviousPost, onNextPos
   const [comments, setComments] = useState<Comment[]>([]);
   const [showComments, setShowComments] = useState(false);
   const [reactionBusy, setReactionBusy] = useState(false);
+  const reactionPending = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
@@ -44,15 +46,27 @@ export function PostCard({ post, onChanged, onDeleted, onPreviousPost, onNextPos
   }, [loadComments]);
 
   const toggleReaction = async (type: ReactionType) => {
+    if (reactionPending.current) return;
+    reactionPending.current = true;
     setReactionBusy(true);
     setError(null);
     try {
-      await reactionService[post.myReactionTypes.includes(type) ? "remove" : "add"](post.id, type);
-      const fresh = await postService.get(post.id);
-      onChanged({ ...post, reactionCounts: fresh.reactionCounts, myReactionTypes: fresh.myReactionTypes });
+      const isRemoving = post.myReactionTypes.includes(type);
+      let updated = post;
+      // Publish each successful request so a partial switch failure stays in sync with the server.
+      for (const previous of post.myReactionTypes) {
+        const reactionCounts = await reactionService.remove(post.id, previous);
+        updated = { ...updated, reactionCounts, myReactionTypes: updated.myReactionTypes.filter((value) => value !== previous) };
+        onChanged(updated);
+      }
+      if (!isRemoving) {
+        const reactionCounts = await reactionService.add(post.id, type);
+        onChanged({ ...updated, reactionCounts, myReactionTypes: [type] });
+      }
     } catch {
       setError("Reaction failed. Please retry.");
     } finally {
+      reactionPending.current = false;
       setReactionBusy(false);
     }
   };
@@ -74,15 +88,17 @@ export function PostCard({ post, onChanged, onDeleted, onPreviousPost, onNextPos
         </div>
         {isAdmin ? (
           <div className="post-card__actions">
-              <button
-                type="button"
-                className="btn btn--ghost post-card__delete"
-                onClick={() => setConfirmingDelete(true)}
-                aria-label="Delete post"
-                title="Delete post"
-              >
-                <X size={20} aria-hidden="true" />
-              </button>
+              <AnimateIcon animateOnHover asChild>
+                <button
+                  type="button"
+                  className="btn btn--ghost post-card__delete"
+                  onClick={() => setConfirmingDelete(true)}
+                  aria-label="Delete post"
+                  title="Delete post"
+                >
+                  <X size={20} aria-hidden="true" />
+                </button>
+              </AnimateIcon>
           </div>
         ) : null}
       </header>
@@ -90,7 +106,7 @@ export function PostCard({ post, onChanged, onDeleted, onPreviousPost, onNextPos
         <DeletePostDialog postId={post.id} onClose={() => setConfirmingDelete(false)} onDeleted={onDeleted} />
       ) : null}
 
-      <p className="post-card__caption">{post.caption}</p>
+      {post.caption ? <p className="post-card__caption">{post.caption}</p> : null}
 
       <MediaGallery media={post.media} onPreviousPost={onPreviousPost} onNextPost={onNextPost} />
 
@@ -101,33 +117,21 @@ export function PostCard({ post, onChanged, onDeleted, onPreviousPost, onNextPos
           counts={post.reactionCounts}
           mine={post.myReactionTypes}
           onToggle={toggleReaction}
-          canRemove={isAdmin}
           busy={reactionBusy}
         />
-        <button
-          type="button"
-          className="post-card__comment-action"
-          onClick={() => setShowComments((v) => !v)}
-          aria-expanded={showComments}
-          aria-label={`${showComments ? "Hide" : "Show"} ${post.commentCount} comments`}
-          title={showComments ? "Hide comments" : "Show comments"}
-        >
-          <ReactionIcon type="comment" animate />
-          <span>{post.commentCount}</span>
-        </button>
-        <div className="post-card__reaction-summary" aria-label="Reaction totals">
-          {REACTION_TYPES.filter((type) => post.reactionCounts.some((count) => count.reactionType === type && count.count > 0)).map((type) => (
-            <span
-              key={type}
-              className={`post-card__reaction-badge post-card__reaction-badge--${type}`}
-              role="img"
-              aria-label={`${post.reactionCounts.find((count) => count.reactionType === type)?.count ?? 0} ${type} reactions`}
-              title={`${post.reactionCounts.find((count) => count.reactionType === type)?.count ?? 0} ${type} reactions`}
-            >
-              <ReactionIcon type={type} size={12} />
-            </span>
-          ))}
-        </div>
+        <AnimateIcon animateOnHover animateOnTap asChild>
+          <button
+            type="button"
+            className="post-card__comment-action"
+            onClick={() => setShowComments((v) => !v)}
+            aria-expanded={showComments}
+            aria-label={`${showComments ? "Hide" : "Show"} ${post.commentCount} comments`}
+            title={showComments ? "Hide comments" : "Show comments"}
+          >
+            <CommentIcon />
+            <span>{post.commentCount}</span>
+          </button>
+        </AnimateIcon>
       </div>
 
       {showComments ? (

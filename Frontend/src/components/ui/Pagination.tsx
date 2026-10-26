@@ -1,4 +1,6 @@
 import { useId, useRef } from "react";
+import { AnimateIcon } from "@animate-ui/react/icons";
+import * as PaginationPrimitive from "@animate-ui/react/primitives/pagination";
 import { ChevronLeft } from "@/components/animate-ui/icons/chevron-left";
 import { ChevronRight } from "@/components/animate-ui/icons/chevron-right";
 import "./Pagination.css";
@@ -39,7 +41,7 @@ export function Pagination({
   };
 
   return (
-    <nav className="pagination" aria-label={`${itemLabel} pagination`}>
+    <PaginationPrimitive.Root className="pagination" aria-label={`${itemLabel} pagination`}>
       <div className="pagination__summary">
         <label className="pagination__page-size" htmlFor={`${pageSelectId}-size`}>
           Items per page
@@ -56,16 +58,18 @@ export function Pagination({
 
       {totalPages > 1 ? (
         <div className="pagination__controls">
-          <button
-            type="button"
-            className="pagination-btn"
-            onClick={() => onPageChange(page - 1)}
-            disabled={page === 1 || isFetching}
-            aria-label="Previous page"
-          >
-            <ChevronLeft size={18} aria-hidden="true" />
-            <span>Previous</span>
-          </button>
+          <AnimateIcon animateOnHover asChild>
+            <button
+              type="button"
+              className="pagination-btn"
+              onClick={() => onPageChange(page - 1)}
+              disabled={page === 1 || isFetching}
+              aria-label="Previous page"
+            >
+              <ChevronLeft size={18} aria-hidden="true" />
+              <span>Previous</span>
+            </button>
+          </AnimateIcon>
 
           <div className="pagination__pages">
             {pageNumbers.map((pageNumber, index) =>
@@ -73,6 +77,7 @@ export function Pagination({
                 <button
                   key={`ellipsis-${index}`}
                   type="button"
+                  data-slot="pagination-ellipsis"
                   className="pagination-ellipsis"
                   onClick={openPagePicker}
                   disabled={isFetching}
@@ -85,6 +90,8 @@ export function Pagination({
                 <button
                   key={pageNumber}
                   type="button"
+                  data-slot="pagination-link"
+                  data-active={page === pageNumber ? "" : undefined}
                   className={`pagination-page ${page === pageNumber ? "pagination-page--active" : ""}`}
                   onClick={() => onPageChange(pageNumber)}
                   disabled={isFetching}
@@ -112,19 +119,21 @@ export function Pagination({
             </select>
           </label>
 
-          <button
-            type="button"
-            className="pagination-btn"
-            onClick={() => onPageChange(page + 1)}
-            disabled={page === totalPages || isFetching}
-            aria-label="Next page"
-          >
-            <span>Next</span>
-            <ChevronRight size={18} aria-hidden="true" />
-          </button>
+          <AnimateIcon animateOnHover asChild>
+            <button
+              type="button"
+              className="pagination-btn"
+              onClick={() => onPageChange(page + 1)}
+              disabled={page === totalPages || isFetching}
+              aria-label="Next page"
+            >
+              <span>Next</span>
+              <ChevronRight size={18} aria-hidden="true" />
+            </button>
+          </AnimateIcon>
         </div>
       ) : null}
-    </nav>
+    </PaginationPrimitive.Root>
   );
 }
 

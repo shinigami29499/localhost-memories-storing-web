@@ -4,6 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ShinigaCim — local media sharing</title>
+    <script>
+      const savedTheme = localStorage.getItem("shinigacim.theme");
+      document.documentElement.dataset.theme = savedTheme === "light" ? "light" : "dark";
+    </script>
   </head>
   <body>
     <div id="root"></div>

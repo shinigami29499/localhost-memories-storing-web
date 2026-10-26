@@ -55,9 +55,12 @@ Protected media uses the authenticated query-token URL form because browser `<im
 ## Admin and theme details
 
 - Admin pages require the backend admin policy and a JWT with `role: admin`.
+- Post management has no enclosing panel or visible page heading. Cards flow left to right and wrap with available width, using a 272px baseline (the former three-column card size) and shrinking on narrow screens. Column counts are automatic; saved manual column settings are no longer used. Pagination uses server-side offsets and saves the page size (10, 20, 50, or 100) locally. Shared pagination controls use Animate UI's pagination primitive for the sliding active-page indicator and its reduced-motion crossfade.
 - Deleted-media previews use the existing media endpoint with `includeDeleted=true`; the backend validates admin access before bypassing soft-delete filters.
 - Deleted media streams from stored trash paths without restoration, and caching is disabled for deleted-media requests.
 - Global styles and theme tokens are in `src/styles/global.css`; follow the existing Zeneth AI-inspired theme tokens when adding styles.
 - Sidebar styles live in `src/styles/sidebar.css`. `AuthenticatedLayout` owns the shared Animate UI sidebar provider; the sidebar spacer is a sibling of the fixed panel so content and footer stay aligned with its collapse timing. Narrow screens start with a compact rail that can expand over the content.
+- Icon-bearing controls use `AnimateIcon animateOnHover asChild` around the whole button, link, or label. Child icons inherit the control's animation context; do not attach a separate hover trigger to the SVG. Loading spinners retain their continuous loading behavior.
+- The feed has one heart reaction button with Animate UI press and particle effects. Clicking toggles the heart and clears any previous personal reactions before adding it. This single-selection behavior is enforced by the frontend using the existing API, not an atomic backend constraint. Each successful mutation updates the feed even if a later request fails.
 
 For shared guidance, see [architecture.md](../Instructions/architecture.md) and [conventions.md](../Instructions/conventions.md).

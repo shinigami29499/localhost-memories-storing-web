@@ -1,3 +1,4 @@
+import { AnimateIcon } from "@animate-ui/react/icons";
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft } from "@/components/animate-ui/icons/arrow-left";
 import { ArrowRight } from "@/components/animate-ui/icons/arrow-right";
@@ -101,17 +102,6 @@ export function MediaGallery({ media, onPreviousPost, onNextPost }: Props) {
           )}
         </div>
       </figure>
-      {media.length > 1 ? (
-        <div className="media-gallery__navigation">
-          <button type="button" className="viewer-icon-btn" aria-label="Previous photo or video" title="Previous photo or video" disabled={activeIndex === 0} onClick={previous}>
-            <ArrowLeft size={20} aria-hidden="true" />
-          </button>
-          <span role="status">{activeIndex + 1} of {media.length}</span>
-          <button type="button" className="viewer-icon-btn" aria-label="Next photo or video" title="Next photo or video" disabled={activeIndex === media.length - 1} onClick={next}>
-            <ArrowRight size={20} aria-hidden="true" />
-          </button>
-        </div>
-      ) : null}
       {lightbox ? (
         <dialog
           ref={dialogRef}
@@ -120,9 +110,11 @@ export function MediaGallery({ media, onPreviousPost, onNextPost }: Props) {
           onCancel={(event) => { event.preventDefault(); setLightbox(false); }}
           onClick={(event) => { if (event.target === event.currentTarget) setLightbox(false); }}
         >
-          <button type="button" className="viewer-icon-btn media-lightbox__close" aria-label="Close image preview" title="Close image preview" onClick={() => setLightbox(false)}>
-            <X size={20} aria-hidden="true" />
-          </button>
+          <AnimateIcon animateOnHover asChild>
+            <button type="button" className="viewer-icon-btn media-lightbox__close" aria-label="Close image preview" title="Close image preview" onClick={() => setLightbox(false)}>
+              <X size={20} aria-hidden="true" />
+            </button>
+          </AnimateIcon>
           <img src={mediaUrl(file.id)} alt={file.originalFilename} />
         </dialog>
       ) : null}

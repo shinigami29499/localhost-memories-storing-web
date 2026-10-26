@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { AnimateIcon } from "@animate-ui/react/icons";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DeletePostDialog, postService, type AdminPost, type PagedFeed } from "../../features/posts";
 import { ApiError } from "../../services/api";
 import { EmptyState, ErrorState, Spinner, showToast } from "../../components/ui";
 import { ArrowLeft } from "@/components/animate-ui/icons/arrow-left";
-import { ArrowRight } from "@/components/animate-ui/icons/arrow-right";
 import { Eye } from "@/components/animate-ui/icons/eye";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import { RotateCcw } from "@/components/animate-ui/icons/rotate-ccw";
@@ -18,7 +18,6 @@ import "./admin.css";
 
 export function AdminPostsPage() {
   const queryClient = useQueryClient();
-  const gridRef = useRef<HTMLDivElement | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [previewPost, setPreviewPost] = useState<AdminPost | null>(null);
   const [deletePost, setDeletePost] = useState<AdminPost | null>(null);
@@ -29,21 +28,11 @@ export function AdminPostsPage() {
     return [10, 20, 50, 100].includes(stored) ? stored : DEFAULT_PAGE_SIZE;
   });
   const page = Math.floor(offset / limit) + 1;
-  const [columns, setColumns] = useState<number>(() => {
-    const stored = Number(window.localStorage.getItem("admin-posts.columns"));
-    return Number.isInteger(stored) && stored >= 1 && stored <= 6 ? stored : 3;
-  });
 
   const handlePageSizeChange = (newPageSize: number) => {
     setLimit(newPageSize);
     setOffset(0);
     window.localStorage.setItem("admin-posts.limit", String(newPageSize));
-  };
-
-  const changeColumns = (next: number) => {
-    const clamped = Math.min(6, Math.max(1, next));
-    setColumns(clamped);
-    window.localStorage.setItem("admin-posts.columns", String(clamped));
   };
 
   const posts = useQuery({
@@ -78,85 +67,50 @@ export function AdminPostsPage() {
 
   return (
     <>
-      <main className="admin-page">
-        <div className="admin__layout">
-          <div className="admin__heading">
-            <h2>Manage posts<span className="brand__dot">.</span></h2>
+      <main className="admin-page admin-page--posts" aria-label="Post management">
+        <div className="admin__heading">
+          <AnimateIcon animateOnHover asChild>
             <Link to="/" className="admin__back"><ArrowLeft size={16} aria-hidden="true" /> Back to feed</Link>
-          </div>
-
-          <div className="admin__toolbar">
-            <span className="admin__toolbar-label" id="admin-columns-label">Columns</span>
-            <div className="admin__stepper" role="group" aria-labelledby="admin-columns-label">
-              <button
-                type="button"
-                className="btn btn--secondary admin-step-btn"
-                disabled={columns === 1}
-                aria-label="Fewer columns"
-                title="Fewer columns"
-                onClick={() => changeColumns(columns - 1)}
-              >
-                <ArrowLeft size={16} aria-hidden="true" />
-              </button>
-              <span className="admin__stepper-value" aria-live="polite">{columns} per row</span>
-              <button
-                type="button"
-                className="btn btn--secondary admin-step-btn"
-                disabled={columns === 6}
-                aria-label="More columns"
-                title="More columns"
-                onClick={() => changeColumns(columns + 1)}
-              >
-                <ArrowRight size={16} aria-hidden="true" />
-              </button>
-            </div>
-          </div>
-
-          {error ? <ErrorState message={error} onRetry={() => setError(null)} /> : null}
-
-          {posts.isLoading ? <Spinner label="Loading posts…" /> : null}
-          {posts.isError ? (
-            <ErrorState message="Could not load posts." onRetry={() => void posts.refetch()} />
-          ) : null}
-
-          {!posts.isLoading && !posts.isError && posts.data?.items.length === 0 ? (
-            <EmptyState title="No posts" hint="Every post, active or deleted, appears here for review." />
-          ) : null}
-
-          {posts.data && posts.data.items.length > 0 ? (
-            <>
-              <div
-                ref={gridRef}
-                className="admin-grid"
-                style={{
-                  "--admin-grid-template": Array(columns).fill("minmax(0, 1fr)").join(" "),
-                } as CSSProperties}
-              >
-                {posts.data.items.map((post, index) => (
-                  <AdminPostCard
-                    key={post.id}
-                    post={post}
-                    onPreview={() => setPreviewPost(post)}
-                    isLoading={restore.isPending || deletePost !== null || restorePost !== null}
-                    isRestoring={restore.isPending && restore.variables === post.id}
-                    onRestore={() => { setError(null); setRestorePost(post); }}
-                    onDelete={() => { setError(null); setDeletePost(post); }}
-                    showResizeHandle={index < columns - 1}
-                  />
-                ))}
-              </div>
-              <Pagination
-                page={page}
-                pageSize={limit}
-                total={posts.data.total}
-                itemLabel="posts"
-                isFetching={posts.isFetching}
-                onPageChange={(nextPage) => setOffset((nextPage - 1) * limit)}
-                onPageSizeChange={handlePageSizeChange}
-              />
-            </>
-          ) : null}
+          </AnimateIcon>
         </div>
+
+        {error ? <ErrorState message={error} onRetry={() => setError(null)} /> : null}
+
+        {posts.isLoading ? <Spinner label="Loading posts…" /> : null}
+        {posts.isError ? (
+          <ErrorState message="Could not load posts." onRetry={() => void posts.refetch()} />
+        ) : null}
+
+        {!posts.isLoading && !posts.isError && posts.data?.items.length === 0 ? (
+          <EmptyState title="No posts" hint="Every post, active or deleted, appears here for review." />
+        ) : null}
+
+        {posts.data && posts.data.items.length > 0 ? (
+          <>
+            <div className="admin-grid">
+              {posts.data.items.map((post) => (
+                <AdminPostCard
+                  key={post.id}
+                  post={post}
+                  onPreview={() => setPreviewPost(post)}
+                  isLoading={restore.isPending || deletePost !== null || restorePost !== null}
+                  isRestoring={restore.isPending && restore.variables === post.id}
+                  onRestore={() => { setError(null); setRestorePost(post); }}
+                  onDelete={() => { setError(null); setDeletePost(post); }}
+                />
+              ))}
+            </div>
+            <Pagination
+              page={page}
+              pageSize={limit}
+              total={posts.data.total}
+              itemLabel="posts"
+              isFetching={posts.isFetching}
+              onPageChange={(nextPage) => setOffset((nextPage - 1) * limit)}
+              onPageSizeChange={handlePageSizeChange}
+            />
+          </>
+        ) : null}
       </main>
       {previewPost ? (
         <AdminMediaPreview key={previewPost.id} post={previewPost} onClose={() => setPreviewPost(null)} />
@@ -190,11 +144,10 @@ interface AdminPostCardProps {
   isRestoring: boolean;
   onRestore: () => void;
   onDelete: () => void;
-  showResizeHandle: boolean;
 }
 
 function AdminPostCard({
-  post, onPreview, isLoading, isRestoring, onRestore, onDelete, showResizeHandle,
+  post, onPreview, isLoading, isRestoring, onRestore, onDelete,
 }: AdminPostCardProps) {
   const isDeleted = post.deletedAt !== null;
 
@@ -243,41 +196,46 @@ function AdminPostCard({
         ) : null}
 
         <div className="admin-post__actions">
-          <button
-            type="button"
-            className="btn btn--secondary admin-icon-btn"
-            disabled={post.media.length === 0 || isLoading}
-            aria-label={`Open media preview for post by ${post.author.username}`}
-            title="Preview media"
-            onClick={onPreview}
-          >
-            <Eye size={18} aria-hidden="true" />
-          </button>
-          {isDeleted ? (
+          <AnimateIcon animateOnHover asChild>
             <button
               type="button"
-              className="btn btn--primary admin-icon-btn"
-              disabled={isLoading}
-              aria-busy={isRestoring || undefined}
-              aria-label={`Restore post by ${post.author.username}`}
-              title="Restore post"
-              onClick={onRestore}
+              className="btn btn--secondary admin-icon-btn"
+              disabled={post.media.length === 0 || isLoading}
+              aria-label={`Open media preview for post by ${post.author.username}`}
+              title="Preview media"
+              onClick={onPreview}
             >
-              {isRestoring ? <LoaderCircle className="btn__spinner" aria-hidden="true" /> : <RotateCcw size={16} aria-hidden="true" />}
+              <Eye size={18} aria-hidden="true" />
             </button>
+          </AnimateIcon>
+          {isDeleted ? (
+            <AnimateIcon animateOnHover asChild>
+              <button
+                type="button"
+                className="btn btn--primary admin-icon-btn"
+                disabled={isLoading}
+                aria-busy={isRestoring || undefined}
+                aria-label={`Restore post by ${post.author.username}`}
+                title="Restore post"
+                onClick={onRestore}
+              >
+                {isRestoring ? <LoaderCircle animate={false} className="btn__spinner" aria-hidden="true" /> : <RotateCcw size={16} aria-hidden="true" />}
+              </button>
+            </AnimateIcon>
           ) : null}
-          <button
-            type="button"
-            className="btn btn--danger admin-icon-btn"
-            disabled={isLoading}
-            aria-label={`Delete post by ${post.author.username}`}
-            title="Delete post"
-            onClick={onDelete}
-          >
-            <Trash2 size={16} aria-hidden="true" />
-          </button>
+          <AnimateIcon animateOnHover asChild>
+            <button
+              type="button"
+              className="btn btn--danger admin-icon-btn"
+              disabled={isLoading}
+              aria-label={`Delete post by ${post.author.username}`}
+              title="Delete post"
+              onClick={onDelete}
+            >
+              <Trash2 size={16} aria-hidden="true" />
+            </button>
+          </AnimateIcon>
         </div>
-        {showResizeHandle ? <span className="admin-post__resize" aria-hidden="true" /> : null}
       </div>
     </article>
   );

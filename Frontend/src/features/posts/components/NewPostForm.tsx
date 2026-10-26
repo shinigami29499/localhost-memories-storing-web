@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { AnimateIcon } from "@animate-ui/react/icons";
 import { postService } from "../services/postService";
 import { Button, showToast } from "../../../components/ui";
 import { Paperclip } from "@/components/animate-ui/icons/paperclip";
@@ -15,7 +16,7 @@ interface Props {
   onCreated: (post: Post) => void;
 }
 
-/** Upload composer: caption + one or more image/Video files → POST /api/posts. */
+/** Upload composer: optional caption + one or more image/video files → POST /api/posts. */
 export function NewPostForm({ onCreated }: Props) {
   const fileInput = useRef<HTMLInputElement>(null);
   const [caption, setCaption] = useState("");
@@ -66,11 +67,11 @@ export function NewPostForm({ onCreated }: Props) {
   };
 
   const submit = async () => {
-    if (!caption.trim() || files.length === 0) return;
+    if (files.length === 0) return;
     setBusy(true);
     setError(null);
     try {
-      const created = await postService.create(caption.trim(), files);
+      const created = await postService.create(caption.trim() || undefined, files);
       onCreated(created);
       showToast.success("Post successfully");
       setCaption("");
@@ -94,9 +95,11 @@ export function NewPostForm({ onCreated }: Props) {
       onDrop={handleDrop}
     >
       <div className="new-post__heading">
-        <span className="new-post__symbol" aria-hidden="true">
-          <PencilLine size={18} aria-hidden="true" />
-        </span>
+        <AnimateIcon animateOnHover asChild>
+          <span className="new-post__symbol" aria-hidden="true">
+            <PencilLine size={25} aria-hidden="true" />
+          </span>
+        </AnimateIcon>
         <div>
           <h3 id="new-post-title">What is your moment?</h3>
           <p>A little of your world, shared with everyone.</p>
@@ -104,7 +107,7 @@ export function NewPostForm({ onCreated }: Props) {
       </div>
       <textarea
         className="new-post__caption"
-        placeholder="Share media with the community… (caption)"
+        placeholder="Share media with the community… (caption optional)"
         value={caption}
         maxLength={4000}
         onChange={(e) => setCaption(e.target.value)}
@@ -112,19 +115,21 @@ export function NewPostForm({ onCreated }: Props) {
       />
 
       <div className="new-post__row">
-        <label className="btn btn--secondary new-post__pick">
-          <Paperclip size={18} aria-hidden="true" /> Attach media
-          <input
-            ref={fileInput}
-            type="file"
-            accept={ACCEPTED}
-            multiple
-            aria-hidden="false"
-            className="sr-only"
-            onChange={(e) => pick(e.target.files)}
-          />
-        </label>
-        <Button onClick={submit} busy={busy} disabled={!caption.trim() || files.length === 0}>
+        <AnimateIcon animateOnHover asChild>
+          <label className="btn btn--secondary new-post__pick">
+            <Paperclip size={18} aria-hidden="true" /> Attach media
+            <input
+              ref={fileInput}
+              type="file"
+              accept={ACCEPTED}
+              multiple
+              aria-hidden="false"
+              className="sr-only"
+              onChange={(e) => pick(e.target.files)}
+            />
+          </label>
+        </AnimateIcon>
+        <Button onClick={submit} busy={busy} disabled={files.length === 0}>
           Post
         </Button>
       </div>
@@ -133,13 +138,15 @@ export function NewPostForm({ onCreated }: Props) {
         {files.map((file, index) => (
           <span key={`${file.name}-${index}`} className="new-post__chip">
             {file.name}
-            <button
-              className="new-post__chip-remove"
-              onClick={() => setFiles((prev) => prev.filter((_, i) => i !== index))}
-              aria-label={`Remove ${file.name}`}
-            >
-              <X size={14} aria-hidden="true" />
-            </button>
+            <AnimateIcon animateOnHover asChild>
+              <button
+                className="new-post__chip-remove"
+                onClick={() => setFiles((prev) => prev.filter((_, i) => i !== index))}
+                aria-label={`Remove ${file.name}`}
+              >
+                <X size={14} aria-hidden="true" />
+              </button>
+            </AnimateIcon>
           </span>
         ))}
       </div>

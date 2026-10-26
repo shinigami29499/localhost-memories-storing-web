@@ -1,4 +1,5 @@
 import { Toast as AnimateToast } from '@animate-ui/react/primitives/base-ui/toast';
+import { AnimateIcon } from '@animate-ui/react/icons';
 import { Check } from '@/components/animate-ui/icons/check';
 import { ShieldCheck } from '@/components/animate-ui/icons/shield-check';
 import { X } from '@/components/animate-ui/icons/x';
@@ -15,22 +16,26 @@ export function Toaster() {
         {toasts.map((toast) => (
           <AnimateToast.Root key={toast.id} toast={toast} className="toast-root">
             <AnimateToast.Content className="toast-content">
-              <div className="toast-icon-wrapper" data-slot="toast-icon">
-                {toast.type === 'success' || toast.type === undefined ? (
-                  <Check size={18} className="toast-icon toast-icon--success" aria-hidden="true" />
-                ) : toast.type === 'error' ? (
-                  <X size={18} className="toast-icon toast-icon--error" aria-hidden="true" />
-                ) : (
-                  <ShieldCheck size={18} className="toast-icon" aria-hidden="true" />
-                )}
-              </div>
+              <AnimateIcon animateOnHover asChild>
+                <div className="toast-icon-wrapper" data-slot="toast-icon">
+                  {toast.type === 'success' || toast.type === undefined ? (
+                    <Check size={18} className="toast-icon toast-icon--success" aria-hidden="true" />
+                  ) : toast.type === 'error' ? (
+                    <X size={18} className="toast-icon toast-icon--error" aria-hidden="true" />
+                  ) : (
+                    <ShieldCheck size={18} className="toast-icon" aria-hidden="true" />
+                  )}
+                </div>
+              </AnimateIcon>
               <div className="toast-text">
                 <AnimateToast.Title className="toast-title" />
                 <AnimateToast.Description className="toast-description" />
               </div>
-              <AnimateToast.Close className="toast-close" aria-label="Close">
-                <X size={14} aria-hidden="true" />
-              </AnimateToast.Close>
+              <AnimateIcon animateOnHover asChild>
+                <AnimateToast.Close className="toast-close" aria-label="Close">
+                  <X size={14} aria-hidden="true" />
+                </AnimateToast.Close>
+              </AnimateIcon>
             </AnimateToast.Content>
           </AnimateToast.Root>
         ))}

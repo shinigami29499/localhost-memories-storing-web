@@ -10,7 +10,7 @@ public interface IPostService
         Guid viewerId, int offset, int limit, CancellationToken cancellationToken = default);
     Task<PostSummaryDto> GetPostAsync(Guid postId, Guid viewerId, CancellationToken cancellationToken = default);
     Task<PostSummaryDto> CreatePostAsync(
-        Guid authorId, string caption, IReadOnlyList<IFormFile> mediaFiles, CancellationToken cancellationToken = default);
+        Guid authorId, string? caption, IReadOnlyList<IFormFile> mediaFiles, CancellationToken cancellationToken = default);
     Task<PostSummaryDto> UpdateCaptionAsync(
         Guid postId, Guid actorId, bool isAdmin, string caption, CancellationToken cancellationToken = default);
     Task DeletePostAsync(Guid postId, Guid actorId, bool isAdmin, CancellationToken cancellationToken = default);

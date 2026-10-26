@@ -1,3 +1,4 @@
+import { AnimateIcon } from "@animate-ui/react/icons";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -60,7 +61,9 @@ export function AdminUsersPage() {
         <div className="admin__layout">
           <div className="admin__heading">
             <h2>Manage users<span className="brand__dot">.</span></h2>
-            <Link to="/" className="admin__back"><ArrowLeft size={16} aria-hidden="true" /> Back to feed</Link>
+            <AnimateIcon animateOnHover asChild>
+              <Link to="/" className="admin__back"><ArrowLeft size={16} aria-hidden="true" /> Back to feed</Link>
+            </AnimateIcon>
           </div>
 
           {error ? <ErrorState message={error} onRetry={() => setError(null)} /> : null}
@@ -151,30 +154,34 @@ function AdminUserRow({
       <td data-label="Joined">{new Date(user.createdAt).toLocaleDateString()}</td>
       <td className="admin-table__actions" data-label="Actions">
         {isPending ? (
-          <button
-            type="button"
-            className="btn btn--primary admin-icon-btn"
-            disabled={isLoading}
-            aria-busy={isApproving || undefined}
-            aria-label={`Approve ${user.username}`}
-            title={`Approve ${user.username}`}
-            onClick={onApprove}
-          >
-            {isApproving ? <LoaderCircle className="btn__spinner" aria-hidden="true" /> : <Check size={16} aria-hidden="true" />}
-          </button>
+          <AnimateIcon animateOnHover asChild>
+            <button
+              type="button"
+              className="btn btn--primary admin-icon-btn"
+              disabled={isLoading}
+              aria-busy={isApproving || undefined}
+              aria-label={`Approve ${user.username}`}
+              title={`Approve ${user.username}`}
+              onClick={onApprove}
+            >
+              {isApproving ? <LoaderCircle animate={false} className="btn__spinner" aria-hidden="true" /> : <Check size={16} aria-hidden="true" />}
+            </button>
+          </AnimateIcon>
         ) : null}
         {!isSelf ? (
-          <button
-            type="button"
-            className="btn btn--danger admin-icon-btn"
-            disabled={isLoading || isSelf}
-            aria-busy={isDeleting || undefined}
-            aria-label={`Delete ${user.username}`}
-            title={`Delete ${user.username}`}
-            onClick={onDelete}
-          >
-            {isDeleting ? <LoaderCircle className="btn__spinner" aria-hidden="true" /> : <Trash2 size={16} aria-hidden="true" />}
-          </button>
+          <AnimateIcon animateOnHover asChild>
+            <button
+              type="button"
+              className="btn btn--danger admin-icon-btn"
+              disabled={isLoading || isSelf}
+              aria-busy={isDeleting || undefined}
+              aria-label={`Delete ${user.username}`}
+              title={`Delete ${user.username}`}
+              onClick={onDelete}
+            >
+              {isDeleting ? <LoaderCircle animate={false} className="btn__spinner" aria-hidden="true" /> : <Trash2 size={16} aria-hidden="true" />}
+            </button>
+          </AnimateIcon>
         ) : null}
       </td>
     </tr>

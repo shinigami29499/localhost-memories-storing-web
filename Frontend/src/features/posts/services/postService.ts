@@ -10,9 +10,9 @@ export const postService = {
     return api(`/api/posts/${postId}`);
   },
 
-  async create(caption: string, files: File[]): Promise<Post> {
+  async create(caption: string | undefined, files: File[]): Promise<Post> {
     const form = new FormData();
-    form.set("caption", caption);
+    if (caption) form.set("caption", caption);
     for (const file of files) form.append("files", file, file.name);
     return api<Post>("/api/posts", { method: "POST", body: form });
   },
