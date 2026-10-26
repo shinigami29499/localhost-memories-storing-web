@@ -86,20 +86,22 @@ export function AdminPostsPage() {
         ) : null}
 
         {posts.data && posts.data.items.length > 0 ? (
-          <>
-            <div className="admin-grid">
-              {posts.data.items.map((post) => (
-                <AdminPostCard
-                  key={post.id}
-                  post={post}
-                  onPreview={() => setPreviewPost(post)}
-                  isLoading={restore.isPending || deletePost !== null || restorePost !== null}
-                  isRestoring={restore.isPending && restore.variables === post.id}
-                  onRestore={() => { setError(null); setRestorePost(post); }}
-                  onDelete={() => { setError(null); setDeletePost(post); }}
-                />
-              ))}
-            </div>
+          <div className="admin-grid">
+            {posts.data.items.map((post) => (
+              <AdminPostCard
+                key={post.id}
+                post={post}
+                onPreview={() => setPreviewPost(post)}
+                isLoading={restore.isPending || deletePost !== null || restorePost !== null}
+                isRestoring={restore.isPending && restore.variables === post.id}
+                onRestore={() => { setError(null); setRestorePost(post); }}
+                onDelete={() => { setError(null); setDeletePost(post); }}
+              />
+            ))}
+          </div>
+        ) : null}
+        {posts.data ? (
+          <footer className="admin-posts__footer" aria-label="Post pagination controls">
             <Pagination
               page={page}
               pageSize={limit}
@@ -109,7 +111,7 @@ export function AdminPostsPage() {
               onPageChange={(nextPage) => setOffset((nextPage - 1) * limit)}
               onPageSizeChange={handlePageSizeChange}
             />
-          </>
+          </footer>
         ) : null}
       </main>
       {previewPost ? (

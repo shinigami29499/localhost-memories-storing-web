@@ -1,4 +1,4 @@
-import { useId, useRef } from "react";
+import { useId } from "react";
 import { AnimateIcon } from "@animate-ui/react/icons";
 import * as PaginationPrimitive from "@animate-ui/react/primitives/pagination";
 import { ChevronLeft } from "@/components/animate-ui/icons/chevron-left";
@@ -28,36 +28,13 @@ export function Pagination({
   onPageSizeChange,
 }: PaginationProps) {
   const pageSelectId = useId();
-  const pageSelectRef = useRef<HTMLSelectElement>(null);
-  const totalPages = Math.ceil(total / pageSize);
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const pageNumbers = getPageNumbers(page, totalPages);
-
-  const openPagePicker = () => {
-    const select = pageSelectRef.current;
-    if (!select) return;
-
-    select.focus();
-    (select as HTMLSelectElement & { showPicker?: () => void }).showPicker?.();
-  };
 
   return (
     <PaginationPrimitive.Root className="pagination" aria-label={`${itemLabel} pagination`}>
-      <div className="pagination__summary">
-        <label className="pagination__page-size" htmlFor={`${pageSelectId}-size`}>
-          Items per page
-          <select
-            id={`${pageSelectId}-size`}
-            value={pageSize}
-            disabled={isFetching}
-            onChange={(event) => onPageSizeChange(Number(event.target.value))}
-          >
-            {PAGE_SIZE_OPTIONS.map((size) => <option key={size} value={size}>{size}</option>)}
-          </select>
-        </label>
-      </div>
-
-      {totalPages > 1 ? (
-        <div className="pagination__controls">
+      <ul className="pagination__controls" data-slot="pagination-content">
+        <li data-slot="pagination-item">
           <AnimateIcon animateOnHover asChild>
             <button
               type="button"
@@ -70,55 +47,32 @@ export function Pagination({
               <span>Previous</span>
             </button>
           </AnimateIcon>
-
-          <div className="pagination__pages">
-            {pageNumbers.map((pageNumber, index) =>
-              pageNumber === "ellipsis" ? (
-                <button
-                  key={`ellipsis-${index}`}
-                  type="button"
-                  data-slot="pagination-ellipsis"
-                  className="pagination-ellipsis"
-                  onClick={openPagePicker}
-                  disabled={isFetching}
-                  aria-label="Select a page"
-                  title="Select a page"
-                >
-                  …
-                </button>
-              ) : (
-                <button
-                  key={pageNumber}
-                  type="button"
-                  data-slot="pagination-link"
-                  data-active={page === pageNumber ? "" : undefined}
-                  className={`pagination-page ${page === pageNumber ? "pagination-page--active" : ""}`}
-                  onClick={() => onPageChange(pageNumber)}
-                  disabled={isFetching}
-                  aria-label={`Page ${pageNumber}`}
-                  aria-current={page === pageNumber ? "page" : undefined}
-                >
-                  {pageNumber}
-                </button>
-              ),
-            )}
-          </div>
-
-          <label className="pagination__page-select" htmlFor={pageSelectId}>
-            <span>Page</span>
-            <select
-              ref={pageSelectRef}
-              id={pageSelectId}
-              value={page}
-              disabled={isFetching}
-              onChange={(event) => onPageChange(Number(event.target.value))}
-            >
-              {Array.from({ length: totalPages }, (_, index) => index + 1).map((pageNumber) => (
-                <option key={pageNumber} value={pageNumber}>Page {pageNumber} of {totalPages}</option>
-              ))}
-            </select>
-          </label>
-
+        </li>
+        {pageNumbers.map((pageNumber, index) =>
+          pageNumber === "ellipsis" ? (
+            <li key={`ellipsis-${index}`} data-slot="pagination-item">
+              <span data-slot="pagination-ellipsis" className="pagination-ellipsis" aria-hidden="true">
+                …
+              </span>
+            </li>
+          ) : (
+            <li key={pageNumber} data-slot="pagination-item">
+              <button
+                type="button"
+                data-slot="pagination-link"
+                data-active={page === pageNumber ? "" : undefined}
+                className={`pagination-page ${page === pageNumber ? "pagination-page--active" : ""}`}
+                onClick={() => onPageChange(pageNumber)}
+                disabled={isFetching}
+                aria-label={`Page ${pageNumber}`}
+                aria-current={page === pageNumber ? "page" : undefined}
+              >
+                {pageNumber}
+              </button>
+            </li>
+          ),
+        )}
+        <li data-slot="pagination-item">
           <AnimateIcon animateOnHover asChild>
             <button
               type="button"
@@ -131,18 +85,30 @@ export function Pagination({
               <ChevronRight size={18} aria-hidden="true" />
             </button>
           </AnimateIcon>
-        </div>
-      ) : null}
+        </li>
+      </ul>
+      <label className="pagination__page-size" htmlFor={`${pageSelectId}-size`}>
+        <select
+          id={`${pageSelectId}-size`}
+          aria-label="Items per page"
+          value={pageSize}
+          disabled={isFetching}
+          onChange={(event) => onPageSizeChange(Number(event.target.value))}
+        >
+          {PAGE_SIZE_OPTIONS.map((size) => <option key={size} value={size}>{size}</option>)}
+        </select>
+        <span>/ page</span>
+      </label>
     </PaginationPrimitive.Root>
   );
 }
 
 function getPageNumbers(page: number, totalPages: number): (number | "ellipsis")[] {
-  if (totalPages <= 5) {
+  if (totalPages <= 7) {
     return Array.from({ length: totalPages }, (_, index) => index + 1);
   }
 
-  if (page <= 3) return [1, 2, 3, "ellipsis", totalPages];
-  if (page >= totalPages - 2) return [1, "ellipsis", totalPages - 1, totalPages];
-  return [1, "ellipsis", page, "ellipsis", totalPages];
+  if (page <= 4) return [1, 2, 3, 4, 5, "ellipsis", totalPages];
+  if (page >= totalPages - 3) return [1, "ellipsis", totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+  return [1, "ellipsis", page - 1, page, page + 1, "ellipsis", totalPages];
 }

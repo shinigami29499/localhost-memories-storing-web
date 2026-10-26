@@ -1,45 +1,52 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import type { Post } from "../types";
-import { Pagination } from "../../../components/ui/Pagination";
+import { ErrorState } from "../../../components/ui/Status";
 import { PostCard } from "./PostCard";
 import "./PostList.css";
 
 interface PostListProps {
   posts: Post[];
-  total: number;
-  page: number;
-  pageSize: number;
   isLoading: boolean;
   isFetching: boolean;
-  onPageChange: (page: number) => void;
-  onPageSizeChange: (pageSize: number) => void;
+  hasNextPage: boolean;
+  isError: boolean;
+  onLoadMore: () => void;
+  onRetry: () => void;
   onChanged: (post: Post) => void;
   onDeleted: (id: string) => void;
 }
 
 export function PostList({
   posts,
-  total,
-  page,
-  pageSize,
   isLoading,
   isFetching,
-  onPageChange,
-  onPageSizeChange,
+  hasNextPage,
+  isError,
+  onLoadMore,
+  onRetry,
   onChanged,
   onDeleted,
 }: PostListProps) {
-  // Reset to first page when total changes (e.g., after post deletion)
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
-    if (total === 0 && page > 1) {
-      onPageChange(1);
-    }
-  }, [total, page, onPageChange]);
+    const sentinel = sentinelRef.current;
+    if (!sentinel || !hasNextPage || isFetching || isError) return;
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        observer.disconnect();
+        onLoadMore();
+      }
+    });
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetching, isError, onLoadMore, posts.length]);
 
   if (isLoading) {
     return (
-      <div className="post-list-loading">
+      <div className="post-list-loading" role="status">
         <LoaderCircle className="spinner__wheel" aria-hidden="true" />
         <span>Loading posts...</span>
       </div>
@@ -47,11 +54,7 @@ export function PostList({
   }
 
   if (posts.length === 0) {
-    return (
-      <div className="post-list-empty">
-        <p className="post-list-empty__message">No posts to display.</p>
-      </div>
-    );
+    return null;
   }
 
   return (
@@ -67,22 +70,17 @@ export function PostList({
         ))}
       </div>
 
-      <Pagination
-        page={page}
-        pageSize={pageSize}
-        total={total}
-        itemLabel="posts"
-        isFetching={isFetching}
-        onPageChange={onPageChange}
-        onPageSizeChange={onPageSizeChange}
-      />
-
-      {isFetching && (
-        <div className="post-list-fetching">
+      <div ref={sentinelRef} className="post-list__sentinel" aria-hidden="true" />
+      {isError ? (
+        <ErrorState message="Could not load the feed." onRetry={onRetry} />
+      ) : isFetching ? (
+        <div className="post-list-fetching" role="status">
           <LoaderCircle className="spinner__wheel" aria-hidden="true" />
           <span>Loading...</span>
         </div>
-      )}
+      ) : !hasNextPage ? (
+        <p className="post-list-end" role="status">No more posts to show.</p>
+      ) : null}
     </div>
   );
 }

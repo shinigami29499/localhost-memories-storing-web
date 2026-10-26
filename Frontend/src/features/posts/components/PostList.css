@@ -11,22 +11,26 @@
 }
 
 .post-list-loading,
-.post-list-empty,
+.post-list-end,
 .post-list-fetching {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
   padding: 2rem;
-  color: var(--color-text-secondary);
+  color: var(--text-muted);
 }
 
-.post-list-empty__message {
+.post-list-end {
   margin: 0;
+}
+
+.post-list__sentinel {
+  height: 1px;
 }
 
 .post-list-fetching {
   padding: 1rem;
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--border);
   margin-top: 1rem;
 }

@@ -89,4 +89,26 @@ describe("Sidebar icon hover triggers", () => {
     await act(async () => label.dispatchEvent(new MouseEvent("pointerout", { bubbles: true, relatedTarget: document.body })));
     expect(link.querySelector("svg")?.getAttribute("data-animated")).toBe("false");
   });
+
+  it("shows the account name and role and closes its menu on outside click", async () => {
+    const account = container.querySelector<HTMLElement>(".sidebar__account")!;
+    const trigger = account.querySelector<HTMLButtonElement>(".sidebar__account-trigger")!;
+
+    expect(trigger.querySelector(".sidebar__account-name")?.textContent).toBe("Admin");
+    expect(trigger.querySelector(".sidebar__account-role")?.textContent).toBe("Admin");
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+    expect(account.querySelector('[aria-label="Log out"]')).not.toBeNull();
+
+    await act(async () => trigger.click());
+
+    expect(trigger.getAttribute("aria-expanded")).toBe("true");
+    expect(account.querySelector(".sidebar__account-menu-user .sidebar__account-name")?.textContent).toBe("Admin");
+    expect(account.querySelector(".sidebar__account-menu-user .sidebar__account-role")?.textContent).toBe("Admin");
+
+    await act(async () => {
+      document.body.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true }));
+    });
+
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+  });
 });

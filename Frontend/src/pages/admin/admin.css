@@ -6,6 +6,27 @@
 
 .admin-page--posts {
   max-width: none;
+  padding-bottom: calc(8rem + env(safe-area-inset-bottom));
+}
+
+.admin-posts__footer {
+  position: fixed;
+  inset: auto 0 0;
+  z-index: 10;
+  border-top: 1px solid var(--border-card);
+  background: var(--bg);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.app-shell .admin-posts__footer {
+  left: var(--sidebar-width);
+  transition: left var(--animate-ui-sidebar-duration) var(--animate-ui-sidebar-easing);
+}
+
+@media (max-width: 900px) {
+  .app-shell .admin-posts__footer {
+    left: 72px;
+  }
 }
 
 .admin-page--posts .admin__heading {

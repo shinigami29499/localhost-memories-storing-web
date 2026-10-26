@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimateIcon } from "@animate-ui/react/icons";
 import { ChevronDown } from "@/components/animate-ui/icons/chevron-down";
 import { FileText } from "@/components/animate-ui/icons/file-text";
@@ -30,6 +30,35 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
   const isAdminRoute = location.pathname.startsWith("/admin");
   const [adminOpen, setAdminOpen] = useState(isAdminRoute);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const accountRef = useRef<HTMLDivElement>(null);
+  const accountTriggerRef = useRef<HTMLButtonElement>(null);
+  const roleName = user
+    ? user.role.charAt(0).toUpperCase() + user.role.slice(1).toLowerCase()
+    : "";
+
+  useEffect(() => {
+    if (!accountMenuOpen) return;
+
+    const closeOnOutsideClick = (event: PointerEvent) => {
+      if (!(event.target instanceof Node) || !accountRef.current?.contains(event.target)) {
+        setAccountMenuOpen(false);
+      }
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setAccountMenuOpen(false);
+        accountTriggerRef.current?.focus();
+      }
+    };
+
+    document.addEventListener("pointerdown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [accountMenuOpen]);
 
   const logout = async () => {
     const { accessToken, refreshToken, clear } = useAuthStore.getState();
@@ -122,19 +151,73 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           <div className="sidebar__footer">
             <ThemeTogglerButton />
             {user ? (
-              <AnimateIcon animateOnHover asChild>
+              <div
+                ref={accountRef}
+                className="sidebar__account"
+                onMouseEnter={() => setAccountMenuOpen(true)}
+                onMouseLeave={() => {
+                  if (!accountRef.current?.contains(document.activeElement)) {
+                    setAccountMenuOpen(false);
+                  }
+                }}
+                onFocusCapture={() => setAccountMenuOpen(true)}
+                onBlurCapture={(event) => {
+                  if (!(event.relatedTarget instanceof Node) || !event.currentTarget.contains(event.relatedTarget)) {
+                    setAccountMenuOpen(false);
+                  }
+                }}
+              >
                 <button
+                  ref={accountTriggerRef}
                   type="button"
-                  className="sidebar__link sidebar__link--danger"
-                  onClick={logout}
-                  data-sidebar="menu-button"
-                  aria-label="Log out"
-                  title="Log out"
+                  className="sidebar__account-trigger"
+                  aria-expanded={accountMenuOpen}
+                  aria-controls="sidebar-account-menu"
+                  aria-label={`Account menu for ${user.username}`}
+                  title={user.username}
+                  onClick={() => setAccountMenuOpen(true)}
                 >
-                  <LogOut size={18} aria-hidden="true" />
-                  <span>Log out</span>
+                  <span className="sidebar__account-avatar" aria-hidden="true">
+                    {user.username.slice(0, 1).toUpperCase()}
+                  </span>
+                  <span className="sidebar__account-details">
+                    <span className="sidebar__account-name">{user.username}</span>
+                    <span className="sidebar__account-role">{roleName}</span>
+                  </span>
+                  <ChevronDown
+                    size={14}
+                    aria-hidden="true"
+                    className={`sidebar__account-chevron${accountMenuOpen ? " sidebar__account-chevron--open" : ""}`}
+                  />
                 </button>
-              </AnimateIcon>
+                <div
+                  id="sidebar-account-menu"
+                  className={`sidebar__account-menu${accountMenuOpen ? " sidebar__account-menu--open" : ""}`}
+                >
+                  <div className="sidebar__account-menu-user">
+                    <span className="sidebar__account-avatar" aria-hidden="true">
+                      {user.username.slice(0, 1).toUpperCase()}
+                    </span>
+                    <span className="sidebar__account-details">
+                      <span className="sidebar__account-name">{user.username}</span>
+                      <span className="sidebar__account-role">{roleName}</span>
+                    </span>
+                  </div>
+                  <AnimateIcon animateOnHover asChild>
+                    <button
+                      type="button"
+                      className="sidebar__link sidebar__link--danger"
+                      onClick={logout}
+                      data-sidebar="menu-button"
+                      aria-label="Log out"
+                      title="Log out"
+                    >
+                      <LogOut size={18} aria-hidden="true" />
+                      <span>Log out</span>
+                    </button>
+                  </AnimateIcon>
+                </div>
+              </div>
             ) : null}
           </div>
         </Highlight>

@@ -14,10 +14,14 @@ export function useFeed(limit = 5) {
     queryKey: ["feed", limit],
     initialPageParam: 0,
     queryFn: async ({ pageParam }): Promise<FeedPage> => {
-      const offset = pageParam as number;
+      const offset = pageParam;
       const page = await postService.feed(offset, limit);
       const next = offset + page.items.length;
-      return { items: page.items, total: page.total, nextOffset: next < page.total ? next : undefined };
+      return {
+        items: page.items,
+        total: page.total,
+        nextOffset: page.items.length > 0 && next < page.total ? next : undefined,
+      };
     },
     getNextPageParam: (lastPage) => lastPage.nextOffset,
   });
