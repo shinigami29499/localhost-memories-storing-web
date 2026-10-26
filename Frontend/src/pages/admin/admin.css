@@ -147,6 +147,55 @@
   color: var(--text-muted);
 }
 
+/* Tabs ---------------------------------------------------------------------- */
+
+.admin-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.admin-tab {
+  align-items: center;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  font-size: 0.875rem;
+  gap: 6px;
+  padding: 10px 16px;
+  position: relative;
+  transition: color 0.15s ease;
+}
+
+.admin-tab:hover {
+  color: var(--text);
+}
+
+.admin-tab[data-active="true"] {
+  color: var(--text);
+}
+
+.admin-tab:focus-visible {
+  outline: 2px solid var(--accent-soft);
+  outline-offset: 2px;
+}
+
+.admin-tab-indicator {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.08);
+  height: calc(100% - 4px);
+  position: absolute;
+  top: 2px;
+  transition: transform 0.2s ease, width 0.2s ease;
+  z-index: -1;
+}
+
 /* Manage-posts grid ---------------------------------------------------------- */
 
 .admin-grid {

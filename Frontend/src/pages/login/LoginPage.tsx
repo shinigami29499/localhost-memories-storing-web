@@ -14,6 +14,11 @@ export function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const [triggerError, setTriggerError] = useState(false);
+
+  if (triggerError) {
+    throw new Error("Debug Error: Testing React Router errorElement & ErrorPage!");
+  }
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,6 +76,20 @@ export function LoginPage() {
         <Button type="submit" busy={busy}>
           Sign in <ArrowRight size={18} aria-hidden="true" />
         </Button>
+        <button
+          type="button"
+          className="btn btn--secondary"
+          style={{
+            marginTop: "16px",
+            border: "1px dashed var(--danger)",
+            color: "var(--danger)",
+            fontSize: "0.85rem",
+            padding: "8px 16px",
+          }}
+          onClick={() => setTriggerError(true)}
+        >
+          ⚠️ Trigger Test Error (Debug)
+        </button>
         <p className="login__footnote">
           New to ShinigaCim? <Link className="login__swap" to="/register">Create an account</Link>
         </p>

@@ -1149,3 +1149,48 @@ textarea::placeholder {
   position: fixed;
   z-index: 9999;
 }
+
+/* Error page ---------------------------------------------------------------- */
+
+.error-page {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.error-page__content {
+  max-width: 480px;
+  text-align: center;
+}
+
+.error-page__icon {
+  display: grid;
+  place-items: center;
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 24px;
+  border-radius: 50%;
+  background: rgba(229, 77, 94, 0.12);
+  color: var(--danger);
+}
+
+.error-page__title {
+  margin: 0 0 12px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-strong);
+}
+
+.error-page__message {
+  margin: 0 0 32px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.error-page__actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}

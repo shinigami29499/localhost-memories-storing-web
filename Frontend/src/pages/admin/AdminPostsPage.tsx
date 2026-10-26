@@ -1,19 +1,21 @@
 import { AnimateIcon } from "@animate-ui/react/icons";
+import { Tabs } from "@animate-ui/react/primitives/base-ui/tabs";
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DeletePostDialog, postService, type AdminPost, type PagedFeed } from "../../features/posts";
 import { ApiError } from "../../services/api";
 import { EmptyState, ErrorState, Spinner, showToast } from "../../components/ui";
-import { ArrowLeft } from "@/components/animate-ui/icons/arrow-left";
 import { Eye } from "@/components/animate-ui/icons/eye";
+import { Image } from "@/components/animate-ui/icons/image";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import { RotateCcw } from "@/components/animate-ui/icons/rotate-ccw";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
+import { Video } from "@/components/animate-ui/icons/video";
 import { ConfirmationDialog } from "../../components/ui/ConfirmationDialog";
 import { Pagination, DEFAULT_PAGE_SIZE } from "../../components/ui/Pagination";
 import { mediaUrl } from "../../utils/media";
 import { AdminMediaPreview } from "./AdminMediaPreview";
+import type { PostTab } from "../../features/posts/hooks/useAdminPosts";
 import "./admin.css";
 
 export function AdminPostsPage() {
@@ -22,6 +24,7 @@ export function AdminPostsPage() {
   const [previewPost, setPreviewPost] = useState<AdminPost | null>(null);
   const [deletePost, setDeletePost] = useState<AdminPost | null>(null);
   const [restorePost, setRestorePost] = useState<AdminPost | null>(null);
+  const [tab, setTab] = useState<PostTab>("all");
   const [offset, setOffset] = useState(0);
   const [limit, setLimit] = useState<number>(() => {
     const stored = Number(window.localStorage.getItem("admin-posts.limit"));
@@ -41,6 +44,13 @@ export function AdminPostsPage() {
     placeholderData: keepPreviousData,
   });
 
+  const filteredPosts = posts.data?.items.filter((post) => {
+    if (tab === "all") return true;
+    if (tab === "image") return post.media.some((m) => m.mediaKind === "image");
+    if (tab === "video") return post.media.some((m) => m.mediaKind === "video");
+    return true;
+  }) ?? [];
+
   useEffect(() => {
     const totalPages = Math.ceil((posts.data?.total ?? 0) / limit);
     if (totalPages > 0 && page > totalPages) {
@@ -49,7 +59,7 @@ export function AdminPostsPage() {
   }, [limit, page, posts.data?.total]);
 
   const copyRemoved = (id: string) => {
-    void queryClient.setQueryData<PagedFeed<AdminPost>>(["admin-all-posts"], (existing) =>
+    void queryClient.setQueryData<PagedFeed<AdminPost>>(["admin-all-posts", offset, limit], (existing) =>
       existing ? { ...existing, items: existing.items.filter((post) => post.id !== id) } : existing,
     );
     void queryClient.invalidateQueries({ queryKey: ["admin-all-posts"] });
@@ -65,6 +75,8 @@ export function AdminPostsPage() {
     onError: (err) => setError(err instanceof ApiError ? err.message : "Could not restore the post."),
   });
 
+  const isLoading = restore.isPending || deletePost !== null || restorePost !== null;
+
   return (
     <>
       <main className="admin-page admin-page--posts" aria-label="Post management">
@@ -78,25 +90,60 @@ export function AdminPostsPage() {
           <ErrorState message="Could not load posts." onRetry={() => void posts.refetch()} />
         ) : null}
 
-        {!posts.isLoading && !posts.isError && posts.data?.items.length === 0 ? (
-          <EmptyState title="No posts" hint="Every post, active or deleted, appears here for review." />
-        ) : null}
+        <Tabs.Root value={tab} onValueChange={(value: string) => { setTab(value as PostTab); setOffset(0); }}>
+          <Tabs.List className="admin-tabs" aria-label="Filter posts by media type">
+            <Tabs.Tab value="all" className="admin-tab">
+              All
+            </Tabs.Tab>
+            <Tabs.Tab value="image" className="admin-tab">
+              <Image size={16} aria-hidden="true" />
+              Image
+            </Tabs.Tab>
+            <Tabs.Tab value="video" className="admin-tab">
+              <Video size={16} aria-hidden="true" />
+              Video
+            </Tabs.Tab>
+            <Tabs.Indicator className="admin-tab-indicator" />
+          </Tabs.List>
 
-        {posts.data && posts.data.items.length > 0 ? (
-          <div className="admin-grid">
-            {posts.data.items.map((post) => (
-              <AdminPostCard
-                key={post.id}
-                post={post}
-                onPreview={() => setPreviewPost(post)}
-                isLoading={restore.isPending || deletePost !== null || restorePost !== null}
-                isRestoring={restore.isPending && restore.variables === post.id}
-                onRestore={() => { setError(null); setRestorePost(post); }}
-                onDelete={() => { setError(null); setDeletePost(post); }}
-              />
-            ))}
-          </div>
-        ) : null}
+          <Tabs.Panel value="all">
+            <PostsPanel
+              posts={filteredPosts}
+              isLoading={posts.isLoading}
+              restore={restore}
+              isLoadingGlobal={isLoading}
+              setError={setError}
+              setDeletePost={setDeletePost}
+              setRestorePost={setRestorePost}
+              setPreviewPost={setPreviewPost}
+            />
+          </Tabs.Panel>
+          <Tabs.Panel value="image">
+            <PostsPanel
+              posts={filteredPosts}
+              isLoading={posts.isLoading}
+              restore={restore}
+              isLoadingGlobal={isLoading}
+              setError={setError}
+              setDeletePost={setDeletePost}
+              setRestorePost={setRestorePost}
+              setPreviewPost={setPreviewPost}
+            />
+          </Tabs.Panel>
+          <Tabs.Panel value="video">
+            <PostsPanel
+              posts={filteredPosts}
+              isLoading={posts.isLoading}
+              restore={restore}
+              isLoadingGlobal={isLoading}
+              setError={setError}
+              setDeletePost={setDeletePost}
+              setRestorePost={setRestorePost}
+              setPreviewPost={setPreviewPost}
+            />
+          </Tabs.Panel>
+        </Tabs.Root>
+
         {posts.data ? (
           <footer className="admin-posts__footer" aria-label="Post pagination controls">
             <Pagination
@@ -133,6 +180,54 @@ export function AdminPostsPage() {
         </ConfirmationDialog>
       ) : null}
     </>
+  );
+}
+
+interface PostsPanelProps {
+  posts: AdminPost[];
+  isLoading: boolean;
+  restore: ReturnType<typeof useMutation>;
+  isLoadingGlobal: boolean;
+  setError: (error: string | null) => void;
+  setDeletePost: (post: AdminPost | null) => void;
+  setRestorePost: (post: AdminPost | null) => void;
+  setPreviewPost: (post: AdminPost | null) => void;
+}
+
+function PostsPanel({
+  posts,
+  isLoading,
+  restore,
+  isLoadingGlobal,
+  setError,
+  setDeletePost,
+  setRestorePost,
+  setPreviewPost,
+}: PostsPanelProps) {
+  if (isLoading) {
+    return null;
+  }
+
+  if (posts.length === 0) {
+    return (
+      <EmptyState title="No posts" hint="Every post, active or deleted, appears here for review." />
+    );
+  }
+
+  return (
+    <div className="admin-grid">
+      {posts.map((post) => (
+        <AdminPostCard
+          key={post.id}
+          post={post}
+          onPreview={() => setPreviewPost(post)}
+          isLoading={isLoadingGlobal}
+          isRestoring={restore.isPending && restore.variables === post.id}
+          onRestore={() => { setError(null); setRestorePost(post); }}
+          onDelete={() => { setError(null); setDeletePost(post); }}
+        />
+      ))}
+    </div>
   );
 }
 

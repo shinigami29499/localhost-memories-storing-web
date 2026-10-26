@@ -9,6 +9,7 @@ import { RegisterPage } from "./pages/register/RegisterPage";
 import { HomePage } from "./pages/home/HomePage";
 import { AdminUsersPage } from "./pages/admin/AdminUsersPage";
 import { AdminPostsPage } from "./pages/admin/AdminPostsPage";
+import { ErrorPage } from "./pages/ErrorPage";
 import { LoadingOverlay } from "./components/ui/LoadingOverlay";
 import { GravityStarsBackground } from "./components/ui/GravityStarsBackground";
 import { ThemeProvider } from "./context/ThemeContext";
@@ -21,6 +22,7 @@ const queryClient = new QueryClient({
 /** / is the protected feed; unauthenticated visitors land on /login or /register. */
 const router = createBrowserRouter([
   {
+    errorElement: <ErrorPage />,
     element: (
       <RequireAuth>
         <AuthenticatedLayout />
@@ -46,8 +48,8 @@ const router = createBrowserRouter([
       },
     ],
   },
-  { path: "/login", element: <LoginPage /> },
-  { path: "/register", element: <RegisterPage /> },
+  { path: "/login", element: <LoginPage />, errorElement: <ErrorPage /> },
+  { path: "/register", element: <RegisterPage />, errorElement: <ErrorPage /> },
   { path: "*", element: <Navigate replace to="/" /> },
 ]);
 

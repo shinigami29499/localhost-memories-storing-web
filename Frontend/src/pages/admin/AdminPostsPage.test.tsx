@@ -253,4 +253,81 @@ describe("AdminPostsPage", () => {
     expect(container.querySelector("footer.admin-posts__footer .pagination__select-trigger")).not.toBeNull();
     expect(container.querySelector('[aria-current="page"]')?.textContent).toBe("1");
   });
+
+  it("renders All, Image, and Video tabs and filters posts by media type", () => {
+    const mixedPosts: PagedFeed<AdminPost> = {
+      offset: 0,
+      limit: 10,
+      total: 3,
+      items: [
+        {
+          id: "post-1",
+          caption: "Image Post",
+          createdAt: "2026-10-24T00:00:00Z",
+          updatedAt: null,
+          deletedAt: null,
+          author: { id: "a1", username: "alice" },
+          deletedBy: null,
+          mediaCount: 1,
+          commentCount: 0,
+          media: [{ id: "img-1", mediaKind: "image", mimeType: "image/png" }],
+        },
+        {
+          id: "post-2",
+          caption: "Video Post",
+          createdAt: "2026-10-24T00:00:00Z",
+          updatedAt: null,
+          deletedAt: null,
+          author: { id: "a2", username: "bob" },
+          deletedBy: null,
+          mediaCount: 1,
+          commentCount: 0,
+          media: [{ id: "vid-1", mediaKind: "video", mimeType: "video/mp4" }],
+        },
+        {
+          id: "post-3",
+          caption: "Text Post",
+          createdAt: "2026-10-24T00:00:00Z",
+          updatedAt: null,
+          deletedAt: null,
+          author: { id: "a3", username: "charlie" },
+          deletedBy: null,
+          mediaCount: 0,
+          commentCount: 0,
+          media: [],
+        },
+      ],
+    };
+    queryClient.setQueryData(["admin-all-posts", 0, 10], mixedPosts);
+    renderPage();
+
+    const tabs = container.querySelectorAll('[role="tab"]');
+    expect(tabs).toHaveLength(3);
+    expect(tabs[0].textContent).toContain("All");
+    expect(tabs[1].textContent).toContain("Image");
+    expect(tabs[2].textContent).toContain("Video");
+
+    // Initially "All" tab is selected, showing all 3 posts
+    expect(container.querySelectorAll(".admin-post")).toHaveLength(3);
+
+    // Click "Image" tab
+    act(() => {
+      tabs[1].dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(container.querySelectorAll(".admin-post")).toHaveLength(1);
+    expect(container.querySelector(".admin-post__caption")?.textContent).toBe("Image Post");
+
+    // Click "Video" tab
+    act(() => {
+      tabs[2].dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(container.querySelectorAll(".admin-post")).toHaveLength(1);
+    expect(container.querySelector(".admin-post__caption")?.textContent).toBe("Video Post");
+
+    // Click back to "All" tab
+    act(() => {
+      tabs[0].dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(container.querySelectorAll(".admin-post")).toHaveLength(3);
+  });
 });
