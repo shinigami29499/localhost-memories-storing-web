@@ -61,9 +61,6 @@ export function AdminUsersPage() {
         <div className="admin__layout">
           <div className="admin__heading">
             <h2>Manage users<span className="brand__dot">.</span></h2>
-            <AnimateIcon animateOnHover asChild>
-              <Link to="/" className="admin__back"><ArrowLeft size={16} aria-hidden="true" /> Back to feed</Link>
-            </AnimateIcon>
           </div>
 
           {error ? <ErrorState message={error} onRetry={() => setError(null)} /> : null}

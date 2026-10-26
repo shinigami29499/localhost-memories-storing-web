@@ -1,6 +1,7 @@
-import { useId } from "react";
 import { AnimateIcon } from "@animate-ui/react/icons";
 import * as PaginationPrimitive from "@animate-ui/react/primitives/pagination";
+import { Select } from "@animate-ui/react/primitives/base-ui/select";
+import { ChevronDown } from "@/components/animate-ui/icons/chevron-down";
 import { ChevronLeft } from "@/components/animate-ui/icons/chevron-left";
 import { ChevronRight } from "@/components/animate-ui/icons/chevron-right";
 import "./Pagination.css";
@@ -27,7 +28,6 @@ export function Pagination({
   onPageChange,
   onPageSizeChange,
 }: PaginationProps) {
-  const pageSelectId = useId();
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const pageNumbers = getPageNumbers(page, totalPages);
 
@@ -87,18 +87,37 @@ export function Pagination({
           </AnimateIcon>
         </li>
       </ul>
-      <label className="pagination__page-size" htmlFor={`${pageSelectId}-size`}>
-        <select
-          id={`${pageSelectId}-size`}
-          aria-label="Items per page"
-          value={pageSize}
+      <div className="pagination__page-size">
+        <Select.Root
+          value={String(pageSize)}
+          onValueChange={(value) => onPageSizeChange(Number(value))}
           disabled={isFetching}
-          onChange={(event) => onPageSizeChange(Number(event.target.value))}
         >
-          {PAGE_SIZE_OPTIONS.map((size) => <option key={size} value={size}>{size}</option>)}
-        </select>
+          <Select.Trigger
+            className="pagination__select-trigger"
+            aria-label="Items per page"
+          >
+            <Select.Value />
+            <Select.Icon asChild>
+              <ChevronDown size={16} className="pagination__select-icon" aria-hidden="true" />
+            </Select.Icon>
+          </Select.Trigger>
+          <Select.Portal>
+            <Select.Positioner alignItemWithTrigger={false} sideOffset={4}>
+              <Select.Popup className="pagination__select-popup">
+                <Select.List className="pagination__select-list">
+                  {PAGE_SIZE_OPTIONS.map((size) => (
+                    <Select.Item key={size} value={String(size)} className="pagination__select-item">
+                      <Select.ItemText>{size}</Select.ItemText>
+                    </Select.Item>
+                  ))}
+                </Select.List>
+              </Select.Popup>
+            </Select.Positioner>
+          </Select.Portal>
+        </Select.Root>
         <span>/ page</span>
-      </label>
+      </div>
     </PaginationPrimitive.Root>
   );
 }

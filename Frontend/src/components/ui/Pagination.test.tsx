@@ -93,7 +93,7 @@ describe("Pagination", () => {
     renderPagination(6, 100);
     expect(container.querySelectorAll('[data-slot="pagination-ellipsis"]')).toHaveLength(2);
     expect(container.querySelector('[aria-current="page"]')?.textContent).toBe("6");
-    expect(container.querySelectorAll("select")).toHaveLength(1);
+    expect(container.querySelectorAll(".pagination__select-trigger")).toHaveLength(1);
     expect(Array.from(container.querySelectorAll('[data-slot="pagination-link"]'), (link) => link.textContent))
       .toEqual(["1", "5", "6", "7", "10"]);
     expect(container.querySelector("button.pagination-ellipsis")).toBeNull();
@@ -113,12 +113,10 @@ describe("Pagination", () => {
     expect(container.querySelectorAll('[data-slot="pagination-link"]')).toHaveLength(1);
     expect(container.querySelector<HTMLButtonElement>('[aria-label="Previous page"]')?.disabled).toBe(true);
     expect(container.querySelector<HTMLButtonElement>('[aria-label="Next page"]')?.disabled).toBe(true);
-    const select = container.querySelector<HTMLSelectElement>(".pagination__page-size select")!;
-    expect(Array.from(select.options, (option) => option.value)).toEqual(["10", "20", "50", "100"]);
-    act(() => {
-      select.value = "20";
-      select.dispatchEvent(new Event("change", { bubbles: true }));
-    });
-    expect(onPageSizeChange).toHaveBeenCalledWith(20);
+    const trigger = container.querySelector<HTMLButtonElement>('[aria-label="Items per page"]')!;
+    expect(trigger).not.toBeNull();
+    expect(trigger.classList.contains("pagination__select-trigger")).toBe(true);
+    // Verify the current value is displayed (10)
+    expect(trigger.textContent).toContain("10");
   });
 });

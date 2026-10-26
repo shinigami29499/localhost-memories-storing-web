@@ -69,9 +69,6 @@ export function AdminPostsPage() {
     <>
       <main className="admin-page admin-page--posts" aria-label="Post management">
         <div className="admin__heading">
-          <AnimateIcon animateOnHover asChild>
-            <Link to="/" className="admin__back"><ArrowLeft size={16} aria-hidden="true" /> Back to feed</Link>
-          </AnimateIcon>
         </div>
 
         {error ? <ErrorState message={error} onRetry={() => setError(null)} /> : null}
