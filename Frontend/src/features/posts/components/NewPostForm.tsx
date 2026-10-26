@@ -107,7 +107,7 @@ export function NewPostForm({ onCreated }: Props) {
       </div>
       <textarea
         className="new-post__caption"
-        placeholder="Share media with the community… (caption optional)"
+        placeholder="Write something…"
         value={caption}
         maxLength={4000}
         onChange={(e) => setCaption(e.target.value)}

@@ -505,9 +505,9 @@ textarea::placeholder {
 }
 
 .post-card__avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
   background: var(--gradient);
   color: #fff;
   display: grid;
@@ -639,11 +639,37 @@ textarea::placeholder {
 }
 
 .post-card__caption {
-  padding: 18px 22px;
   margin: 0;
   white-space: pre-wrap;
   word-break: break-word;
   color: var(--text-strong);
+}
+
+.post-card__caption-wrapper {
+  padding: 18px 22px 0;
+  width: 100%;
+}
+
+.post-card__caption-toggle {
+  display: flex;
+  padding: 6px 22px 12px;
+}
+
+.post-card__toggle-btn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin-left: 6px;
+  font: inherit;
+  font-weight: 700;
+  color: var(--text-strong);
+  cursor: pointer;
+  display: inline;
+}
+
+.post-card__toggle-btn:hover,
+.post-card__toggle-btn:focus-visible {
+  text-decoration: underline;
 }
 
 .post-card__error {

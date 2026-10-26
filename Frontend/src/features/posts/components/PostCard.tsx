@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import { X } from "@/components/animate-ui/icons/x";
 import { AnimateIcon } from "@animate-ui/react/icons";
+import { AutoHeight } from "@animate-ui/react/primitives/effects/auto-height";
 import type { Comment, Post } from "../types";
 import { commentService, postService, reactionService } from "../services/postService";
 import { formatTimestamp } from "../../../utils/media";
@@ -31,6 +32,7 @@ export function PostCard({ post, onChanged, onDeleted, onPreviousPost, onNextPos
   const reactionPending = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   const loadComments = useCallback(async () => {
     if (!showComments) return;
@@ -40,6 +42,32 @@ export function PostCard({ post, onChanged, onDeleted, onPreviousPost, onNextPos
       setError("Could not load comments.");
     }
   }, [post.id, showComments]);
+
+  // Split caption into visible and overflow parts based on character thresholds
+  const { visiblePart, overflowPart, shouldShowToggle } = useMemo(() => {
+    if (!post.caption) return { visiblePart: "", overflowPart: "", shouldShowToggle: false };
+
+    // Mobile: 125-150 chars (approx 135), Desktop: 400-480 chars (approx 440)
+    const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 768px)").matches;
+    const threshold = isMobile ? 135 : 440;
+
+    if (post.caption.length <= threshold) {
+      return { visiblePart: post.caption, overflowPart: "", shouldShowToggle: false };
+    }
+
+    // Split at word boundary near threshold
+    let splitIndex = threshold;
+    const lastSpace = post.caption.lastIndexOf(" ", threshold);
+    if (lastSpace > threshold - 30) {
+      splitIndex = lastSpace;
+    }
+
+    return {
+      visiblePart: post.caption.slice(0, splitIndex),
+      overflowPart: post.caption.slice(splitIndex),
+      shouldShowToggle: true,
+    };
+  }, [post.caption]);
 
   useEffect(() => {
     void loadComments();
@@ -106,7 +134,42 @@ export function PostCard({ post, onChanged, onDeleted, onPreviousPost, onNextPos
         <DeletePostDialog postId={post.id} onClose={() => setConfirmingDelete(false)} onDeleted={onDeleted} />
       ) : null}
 
-      {post.caption ? <p className="post-card__caption">{post.caption}</p> : null}
+      {post.caption ? (
+        <AutoHeight
+          deps={[expanded]}
+          className="post-card__caption-wrapper"
+        >
+          <p className="post-card__caption">
+            <span>{expanded || !shouldShowToggle ? post.caption : visiblePart}</span>
+            {!expanded && shouldShowToggle ? (
+              <>
+                {"... "}
+                <button
+                  type="button"
+                  className="post-card__toggle-btn"
+                  aria-expanded={false}
+                  onClick={() => setExpanded(true)}
+                >
+                  Show more
+                </button>
+              </>
+            ) : null}
+            {expanded && shouldShowToggle ? (
+              <>
+                {" "}
+                <button
+                  type="button"
+                  className="post-card__toggle-btn"
+                  aria-expanded={true}
+                  onClick={() => setExpanded(false)}
+                >
+                  Show less
+                </button>
+              </>
+            ) : null}
+          </p>
+        </AutoHeight>
+      ) : null}
 
       <MediaGallery media={post.media} onPreviousPost={onPreviousPost} onNextPost={onNextPost} />
 

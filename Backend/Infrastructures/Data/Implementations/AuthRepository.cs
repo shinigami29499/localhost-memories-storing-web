@@ -6,11 +6,13 @@ namespace Infrastructures.Data.Implementations;
 
 public sealed class AuthRepository(ApplicationDbContext db) : IAuthRepository
 {
+    // Username comparisons are case-insensitive in PostgreSQL via lower(), matching the
+    // trimmed input supplied by the application layer.
     public Task<bool> UsernameExistsAsync(string username, CancellationToken cancellationToken = default)
-        => db.Users.AnyAsync(u => u.Username == username, cancellationToken);
+        => db.Users.AnyAsync(u => u.Username.ToLower() == username.ToLower(), cancellationToken);
 
     public Task<User?> FindUserByUsernameAsync(string username, CancellationToken cancellationToken = default)
-        => db.Users.FirstOrDefaultAsync(u => u.Username == username, cancellationToken);
+        => db.Users.FirstOrDefaultAsync(u => u.Username.ToLower() == username.ToLower(), cancellationToken);
 
     public Task<User?> FindUserByIdAsync(Guid userId, CancellationToken cancellationToken = default)
         => db.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);

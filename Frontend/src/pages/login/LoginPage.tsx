@@ -4,7 +4,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { authService } from "../../features/auth";
 import { useAuthStore } from "../../store/authStore";
 import { Button, Input, showToast } from "../../components/ui";
-import { ErrorState } from "../../components/ui/Status";
 import { Brand } from "../../components/layout/Brand";
 import { CommunityIntro } from "../../components/layout/CommunityIntro";
 import { ThemeTogglerButton } from "../../components/ui/ThemeTogglerButton";
@@ -15,19 +14,17 @@ export function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
-    setError(null);
     try {
       const session = await authService.login(username.trim(), password);
       useAuthStore.getState().setSession(session);
       showToast.success(`Login as ${session.user.username} successfully`);
       navigate("/", { replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed.");
+      showToast.error("Authentication failed", err instanceof Error ? err.message : "Login failed.");
     } finally {
       setBusy(false);
     }
@@ -70,8 +67,6 @@ export function LoginPage() {
           required
           aria-label="Password"
         />
-
-        {error ? <ErrorState message={error} /> : null}
 
         <Button type="submit" busy={busy}>
           Sign in <ArrowRight size={18} aria-hidden="true" />
