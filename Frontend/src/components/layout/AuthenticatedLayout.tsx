@@ -43,7 +43,11 @@ export function AuthenticatedLayout() {
       data-state={sidebarCollapsed ? "collapsed" : "expanded"}
       data-collapsible={sidebarCollapsed ? "icon" : ""}
     >
-      <Sidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed((value) => !value)} />
+      <Sidebar
+        collapsed={sidebarCollapsed}
+        onToggle={() => setSidebarCollapsed((value) => !value)}
+        isMobile={isMobile}
+      />
       {drawerOpen ? (
         <div className="sidebar-backdrop" aria-hidden="true" onClick={() => setSidebarCollapsed(true)} />
       ) : null}

@@ -117,7 +117,7 @@
   padding-right: 32px;
   border-bottom: 1px solid var(--border);
   background:
-    radial-gradient(ellipse at 80% 50%, rgba(48, 128, 255, 0.12), transparent 60%),
+    radial-gradient(ellipse at 80% 50%, var(--accent-wash), transparent 60%),
     var(--community-intro-bg);
   background-attachment: local, fixed;
 }

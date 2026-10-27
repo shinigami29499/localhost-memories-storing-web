@@ -3,7 +3,6 @@ import {
   Outlet,
   RouterProvider,
   createBrowserRouter,
-  useLocation,
 } from "react-router-dom";
 import type { ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -19,7 +18,7 @@ import { AdminPostsPage } from "./pages/admin/AdminPostsPage";
 import { ErrorPage } from "./pages/ErrorPage";
 import { PostDetailPage } from "./pages/posts/PostDetailPage";
 import { LoadingOverlay } from "./components/ui/LoadingOverlay";
-import { GravityStarsBackground } from "./components/ui/GravityStarsBackground";
+import { TopographyBackground } from "./components/animate-ui/backgrounds/topography";
 import { ThemeProvider } from "./context/ThemeContext";
 import { LocaleProvider } from "./context/LocaleContext";
 import { ToastProvider } from "./components/ui";
@@ -31,7 +30,7 @@ const queryClient = new QueryClient({
 /** / is the protected feed; unauthenticated visitors land on /login or /register. */
 const router = createBrowserRouter([
   {
-    element: <AppRouteTransition />,
+    element: <Outlet />,
     errorElement: <ErrorPage />,
     children: [
       {
@@ -74,18 +73,6 @@ const router = createBrowserRouter([
   },
 ]);
 
-function AppRouteTransition() {
-  const { pathname } = useLocation();
-  const pageKey =
-    pathname === "/login" || pathname === "/register" ? "public" : "authenticated";
-
-  return (
-    <PageStackTransition pageKey={pageKey}>
-      <Outlet />
-    </PageStackTransition>
-  );
-}
-
 function PublicRouteLayout() {
   return (
     <PageStackTransition>
@@ -115,8 +102,8 @@ export function App() {
           <AnimateUIProvider tempo={1}>
             <ToastProvider>
               <LoadingOverlay isLoading={routerState}>
-                <GravityStarsBackground className="fixed inset-0 pointer-events-none -z-10" />
-                <RouterProvider router={router} />
+                <TopographyBackground className="fixed inset-0 pointer-events-none -z-10" />
+                <RouterProvider router={router} future={{ v7_startTransition: true }} />
               </LoadingOverlay>
             </ToastProvider>
           </AnimateUIProvider>

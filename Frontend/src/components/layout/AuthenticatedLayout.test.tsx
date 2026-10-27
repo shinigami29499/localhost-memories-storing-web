@@ -149,13 +149,28 @@ describe("AuthenticatedLayout sidebar", () => {
     expect(header?.nextElementSibling).toBe(container.querySelector(".app-shell__content"));
   });
 
-  it("keeps the language and notification controls inside the mobile header", async () => {
+  it("keeps mobile drawer sections expanded when opening and closing", async () => {
+    narrowScreen = true;
+    mobileScreen = true;
+    await renderLayout();
+    const sync = container.querySelector<HTMLButtonElement>('[aria-label="Sync"]')!;
+    expect(sync.getAttribute("aria-expanded")).toBe("true");
+
+    await act(async () => container.querySelector<HTMLButtonElement>(".sidebar__toggle")!.click());
+    expect(sync.getAttribute("aria-expanded")).toBe("true");
+    await act(async () => container.querySelector<HTMLButtonElement>(".sidebar__toggle")!.click());
+    expect(sync.getAttribute("aria-expanded")).toBe("true");
+  });
+
+  it("keeps theme, language, and notification controls inside the mobile header", async () => {
     narrowScreen = true;
     mobileScreen = true;
     await renderLayout();
     const header = container.querySelector(".app-topbar");
     expect(header?.querySelector(".brand")).not.toBeNull();
     expect(header?.querySelector(".notification-bar")).not.toBeNull();
+    expect(header?.querySelector(".notification-bar .theme-toggler")).not.toBeNull();
+    expect(container.querySelector(".sidebar .theme-toggler")).toBeNull();
     expect(header?.nextElementSibling).toBe(container.querySelector(".app-shell__content"));
   });
 
@@ -206,9 +221,17 @@ describe("AuthenticatedLayout sidebar", () => {
     expect(container.querySelector(".sidebar__nav a")?.textContent).toContain("Feed");
   });
 
-  it("toggles and persists the selected color theme", async () => {
+  it("places the theme toggle beside language and notifications and persists the selected theme", async () => {
     await renderLayout();
-    const themeButton = container.querySelector<HTMLButtonElement>(".theme-toggler")!;
+    const bar = container.querySelector<HTMLElement>(".notification-bar")!;
+    const themeButton = bar.querySelector<HTMLButtonElement>(".theme-toggler")!;
+    expect(Array.from(bar.querySelectorAll("button"))).toEqual([
+      themeButton,
+      bar.querySelector(".language-toggler"),
+      bar.querySelector(".notification-bar__trigger"),
+    ]);
+    expect(container.querySelectorAll(".theme-toggler")).toHaveLength(1);
+    expect(container.querySelector(".sidebar .theme-toggler")).toBeNull();
     expect(themeButton.dataset.theme).toBe("dark");
 
     await act(async () => themeButton.click());

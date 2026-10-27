@@ -23,7 +23,7 @@ export function LoadingOverlay({ isLoading, children }: LoadingOverlayProps) {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "rgba(28, 31, 36, 0.4)",
+        backgroundColor: "var(--overlay-backdrop)",
       }}
       role="status"
       aria-label={t("Loading...")}

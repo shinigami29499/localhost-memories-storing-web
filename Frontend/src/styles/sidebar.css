@@ -132,6 +132,20 @@
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.24);
 }
 
+.notification-bar .theme-toggler {
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+}
+
+.notification-bar .theme-toggler:hover,
+.notification-bar .theme-toggler:focus-visible {
+  background: var(--surface-hover);
+}
+
 .notification-bar__trigger {
   position: relative;
   display: grid;
@@ -172,7 +186,7 @@
 
 .notification-bar__trigger:hover,
 .notification-bar__trigger[aria-expanded="true"] {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--surface-hover);
 }
 
 .notification-bar__badge {
@@ -187,7 +201,7 @@
   border: 2px solid var(--sidebar-bg);
   border-radius: 999px;
   background: var(--danger);
-  color: #fff;
+  color: var(--text-on-accent);
   font-size: 0.65rem;
   font-weight: 700;
   line-height: 1;
@@ -217,7 +231,7 @@
 
 .notification-bar__panel p {
   margin: 8px 0 0;
-  color: #fff;
+  color: var(--text-muted);
   font-size: 0.875rem;
 }
 
@@ -238,17 +252,17 @@
   gap: 4px;
   padding: 10px;
   border-radius: 8px;
-  color: #fff;
+  color: var(--text-strong);
   text-decoration: none;
 }
 
 .notification-bar__item:hover,
 .notification-bar__item:focus-visible {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--surface-hover);
 }
 
 .notification-bar__item--unread {
-  background: rgba(48, 128, 255, 0.1);
+  background: var(--accent-wash);
 }
 
 .notification-bar__message {
@@ -258,22 +272,15 @@
 
 .notification-bar__caption {
   overflow: hidden;
-  color: #fff;
+  color: var(--text-muted);
   font-size: 0.8rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .notification-bar__item time {
-  color: #fff;
+  color: var(--text-muted);
   font-size: 0.7rem;
-}
-
-:root[data-theme="light"] .notification-bar__panel p,
-:root[data-theme="light"] .notification-bar__item,
-:root[data-theme="light"] .notification-bar__caption,
-:root[data-theme="light"] .notification-bar__item time {
-  color: var(--text-strong);
 }
 
 .notification-bar__retry {
@@ -291,7 +298,7 @@
 }
 
 .sidebar__link--danger:hover {
-  background: rgba(229, 77, 94, 0.12);
+  background: var(--danger-wash);
   color: var(--danger);
 }
 
@@ -417,7 +424,7 @@
   flex-shrink: 0;
   border-radius: 10px;
   background: var(--gradient);
-  color: #fff;
+  color: var(--text-on-accent);
   font-size: 1.4rem;
   font-style: italic;
   font-weight: 750;
@@ -525,11 +532,6 @@
   visibility: hidden;
 }
 
-.sidebar__footer > .theme-toggler {
-  align-self: flex-start;
-  margin-bottom: 8px;
-}
-
 @media (min-width: 641px) {
   .sidebar--collapsed .sidebar__brand .brand > span:last-child,
   .sidebar--collapsed .sidebar__nav .sidebar__link > span,
@@ -579,8 +581,17 @@
   gap: 16px;
   min-height: var(--app-topbar-height);
   padding: calc(24px + env(safe-area-inset-top)) calc(48px + env(safe-area-inset-right)) 24px 64px;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg);
+  background: transparent;
+}
+
+.app-topbar::after {
+  position: absolute;
+  inset: auto auto 0 50%;
+  width: min(1600px, calc(100% - 48px));
+  height: 1px;
+  background: var(--border);
+  content: "";
+  transform: translateX(-50%);
 }
 
 .sidebar-backdrop {
@@ -592,9 +603,13 @@
 
 @media (max-width: 640px) {
   .app-shell,
-  .app-shell--sidebar-collapsed {
+  .app-shell.app-shell--sidebar-collapsed {
     --sidebar-width: min(288px, 85vw);
     --app-topbar-height: calc(60px + env(safe-area-inset-top));
+  }
+
+  .app-topbar::after {
+    width: calc(100% - 24px);
   }
 
   .sidebar-gap {
@@ -608,17 +623,18 @@
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
     box-shadow: 12px 0 32px rgba(0, 0, 0, 0.35);
+    left: 8px;
+    transform: translateX(0);
     transition:
-      left var(--animate-ui-sidebar-duration) var(--animate-ui-sidebar-easing),
+      transform var(--animate-ui-sidebar-duration) var(--animate-ui-sidebar-easing),
       visibility 0s !important;
   }
 
   .sidebar--collapsed {
-    left: calc(-1 * var(--sidebar-width) - 1px);
+    transform: translateX(calc(-100% - 9px));
     visibility: hidden;
-    box-shadow: none;
     transition:
-      left var(--animate-ui-sidebar-duration) var(--animate-ui-sidebar-easing),
+      transform var(--animate-ui-sidebar-duration) var(--animate-ui-sidebar-easing),
       visibility 0s linear var(--animate-ui-sidebar-duration) !important;
   }
 
@@ -636,15 +652,19 @@
   }
 
   .sidebar__toggle {
-    top: calc(19px + env(safe-area-inset-top));
-    left: calc(var(--sidebar-width) - 64px);
+    top: calc(8px + env(safe-area-inset-top));
+    left: 12px;
+    transform: translate(calc(var(--sidebar-width) - 76px), 11px);
     z-index: 41;
     opacity: 1;
+    transition:
+      transform var(--animate-ui-sidebar-duration) var(--animate-ui-sidebar-easing),
+      background-color var(--animate-ui-sidebar-color-duration) var(--animate-ui-sidebar-color-easing);
   }
 
   .sidebar--collapsed ~ .sidebar__toggle {
-    top: calc(8px + env(safe-area-inset-top));
     left: 12px;
+    transform: translate(0, 0);
   }
 
   .sidebar__account-menu {
@@ -684,12 +704,14 @@
   }
 
   .notification-bar__trigger,
+  .notification-bar .theme-toggler,
   .notification-bar .language-toggler {
     width: 32px;
     height: 32px;
   }
 
   .notification-bar__trigger svg,
+  .notification-bar .theme-toggler svg,
   .notification-bar .language-toggler svg {
     width: 16px;
     height: 16px;

@@ -15,7 +15,6 @@ import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
 import { authService } from "../../features/auth";
 import { showToast } from "../ui";
-import { ThemeTogglerButton } from "../ui/ThemeTogglerButton";
 import { Brand } from "./Brand";
 import { Container, Gap, Highlight } from "@animate-ui/react/primitives/sidebar";
 import { Collapsible } from "@animate-ui/react/primitives/base-ui/collapsible";
@@ -24,9 +23,10 @@ import { useLocale } from "../../context/LocaleContext";
 interface SidebarProps {
   collapsed: boolean;
   onToggle: () => void;
+  isMobile?: boolean;
 }
 
-export function Sidebar({ collapsed, onToggle }: SidebarProps) {
+export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps) {
   const { t } = useLocale();
   const user = useAuthStore((s) => s.user);
   const navigate = useNavigate();
@@ -39,6 +39,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const accountRef = useRef<HTMLDivElement>(null);
   const accountTriggerRef = useRef<HTMLButtonElement>(null);
+  const compact = collapsed && !isMobile;
+  const SidebarInner = isMobile ? "div" : Highlight;
   const roleName = user
     ? user.role.charAt(0).toUpperCase() + user.role.slice(1).toLowerCase()
     : "";
@@ -85,7 +87,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
     <>
       <Gap className="sidebar-gap" aria-hidden="true" />
       <Container className={`sidebar${collapsed ? " sidebar--collapsed" : ""}`}>
-        <Highlight className="sidebar__inner">
+        <SidebarInner className="sidebar__inner">
           <div className="sidebar__brand">
             <Brand />
           </div>
@@ -106,14 +108,14 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             {isAdmin ? (
               <Collapsible.Root
                 className={`sidebar__group${isAdminRoute ? " sidebar__group--active" : ""}`}
-                open={adminOpen && !collapsed}
+                open={adminOpen && !compact}
                 onOpenChange={(open) => setAdminOpen(open)}
               >
                 <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
                   <Collapsible.Trigger
                     type="button"
                     className={`sidebar__link sidebar__group-toggle${isAdminRoute && collapsed ? " sidebar__link--active" : ""}`}
-                    onClick={() => { if (collapsed) onToggle(); }}
+                    onClick={() => { if (compact) onToggle(); }}
                     aria-label={t("Admin")}
                     title={t("Admin")}
                     data-sidebar="menu-button"
@@ -155,14 +157,14 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             ) : null}
             <Collapsible.Root
               className="sidebar__group"
-              open={syncOpen && !collapsed}
+              open={syncOpen && !compact}
               onOpenChange={(open) => setSyncOpen(open)}
             >
               <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
                 <Collapsible.Trigger
                   type="button"
                   className="sidebar__link sidebar__group-toggle"
-                  onClick={() => { if (collapsed) onToggle(); }}
+                  onClick={() => { if (compact) onToggle(); }}
                   aria-label={t("Sync")}
                   title={t("Sync")}
                   data-sidebar="menu-button"
@@ -195,7 +197,6 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             </Collapsible.Root>
           </nav>
           <div className="sidebar__footer">
-            <ThemeTogglerButton />
             {user ? (
               <div
                 ref={accountRef}
@@ -266,7 +267,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
               </div>
             ) : null}
           </div>
-        </Highlight>
+        </SidebarInner>
       </Container>
       <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
         <button

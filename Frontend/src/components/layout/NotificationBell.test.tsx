@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AnimateUIProvider } from "@animate-ui/react/provider";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "../../context/LocaleContext";
+import { ThemeProvider } from "../../context/ThemeContext";
 import { useAuthStore } from "../../store/authStore";
 import { NotificationBell } from "./NotificationBell";
 
@@ -71,15 +72,17 @@ describe("NotificationBell", () => {
   it("marks all notifications as read when the panel opens", async () => {
     await act(async () => {
       root.render(
-        <LocaleProvider>
-          <QueryClientProvider client={new QueryClient()}>
-            <AnimateUIProvider reducedMotion="always">
-              <MemoryRouter>
-                <NotificationBell />
-              </MemoryRouter>
-            </AnimateUIProvider>
-          </QueryClientProvider>
-        </LocaleProvider>,
+        <ThemeProvider>
+          <LocaleProvider>
+            <QueryClientProvider client={new QueryClient()}>
+              <AnimateUIProvider reducedMotion="always">
+                <MemoryRouter>
+                  <NotificationBell />
+                </MemoryRouter>
+              </AnimateUIProvider>
+            </QueryClientProvider>
+          </LocaleProvider>
+        </ThemeProvider>,
       );
     });
 

@@ -54,7 +54,7 @@ This is a guide, not a requirement to create every directory. Prefer colocating 
 - Components must not call `fetch` directly; use services.
 - Use TanStack Query for remote/server state and Zustand for shared client state.
 - Use local animated icon components from `src/components/animate-ui/icons`.
-- Use `var(--surface-hover)` as the project-default neutral hover/focus-highlight background for navigation, tabs, and ghost controls, matching sidebar items. It is white at 5% opacity in dark mode and black at 5% in light mode, defined in `src/styles/global.css`. Keep selected, destructive, and other semantic states distinct.
+- Use `var(--surface-hover)` as the project-default neutral hover/focus-highlight background for navigation, tabs, and ghost controls, matching sidebar items. It is `#959595` at 14% opacity in dark mode and `#1C1C1C` at 12% in light mode, defined in `src/styles/global.css`. Keep selected, destructive, and other semantic states distinct.
 - Row-level actions are icon buttons with descriptive `aria-label` and `title`; show a spinner while busy. Hide decorative icons from assistive technology.
 - Do not define a component inside another component's body.
 - Keep comments limited to necessary facts or non-obvious constraints.
@@ -67,6 +67,15 @@ This is a guide, not a requirement to create every directory. Prefer colocating 
 - Browser `<img>` and `<video>` elements cannot attach an Authorization header; protected media therefore uses the authenticated query-token URL form.
 - Admin pages require a valid JWT with `role: admin`. Deleted-media previews use the existing endpoint with `includeDeleted=true`; the backend validates the admin role and serves trashed files without restoring them.
 - Frontend work is validated with the existing frontend build and, where relevant, Vitest tests. Frontend tests are permitted.
+
+## PWA support and limits
+
+- Production builds register `/service-worker.js`; the manifest provides standalone display and app icons. HTTPS is required in deployment; localhost is accepted for development.
+- The service worker precaches the app shell and built frontend assets so the application can start offline after installation. Feed data, authentication, uploads, notifications, and protected media remain online-only.
+- Never cache authenticated API responses, tokens, or protected media in the service worker. Offline data access needs an explicit privacy and persistence design.
+- Standalone Windows installation works through a supported browser such as Edge or Chrome; this is not a native Windows package.
+- Background Sync and queued offline writes are not implemented. Before adding them, define supported operations, retry and conflict behavior, idempotency, and handling of expired authentication.
+- Native push is not implemented. It needs a push subscription lifecycle, backend storage and delivery, VAPID configuration, permission UX, and HTTPS.
 
 ## Validation
 
@@ -84,12 +93,12 @@ Prefer a focused test file for a targeted change. Other available scripts and th
 
 Load only the skill matching the frontend task:
 
-| Task                             | Skill                                  |
-| -------------------------------- | -------------------------------------- |
-| Component and UI implementation  | `03-fe-03-ui-engineering`         |
-| Visual design and UX             | `03-fe-04-ui-ux`                   |
-| Cross-cutting performance        | `01-overview-03-performance` |
-| Serialization and data contracts | `01-overview-04-serialization`            |
+| Task                             | Skill                          |
+| -------------------------------- | ------------------------------ |
+| Component and UI implementation  | `03-fe-03-ui-engineering`      |
+| Visual design and UX             | `03-fe-04-ui-ux`               |
+| Cross-cutting performance        | `01-overview-03-performance`   |
+| Serialization and data contracts | `01-overview-04-serialization` |
 
 ## Further details
 

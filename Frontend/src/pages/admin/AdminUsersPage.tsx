@@ -82,12 +82,12 @@ export function AdminUsersPage() {
 
   return (
     <>
-      <main className="admin-page">
-        <section className="admin__layout admin-users" aria-labelledby="admin-users-title">
+      <main className="admin-page admin-page--users" aria-label={t("User management")}>
+        <section className="admin-users" aria-labelledby="admin-users-title">
           <header className="admin-users__header">
             <div>
               <p className="admin-users__eyebrow">{t("Community access")}</p>
-              <h2 id="admin-users-title">{t("Manage users")}<span className="brand__dot">.</span></h2>
+              <h1 id="admin-users-title">{t("Manage users")}<span className="brand__dot">.</span></h1>
               <p className="admin-users__description">{t("Review accounts and membership status.")}</p>
             </div>
             <div className="admin-users__total" aria-live="polite">

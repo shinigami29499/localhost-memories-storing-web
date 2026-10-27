@@ -10,6 +10,7 @@ import { useAuthStore } from "../../store/authStore";
 import { formatTimestamp } from "../../utils/media";
 import { showToast } from "../ui";
 import { LanguageToggleButton } from "../ui/LanguageToggleButton";
+import { ThemeTogglerButton } from "../ui/ThemeTogglerButton";
 import { useLocale } from "../../context/LocaleContext";
 
 export function NotificationBell() {
@@ -85,6 +86,7 @@ export function NotificationBell() {
 
   return (
     <div ref={containerRef} className="notification-bar">
+      <ThemeTogglerButton />
       <LanguageToggleButton />
       <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
         <button

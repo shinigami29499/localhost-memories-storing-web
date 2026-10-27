@@ -278,7 +278,6 @@ const vietnamese: Record<string, string> = {
   "Could not load this post.": "Không thể tải bài viết này.",
   "This post is no longer available.": "Bài viết này không còn khả dụng.",
   "Close": "Đóng",
-  "⚠️ Trigger Test Error (Debug)": "⚠️ Tạo lỗi thử nghiệm (gỡ lỗi)",
 };
 
 function readInitialLanguage(): Language {

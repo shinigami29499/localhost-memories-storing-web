@@ -1,7 +1,6 @@
 const CACHE_PREFIX = "shinigacim-shell-";
-const CACHE_NAME = `${CACHE_PREFIX}v1`;
+const CACHE_NAME = `${CACHE_PREFIX}v2`;
 const APP_SHELL = [
-  "/",
   "/manifest.webmanifest",
   "/pwa-icon.svg",
   "/pwa-icon-180.png",
@@ -9,10 +8,23 @@ const APP_SHELL = [
   "/pwa-icon-512.png",
 ];
 
+async function cacheAppShell() {
+  const cache = await caches.open(CACHE_NAME);
+  const response = await fetch("/");
+  if (!response.ok) throw new Error(`App shell request failed: ${response.status}`);
+
+  const html = await response.clone().text();
+  const assets = Array.from(html.matchAll(/(?:src|href)="(\/assets\/[^"]+)"/g), ([, path]) => path);
+  await Promise.all([
+    cache.put("/", response),
+    cache.addAll([...APP_SHELL, ...assets]),
+  ]);
+}
+
 self.addEventListener("install", (event) => {
   event.waitUntil(
     Promise.all([
-      caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)),
+      cacheAppShell(),
       self.skipWaiting(),
     ]),
   );

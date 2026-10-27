@@ -144,6 +144,11 @@ npm test -- --run
 
 ## Features
 
+- **Theme:** use the sun/moon button on sign-in, registration, or beside the
+  language and notification controls in the app header to
+  switch between light and dark mode. The choice persists across reloads.
+  Animate UI reveals the new theme with a left-to-right page wipe; reduced-motion
+  preferences and browsers without View Transitions use an instant switch.
 - **Interface:** original Zenith AI-inspired styling with charcoal surfaces, pink/violet
   gradients, pill controls, a responsive sign-in screen, and a community feed layout.
   Existing authentication and media-sharing workflows are unchanged. Decorative artwork

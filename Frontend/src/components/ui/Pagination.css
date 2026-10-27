@@ -58,7 +58,7 @@
 
 .pagination-btn:hover:not(:disabled),
 .pagination-page:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--surface-hover);
 }
 
 .pagination-page--active {
@@ -101,7 +101,7 @@
 }
 
 .pagination__select-trigger:hover:not([data-disabled]) {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--surface-hover);
 }
 
 .pagination__select-trigger[data-disabled] {
@@ -155,7 +155,7 @@
 
 .pagination__select-item:hover,
 .pagination__select-item[data-highlighted] {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--surface-hover);
 }
 
 .pagination__select-item[data-disabled] {
