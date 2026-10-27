@@ -86,6 +86,11 @@ describe("Global styles", () => {
     expect(contentRule?.style.minHeight).toBe("0px");
   });
 
+  it("matches the admin users empty-state width on admin posts", () => {
+    expect(globalStyles).toMatch(/\.empty-state,\s*\.error-state\s*\{[^}]*padding:\s*28px 16px;/);
+    expect(adminStyles).toMatch(/\.admin-page--posts\s+\.empty-state\s*\{[^}]*max-width:\s*1600px;[^}]*margin-inline:\s*auto;/);
+  });
+
   it("uses the theme class for the reference palette while the saved theme is unchanged during a wipe", () => {
     document.documentElement.dataset.theme = "dark";
     document.documentElement.classList.remove("dark");
@@ -166,6 +171,22 @@ describe("Global styles", () => {
     for (const token of ["--text", "--text-muted", "--text-strong", "--accent-soft", "--border", "--border-card"]) {
       expect(lightTokens.getPropertyValue(token).trim()).toBe("#000000");
     }
+  });
+
+  it.each(["dark", "light"])("uses contrasting palette colors for the brand mark in %s mode", (theme) => {
+    document.documentElement.dataset.theme = theme;
+    document.documentElement.classList.toggle("dark", theme === "dark");
+    const tokens = getComputedStyle(document.documentElement);
+    const rules = Array.from(style.sheet!.cssRules)
+      .filter((rule): rule is CSSStyleRule => rule instanceof CSSStyleRule);
+    const markRule = rules.find((rule) => rule.selectorText === ".brand__mark");
+
+    expect(markRule?.style.background).toBe("var(--accent-soft)");
+    expect(markRule?.style.color).toBe("var(--selection-text)");
+    expect(contrastRatio(
+      tokens.getPropertyValue("--selection-text").trim(),
+      tokens.getPropertyValue("--accent-soft").trim(),
+    )).toBeGreaterThanOrEqual(4.5);
   });
 
   it.each(["dark", "light"])("keeps primary and muted text at WCAG AA contrast in %s mode", (theme) => {

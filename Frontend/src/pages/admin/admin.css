@@ -26,6 +26,11 @@
   scroll-padding-block: 24px;
 }
 
+.admin-page--posts .empty-state {
+  max-width: 1600px;
+  margin-inline: auto;
+}
+
 .admin-page--users {
   max-width: none;
 }

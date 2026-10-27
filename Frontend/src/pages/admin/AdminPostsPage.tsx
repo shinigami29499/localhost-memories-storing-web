@@ -2,7 +2,7 @@ import { AnimateIcon } from "@animate-ui/react/icons";
 import { Tabs } from "@animate-ui/react/primitives/base-ui/tabs";
 import { Highlight, HighlightItem } from "@animate-ui/react/primitives/effects/highlight";
 import { useEffect, useState } from "react";
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient, type UseMutationResult } from "@tanstack/react-query";
 import { DeletePostDialog, postService, type AdminPost, type PagedFeed } from "../../features/posts";
 import { ApiError } from "../../services/api";
 import { EmptyState, ErrorState, Spinner, showToast } from "../../components/ui";
@@ -244,7 +244,7 @@ export function AdminPostsPage() {
 interface PostsPanelProps {
   posts: AdminPost[];
   isLoading: boolean;
-  restore: ReturnType<typeof useMutation>;
+  restore: UseMutationResult<void, Error, string>;
   isLoadingGlobal: boolean;
   setError: (error: string | null) => void;
   setDeletePost: (post: AdminPost | null) => void;
@@ -268,7 +268,7 @@ function PostsPanel({
 
   if (posts.length === 0) {
     return (
-      <EmptyState title="No posts" hint="Change filter." />
+      <EmptyState title="No posts" hint="Try another media filter." />
     );
   }
 

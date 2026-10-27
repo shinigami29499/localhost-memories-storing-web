@@ -189,7 +189,7 @@ const vietnamese: Record<string, string> = {
   "Restore the post by {username} and its media from trash? It will be visible in the feed again.":
     "Khôi phục bài viết của {username} và nội dung từ thùng rác? Bài viết sẽ hiển thị lại trên bảng tin.",
   "No posts": "Không có bài viết",
-  "Change filter.": "Đổi bộ lọc.",
+  "Try another media filter.": "Thử bộ lọc nội dung khác.",
   "Preview media": "Xem trước nội dung",
   "No media": "Không có nội dung",
   Deleted: "Đã xóa",

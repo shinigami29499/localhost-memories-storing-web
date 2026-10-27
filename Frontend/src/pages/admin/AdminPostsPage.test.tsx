@@ -120,7 +120,7 @@ describe("AdminPostsPage", () => {
     queryClient.setQueryData(["admin-all-posts", 0, 10], { ...posts, total: 0, items: [] });
     renderPage();
 
-    expect(container.querySelector(".empty-state")?.textContent).toContain("Change filter.");
+    expect(container.querySelector(".empty-state")?.textContent).toContain("Try another media filter.");
   });
 
   it("keeps pagination outside the scrolling post content", () => {
