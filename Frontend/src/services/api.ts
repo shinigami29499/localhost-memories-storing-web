@@ -52,6 +52,79 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
   return (await unwrap(response)) as T;
 }
 
+export function uploadWithProgress<T>(
+  path: string,
+  file: File,
+  onProgress: (loaded: number, total: number) => void,
+  signal: AbortSignal,
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    let xhr: XMLHttpRequest | null = null;
+    let settled = false;
+
+    const cleanup = () => {
+      signal.removeEventListener("abort", abort);
+    };
+    const finish = (action: () => void) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      action();
+    };
+    const abort = () => {
+      xhr?.abort();
+      finish(() => reject(new DOMException("Upload cancelled.", "AbortError")));
+    };
+    const send = async (retried: boolean) => {
+      if (signal.aborted) {
+        abort();
+        return;
+      }
+
+      xhr = new XMLHttpRequest();
+      xhr.open("POST", `${API_URL}${path}`);
+      for (const [name, value] of Object.entries(sessionHeader())) {
+        xhr.setRequestHeader(name, value);
+      }
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) onProgress(event.loaded, event.total);
+      };
+      xhr.onerror = () => finish(() => reject(new ApiError(0, "Network error", "Upload request failed.")));
+      xhr.onabort = () => finish(() => reject(new DOMException("Upload cancelled.", "AbortError")));
+      xhr.onload = async () => {
+        if (xhr?.status === 401 && !retried) {
+          if (await refreshSession()) {
+            await send(true);
+            return;
+          }
+          useAuthStore.getState().clear();
+        }
+
+        if (xhr!.status < 200 || xhr!.status >= 300) {
+          finish(() => reject(toXhrError(xhr!)));
+          return;
+        }
+
+        let body: T;
+        try {
+          body = JSON.parse(xhr!.responseText) as T;
+        } catch {
+          finish(() => reject(new ApiError(xhr!.status, "Invalid response", "The upload response was not valid JSON.")));
+          return;
+        }
+        finish(() => resolve(body));
+      };
+
+      const form = new FormData();
+      form.append("file", file, file.name);
+      xhr.send(form);
+    };
+
+    signal.addEventListener("abort", abort, { once: true });
+    void send(false).catch((error: unknown) => finish(() => reject(error)));
+  });
+}
+
 async function unwrap(response: Response): Promise<unknown> {
   if (response.status === 204) return undefined;
   try {
@@ -78,6 +151,25 @@ async function toError(response: Response): Promise<ApiError> {
     // non-JSON error body — keep defaults
   }
   return new ApiError(response.status, title, detail, errors);
+}
+
+function toXhrError(xhr: XMLHttpRequest): ApiError {
+  let title = xhr.statusText || "Request failed";
+  let detail = "";
+  let errors: Record<string, string[]> | undefined;
+  try {
+    const problem = JSON.parse(xhr.responseText) as {
+      title?: string;
+      detail?: string;
+      errors?: Record<string, string[]>;
+    };
+    title = problem.title ?? title;
+    detail = problem.detail ?? "";
+    errors = problem.errors;
+  } catch {
+    // non-JSON error body — keep defaults
+  }
+  return new ApiError(xhr.status, title, detail, errors);
 }
 
 function sessionHeader(): Record<string, string> {

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Domains.Entities;
+using Domains.Enums;
 using Infrastructures.Data.Interfaces;
 using Services.Models.Posts;
 
@@ -71,6 +72,37 @@ public sealed class PostRepository(ApplicationDbContext db) : IPostRepository
 
     public Task<Post?> FindActivePostAsync(Guid postId, CancellationToken cancellationToken = default)
         => db.Posts.FirstOrDefaultAsync(p => p.Id == postId, cancellationToken);
+
+    public async Task LockPostUploadsAsync(Guid postId, CancellationToken cancellationToken = default)
+    {
+        await db.UploadBatches
+            .FromSqlInterpolated($"SELECT * FROM upload_batches WHERE post_id = {postId} FOR UPDATE")
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task CancelPostUploadsAsync(
+        Guid postId, Guid actorId, DateTime utcNow, CancellationToken cancellationToken = default)
+    {
+        await db.UploadItems
+            .Where(item => item.Batch.PostId == postId
+                && (item.Status == UploadItemStatus.Pending || item.Status == UploadItemStatus.Uploading))
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(item => item.Status, UploadItemStatus.Cancelled)
+                .SetProperty(item => item.CompletedAt, utcNow)
+                .SetProperty(item => item.ErrorDetails, (string?)null)
+                .SetProperty(item => item.Revision, item => item.Revision + 1)
+                .SetProperty(item => item.UpdatedAt, utcNow)
+                .SetProperty(item => item.UpdatedBy, actorId), cancellationToken);
+        await db.UploadBatches
+            .Where(batch => batch.PostId == postId && batch.CompletedAt == null)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(batch => batch.Status, UploadBatchStatus.PartialFailure)
+                .SetProperty(batch => batch.CompletedAt, utcNow)
+                .SetProperty(batch => batch.UpdatedAt, utcNow)
+                .SetProperty(batch => batch.UpdatedBy, actorId), cancellationToken);
+    }
 
     public Task<Post?> FindPostIncludingDeletedAsync(Guid postId, CancellationToken cancellationToken = default)
         => db.Posts.IgnoreQueryFilters().FirstOrDefaultAsync(p => p.Id == postId, cancellationToken);
@@ -199,6 +231,11 @@ public sealed class PostRepository(ApplicationDbContext db) : IPostRepository
     public async Task PurgePostAsync(Guid postId, CancellationToken cancellationToken = default)
     {
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        await db.UploadBatches.IgnoreQueryFilters()
+            .Where(batch => batch.PostId == postId)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(batch => batch.PostId, (Guid?)null)
+                .SetProperty(batch => batch.UpdatedAt, DateTime.UtcNow), cancellationToken);
         await db.Comments.IgnoreQueryFilters()
             .Where(c => c.PostId == postId)
             .ExecuteDeleteAsync(cancellationToken);

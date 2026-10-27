@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ArrowRight } from "@/components/animate-ui/icons/arrow-right";
 import { Link } from "react-router-dom";
 import { authService } from "../../features/auth";
-import { Button, Input } from "../../components/ui";
+import { Button, Input, PasswordInput } from "../../components/ui";
 import { ErrorState } from "../../components/ui/Status";
 import { Brand } from "../../components/layout/Brand";
 import { CommunityIntro } from "../../components/layout/CommunityIntro";
@@ -100,11 +100,10 @@ export function RegisterPage() {
             aria-label={t("Username")}
           />
           <label className="login__label" htmlFor="password">{t("Password")}</label>
-          <Input
+          <PasswordInput
             id="password"
             value={password}
             onChange={setPassword}
-            type="password"
             placeholder={t("Password")}
             autoComplete="new-password"
             required
@@ -113,11 +112,10 @@ export function RegisterPage() {
             aria-label={t("Password")}
           />
           <label className="login__label" htmlFor="confirm-password">{t("Confirm password")}</label>
-          <Input
+          <PasswordInput
             id="confirm-password"
             value={confirmPassword}
             onChange={setConfirmPassword}
-            type="password"
             placeholder={t("Confirm password")}
             autoComplete="new-password"
             required

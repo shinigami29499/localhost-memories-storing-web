@@ -6,6 +6,7 @@ import { Bell } from "@/components/animate-ui/icons/bell";
 import { useNotifications, notificationQueryKey } from "../../features/notifications/hooks/useNotifications";
 import { notificationService } from "../../features/notifications/services/notificationService";
 import type { NotificationFeed } from "../../features/notifications/types";
+import { useUploadNotificationStore } from "../../features/notifications/uploadNotificationStore";
 import { useAuthStore } from "../../store/authStore";
 import { formatTimestamp } from "../../utils/media";
 import { showToast } from "../ui";
@@ -22,11 +23,17 @@ export function NotificationBell() {
   const userId = useAuthStore((state) => state.user?.id);
   const accessToken = useAuthStore((state) => state.accessToken);
   const { data, isLoading, isError, refetch, liveStatus } = useNotifications();
-  const notifications = data?.items ?? [];
-  const unreadCount = data?.unreadCount ?? 0;
+  const uploadItems = useUploadNotificationStore((state) => state.items);
+  const markUploadsRead = useUploadNotificationStore((state) => state.markRead);
+  const uploadNotifications = uploadItems.filter((item) => item.userId === userId);
+  const notifications = [...(data?.items ?? []), ...uploadNotifications]
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const unreadCount = (data?.unreadCount ?? 0)
+    + uploadNotifications.filter((item) => !item.readAt).length;
 
   useEffect(() => {
     if (!open || !accessToken) return;
+    if (userId) markUploadsRead(userId);
 
     const markNotificationsAsRead = async () => {
       try {
@@ -39,7 +46,7 @@ export function NotificationBell() {
     };
 
     void markNotificationsAsRead();
-  }, [accessToken, open, refetch, t]);
+  }, [accessToken, open, refetch, t, userId, markUploadsRead]);
 
   useEffect(() => {
     if (!open) return;
@@ -134,20 +141,32 @@ export function NotificationBell() {
               {notifications.map((notification) => (
                 <li key={notification.id}>
                   <Link
-                    to={`/posts/${notification.postId}`}
+                    to={notification.postId ? `/posts/${notification.postId}` : "/uploads"}
                     className={`notification-bar__item${notification.readAt ? "" : " notification-bar__item--unread"}`}
                     onClick={() => {
                       setOpen(false);
-                      if (!notification.readAt) void markRead(notification.id);
+                      if (!notification.readAt) {
+                        if (notification.notificationType === "UploadCompleted") {
+                          if (userId) markUploadsRead(userId, notification.id);
+                        } else {
+                          void markRead(notification.id);
+                        }
+                      }
                     }}
                   >
                     <span className="notification-bar__message">
-                      <strong>{notification.actorUsername}</strong>{" "}
-                      {t(notification.notificationType === "CommentAdded"
-                        ? "commented on your post"
-                        : notification.notificationType === "ReactionAdded"
-                          ? "reacted to your post"
-                          : "shared a new post")}
+                      {notification.notificationType === "UploadCompleted" ? (
+                        t("Upload batch completed")
+                      ) : (
+                        <>
+                          <strong>{notification.actorUsername}</strong>{" "}
+                          {t(notification.notificationType === "CommentAdded"
+                            ? "commented on your post"
+                            : notification.notificationType === "ReactionAdded"
+                              ? "reacted to your post"
+                              : "shared a new post")}
+                        </>
+                      )}
                     </span>
                     {notification.postCaption ? (
                       <span className="notification-bar__caption">{notification.postCaption}</span>

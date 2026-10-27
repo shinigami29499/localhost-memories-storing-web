@@ -24,6 +24,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IReactionRepository, ReactionRepository>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<IMediaRepository, MediaRepository>();
+        services.AddScoped<IUploadRepository, UploadRepository>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IPostService, PostService>();
@@ -31,6 +32,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IReactionService, ReactionService>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IMediaService, MediaService>();
+        services.AddScoped<IUploadService, UploadService>();
 
         return services;
     }

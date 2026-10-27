@@ -20,6 +20,9 @@ public interface IPostRepository
     Task<IReadOnlyList<string>> GetActiveUserReactionsAsync(
         Guid postId, Guid userId, CancellationToken cancellationToken = default);
     Task<Post?> FindActivePostAsync(Guid postId, CancellationToken cancellationToken = default);
+    Task LockPostUploadsAsync(Guid postId, CancellationToken cancellationToken = default);
+    Task CancelPostUploadsAsync(
+        Guid postId, Guid actorId, DateTime utcNow, CancellationToken cancellationToken = default);
     Task<Post?> FindPostIncludingDeletedAsync(Guid postId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<MediaFile>> GetPostMediaAsync(
         Guid postId, bool includeDeleted, CancellationToken cancellationToken = default);

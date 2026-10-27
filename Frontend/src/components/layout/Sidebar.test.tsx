@@ -9,6 +9,10 @@ import { ThemeProvider } from "../../context/ThemeContext";
 import { useAuthStore } from "../../store/authStore";
 import { AuthenticatedLayout } from "./AuthenticatedLayout";
 
+vi.mock("../../features/uploads/components/UploadRuntime", () => ({
+  UploadRuntime: () => null,
+}));
+
 vi.mock("../animate-ui/icons/home", async () => {
   const { useAnimateIconContext } = await import("@animate-ui/react/icons");
   return { Home: () => <svg data-animated={String(useAnimateIconContext().active === true)} /> };
@@ -111,7 +115,7 @@ describe("Sidebar icon hover triggers", () => {
     expect(link.querySelector("svg")?.getAttribute("data-animated")).toBe("false");
   });
 
-  it("shows Download and Upload under the expandable Sync group", async () => {
+  it("keeps the upload watcher inside Sync beside the static Download action", async () => {
     const navigation = container.querySelector<HTMLElement>(".sidebar__nav")!;
     const groups = Array.from(navigation.children)
       .filter((child) => child.classList.contains("sidebar__group"))
@@ -125,10 +129,13 @@ describe("Sidebar icon hover triggers", () => {
     expect(sync.querySelector("svg")?.getAttribute("data-animated")).toBe("false");
     expect(items.map((item) => item.textContent?.trim())).toEqual(["Upload", "Download"]);
     expect(items.every((item) => item.classList.contains("sidebar__link"))).toBe(true);
-    expect(items.every((item) => item.classList.contains("sidebar__link--static"))).toBe(true);
+    expect(items[0].classList.contains("sidebar__link--static")).toBe(false);
+    expect(items[1].classList.contains("sidebar__link--static")).toBe(true);
     expect(items.map((item) => item.querySelector("svg")?.getAttribute("data-animated"))).toEqual(["false", "false"]);
     expect(container.querySelector('[href="/sync/download"]')).toBeNull();
-    expect(container.querySelector('[href="/sync/upload"]')).toBeNull();
+    expect(syncActions.querySelector('[href="/uploads"]')?.textContent?.trim()).toBe("Upload");
+    expect(container.querySelector('[href="/uploads/new"]')).toBeNull();
+    expect(navigation.querySelector(':scope > a[href="/uploads"]')).toBeNull();
 
     for (const item of items) {
       const label = item.querySelector("span")!;

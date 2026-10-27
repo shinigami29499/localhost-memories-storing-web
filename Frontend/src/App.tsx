@@ -14,6 +14,7 @@ import { RegisterPage } from "./pages/register/RegisterPage";
 import { HomePage } from "./pages/home/HomePage";
 import { AdminUsersPage } from "./pages/admin/AdminUsersPage";
 import { AdminPostsPage } from "./pages/admin/AdminPostsPage";
+import { UploadManagementPage } from "./pages/uploads/UploadManagementPage";
 import { ErrorPage } from "./pages/ErrorPage";
 import { PostDetailPage } from "./pages/posts/PostDetailPage";
 import { LoadingOverlay } from "./components/ui/LoadingOverlay";
@@ -41,6 +42,8 @@ const router = createBrowserRouter([
         ),
         children: [
           { path: "/", element: <HomePage /> },
+          { path: "/uploads", element: <UploadManagementPage /> },
+          { path: "/uploads/new", element: <Navigate replace to="/uploads" /> },
           { path: "/posts/:postId", element: <PostDetailPage /> },
           {
             path: "/admin/users",

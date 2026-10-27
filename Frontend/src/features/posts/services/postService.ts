@@ -1,4 +1,7 @@
 import { api } from "../../../services/api";
+import { removeUploadFile, saveUploadFile } from "../../uploads/services/uploadFileStore";
+import { wakeUploadRuntime } from "../../uploads/services/uploadRuntime";
+import type { UploadBatch, UploadItemMetadata } from "../../uploads/types";
 import type { AdminPost, Comment, DeletedPost, PagedFeed, Post, ReactionCount } from "../types";
 
 export const postService = {
@@ -15,6 +18,35 @@ export const postService = {
     if (caption) form.set("caption", caption);
     for (const file of files) form.append("files", file, file.name);
     return api<Post>("/api/posts", { method: "POST", body: form });
+  },
+
+  async submitTracked(caption: string | undefined, files: File[]): Promise<UploadBatch> {
+    const items: UploadItemMetadata[] = files.map((file) => ({
+      id: crypto.randomUUID(),
+      originalFilename: file.name,
+      contentType: file.type || "application/octet-stream",
+      fileSizeBytes: file.size,
+    }));
+    try {
+      for (let index = 0; index < items.length; index++) {
+        await saveUploadFile(items[index].id, files[index]);
+      }
+      const batch = await api<UploadBatch>("/api/posts/uploads", {
+        method: "POST",
+        body: { caption, items },
+      });
+      wakeUploadRuntime();
+      return batch;
+    } catch (error) {
+      for (const item of items) {
+        try {
+          await removeUploadFile(item.id);
+        } catch (cleanupError) {
+          console.error("Could not remove a file after its post submission failed.", cleanupError);
+        }
+      }
+      throw error;
+    }
   },
 
   updateCaption(postId: string, caption: string): Promise<Post> {

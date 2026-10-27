@@ -63,6 +63,16 @@ describe("Global styles", () => {
     expect(headerRule?.style.background).toBe("transparent");
   });
 
+  it("stacks the notification panel above the header divider", () => {
+    const rules = Array.from(style.sheet!.cssRules)
+      .filter((rule): rule is CSSStyleRule => rule instanceof CSSStyleRule);
+    const panelRule = rules.find((rule) => rule.selectorText === ".notification-bar__panel");
+    const dividerRule = rules.find((rule) => rule.selectorText === ".app-topbar::after");
+
+    expect(panelRule?.style.position).toBe("absolute");
+    expect(Number(panelRule?.style.zIndex)).toBeGreaterThan(Number(dividerRule?.style.zIndex || 0));
+  });
+
   it("contains page scrolling below the transparent header", () => {
     const rules = Array.from(style.sheet!.cssRules)
       .filter((rule): rule is CSSStyleRule => rule instanceof CSSStyleRule);

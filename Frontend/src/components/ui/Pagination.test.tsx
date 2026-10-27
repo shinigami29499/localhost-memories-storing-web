@@ -94,6 +94,16 @@ describe("Pagination", () => {
     expect(document.querySelector(".pagination__select-positioner")).not.toBeNull();
   });
 
+  it("supports a fixed page size without a size selector", () => {
+    act(() => root.render(
+      <Pagination page={1} pageSize={5} total={11} onPageChange={onPageChange} />,
+    ));
+    expect(container.querySelector('[aria-label="Items per page"]')).toBeNull();
+    expect(container.querySelectorAll('[data-slot="pagination-link"]')).toHaveLength(3);
+    act(() => container.querySelector<HTMLButtonElement>('[aria-label="Next page"]')!.click());
+    expect(onPageChange).toHaveBeenLastCalledWith(2);
+  });
+
   it("supports numbered pages and stops previous and next at the boundaries", () => {
     renderPagination(1, 30);
     const previous = container.querySelector<HTMLButtonElement>('[aria-label="Previous page"]')!;

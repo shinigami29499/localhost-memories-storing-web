@@ -5,6 +5,7 @@ import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { Brand } from "./Brand";
 import { Sidebar } from "./Sidebar";
 import { NotificationBell } from "./NotificationBell";
+import { UploadRuntime } from "../../features/uploads/components/UploadRuntime";
 
 export const MOBILE_QUERY = "(max-width: 640px)";
 
@@ -51,6 +52,7 @@ export function AuthenticatedLayout() {
         <div className="sidebar-backdrop" aria-hidden="true" onClick={() => setSidebarCollapsed(true)} />
       ) : null}
       <div className="app-shell__main">
+        <UploadRuntime />
         <header className="app-topbar">
           {isMobile ? <Brand /> : null}
           <NotificationBell />

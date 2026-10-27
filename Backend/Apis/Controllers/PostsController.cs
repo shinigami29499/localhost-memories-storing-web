@@ -8,6 +8,8 @@ using Services.Models.Posts;
 using Services.Requests.Posts;
 using Services.Responses.Posts;
 using Services.Interfaces;
+using Services.Models.Uploads;
+using Services.Requests.Uploads;
 
 namespace Apis.Controllers;
 
@@ -16,6 +18,7 @@ namespace Apis.Controllers;
 [Authorize]
 public class PostsController(
     IPostService postService,
+    IUploadService uploadService,
     ICurrentUserContext currentUser,
     IHubContext<NotificationsHub> notificationsHub,
     ILogger<PostsController> logger) : ControllerBase
@@ -24,6 +27,17 @@ public class PostsController(
     private readonly ICurrentUserContext _currentUser = currentUser;
     private readonly IHubContext<NotificationsHub> _notificationsHub = notificationsHub;
     private readonly ILogger<PostsController> _logger = logger;
+
+    [HttpPost("uploads")]
+    public async Task<ActionResult<UploadBatchDto>> CreateTrackedPostAsync(
+        CreateUploadBatchRequest request, CancellationToken cancellationToken)
+    {
+        var batch = await uploadService.CreateBatchAsync(
+            _currentUser.RequireUserId(), request, cancellationToken);
+        await _notificationsHub.NotifyUploadsChangedAsync(
+            _currentUser.RequireUserId(), _logger, cancellationToken);
+        return Created($"/api/uploads/batches/{batch.Id}", batch);
+    }
 
     [HttpGet]
     public async Task<ActionResult<PagedFeedResponse<PostSummaryDto>>> GetFeedAsync(
@@ -77,8 +91,12 @@ public class PostsController(
     [HttpDelete("{postId:guid}")]
     public async Task<IActionResult> DeletePostAsync(Guid postId, CancellationToken cancellationToken)
     {
+        var post = await _postService.GetPostAsync(
+            postId, _currentUser.RequireUserId(), cancellationToken);
         await _postService.DeletePostAsync(
             postId, _currentUser.RequireUserId(), _currentUser.IsAdmin, cancellationToken);
+        await _notificationsHub.NotifyUploadsChangedAsync(
+            post.Author.Id, _logger, cancellationToken);
         return NoContent();
     }
 

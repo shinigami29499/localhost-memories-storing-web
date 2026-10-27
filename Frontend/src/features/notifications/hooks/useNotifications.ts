@@ -3,6 +3,7 @@ import { HubConnectionBuilder, LogLevel } from "@microsoft/signalr";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "../../../store/authStore";
 import { notificationService } from "../services/notificationService";
+import { wakeUploadRuntime } from "../../uploads/services/uploadRuntime";
 import type { NotificationFeed, PostNotification } from "../types";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
@@ -48,20 +49,30 @@ export function useNotifications() {
       });
     };
 
+    const refreshUploads = () => {
+      wakeUploadRuntime();
+      void queryClient.invalidateQueries({ queryKey: ["uploads"] });
+    };
+
     connection.on("PostUploaded", handleNotification);
     connection.on("PostActivity", handleNotification);
+    connection.on("UploadsChanged", refreshUploads);
 
     connection.onreconnecting(() => setLiveStatus("reconnecting"));
     connection.onreconnected(() => {
       setLiveStatus("connected");
       void queryClient.invalidateQueries({ queryKey: notificationQueryKey(userId) });
+      refreshUploads();
     });
     connection.onclose(() => setLiveStatus("offline"));
 
     const start = async () => {
       try {
         await connection.start();
-        if (!disposed) setLiveStatus("connected");
+        if (!disposed) {
+          setLiveStatus("connected");
+          refreshUploads();
+        }
       } catch (error) {
         if (disposed) return;
         console.error("Could not connect to live notifications.", error);
@@ -76,6 +87,7 @@ export function useNotifications() {
       if (retryTimer !== undefined) window.clearTimeout(retryTimer);
       connection.off("PostUploaded");
       connection.off("PostActivity");
+      connection.off("UploadsChanged");
       void connection.stop().catch((error: unknown) => {
         console.error("Could not stop the notifications connection.", error);
       });

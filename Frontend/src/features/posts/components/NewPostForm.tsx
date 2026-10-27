@@ -7,7 +7,6 @@ import { PencilLine } from "@/components/animate-ui/icons/pencil-line";
 import { SendHorizontal } from "@/components/animate-ui/icons/send-horizontal";
 import { X } from "@/components/animate-ui/icons/x";
 import { ErrorState } from "../../../components/ui/Status";
-import type { Post } from "../types";
 import { useLocale } from "../../../context/LocaleContext";
 
 const ACCEPTED = "image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,video/quicktime";
@@ -17,11 +16,11 @@ const MAX_TOTAL_GB = 20;
 const MAX_TOTAL_BYTES = MAX_TOTAL_GB * 1024 * 1024 * 1024;
 
 interface Props {
-  onCreated: (post: Post) => void;
+  onSubmitted: () => void;
 }
 
-/** Upload composer: optional caption + one or more image/video files â†’ POST /api/posts. */
-export function NewPostForm({ onCreated }: Props) {
+/** Feed composer: optional caption and media queued as one tracked post submission. */
+export function NewPostForm({ onSubmitted }: Props) {
   const { t } = useLocale();
   const fileInput = useRef<HTMLInputElement>(null);
   const [caption, setCaption] = useState("");
@@ -78,13 +77,13 @@ export function NewPostForm({ onCreated }: Props) {
   };
 
   const submit = async () => {
-    if (files.length === 0) return;
+    if (files.length === 0 || busy) return;
     setBusy(true);
     setError(null);
     try {
-      const created = await postService.create(caption.trim() || undefined, files);
-      onCreated(created);
-      showToast.success(t("Post successfully"));
+      await postService.submitTracked(caption.trim() || undefined, files);
+      onSubmitted();
+      showToast.info(t("Post upload queued"));
       setCaption("");
       setFiles([]);
       if (fileInput.current) fileInput.current.value = "";

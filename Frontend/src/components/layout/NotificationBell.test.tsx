@@ -9,6 +9,7 @@ import { LocaleProvider } from "../../context/LocaleContext";
 import { ThemeProvider } from "../../context/ThemeContext";
 import { useAuthStore } from "../../store/authStore";
 import { NotificationBell } from "./NotificationBell";
+import { useUploadNotificationStore } from "../../features/notifications/uploadNotificationStore";
 
 const { markAllRead, refetch } = vi.hoisted(() => ({
   markAllRead: vi.fn(),
@@ -35,6 +36,8 @@ describe("NotificationBell", () => {
   let root: Root;
 
   beforeEach(() => {
+    vi.clearAllMocks();
+    useUploadNotificationStore.setState({ items: [] });
     vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
     vi.stubGlobal("matchMedia", vi.fn((query: string) => ({
       matches: false,
@@ -55,7 +58,10 @@ describe("NotificationBell", () => {
     });
     markAllRead.mockResolvedValue(undefined);
     refetch.mockResolvedValue(undefined);
-    useAuthStore.setState({ accessToken: "test-token" });
+    useAuthStore.setState({
+      accessToken: "test-token",
+      user: { id: "viewer", username: "viewer", role: "user", status: "active", createdAt: "" },
+    });
     container = document.createElement("div");
     document.body.append(container);
     root = createRoot(container);
@@ -69,7 +75,7 @@ describe("NotificationBell", () => {
     vi.unstubAllGlobals();
   });
 
-  it("marks all notifications as read when the panel opens", async () => {
+  async function renderBell() {
     await act(async () => {
       root.render(
         <ThemeProvider>
@@ -85,6 +91,10 @@ describe("NotificationBell", () => {
         </ThemeProvider>,
       );
     });
+  }
+
+  it("marks all notifications as read when the panel opens", async () => {
+    await renderBell();
 
     await act(async () => {
       container.querySelector<HTMLButtonElement>(".notification-bar__trigger")!.click();
@@ -92,5 +102,31 @@ describe("NotificationBell", () => {
 
     expect(markAllRead).toHaveBeenCalledOnce();
     expect(refetch).toHaveBeenCalledOnce();
+  });
+
+  it("shows only the current user's upload notifications and marks them read locally", async () => {
+    useUploadNotificationStore.setState({
+      items: ["viewer", "another-user"].map((userId) => ({
+        id: `upload:${userId}:batch`,
+        userId,
+        notificationType: "UploadCompleted",
+        postId: "finished-post",
+        postCaption: `${userId}'s post`,
+        createdAt: "2026-10-28T00:00:00Z",
+        readAt: null,
+      })),
+    });
+    await renderBell();
+    expect(container.querySelector(".notification-bar__badge")?.textContent).toBe("1");
+    await act(async () => container.querySelector<HTMLButtonElement>(".notification-bar__trigger")!.click());
+
+    expect(container.textContent).toContain("Upload batch completed");
+    expect(container.textContent).toContain("viewer's post");
+    expect(container.textContent).not.toContain("another-user's post");
+    expect(container.querySelector(".notification-bar__item")?.getAttribute("href")).toBe("/posts/finished-post");
+    expect(container.querySelector(".notification-bar__badge")).toBeNull();
+    expect(useUploadNotificationStore.getState().items.find((item) => item.userId === "viewer")?.readAt).toBeTruthy();
+    expect(useUploadNotificationStore.getState().items.find((item) => item.userId === "another-user")?.readAt).toBeNull();
+    expect(markAllRead).toHaveBeenCalledOnce();
   });
 });

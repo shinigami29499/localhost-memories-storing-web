@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using Services.Models.Posts;
 using Services.Responses.Posts;
+using Services.Models.Media;
 
 namespace Services.Interfaces;
 
@@ -12,6 +13,9 @@ public interface IPostService
     Task<PostCreationResult> CreatePostAsync(
         Guid authorId, string authorUsername, string? caption, IReadOnlyList<IFormFile> mediaFiles,
         CancellationToken cancellationToken = default);
+    Task<PostCreationResult> AttachUploadedMediaAsync(
+        Guid authorId, string authorUsername, string caption, Guid? postId,
+        StoredFile stored, string originalFilename, CancellationToken cancellationToken = default);
     Task<PostSummaryDto> UpdateCaptionAsync(
         Guid postId, Guid actorId, bool isAdmin, string caption, CancellationToken cancellationToken = default);
     Task DeletePostAsync(Guid postId, Guid actorId, bool isAdmin, CancellationToken cancellationToken = default);

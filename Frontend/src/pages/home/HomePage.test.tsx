@@ -15,8 +15,8 @@ vi.mock("../../components/layout/CommunityIntro", () => ({
   CommunityIntro: () => null,
 }));
 vi.mock("../../features/posts/components/NewPostForm", () => ({
-  NewPostForm: ({ onCreated }: { onCreated: () => void }) => (
-    <button onClick={onCreated}>Create post</button>
+  NewPostForm: ({ onSubmitted }: { onSubmitted: () => void }) => (
+    <button onClick={onSubmitted}>Create post</button>
   ),
 }));
 vi.mock("../../features/posts/components/PostCard", () => ({

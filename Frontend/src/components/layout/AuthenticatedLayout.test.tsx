@@ -10,6 +10,10 @@ import { LocaleProvider } from "../../context/LocaleContext";
 import { useAuthStore } from "../../store/authStore";
 import { AuthenticatedLayout } from "./AuthenticatedLayout";
 
+vi.mock("../../features/uploads/components/UploadRuntime", () => ({
+  UploadRuntime: () => null,
+}));
+
 describe("AuthenticatedLayout sidebar", () => {
   let container: HTMLDivElement;
   let root: Root;

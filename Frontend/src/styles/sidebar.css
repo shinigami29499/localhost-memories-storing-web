@@ -209,6 +209,7 @@
 
 .notification-bar__panel {
   position: absolute;
+  z-index: 1;
   top: calc(100% + 8px);
   right: 0;
   width: min(320px, calc(100vw - 32px));

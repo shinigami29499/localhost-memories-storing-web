@@ -8,6 +8,7 @@ using Services.Requests.Posts;
 using Services.Responses.Posts;
 using Services.Models.Notifications;
 using Services.Core;
+using Services.Models.Media;
 using Domains.Entities;
 
 namespace Infrastructures.Data.ApplicationServices;
@@ -126,18 +127,7 @@ public class PostService(
 
         try
         {
-            var recipientIds = await _notificationRepository.GetActiveRecipientIdsAsync(authorId, cancellationToken);
-            var notificationTime = DateTime.UtcNow;
-            notifications.AddRange(recipientIds.Select(recipientId => new PostUploadNotification
-            {
-                RecipientId = recipientId,
-                ActorId = authorId,
-                ActorUsername = authorUsername,
-                PostId = post.Id,
-                PostCaption = post.Caption,
-                CreatedAt = notificationTime,
-            }));
-            _notificationRepository.AddRange(notifications);
+            notifications.AddRange(await CreateUploadNotificationsAsync(post, authorUsername, cancellationToken));
             await _unitOfWork.SaveChangesAsync(cancellationToken);
         }
         catch
@@ -164,7 +154,52 @@ public class PostService(
             authorId, post.Id, uploaded.Count);
 
         var createdPost = await GetPostAsync(post.Id, authorId, cancellationToken);
-        var deliveries = notifications
+        return new PostCreationResult(createdPost, MapDeliveries(notifications));
+    }
+
+    public async Task<PostCreationResult> AttachUploadedMediaAsync(
+        Guid authorId, string authorUsername, string caption, Guid? postId,
+        StoredFile stored, string originalFilename, CancellationToken cancellationToken = default)
+    {
+        var post = postId.HasValue
+            ? await _repository.FindActivePostAsync(postId.Value, cancellationToken)
+                ?? throw new ConflictException("The post was deleted. Restore it before retrying its uploads.")
+            : new Post { UserId = authorId, Caption = caption };
+        if (post.UserId != authorId)
+            throw new NotFoundException($"Post '{post.Id}' was not found.");
+
+        if (!postId.HasValue)
+            _repository.AddPost(post);
+        _repository.AddMediaFiles([mapper.Map(stored, post.Id, originalFilename)]);
+        var notifications = !postId.HasValue
+            ? await CreateUploadNotificationsAsync(post, authorUsername, cancellationToken)
+            : [];
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        var createdPost = await GetPostAsync(post.Id, authorId, cancellationToken);
+        return new PostCreationResult(createdPost, MapDeliveries(notifications));
+    }
+
+    private async Task<IReadOnlyList<PostUploadNotification>> CreateUploadNotificationsAsync(
+        Post post, string authorUsername, CancellationToken cancellationToken)
+    {
+        var recipientIds = await _notificationRepository.GetActiveRecipientIdsAsync(post.UserId, cancellationToken);
+        var notificationTime = DateTime.UtcNow;
+        var notifications = recipientIds.Select(recipientId => new PostUploadNotification
+        {
+            RecipientId = recipientId,
+            ActorId = post.UserId,
+            ActorUsername = authorUsername,
+            PostId = post.Id,
+            PostCaption = post.Caption,
+            CreatedAt = notificationTime,
+        }).ToList();
+        _notificationRepository.AddRange(notifications);
+        return notifications;
+    }
+
+    private static IReadOnlyList<NotificationDeliveryDto> MapDeliveries(
+        IEnumerable<PostUploadNotification> notifications)
+        => notifications
             .Select(notification => new NotificationDeliveryDto(
                 notification.RecipientId,
                 new PostNotificationDto(
@@ -177,9 +212,6 @@ public class PostService(
                     notification.CreatedAt,
                     notification.ReadAt)))
             .ToList();
-
-        return new PostCreationResult(createdPost, deliveries);
-    }
 
     public async Task<PostSummaryDto> UpdateCaptionAsync(
         Guid postId, Guid actorId, bool isAdmin, string caption, CancellationToken cancellationToken = default)
@@ -198,6 +230,8 @@ public class PostService(
     public async Task DeletePostAsync(
         Guid postId, Guid actorId, bool isAdmin, CancellationToken cancellationToken = default)
     {
+        await using var tx = await _unitOfWork.BeginTransactionAsync(cancellationToken);
+        await _repository.LockPostUploadsAsync(postId, cancellationToken);
         var post = await LoadOwnedPostAsync(postId, actorId, isAdmin, cancellationToken);
 
         var media = await _repository.GetPostMediaAsync(postId, includeDeleted: false, cancellationToken);
@@ -212,8 +246,6 @@ public class PostService(
 
         try
         {
-            await using var tx = await _unitOfWork.BeginTransactionAsync(cancellationToken);
-
             // Shared deletion audit values keep the post family restorable together.
             post.DeletedAt = utcNow;
             post.DeletedBy = actorId;
@@ -229,6 +261,7 @@ public class PostService(
             }
 
             await _repository.DeletePostInteractionsAsync(postId, actorId, utcNow, cancellationToken);
+            await _repository.CancelPostUploadsAsync(postId, actorId, utcNow, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             await tx.CommitAsync(cancellationToken);
         }

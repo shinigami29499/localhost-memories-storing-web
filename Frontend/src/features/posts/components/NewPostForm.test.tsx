@@ -5,9 +5,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NewPostForm } from "./NewPostForm";
 import { postService } from "../services/postService";
 
+const navigate = vi.hoisted(() => vi.fn());
+vi.mock("react-router-dom", () => ({ useNavigate: () => navigate }));
+
 vi.mock("../services/postService", () => ({
   postService: {
-    create: vi.fn(),
+    submitTracked: vi.fn(),
   },
 }));
 
@@ -27,6 +30,7 @@ describe("NewPostForm", () => {
   let root: Root;
 
   beforeEach(() => {
+    vi.clearAllMocks();
     vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
     vi.stubGlobal("matchMedia", vi.fn((query: string) => ({
       matches: false,
@@ -53,7 +57,7 @@ describe("NewPostForm", () => {
   });
 
   it("animates the paperclip when hovering anywhere on the attachment label", async () => {
-    await act(async () => root.render(<NewPostForm onCreated={vi.fn()} />));
+    await act(async () => root.render(<NewPostForm onSubmitted={vi.fn()} />));
     const label = container.querySelector<HTMLLabelElement>(".new-post__pick")!;
     expect(label.querySelector("[data-paperclip]")?.getAttribute("data-animated")).toBe("false");
     await act(async () => label.dispatchEvent(new MouseEvent("pointerover", { bubbles: true })));
@@ -63,9 +67,9 @@ describe("NewPostForm", () => {
   });
 
   it("handles drag over, drag enter, drag leave, and drop events to attach files", async () => {
-    const onCreated = vi.fn();
+    const onSubmitted = vi.fn();
     await act(async () => {
-      root.render(<NewPostForm onCreated={onCreated} />);
+      root.render(<NewPostForm onSubmitted={onSubmitted} />);
     });
 
     const section = container.querySelector("section.new-post") as HTMLElement;
@@ -110,8 +114,9 @@ describe("NewPostForm", () => {
     expect(chips[0].textContent).toContain("photo.png");
   });
 
-  it("creates a post with media and no caption", async () => {
-    await act(async () => root.render(<NewPostForm onCreated={vi.fn()} />));
+  it("queues one tracked post submission without leaving the feed", async () => {
+    const onSubmitted = vi.fn();
+    await act(async () => root.render(<NewPostForm onSubmitted={onSubmitted} />));
 
     const sampleFile = new File(["sample content"], "photo.png", { type: "image/png" });
     const fileInput = container.querySelector<HTMLInputElement>('input[type="file"]')!;
@@ -126,11 +131,32 @@ describe("NewPostForm", () => {
       postButton.click();
     });
 
-    expect(postService.create).toHaveBeenCalledWith(undefined, [sampleFile]);
+    expect(postService.submitTracked).toHaveBeenCalledExactlyOnceWith(undefined, [sampleFile]);
+    expect(onSubmitted).toHaveBeenCalledOnce();
+    expect(navigate).not.toHaveBeenCalled();
+    expect(container.querySelectorAll(".new-post__chip")).toHaveLength(0);
+  });
+
+  it("keeps the selected media and stays on the feed when post submission fails", async () => {
+    vi.mocked(postService.submitTracked).mockRejectedValueOnce(new Error("Post submission failed"));
+    const onSubmitted = vi.fn();
+    await act(async () => root.render(<NewPostForm onSubmitted={onSubmitted} />));
+    const fileInput = container.querySelector<HTMLInputElement>('input[type="file"]')!;
+    Object.defineProperty(fileInput, "files", {
+      configurable: true,
+      value: [new File(["media"], "photo.png", { type: "image/png" })],
+    });
+    await act(async () => fileInput.dispatchEvent(new Event("change", { bubbles: true })));
+    await act(async () => container.querySelector<HTMLButtonElement>('button[aria-label="Post"]')!.click());
+
+    expect(container.textContent).toContain("Post submission failed");
+    expect(container.querySelectorAll(".new-post__chip")).toHaveLength(1);
+    expect(onSubmitted).not.toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
   });
 
   it("allows up to 20 GB of selected media and rejects files that exceed the combined limit", async () => {
-    await act(async () => root.render(<NewPostForm onCreated={vi.fn()} />));
+    await act(async () => root.render(<NewPostForm onSubmitted={vi.fn()} />));
 
     const maxFileBytes = 100 * 1024 * 1024;
     const atLimitFiles = [

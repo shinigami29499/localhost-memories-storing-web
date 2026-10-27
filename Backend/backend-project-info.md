@@ -67,6 +67,22 @@ The Infrastructures project's Data area hosts workflow orchestration that coordi
 
 Repositories return domain entities or query results; workflows do not compose EF queries. `IUnitOfWork` provides asynchronous save and transaction operations without exposing EF Core transaction types.
 
+Feed composer submissions use `POST /api/posts/uploads` to register a caption and one
+upload batch containing all selected file metadata. `UploadService` processes each item
+through its own upload request and delegates successful file attachment to `PostService`
+and the existing `IMapper`. The first success creates one real post; later successes,
+including retries, add media to the same post. Item success, post/media metadata, and the
+batch's post association commit together. The existing post-upload notifications are
+created once and delivered through SignalR. Batch row locks serialize state changes;
+revisions reject stale or duplicate file completions. Post deletion cancels outstanding
+items under the same lock, preserving the existing trash/restore workflow.
+
+`UploadsController` exposes owner-scoped tracking and item actions, plus an admin-only
+all-batches list with usernames. Tracking is not a standalone media creation feature.
+The `LinkUploadBatchesToPosts` migration adds caption and an optional unique post foreign
+key to upload batches. Permanent post deletion clears that link while keeping history;
+failed items cannot recreate a permanently deleted post.
+
 Post creation persists one notification for each other active user in the same database save as the post and uploaded media metadata. Comments and new reactions persist a notification only for the post owner, excluding activity by the owner themselves; each notification is saved in the same database save as its comment or reaction. Authenticated clients receive notifications through `/hubs/notifications`; `GET /api/notifications` returns recent notifications and the unread count, and `POST /api/notifications/{id}/read` marks an item as read. Apply the EF Core migrations for the notification table and notification type before deploying these changes.
 
 ## Runtime configuration

@@ -17,6 +17,8 @@ public class ApplicationDbContext(
     public DbSet<Reaction> Reactions => Set<Reaction>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<PostUploadNotification> PostUploadNotifications => Set<PostUploadNotification>();
+    public DbSet<UploadBatch> UploadBatches => Set<UploadBatch>();
+    public DbSet<UploadItem> UploadItems => Set<UploadItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -147,6 +149,46 @@ public class ApplicationDbContext(
             entity.Property(notification => notification.CreatedAt).IsRequired();
             entity.HasIndex(notification => new { notification.RecipientId, notification.CreatedAt });
             entity.HasIndex(notification => new { notification.RecipientId, notification.ReadAt });
+        });
+
+        modelBuilder.Entity<UploadBatch>(entity =>
+        {
+            entity.Property(batch => batch.Caption).HasMaxLength(4000).IsRequired();
+            entity.HasOne(batch => batch.Post)
+                .WithOne()
+                .HasForeignKey<UploadBatch>(batch => batch.PostId)
+                .OnDelete(DeleteBehavior.NoAction);
+            entity.Property(batch => batch.Status).HasConversion<string>().HasMaxLength(32);
+            entity.HasOne(batch => batch.Owner)
+                .WithMany()
+                .HasForeignKey(batch => batch.OwnerId)
+                .OnDelete(DeleteBehavior.NoAction);
+            entity.HasMany(batch => batch.Items)
+                .WithOne(item => item.Batch)
+                .HasForeignKey(item => item.UploadBatchId)
+                .OnDelete(DeleteBehavior.NoAction);
+            entity.HasIndex(batch => new { batch.OwnerId, batch.CreatedAt });
+            entity.HasQueryFilter(batch => batch.DeletedAt == null);
+        });
+
+        modelBuilder.Entity<UploadItem>(entity =>
+        {
+            entity.Property(item => item.OriginalFilename).HasMaxLength(260).IsRequired();
+            entity.Property(item => item.ContentType).HasMaxLength(100).IsRequired();
+            entity.Property(item => item.Status).HasConversion<string>().HasMaxLength(32);
+            entity.Property(item => item.ErrorDetails).HasMaxLength(2000);
+            entity.Property(item => item.StoredFilename).HasMaxLength(300);
+            entity.Property(item => item.RelativePath).HasMaxLength(500);
+            entity.Property(item => item.MimeType).HasMaxLength(100);
+            entity.Property(item => item.FileExtension).HasMaxLength(10);
+            entity.Property(item => item.MediaKind).HasMaxLength(20);
+            entity.Property(item => item.Revision).IsConcurrencyToken();
+            entity.HasIndex(item => item.UploadBatchId);
+            entity.HasIndex(item => item.UploadBatchId)
+                .IsUnique()
+                .HasFilter("status = 'Uploading' AND deleted_at IS NULL")
+                .HasDatabaseName("ix_upload_items_one_uploading_per_batch");
+            entity.HasQueryFilter(item => item.DeletedAt == null);
         });
     }
 

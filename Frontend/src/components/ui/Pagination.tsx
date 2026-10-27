@@ -17,7 +17,7 @@ interface PaginationProps {
   itemLabel?: string;
   isFetching?: boolean;
   onPageChange: (page: number) => void;
-  onPageSizeChange: (pageSize: number) => void;
+  onPageSizeChange?: (pageSize: number) => void;
 }
 
 export function Pagination({
@@ -89,7 +89,7 @@ export function Pagination({
           </AnimateIcon>
         </li>
       </ul>
-      <div className="pagination__page-size">
+      {onPageSizeChange ? <div className="pagination__page-size">
         <Select.Root
           value={String(pageSize)}
           onValueChange={(value) => onPageSizeChange(Number(value))}
@@ -123,7 +123,7 @@ export function Pagination({
           </Select.Portal>
         </Select.Root>
         <span>{t("/ page")}</span>
-      </div>
+      </div> : null}
     </PaginationPrimitive.Root>
   );
 }

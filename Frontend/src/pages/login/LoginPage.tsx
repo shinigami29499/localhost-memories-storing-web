@@ -3,7 +3,7 @@ import { ArrowRight } from "@/components/animate-ui/icons/arrow-right";
 import { Link, useNavigate } from "react-router-dom";
 import { authService } from "../../features/auth";
 import { useAuthStore } from "../../store/authStore";
-import { Button, Input, showToast } from "../../components/ui";
+import { Button, Input, PasswordInput, showToast } from "../../components/ui";
 import { Brand } from "../../components/layout/Brand";
 import { CommunityIntro } from "../../components/layout/CommunityIntro";
 import { ThemeTogglerButton } from "../../components/ui/ThemeTogglerButton";
@@ -61,11 +61,10 @@ export function LoginPage() {
           aria-label={t("Username")}
         />
         <label className="login__label" htmlFor="password">{t("Password")}</label>
-        <Input
+        <PasswordInput
           id="password"
           value={password}
           onChange={setPassword}
-          type="password"
           placeholder={t("Password")}
           autoComplete="current-password"
           required

@@ -8,11 +8,11 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children: ReactNode;
 }
 
-export function Button({ variant = "primary", busy, disabled, children, ...rest }: ButtonProps) {
+export function Button({ variant = "primary", busy, disabled, children, className, ...rest }: ButtonProps) {
   return (
     <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
       <button
-        className={`btn btn--${variant}`}
+        className={`btn btn--${variant}${className ? ` ${className}` : ""}`}
         disabled={disabled || busy}
         aria-busy={busy || undefined}
         {...rest}

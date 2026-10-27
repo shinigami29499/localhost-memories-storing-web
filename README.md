@@ -166,6 +166,24 @@ npm test -- --run
   100 MB each (configurable). Files live on disk; the DB stores metadata only. Serving
   supports HTTP range requests (video seeking) and authenticates via Authorization header
   **or** `?accessToken=` (browser `<img>`/`<video>` cannot send headers).
+- **Post upload watcher:** share media using the existing feed composer, then follow
+  progress under **Sync > Upload**. Each post submission creates one persistent batch
+  with sequential per-file progress, retry, and cancellation controls; there is no separate
+  upload composer. The first successful file creates the feed post with its caption.
+  Later files and retries attach to that same post without re-uploading successful files.
+  All-failed or all-cancelled submissions do not create empty posts. Users see only their
+  own batches; admins see all batches and owner usernames. Pending bytes remain in the
+  submitting browser's IndexedDB, so resuming or retrying requires the same browser
+  profile and device. Closing the browser pauses processing; the server retains results.
+  Deleting the post cancels its pending and uploading items before moving media to trash.
+  The upload screen refreshes on `UploadsChanged` events from `/hubs/notifications`,
+  not on a timer. Events cover batch creation, recovery, progress, status changes,
+  and post deletion, and reach only the owner and administrators. Connecting or
+  reconnecting refreshes the upload list to catch missed events. The browser's
+  background upload worker also stays idle without polling `/api/uploads/queue`
+  or `/api/uploads/active`. Notifications, connection recovery, local submissions,
+  retries, and cancellations wake it. It drains pending files sequentially, then
+  waits for another change; failed requests retain retry backoff.
 - **Comments:** add/edit/delete, author-or-admin authorization, oldest-first paging.
 - **Reactions:** multiple types (`like`, `heart`, `laugh`), idempotent add/remove; removing
   is a soft delete; unique per (post, user, type) among active rows via a partial index.
@@ -183,22 +201,27 @@ npm test -- --run
 
 ## REST API overview (all under `/api`, Bearer JWT except where noted)
 
-| Endpoint                                         | Method(s)      | Notes                                                      |
-| ------------------------------------------------ | -------------- | ---------------------------------------------------------- |
-| `/auth/register`, `/auth/login`, `/auth/refresh` | POST           | anonymous (`register` creates a `PendingApproval` account) |
-| `/auth/logout`, `/auth/me`                       | POST, GET      | authorized                                                 |
-| `/users?`                                        | GET            | admin — all accounts, pending first                        |
-| `/users/{id}/approve`                            | POST           | admin — activates a pending account                        |
-| `/users/{id}`                                    | DELETE         | admin — soft delete + session revoke                       |
-| `/posts?offset=&limit=`                          | GET            | feed                                                       |
-| `/posts`                                         | POST           | multipart: caption + files[]                               |
-| `/posts/{id}`                                    | GET/PUT/DELETE | PUT = caption; DELETE = soft delete + trash                |
-| `/posts/{id}/comments`                           | GET/POST       |                                                            |
-| `/comments/{id}`                                 | PUT/DELETE     | soft delete, idempotent                                    |
-| `/posts/{id}/reactions`                          | POST           | body: `{ reactionType }`                                   |
-| `/posts/{id}/reactions/{type}`                   | DELETE         | idempotent                                                 |
-| `/Media/{id}/file`                               | GET            | anonymous w/ header or `?accessToken=`                     |
-| `/Media/{id}` / `/Media/{id}/restore`            | DELETE/POST    | per-file trash/restore                                     |
+| Endpoint                                         | Method(s)      | Notes                                                          |
+| ------------------------------------------------ | -------------- | -------------------------------------------------------------- |
+| `/auth/register`, `/auth/login`, `/auth/refresh` | POST           | anonymous (`register` creates a `PendingApproval` account)     |
+| `/auth/logout`, `/auth/me`                       | POST, GET      | authorized                                                     |
+| `/users?`                                        | GET            | admin — all accounts, pending first                            |
+| `/users/{id}/approve`                            | POST           | admin — activates a pending account                            |
+| `/users/{id}`                                    | DELETE         | admin — soft delete + session revoke                           |
+| `/posts?offset=&limit=`                          | GET            | feed                                                           |
+| `/posts`                                         | POST           | multipart: caption + files[]                                   |
+| `/posts/{id}`                                    | GET/PUT/DELETE | PUT = caption; DELETE = soft delete + trash                    |
+| `/posts/uploads`                                 | POST           | caption + file metadata; queue one tracked feed post submission |
+| `/uploads/batches`                               | GET            | authorized — list the current user's post upload batches   |
+| `/uploads/batches/{id}`                          | GET            | authorized — owner only (admins may view any batch)            |
+| `/uploads/admin/batches`                         | GET            | admin — all batches, including owner usernames                 |
+| `/uploads/batches/{id}/items/{itemId}/...`       | POST           | authorized — start, report progress, upload, cancel, or fail   |
+| `/posts/{id}/comments`                           | GET/POST       |                                                                |
+| `/comments/{id}`                                 | PUT/DELETE     | soft delete, idempotent                                        |
+| `/posts/{id}/reactions`                          | POST           | body: `{ reactionType }`                                       |
+| `/posts/{id}/reactions/{type}`                   | DELETE         | idempotent                                                     |
+| `/Media/{id}/file`                               | GET            | anonymous w/ header or `?accessToken=`                         |
+| `/Media/{id}` / `/Media/{id}/restore`            | DELETE/POST    | per-file trash/restore                                         |
 
 Errors are RFC 7807 problem details (`application/problem+json`).
 

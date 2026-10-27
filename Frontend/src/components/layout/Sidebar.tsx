@@ -156,14 +156,14 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
               </Collapsible.Root>
             ) : null}
             <Collapsible.Root
-              className="sidebar__group"
+              className={`sidebar__group${location.pathname.startsWith("/uploads") ? " sidebar__group--active" : ""}`}
               open={syncOpen && !compact}
               onOpenChange={(open) => setSyncOpen(open)}
             >
               <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
                 <Collapsible.Trigger
                   type="button"
-                  className="sidebar__link sidebar__group-toggle"
+                  className={`sidebar__link sidebar__group-toggle${location.pathname.startsWith("/uploads") && compact ? " sidebar__link--active" : ""}`}
                   onClick={() => { if (compact) onToggle(); }}
                   aria-label={t("Sync")}
                   title={t("Sync")}
@@ -181,10 +181,16 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
               <Collapsible.Panel className="sidebar__sub-panel" role="group" aria-label={t("Sync actions")}>
                 <div className="sidebar__sub-nav">
                   <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
-                    <div className="sidebar__link sidebar__sub-link sidebar__link--static" aria-disabled="true">
+                    <NavLink
+                      to="/uploads"
+                      className={`sidebar__link sidebar__sub-link${location.pathname.startsWith("/uploads") ? " sidebar__link--active" : ""}`}
+                      data-sidebar="menu-sub-button"
+                      aria-label={t("Upload")}
+                      title={t("Upload")}
+                    >
                       <Upload size={16} aria-hidden="true" />
                       <span>{t("Upload")}</span>
-                    </div>
+                    </NavLink>
                   </AnimateIcon>
                   <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
                     <div className="sidebar__link sidebar__sub-link sidebar__link--static" aria-disabled="true">

@@ -43,7 +43,7 @@ export function HomePage() {
     void queryClient.invalidateQueries({ queryKey: ["feed", 5], exact: true });
   };
 
-  const onCreated = () => {
+  const onSubmitted = () => {
     void queryClient.invalidateQueries({ queryKey: ["feed", 5], exact: true });
   };
 
@@ -75,7 +75,7 @@ export function HomePage() {
           />
         </section>
         <aside className="community-rail" aria-label={t("Create a post")}>
-          <NewPostForm onCreated={onCreated} />
+          <NewPostForm onSubmitted={onSubmitted} />
         </aside>
       </div>
     </main>

@@ -91,6 +91,15 @@
   caret-color: var(--text-strong);
 }
 
+.login__card .password-input {
+  margin-bottom: 20px;
+}
+
+.login__card .password-input > input {
+  padding-right: 52px;
+  margin-bottom: 0;
+}
+
 .login__card > .btn {
   justify-content: space-between;
   padding: 14px 22px;

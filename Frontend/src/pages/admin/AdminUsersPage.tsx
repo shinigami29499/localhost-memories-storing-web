@@ -1,7 +1,7 @@
 import { AnimateIcon } from "@animate-ui/react/icons";
 import { Tabs } from "@animate-ui/react/primitives/base-ui/tabs";
 import { Highlight, HighlightItem } from "@animate-ui/react/primitives/effects/highlight";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { userService } from "../../features/users";
 import { ApiError } from "../../services/api";
@@ -11,6 +11,7 @@ import { Check } from "@/components/animate-ui/icons/check";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
 import { ConfirmationDialog } from "../../components/ui/ConfirmationDialog";
+import { Pagination, DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS } from "../../components/ui/Pagination";
 import type { AuthUser } from "../../features/auth";
 import "./admin.css";
 import { useLocale } from "../../context/LocaleContext";
@@ -40,6 +41,17 @@ export function AdminUsersPage() {
   const [hoveredTab, setHoveredTab] = useState<UserFilter | null>(null);
   const [focusedTab, setFocusedTab] = useState<UserFilter | null>(null);
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState<number>(() => {
+    const stored = Number(window.localStorage.getItem("admin-users.limit"));
+    return PAGE_SIZE_OPTIONS.some((size) => size === stored) ? stored : DEFAULT_PAGE_SIZE;
+  });
+
+  const handlePageSizeChange = (newPageSize: number) => {
+    setLimit(newPageSize);
+    setPage(1);
+    window.localStorage.setItem("admin-users.limit", String(newPageSize));
+  };
 
   const users = useQuery({
     queryKey: ["admin-users"],
@@ -79,10 +91,17 @@ export function AdminUsersPage() {
     const matchesSearch = !normalizedSearch || `${user.username} ${user.role}`.toLocaleLowerCase().includes(normalizedSearch);
     return matchesStatus && matchesSearch;
   });
+  const currentPage = Math.min(page, Math.max(1, Math.ceil(visibleUsers.length / limit)));
+  const pagedUsers = visibleUsers.slice((currentPage - 1) * limit, currentPage * limit);
+
+  useEffect(() => {
+    if (page !== currentPage) setPage(currentPage);
+  }, [page, currentPage]);
 
   return (
     <>
       <main className="admin-page admin-page--users" aria-label={t("User management")}>
+        <div className="admin-users__content">
         <section className="admin-users" aria-labelledby="admin-users-title">
           <header className="admin-users__header">
             <div>
@@ -124,6 +143,7 @@ export function AdminUsersPage() {
               onValueChange={(value) => {
                 if (value === "all" || value === "pending_approval" || value === "active" || value === "disabled") {
                   setFilter(value);
+                  setPage(1);
                 }
               }}
             >
@@ -188,7 +208,10 @@ export function AdminUsersPage() {
                     type="search"
                     aria-label={t("Search users")}
                     value={search}
-                    onChange={(event) => setSearch(event.target.value)}
+                    onChange={(event) => {
+                      setSearch(event.target.value);
+                      setPage(1);
+                    }}
                     placeholder={t("Username or role")}
                   />
                 </label>
@@ -210,7 +233,7 @@ export function AdminUsersPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {visibleUsers.map((user) => (
+                        {pagedUsers.map((user) => (
                           <AdminUserRow
                             key={user.id}
                             user={user}
@@ -231,6 +254,20 @@ export function AdminUsersPage() {
             </Tabs.Root>
           ) : null}
         </section>
+        </div>
+        {users.data ? (
+          <footer className="admin-users__footer">
+            <Pagination
+              page={currentPage}
+              pageSize={limit}
+              total={visibleUsers.length}
+              itemLabel="users"
+              isFetching={users.isFetching}
+              onPageChange={setPage}
+              onPageSizeChange={handlePageSizeChange}
+            />
+          </footer>
+        ) : null}
       </main>
       {action ? (
         <ConfirmationDialog
