@@ -55,15 +55,15 @@ The Infrastructures project's Data area hosts workflow orchestration that coordi
 
 ## Feature request flow
 
-| Feature                                        | Controller               | Application service / infrastructure boundary                                                                                |
-| ---------------------------------------------- | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
-| Authentication (register/login/refresh/logout) | `AuthController.cs`      | `Data/ApplicationServices/AuthService.cs`, `Services/Implementations/TokenService.cs`, and Data-owned persistence interfaces |
-| Posts (feed, CRUD)                             | `PostsController.cs`     | `Data/ApplicationServices/PostService.cs` → Data repositories and media storage port                                         |
+| Feature                                        | Controller                   | Application service / infrastructure boundary                                                                                                                   |
+| ---------------------------------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Authentication (register/login/refresh/logout) | `AuthController.cs`          | `Data/ApplicationServices/AuthService.cs`, `Services/Implementations/TokenService.cs`, and Data-owned persistence interfaces                                    |
+| Posts (feed, CRUD)                             | `PostsController.cs`         | `Data/ApplicationServices/PostService.cs` → Data repositories and media storage port                                                                            |
 | Notifications                                  | `NotificationsController.cs` | `Data/ApplicationServices/NotificationService.cs` → notification repository; `NotificationsHub` delivers post, comment, and reaction notifications over SignalR |
-| Comments                                       | `CommentsController.cs`  | `Data/ApplicationServices/CommentService.cs` → Data repository and transaction interfaces                                    |
-| Reactions                                      | `ReactionsController.cs` | `Data/ApplicationServices/ReactionService.cs` → Data repository and transaction interfaces                                   |
-| Media (file access, delete, restore)           | `MediaController.cs`     | `Data/ApplicationServices/MediaService.cs` → Data repository, transaction, and media storage port                            |
-| Admin user management (list/approve/delete)    | `UsersController.cs`     | `Data/ApplicationServices/UserService.cs` → Data repository and transaction interfaces                                       |
+| Comments                                       | `CommentsController.cs`      | `Data/ApplicationServices/CommentService.cs` → Data repository and transaction interfaces                                                                       |
+| Reactions                                      | `ReactionsController.cs`     | `Data/ApplicationServices/ReactionService.cs` → Data repository and transaction interfaces                                                                      |
+| Media (file access, delete, restore)           | `MediaController.cs`         | `Data/ApplicationServices/MediaService.cs` → Data repository, transaction, and media storage port                                                               |
+| Admin user management (list/approve/delete)    | `UsersController.cs`         | `Data/ApplicationServices/UserService.cs` → Data repository and transaction interfaces                                                                          |
 
 Repositories return domain entities or query results; workflows do not compose EF queries. `IUnitOfWork` provides asynchronous save and transaction operations without exposing EF Core transaction types.
 

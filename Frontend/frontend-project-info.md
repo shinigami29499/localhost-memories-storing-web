@@ -6,20 +6,20 @@ Use the [`fe-a-overview` skill](../.agents/skills/fe-a-overview/SKILL.md) for fr
 
 | Component             | Current path                  |
 | --------------------- | ----------------------------- |
-| React entry           | `src/main.tsx`                 |
-| App shell and routing | `src/App.tsx`                  |
-| Shared API client     | `src/services/api.ts`          |
-| Auth feature          | `src/features/auth/`           |
-| Posts/feed feature    | `src/features/posts/`          |
-| User-management API   | `src/features/users/`          |
+| React entry           | `src/main.tsx`                |
+| App shell and routing | `src/App.tsx`                 |
+| Shared API client     | `src/services/api.ts`         |
+| Auth feature          | `src/features/auth/`          |
+| Posts/feed feature    | `src/features/posts/`         |
+| User-management API   | `src/features/users/`         |
 | Notifications feature | `src/features/notifications/` |
-| Auth store (Zustand)  | `src/store/authStore.ts`       |
-| Pages                 | `src/pages/`                   |
-| UI components         | `src/components/ui/`           |
-| Layout components     | `src/components/layout/`       |
-| Shared styles         | `src/styles/global.css`        |
-| Vite config           | `vite.config.ts`               |
-| Package manifest      | `package.json`                 |
+| Auth store (Zustand)  | `src/store/authStore.ts`      |
+| Pages                 | `src/pages/`                  |
+| UI components         | `src/components/ui/`          |
+| Layout components     | `src/components/layout/`      |
+| Shared styles         | `src/styles/global.css`       |
+| Vite config           | `vite.config.ts`              |
+| Package manifest      | `package.json`                |
 
 ## Runtime and development
 
