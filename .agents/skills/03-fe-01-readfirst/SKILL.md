@@ -66,7 +66,7 @@ This is a guide, not a requirement to create every directory. Prefer colocating 
 - The API client injects bearer tokens, parses problem details, coordinates a single refresh for concurrent 401s, replaces session tokens, and retries the original request once. Failed authentication clears the session.
 - Browser `<img>` and `<video>` elements cannot attach an Authorization header; protected media therefore uses the authenticated query-token URL form.
 - Admin pages require a valid JWT with `role: admin`. Deleted-media previews use the existing endpoint with `includeDeleted=true`; the backend validates the admin role and serves trashed files without restoring them.
-- Frontend work is validated with the existing frontend build and, where relevant, Vitest tests. Frontend tests are permitted.
+- Validate frontend work with the existing build. Run tests only under the conditions in the Validation section.
 
 ## PWA support and limits
 
@@ -79,6 +79,10 @@ This is a guide, not a requirement to create every directory. Prefer colocating 
 
 ## Validation
 
+Do not run frontend tests unless the user explicitly requests them or you are more
+than 70% confident that the task is large in scope. For smaller tasks, use the
+existing build and focused code review instead.
+
 From `Frontend/`, use the existing commands:
 
 ```powershell
@@ -87,7 +91,7 @@ npm test -- --run
 npm test -- --run src/store/authStore.test.ts
 ```
 
-Prefer a focused test file for a targeted change. Other available scripts and the complete current file map are in [frontend-project-info.md](../../../Frontend/frontend-project-info.md).
+When tests are warranted under this rule, prefer focused test files over the full suite. Other available scripts and the complete current file map are in [frontend-project-info.md](../../../Frontend/frontend-project-info.md).
 
 ## Child skills
 
