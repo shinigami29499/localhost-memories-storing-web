@@ -7,7 +7,7 @@ import { ChevronRight } from "@/components/animate-ui/icons/chevron-right";
 import "./Pagination.css";
 import { useLocale } from "../../context/LocaleContext";
 
-export const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
+export const PAGE_SIZE_OPTIONS = [10, 20, 50] as const;
 export const DEFAULT_PAGE_SIZE = 10;
 
 interface PaginationProps {

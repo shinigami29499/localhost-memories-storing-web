@@ -21,11 +21,11 @@
 
 .toast-root {
   pointer-events: auto;
-  background: var(--surface-raised, #242323);
-  border: 1px solid var(--border, #ffffff);
+  background: var(--surface-raised, #4d4d4d);
+  border: 1px solid var(--border, #777777);
   border-radius: var(--radius, 14px);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
-  color: var(--text-strong, #ffffff);
+  color: var(--text-strong, #dedede);
   overflow: hidden;
   position: relative;
 }
@@ -43,8 +43,8 @@
   width: 28px;
   height: 28px;
   border-radius: 8px;
-  background: var(--accent-wash, rgba(121, 82, 56, 0.2));
-  color: var(--accent-soft, #ffffff);
+  background: var(--accent-wash, rgba(222, 222, 222, 0.12));
+  color: var(--accent-soft, #dedede);
   flex-shrink: 0;
   margin-top: 1px;
 }

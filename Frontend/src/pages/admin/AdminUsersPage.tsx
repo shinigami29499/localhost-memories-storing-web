@@ -90,10 +90,6 @@ export function AdminUsersPage() {
               <h1 id="admin-users-title">{t("Manage users")}<span className="brand__dot">.</span></h1>
               <p className="admin-users__description">{t("Review accounts and membership status.")}</p>
             </div>
-            <div className="admin-users__total" aria-live="polite">
-              <strong>{allUsers.length}</strong>
-              <span>{t("Members")}</span>
-            </div>
           </header>
 
           <div className="admin-users__summary" aria-label={t("User account summary")}>
@@ -174,9 +170,23 @@ export function AdminUsersPage() {
                   </Tabs.List>
                 </Highlight>
                 <label className="admin-users__search">
-                  <span>{t("Search users")}</span>
+                  <svg
+                    className="admin-users__search-icon"
+                    aria-hidden="true"
+                    focusable="false"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <circle cx="11" cy="11" r="7" />
+                    <path d="m20 20-4-4" />
+                  </svg>
                   <input
                     type="search"
+                    aria-label={t("Search users")}
                     value={search}
                     onChange={(event) => setSearch(event.target.value)}
                     placeholder={t("Username or role")}

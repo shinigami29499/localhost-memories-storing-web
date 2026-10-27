@@ -116,6 +116,29 @@ describe("AdminPostsPage", () => {
     expect(container.querySelector("footer.admin-posts__footer .pagination")).not.toBeNull();
   });
 
+  it("shows concise guidance when no posts match the media filter", () => {
+    queryClient.setQueryData(["admin-all-posts", 0, 10], { ...posts, total: 0, items: [] });
+    renderPage();
+
+    expect(container.querySelector(".empty-state")?.textContent).toContain("Change filter.");
+  });
+
+  it("keeps pagination outside the scrolling post content", () => {
+    renderPage();
+    const content = container.querySelector(".admin-posts__content")!;
+    const footer = container.querySelector(".admin-posts__footer")!;
+    expect(content.querySelector(".admin-grid")).not.toBeNull();
+    expect(content.contains(footer)).toBe(false);
+    expect(content.nextElementSibling).toBe(footer);
+  });
+
+  it("falls back to 10 when the saved page size is the removed 100 option", () => {
+    window.localStorage.setItem("admin-posts.limit", "100");
+    renderPage();
+    expect(container.querySelector(".admin-posts__total strong")?.textContent).toBe("6");
+    expect(container.querySelector('[aria-label="Items per page"]')?.textContent).toContain("10");
+  });
+
   it.each([
     null, "1", "3", "6", "invalid",
   ])("uses automatic wrapping regardless of the obsolete column setting %s", (value) => {

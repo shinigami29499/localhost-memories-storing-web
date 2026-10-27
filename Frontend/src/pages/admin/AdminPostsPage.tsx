@@ -13,7 +13,7 @@ import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import { RotateCcw } from "@/components/animate-ui/icons/rotate-ccw";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
 import { ConfirmationDialog } from "../../components/ui/ConfirmationDialog";
-import { Pagination, DEFAULT_PAGE_SIZE } from "../../components/ui/Pagination";
+import { Pagination, DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS } from "../../components/ui/Pagination";
 import { mediaUrl } from "../../utils/media";
 import { AdminMediaPreview } from "./AdminMediaPreview";
 import type { PostTab } from "../../features/posts/hooks/useAdminPosts";
@@ -39,7 +39,7 @@ export function AdminPostsPage() {
   const [offset, setOffset] = useState(0);
   const [limit, setLimit] = useState<number>(() => {
     const stored = Number(window.localStorage.getItem("admin-posts.limit"));
-    return [10, 20, 50, 100].includes(stored) ? stored : DEFAULT_PAGE_SIZE;
+    return PAGE_SIZE_OPTIONS.some((size) => size === stored) ? stored : DEFAULT_PAGE_SIZE;
   });
   const page = Math.floor(offset / limit) + 1;
 
@@ -91,6 +91,7 @@ export function AdminPostsPage() {
   return (
     <>
       <main className="admin-page admin-page--posts" aria-label={t("Post management")}>
+        <div className="admin-posts__content">
         <header className="admin-posts__header">
           <div>
             <p className="admin-posts__eyebrow">{t("Content moderation")}</p>
@@ -98,10 +99,6 @@ export function AdminPostsPage() {
             <p className="admin-posts__description">
               {t("Review community posts and moderation actions.")}
             </p>
-          </div>
-          <div className="admin-posts__total" aria-live="polite">
-            <strong>{posts.data?.total ?? "—"}</strong>
-            <span>{t("Posts")}</span>
           </div>
         </header>
 
@@ -203,6 +200,7 @@ export function AdminPostsPage() {
             />
           </Tabs.Panel>
         </Tabs.Root>
+        </div>
 
         {posts.data ? (
           <footer className="admin-posts__footer" aria-label={t("Post pagination controls")}>
@@ -270,7 +268,7 @@ function PostsPanel({
 
   if (posts.length === 0) {
     return (
-      <EmptyState title="No posts" hint="Every post, active or deleted, appears here for review." />
+      <EmptyState title="No posts" hint="Change filter." />
     );
   }
 

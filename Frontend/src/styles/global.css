@@ -3,34 +3,34 @@
 
 :root {
   color-scheme: dark;
-  --bg: #242323;
-  --sidebar-bg: #363636;
-  --surface: #363636;
-  --surface-raised: #242323;
-  --surface-hover: rgba(149, 149, 149, 0.14);
-  --surface-card: #363636;
-  --surface-card-raised: #242323;
-  --border-card: #ffffff;
-  --community-intro-bg: #363636;
-  --border: #ffffff;
-  --text: #ffffff;
-  --text-muted: #ffffff;
-  --text-strong: #ffffff;
-  --accent: #795238;
-  --accent-strong: #795238;
-  --accent-soft: #ffffff;
-  --accent-wash: rgba(121, 82, 56, 0.2);
-  --gradient: linear-gradient(105deg, #795238, #525254);
-  --gradient-text: linear-gradient(105deg, #ffffff, #ffffff);
-  --community-art-sun: #ffffff;
-  --community-art-mountain: #525254;
-  --community-art-land: #363636;
-  --community-art-ground: linear-gradient(25deg, #795238, #959595);
-  --selection-text: #ffffff;
-  --text-on-accent: #fafaff;
+  --bg: #0f0f0f;
+  --sidebar-bg: #2b2b2b;
+  --surface: #2b2b2b;
+  --surface-raised: #4d4d4d;
+  --surface-hover: rgba(222, 222, 222, 0.14);
+  --surface-card: #2b2b2b;
+  --surface-card-raised: #4d4d4d;
+  --border-card: #777777;
+  --community-intro-bg: #2b2b2b;
+  --border: #777777;
+  --text: #dedede;
+  --text-muted: #dedede;
+  --text-strong: #dedede;
+  --accent: #4d4d4d;
+  --accent-strong: #4d4d4d;
+  --accent-soft: #dedede;
+  --accent-wash: rgba(222, 222, 222, 0.12);
+  --gradient: linear-gradient(105deg, #2b2b2b, #4d4d4d);
+  --gradient-text: linear-gradient(105deg, #dedede, #dedede);
+  --community-art-sun: #dedede;
+  --community-art-mountain: #777777;
+  --community-art-land: #2b2b2b;
+  --community-art-ground: linear-gradient(25deg, #2b2b2b, #4d4d4d);
+  --selection-text: #0f0f0f;
+  --text-on-accent: #dedede;
   --danger: #c92f43;
   --danger-wash: rgba(201, 47, 67, 0.12);
-  --overlay-backdrop: rgba(36, 35, 35, 0.72);
+  --overlay-backdrop: rgba(15, 15, 15, 0.78);
   --radius: 14px;
   --sidebar-width: 272px;
 }
@@ -116,23 +116,6 @@ textarea {
 ::selection {
   background: var(--accent);
   color: var(--selection-text);
-}
-
-:root[data-page-transition]::view-transition-old(root) {
-  display: none;
-}
-
-:root[data-page-transition]::view-transition-new(root) {
-  animation: none;
-}
-
-::view-transition-image-pair(*.page-stack-transition) {
-  overflow: clip;
-}
-
-::view-transition-old(*.page-stack-transition),
-::view-transition-new(*.page-stack-transition) {
-  background-color: var(--bg);
 }
 
 :root[data-theme-transition]::view-transition-old(root),
@@ -495,7 +478,8 @@ textarea::placeholder {
 
 .app-shell {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
 }
 
 .app-shell__main {
@@ -503,6 +487,7 @@ textarea::placeholder {
   flex: 1;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
 }
 
 .app-shell--sidebar-collapsed {
@@ -511,6 +496,9 @@ textarea::placeholder {
 
 .app-shell__content {
   flex: 1;
+  min-height: 0;
+  overflow: auto;
+  scroll-padding-block: 24px;
   padding-bottom: 40px;
 }
 

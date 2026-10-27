@@ -51,9 +51,13 @@ export function TopographyBackground({
     const context = canvas?.getContext("2d");
     if (!container || !canvas || !context) return;
 
-    const cellSize = 20;
+    const cellSize = 32;
     let width = 0;
     let height = 0;
+    let columns = 0;
+    let rows = 0;
+    let values = new Float32Array(0);
+    const crossings = new Float32Array(8);
     let pixelRatio = 1;
     let frameId = 0;
     let lastFrameTime = 0;
@@ -77,7 +81,7 @@ export function TopographyBackground({
       const pointerX = localX - pointer.x;
       const pointerY = localY - pointer.y;
       const peak =
-        Math.exp(-(pointerX * pointerX + pointerY * pointerY) / 5200) *
+        Math.exp(-(pointerX * pointerX + pointerY * pointerY) / 20800) *
         pointer.strength *
         0.85;
       const ripple = waves.reduce((total, wave) => {
@@ -97,13 +101,14 @@ export function TopographyBackground({
       context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
       context.clearRect(0, 0, width, height);
 
-      const columns = Math.ceil(width / cellSize) + 1;
-      const rows = Math.ceil(height / cellSize) + 1;
-      const values = new Float32Array(columns * rows);
       const time = reducedMotion ? 0 : timestamp * 0.0012;
-      pointer.x += (pointer.targetX - pointer.x) * 0.16;
-      pointer.y += (pointer.targetY - pointer.y) * 0.16;
-      pointer.strength += (pointer.targetStrength - pointer.strength) * 0.12;
+      const elapsed = Math.min(Math.max(timestamp - lastFrameTime, 0), 50) / 1000;
+      lastFrameTime = timestamp;
+      const follow = 1 - Math.exp(-24 * elapsed);
+      const rise = 1 - Math.exp(-18 * elapsed);
+      pointer.x += (pointer.targetX - pointer.x) * follow;
+      pointer.y += (pointer.targetY - pointer.y) * follow;
+      pointer.strength += (pointer.targetStrength - pointer.strength) * rise;
 
       for (let row = 0; row < rows; row++) {
         for (let column = 0; column < columns; column++) {
@@ -117,8 +122,8 @@ export function TopographyBackground({
       }
 
       context.strokeStyle = getComputedStyle(container).color;
-      for (let levelIndex = 0; levelIndex < 16; levelIndex++) {
-        const level = -0.9 + levelIndex * 0.12;
+      for (let levelIndex = 0; levelIndex < 12; levelIndex++) {
+        const level = -0.9 + levelIndex * 0.16;
         const path = new Path2D();
 
         for (let row = 0; row < rows - 1; row++) {
@@ -129,34 +134,37 @@ export function TopographyBackground({
             const topRight = values[row * columns + column + 1]!;
             const bottomRight = values[(row + 1) * columns + column + 1]!;
             const bottomLeft = values[(row + 1) * columns + column]!;
-            const corners = [
-              [x, y, topLeft],
-              [x + cellSize, y, topRight],
-              [x + cellSize, y + cellSize, bottomRight],
-              [x, y + cellSize, bottomLeft],
-            ] as const;
-            const crossings: Array<[number, number]> = [];
-
-            for (let edge = 0; edge < 4; edge++) {
-              const start = corners[edge]!;
-              const end = corners[(edge + 1) % 4]!;
-              if ((start[2] < level) === (end[2] < level)) continue;
-              const ratio = (level - start[2]) / (end[2] - start[2]);
-              crossings.push([
-                start[0] + (end[0] - start[0]) * ratio,
-                start[1] + (end[1] - start[1]) * ratio,
-              ]);
+            let crossingCount = 0;
+            if ((topLeft < level) !== (topRight < level)) {
+              const ratio = (level - topLeft) / (topRight - topLeft);
+              crossings[crossingCount++] = x + cellSize * ratio;
+              crossings[crossingCount++] = y;
+            }
+            if ((topRight < level) !== (bottomRight < level)) {
+              const ratio = (level - topRight) / (bottomRight - topRight);
+              crossings[crossingCount++] = x + cellSize;
+              crossings[crossingCount++] = y + cellSize * ratio;
+            }
+            if ((bottomRight < level) !== (bottomLeft < level)) {
+              const ratio = (level - bottomRight) / (bottomLeft - bottomRight);
+              crossings[crossingCount++] = x + cellSize * (1 - ratio);
+              crossings[crossingCount++] = y + cellSize;
+            }
+            if ((bottomLeft < level) !== (topLeft < level)) {
+              const ratio = (level - bottomLeft) / (topLeft - bottomLeft);
+              crossings[crossingCount++] = x;
+              crossings[crossingCount++] = y + cellSize * (1 - ratio);
             }
 
-            for (let i = 0; i + 1 < crossings.length; i += 2) {
-              path.moveTo(...crossings[i]!);
-              path.lineTo(...crossings[i + 1]!);
+            for (let i = 0; i + 3 < crossingCount; i += 4) {
+              path.moveTo(crossings[i]!, crossings[i + 1]!);
+              path.lineTo(crossings[i + 2]!, crossings[i + 3]!);
             }
           }
         }
 
-        context.globalAlpha = levelIndex % 5 === 0 ? 0.2 : 0.1;
-        context.lineWidth = levelIndex % 5 === 0 ? 1.2 : 0.8;
+        context.globalAlpha = levelIndex % 4 === 0 ? 0.2 : 0.1;
+        context.lineWidth = levelIndex % 4 === 0 ? 1.2 : 0.8;
         context.stroke(path);
       }
 
@@ -184,6 +192,7 @@ export function TopographyBackground({
         y: pointer.targetY,
         startedAt: performance.now(),
       });
+      if (waves.length > 8) waves.shift();
     };
 
     const clearPointer = () => {
@@ -198,6 +207,9 @@ export function TopographyBackground({
       const bounds = container.getBoundingClientRect();
       width = bounds.width;
       height = bounds.height;
+      columns = Math.ceil(width / cellSize) + 1;
+      rows = Math.ceil(height / cellSize) + 1;
+      values = new Float32Array(columns * rows);
       pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
       canvas.width = Math.max(1, Math.floor(width * pixelRatio));
       canvas.height = Math.max(1, Math.floor(height * pixelRatio));
@@ -205,10 +217,7 @@ export function TopographyBackground({
     };
 
     const animate = (timestamp: number) => {
-      if (timestamp - lastFrameTime >= 40) {
-        draw(timestamp);
-        lastFrameTime = timestamp;
-      }
+      draw(timestamp);
       frameId = requestAnimationFrame(animate);
     };
 

@@ -62,21 +62,28 @@ describe("Global styles", () => {
     expect(headerRule?.style.background).toBe("transparent");
   });
 
-  it("keeps the fixed admin posts footer transparent", () => {
+  it("contains page scrolling below the transparent header", () => {
+    const rules = Array.from(style.sheet!.cssRules)
+      .filter((rule): rule is CSSStyleRule => rule instanceof CSSStyleRule);
+    const ruleFor = (selector: string) => rules.find((rule) => rule.selectorText === selector);
+
+    expect(ruleFor(".app-shell")?.style.height).toBe("100dvh");
+    expect(ruleFor(".app-shell__main")?.style.minHeight).toBe("0px");
+    expect(ruleFor(".app-shell__content")?.style.minHeight).toBe("0px");
+    expect(ruleFor(".app-shell__content")?.style.overflow).toBe("auto");
+    expect(ruleFor(".app-shell__content")?.style.getPropertyValue("scroll-padding-block")).toBe("24px");
+  });
+
+  it("keeps the admin posts footer transparent and separate from scrolling content", () => {
     const rules = Array.from(style.sheet!.cssRules)
       .filter((rule): rule is CSSStyleRule => rule instanceof CSSStyleRule);
     const footerRule = rules.find((rule) => rule.selectorText === ".admin-posts__footer");
 
     expect(footerRule?.style.background).toBe("transparent");
-  });
-
-  it("keeps page snapshots opaque during stack transitions", () => {
-    expect(globalStyles).toMatch(
-      /::view-transition-image-pair\(\*\.page-stack-transition\)\s*\{\s*overflow:\s*clip;/,
-    );
-    expect(globalStyles).toMatch(
-      /::view-transition-old\(\*\.page-stack-transition\),\s*::view-transition-new\(\*\.page-stack-transition\)\s*\{\s*background-color:\s*var\(--bg\);/,
-    );
+    expect(footerRule?.style.position).toBe("relative");
+    const contentRule = rules.find((rule) => rule.selectorText === ".admin-posts__content");
+    expect(contentRule?.style.overflow).toBe("auto");
+    expect(contentRule?.style.minHeight).toBe("0px");
   });
 
   it("uses the theme class for the reference palette while the saved theme is unchanged during a wipe", () => {
@@ -98,17 +105,18 @@ describe("Global styles", () => {
     document.documentElement.dataset.theme = "light";
     document.documentElement.classList.add("dark");
     const darkPalette = getComputedStyle(document.documentElement);
-    expect(darkPalette.getPropertyValue("--bg").trim()).toBe("#242323");
-    expect(darkPalette.getPropertyValue("--surface-card").trim()).toBe("#363636");
-    expect(darkPalette.getPropertyValue("--surface-raised").trim()).toBe("#242323");
-    expect(darkPalette.getPropertyValue("--surface-card-raised").trim()).toBe("#242323");
-    expect(darkPalette.getPropertyValue("--border").trim()).toBe("#ffffff");
-    expect(darkPalette.getPropertyValue("--border-card").trim()).toBe("#ffffff");
-    expect(darkPalette.getPropertyValue("--text").trim()).toBe("#ffffff");
-    expect(darkPalette.getPropertyValue("--text-muted").trim()).toBe("#ffffff");
-    expect(darkPalette.getPropertyValue("--text-strong").trim()).toBe("#ffffff");
-    expect(darkPalette.getPropertyValue("--accent-soft").trim()).toBe("#ffffff");
-    expect(darkPalette.getPropertyValue("--accent").trim()).toBe("#795238");
+    expect(darkPalette.getPropertyValue("--bg").trim()).toBe("#0f0f0f");
+    expect(darkPalette.getPropertyValue("--surface").trim()).toBe("#2b2b2b");
+    expect(darkPalette.getPropertyValue("--surface-card").trim()).toBe("#2b2b2b");
+    expect(darkPalette.getPropertyValue("--surface-raised").trim()).toBe("#4d4d4d");
+    expect(darkPalette.getPropertyValue("--surface-card-raised").trim()).toBe("#4d4d4d");
+    expect(darkPalette.getPropertyValue("--border").trim()).toBe("#777777");
+    expect(darkPalette.getPropertyValue("--border-card").trim()).toBe("#777777");
+    expect(darkPalette.getPropertyValue("--text").trim()).toBe("#dedede");
+    expect(darkPalette.getPropertyValue("--text-muted").trim()).toBe("#dedede");
+    expect(darkPalette.getPropertyValue("--text-strong").trim()).toBe("#dedede");
+    expect(darkPalette.getPropertyValue("--accent-soft").trim()).toBe("#dedede");
+    expect(darkPalette.getPropertyValue("--accent").trim()).toBe("#4d4d4d");
   });
 
   it.each(["dark", "light"])("matches the sidebar hover background in %s mode", (theme) => {
@@ -121,7 +129,7 @@ describe("Global styles", () => {
     const surfaceHover = getComputedStyle(document.documentElement)
       .getPropertyValue("--surface-hover")
       .replace(/\s/g, "");
-    expect(surfaceHover).toBe(theme === "dark" ? "rgba(149,149,149,0.14)" : "rgba(28,28,28,0.12)");
+    expect(surfaceHover).toBe(theme === "dark" ? "rgba(222,222,222,0.14)" : "rgba(28,28,28,0.12)");
 
     for (const selector of [".reactions__chip:hover:not(:disabled)", ".post-card__comment-action:hover"]) {
       const rule = rules.find((entry) => entry.selectorText.split(",").map((part) => part.trim()).includes(selector));
@@ -143,12 +151,14 @@ describe("Global styles", () => {
     expect(ruleFor(".confirmation-dialog-backdrop")?.style.backgroundColor).toBe("var(--overlay-backdrop)");
   });
 
-  it("uses full white text and borders in dark mode and full black in light mode", () => {
-    expect(getComputedStyle(document.documentElement).getPropertyValue("--accent-soft").trim()).toBe("#ffffff");
+  it("uses the supplied dark palette and full black text and borders in light mode", () => {
     const darkTokens = getComputedStyle(document.documentElement);
-    for (const token of ["--text", "--text-muted", "--text-strong", "--accent-soft", "--border", "--border-card"]) {
-      expect(darkTokens.getPropertyValue(token).trim()).toBe("#ffffff");
-    }
+    expect(darkTokens.getPropertyValue("--text").trim()).toBe("#dedede");
+    expect(darkTokens.getPropertyValue("--text-muted").trim()).toBe("#dedede");
+    expect(darkTokens.getPropertyValue("--text-strong").trim()).toBe("#dedede");
+    expect(darkTokens.getPropertyValue("--accent-soft").trim()).toBe("#dedede");
+    expect(darkTokens.getPropertyValue("--border").trim()).toBe("#777777");
+    expect(darkTokens.getPropertyValue("--border-card").trim()).toBe("#777777");
 
     document.documentElement.dataset.theme = "light";
     document.documentElement.classList.remove("dark");

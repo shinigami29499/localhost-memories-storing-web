@@ -9,7 +9,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AnimateUIProvider } from "@animate-ui/react/provider";
 import { useAuthStore } from "./store/authStore";
 import { AuthenticatedLayout } from "./components/layout/AuthenticatedLayout";
-import { PageStackTransition } from "./components/animate-ui/components/PageStackTransition";
 import { LoginPage } from "./pages/login/LoginPage";
 import { RegisterPage } from "./pages/register/RegisterPage";
 import { HomePage } from "./pages/home/HomePage";
@@ -62,7 +61,7 @@ const router = createBrowserRouter([
         ],
       },
       {
-        element: <PublicRouteLayout />,
+        element: <Outlet />,
         children: [
           { path: "/login", element: <LoginPage />, errorElement: <ErrorPage /> },
           { path: "/register", element: <RegisterPage />, errorElement: <ErrorPage /> },
@@ -72,14 +71,6 @@ const router = createBrowserRouter([
     ],
   },
 ]);
-
-function PublicRouteLayout() {
-  return (
-    <PageStackTransition>
-      <Outlet />
-    </PageStackTransition>
-  );
-}
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const token = useAuthStore((s) => s.accessToken);
@@ -103,7 +94,7 @@ export function App() {
             <ToastProvider>
               <LoadingOverlay isLoading={routerState}>
                 <TopographyBackground className="fixed inset-0 pointer-events-none -z-10" />
-                <RouterProvider router={router} future={{ v7_startTransition: true }} />
+                <RouterProvider router={router} />
               </LoadingOverlay>
             </ToastProvider>
           </AnimateUIProvider>

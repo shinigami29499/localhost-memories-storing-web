@@ -9,8 +9,18 @@ describe("Pagination", () => {
   let root: Root;
   const onPageChange = vi.fn();
   const onPageSizeChange = vi.fn();
+  const originalAnimate = Object.getOwnPropertyDescriptor(Element.prototype, "animate");
+  const originalGetAnimations = Object.getOwnPropertyDescriptor(Element.prototype, "getAnimations");
 
   beforeEach(() => {
+    Object.defineProperty(Element.prototype, "animate", {
+      configurable: true,
+      value: vi.fn(() => ({ finished: Promise.resolve(), cancel: vi.fn() })),
+    });
+    Object.defineProperty(Element.prototype, "getAnimations", {
+      configurable: true,
+      value: vi.fn(() => []),
+    });
     vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
     vi.stubGlobal("ResizeObserver", class {
       observe() {}
@@ -38,6 +48,10 @@ describe("Pagination", () => {
   afterEach(() => {
     act(() => root.unmount());
     container.remove();
+    if (originalAnimate) Object.defineProperty(Element.prototype, "animate", originalAnimate);
+    else Reflect.deleteProperty(Element.prototype, "animate");
+    if (originalGetAnimations) Object.defineProperty(Element.prototype, "getAnimations", originalGetAnimations);
+    else Reflect.deleteProperty(Element.prototype, "getAnimations");
     vi.unstubAllGlobals();
     vi.clearAllMocks();
   });
@@ -70,6 +84,13 @@ describe("Pagination", () => {
     expect(active?.hasAttribute("data-active")).toBe(true);
     expect(active?.classList.contains("pagination-page--active")).toBe(true);
     expect(container.querySelectorAll("[data-active]")).toHaveLength(1);
+  });
+
+  it("only offers 10, 20, and 50 items per page", async () => {
+    renderPagination(1, 100);
+    await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Items per page"]')!.click());
+    expect(Array.from(document.querySelectorAll('[role="option"]'), (option) => option.textContent))
+      .toEqual(["10", "20", "50"]);
   });
 
   it("supports numbered pages and stops previous and next at the boundaries", () => {
