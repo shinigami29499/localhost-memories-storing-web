@@ -73,6 +73,10 @@
   vertical-align: middle;
 }
 
+svg {
+  color: inherit;
+}
+
 svg[width][height]:not([class*="h-"]):not([class*="w-"]):not([class*="size-"]) {
   zoom: 1.2;
 }
@@ -308,7 +312,7 @@ textarea {
   font: inherit;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease, filter 0.15s ease;
 }
 
 .theme-toggler {
@@ -350,12 +354,12 @@ textarea {
 }
 
 .btn--primary {
-  background: var(--gradient);
+  background: var(--accent-strong);
   color: var(--text-on-accent);
 }
 
 .btn--primary:hover:not(:disabled) {
-  background: var(--accent-strong);
+  filter: brightness(1.15);
 }
 
 .btn--secondary {
@@ -381,6 +385,14 @@ textarea {
 .btn--danger {
   background: var(--danger);
   color: var(--text-on-accent);
+}
+
+.new-post__row > .btn--primary:disabled,
+.comments__composer > .btn--primary:disabled {
+  border-color: var(--border);
+  background: var(--surface-raised);
+  color: var(--accent-soft);
+  opacity: 1;
 }
 
 .btn__spinner {
@@ -541,6 +553,12 @@ textarea::placeholder {
   place-items: center;
   font-weight: 700;
   flex-shrink: 0;
+}
+
+.dark .post-card__avatar,
+.dark .sidebar__account-avatar {
+  background: var(--accent-soft);
+  color: var(--selection-text);
 }
 
 .post-card__username {

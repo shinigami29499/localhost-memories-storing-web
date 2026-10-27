@@ -105,7 +105,11 @@ export function Pagination({
             </Select.Icon>
           </Select.Trigger>
           <Select.Portal>
-            <Select.Positioner alignItemWithTrigger={false} sideOffset={4}>
+            <Select.Positioner
+              className="pagination__select-positioner"
+              alignItemWithTrigger={false}
+              sideOffset={4}
+            >
               <Select.Popup className="pagination__select-popup">
                 <Select.List className="pagination__select-list">
                   {PAGE_SIZE_OPTIONS.map((size) => (

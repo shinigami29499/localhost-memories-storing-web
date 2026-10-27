@@ -120,6 +120,10 @@
   transition: transform 0.15s ease;
 }
 
+.pagination__select-positioner {
+  z-index: 30;
+}
+
 .pagination__select-trigger[data-open] .pagination__select-icon {
   transform: rotate(180deg);
 }

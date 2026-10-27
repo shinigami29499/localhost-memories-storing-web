@@ -6,6 +6,7 @@ import { resolve } from "node:path";
 const globalStyles = readFileSync(resolve("src", "styles", "global.css"), "utf8");
 const sidebarStyles = readFileSync(resolve("src", "styles", "sidebar.css"), "utf8");
 const adminStyles = readFileSync(resolve("src", "pages", "admin", "admin.css"), "utf8");
+const loginStyles = readFileSync(resolve("src", "pages", "login", "login.css"), "utf8");
 
 function contrastRatio(foreground: string, background: string) {
   const luminance = (color: string) => {
@@ -84,6 +85,23 @@ describe("Global styles", () => {
     const contentRule = rules.find((rule) => rule.selectorText === ".admin-posts__content");
     expect(contentRule?.style.overflow).toBe("auto");
     expect(contentRule?.style.minHeight).toBe("0px");
+  });
+
+  it("uses a solid background for primary buttons", () => {
+    const rules = Array.from(style.sheet!.cssRules)
+      .filter((rule): rule is CSSStyleRule => rule instanceof CSSStyleRule);
+    const primaryRule = rules.find((rule) => rule.selectorText === ".btn--primary");
+    const hoverRule = rules.find((rule) => rule.selectorText === ".btn--primary:hover:not(:disabled)");
+
+    expect(primaryRule?.style.background).toBe("var(--accent-strong)");
+    expect(hoverRule?.style.background).toBe("");
+    expect(hoverRule?.style.filter).toBe("brightness(1.15)");
+  });
+
+  it("keeps autofilled auth fields aligned with the active theme", () => {
+    expect(loginStyles).toMatch(
+      /\.login__card input:autofill,\s*\.login__card input:-webkit-autofill\s*\{[^}]*-webkit-box-shadow:\s*0 0 0 1000px var\(--surface-card-raised\) inset;[^}]*-webkit-text-fill-color:\s*var\(--text-strong\);/,
+    );
   });
 
   it("matches the admin users empty-state width on admin posts", () => {
@@ -207,6 +225,32 @@ describe("Global styles", () => {
     }
 
     expect(contrastRatio(token("--text-on-accent"), token("--accent"))).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("lets SVG icons inherit their control color while preserving semantic heart color", () => {
+    const rules = Array.from(style.sheet!.cssRules)
+      .filter((rule): rule is CSSStyleRule => rule instanceof CSSStyleRule);
+    const iconRule = rules.find((rule) => rule.selectorText === "svg");
+    const heartRule = rules.find((rule) => rule.selectorText === ".reaction-icon--heart");
+
+    expect(iconRule?.style.color).toBe("inherit");
+    expect(heartRule?.style.color).toBe("var(--danger)");
+  });
+
+  it("brightens dark-mode avatars and logout action, and keeps disabled send controls readable", () => {
+    const rules = Array.from(style.sheet!.cssRules)
+      .filter((rule): rule is CSSStyleRule => rule instanceof CSSStyleRule);
+    const ruleFor = (selector: string) => rules.find((rule) => rule.selectorText.includes(selector));
+    const avatarRule = ruleFor(".dark .post-card__avatar");
+    const logoutRule = ruleFor(".dark .sidebar__account-menu .sidebar__link--danger");
+    const sendRule = ruleFor(".new-post__row > .btn--primary:disabled");
+
+    expect(avatarRule?.style.background).toBe("var(--accent-soft)");
+    expect(avatarRule?.style.color).toBe("var(--selection-text)");
+    expect(logoutRule?.style.color).toBe("var(--accent-soft)");
+    expect(sendRule?.style.background).toBe("var(--surface-raised)");
+    expect(sendRule?.style.color).toBe("var(--accent-soft)");
+    expect(sendRule?.style.opacity).toBe("1");
   });
 
   it.each(["dark", "light"])("keeps neighboring surface layers distinct in %s mode", (theme) => {

@@ -84,6 +84,13 @@
   background: var(--surface-card-raised);
 }
 
+.login__card input:autofill,
+.login__card input:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px var(--surface-card-raised) inset;
+  -webkit-text-fill-color: var(--text-strong);
+  caret-color: var(--text-strong);
+}
+
 .login__card > .btn {
   justify-content: space-between;
   padding: 14px 22px;

@@ -91,6 +91,7 @@ describe("Pagination", () => {
     await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Items per page"]')!.click());
     expect(Array.from(document.querySelectorAll('[role="option"]'), (option) => option.textContent))
       .toEqual(["10", "20", "50"]);
+    expect(document.querySelector(".pagination__select-positioner")).not.toBeNull();
   });
 
   it("supports numbered pages and stops previous and next at the boundaries", () => {

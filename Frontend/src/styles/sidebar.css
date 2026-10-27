@@ -523,6 +523,11 @@
   color: var(--danger);
 }
 
+.dark .sidebar__account-menu .sidebar__link--danger,
+.dark .sidebar__account-menu .sidebar__link--danger:hover {
+  color: var(--accent-soft);
+}
+
 .sidebar--collapsed .sidebar__account-trigger {
   overflow: hidden;
 }
