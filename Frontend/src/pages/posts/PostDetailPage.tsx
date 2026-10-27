@@ -38,7 +38,10 @@ export function PostDetailPage() {
   return (
     <main className="post-detail">
       <PostCard
+        key={post.data.id}
         post={post.data}
+        commentsLockedOpen
+        initialCommentsOpen
         onChanged={onChanged}
         onDeleted={() => {
           void queryClient.invalidateQueries({ queryKey: ["feed"] });

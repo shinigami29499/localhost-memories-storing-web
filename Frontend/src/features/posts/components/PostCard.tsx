@@ -18,20 +18,31 @@ interface Props {
   /** Whenever post data changes the parent should replace the card. */
   onChanged: (updated: Post) => void;
   onDeleted: (postId: string) => void;
+  commentsLockedOpen?: boolean;
+  initialCommentsOpen?: boolean;
   onCommentClick?: () => void;
   onPreviousPost?: () => void;
   onNextPost?: () => void;
 }
 
 /** One feed card: media, caption, author, reactions, comments, owner actions. */
-export function PostCard({ post, onChanged, onDeleted, onCommentClick, onPreviousPost, onNextPost }: Props) {
+export function PostCard({
+  post,
+  onChanged,
+  onDeleted,
+  commentsLockedOpen = false,
+  initialCommentsOpen = false,
+  onCommentClick,
+  onPreviousPost,
+  onNextPost,
+}: Props) {
   const { language, t } = useLocale();
   const me = useAuthStore((s) => s.user);
   const isAdmin = me?.role?.toLowerCase() === "admin";
   const isAuthor = post.author.id === me?.id;
 
   const [comments, setComments] = useState<Comment[]>([]);
-  const [showComments, setShowComments] = useState(false);
+  const [showComments, setShowComments] = useState(commentsLockedOpen || initialCommentsOpen);
   const [reactionBusy, setReactionBusy] = useState(false);
   const reactionPending = useRef(false);
   const [error, setError] = useState<string | null>(null);
@@ -195,23 +206,35 @@ export function PostCard({ post, onChanged, onDeleted, onCommentClick, onPreviou
           <button
             type="button"
             className="post-card__comment-action"
+            disabled={commentsLockedOpen}
             onClick={() => {
+              if (commentsLockedOpen) return;
               if (onCommentClick) {
                 onCommentClick();
               } else {
                 setShowComments((visible) => !visible);
               }
             }}
-            aria-expanded={onCommentClick ? undefined : showComments}
+            aria-expanded={commentsLockedOpen ? true : onCommentClick ? undefined : showComments}
             aria-label={t(
-              onCommentClick
+              commentsLockedOpen
                 ? "View {count} comments"
-                : showComments
-                  ? "Hide {count} comments"
-                  : "Show {count} comments",
+                : onCommentClick
+                  ? "View {count} comments"
+                  : showComments
+                    ? "Hide {count} comments"
+                    : "Show {count} comments",
               { count: post.commentCount },
             )}
-            title={t(onCommentClick ? "View comments" : showComments ? "Hide comments" : "Show comments")}
+            title={t(
+              commentsLockedOpen
+                ? "Comments"
+                : onCommentClick
+                  ? "View comments"
+                  : showComments
+                    ? "Hide comments"
+                    : "Show comments",
+            )}
           >
             <CommentIcon />
             <span>{post.commentCount}</span>
