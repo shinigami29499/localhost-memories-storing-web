@@ -1,8 +1,10 @@
 import { isRouteErrorResponse, useRouteError, useNavigate } from "react-router-dom";
 import { Home } from "@/components/animate-ui/icons/home";
 import { RotateCcw } from "@/components/animate-ui/icons/rotate-ccw";
+import { useLocale } from "../context/LocaleContext";
 
 export function ErrorPage() {
+  const { t } = useLocale();
   const error = useRouteError();
   const navigate = useNavigate();
 
@@ -27,8 +29,8 @@ export function ErrorPage() {
         <div className="error-page__icon">
           <span>⚠️</span>
         </div>
-        <h1 className="error-page__title">{title}</h1>
-        <p className="error-page__message">{message}</p>
+        <h1 className="error-page__title">{t(title)}</h1>
+        <p className="error-page__message">{t(message)}</p>
         <div className="error-page__actions">
           <button
             type="button"
@@ -36,7 +38,7 @@ export function ErrorPage() {
             onClick={() => navigate("/")}
           >
             <Home size={18} aria-hidden="true" />
-            Go Home
+            {t("Go Home")}
           </button>
           <button
             type="button"
@@ -44,7 +46,7 @@ export function ErrorPage() {
             onClick={() => navigate(0)}
           >
             <RotateCcw size={18} aria-hidden="true" />
-            Try Again
+            {t("Try Again")}
           </button>
         </div>
       </div>

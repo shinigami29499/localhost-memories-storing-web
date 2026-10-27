@@ -16,6 +16,7 @@ public class ApplicationDbContext(
     public DbSet<Comment> Comments => Set<Comment>();
     public DbSet<Reaction> Reactions => Set<Reaction>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<PostUploadNotification> PostUploadNotifications => Set<PostUploadNotification>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -133,6 +134,19 @@ public class ApplicationDbContext(
             entity.HasIndex(t => new { t.UserId, t.ExpiresAt });
 
             entity.HasQueryFilter(t => t.DeletedAt == null);
+        });
+
+        modelBuilder.Entity<PostUploadNotification>(entity =>
+        {
+            entity.Property(notification => notification.NotificationType)
+                .HasMaxLength(32)
+                .HasDefaultValue(NotificationTypes.PostUploaded)
+                .IsRequired();
+            entity.Property(notification => notification.ActorUsername).HasMaxLength(64).IsRequired();
+            entity.Property(notification => notification.PostCaption).HasMaxLength(4000).IsRequired();
+            entity.Property(notification => notification.CreatedAt).IsRequired();
+            entity.HasIndex(notification => new { notification.RecipientId, notification.CreatedAt });
+            entity.HasIndex(notification => new { notification.RecipientId, notification.ReadAt });
         });
     }
 

@@ -5,6 +5,8 @@ import { ArrowRight } from "@/components/animate-ui/icons/arrow-right";
 import { X } from "@/components/animate-ui/icons/x";
 import type { MediaFile } from "../types";
 import { mediaUrl } from "../../../utils/media";
+import { useSwipe } from "../../../hooks/useSwipe";
+import { useLocale } from "../../../context/LocaleContext";
 
 interface Props {
   media: MediaFile[];
@@ -13,6 +15,7 @@ interface Props {
 }
 
 export function MediaGallery({ media, onPreviousPost, onNextPost }: Props) {
+  const { t } = useLocale();
   const [index, setIndex] = useState(0);
   const [lightbox, setLightbox] = useState(false);
   const [failedId, setFailedId] = useState<string | null>(null);
@@ -21,6 +24,10 @@ export function MediaGallery({ media, onPreviousPost, onNextPost }: Props) {
   const file = media[activeIndex];
   const previous = () => setIndex(Math.max(0, activeIndex - 1));
   const next = () => setIndex(Math.min(media.length - 1, activeIndex + 1));
+  const swipe = useSwipe({
+    onSwipeLeft: () => (media.length > 1 ? next() : onNextPost?.()),
+    onSwipeRight: () => (media.length > 1 ? previous() : onPreviousPost?.()),
+  });
 
   useEffect(() => {
     if (!lightbox) return;
@@ -39,7 +46,7 @@ export function MediaGallery({ media, onPreviousPost, onNextPost }: Props) {
     <div
       className="media-gallery"
       role="region"
-      aria-label={media.length > 1 ? "Post photos and videos" : "Post media"}
+      aria-label={t(media.length > 1 ? "Post photos and videos" : "Post media")}
       aria-roledescription="carousel"
       tabIndex={media.length > 1 ? 0 : undefined}
       onKeyDown={(event) => {
@@ -51,10 +58,10 @@ export function MediaGallery({ media, onPreviousPost, onNextPost }: Props) {
         }
       }}
     >
-      <figure className="media-gallery__item">
+      <figure className="media-gallery__item" {...swipe}>
         <div className="media-gallery__stage" key={file.id}>
           {failedId === file.id ? (
-            <p className="media-gallery__unsupported" role="alert">Could not load this media.</p>
+            <p className="media-gallery__unsupported" role="alert">{t("Could not load this media.")}</p>
           ) : file.mediaKind === "image" ? (
             <img
               src={mediaUrl(file.id)}
@@ -64,7 +71,7 @@ export function MediaGallery({ media, onPreviousPost, onNextPost }: Props) {
               className="media-gallery__image"
               role="button"
               tabIndex={0}
-              aria-label="Image: click edges to navigate or center to enlarge"
+              aria-label={t("Image: click edges to navigate or center to enlarge")}
               onKeyDown={(event) => {
                 if (event.key === "Enter" || event.key === " ") {
                   event.preventDefault();
@@ -96,8 +103,8 @@ export function MediaGallery({ media, onPreviousPost, onNextPost }: Props) {
             />
           ) : (
             <div className="media-gallery__unsupported">
-              <p>Unsupported media type ({file.mimeType})</p>
-              <a href={mediaUrl(file.id)} download={file.originalFilename}>Download</a>
+              <p>{t("Unsupported media type ({mimeType})", { mimeType: file.mimeType })}</p>
+              <a href={mediaUrl(file.id)} download={file.originalFilename}>{t("Download")}</a>
             </div>
           )}
         </div>
@@ -110,8 +117,8 @@ export function MediaGallery({ media, onPreviousPost, onNextPost }: Props) {
           onCancel={(event) => { event.preventDefault(); setLightbox(false); }}
           onClick={(event) => { if (event.target === event.currentTarget) setLightbox(false); }}
         >
-          <AnimateIcon animateOnHover asChild>
-            <button type="button" className="viewer-icon-btn media-lightbox__close" aria-label="Close image preview" title="Close image preview" onClick={() => setLightbox(false)}>
+          <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
+            <button type="button" className="viewer-icon-btn media-lightbox__close" aria-label={t("Close image preview")} title={t("Close image preview")} onClick={() => setLightbox(false)}>
               <X size={20} aria-hidden="true" />
             </button>
           </AnimateIcon>

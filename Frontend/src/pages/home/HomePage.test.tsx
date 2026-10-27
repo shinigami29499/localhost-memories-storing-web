@@ -2,6 +2,7 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { HomePage } from "./HomePage";
 import { postService } from "../../features/posts/services/postService";
@@ -19,18 +20,25 @@ vi.mock("../../features/posts/components/NewPostForm", () => ({
   ),
 }));
 vi.mock("../../features/posts/components/PostCard", () => ({
-  PostCard: ({ post, onChanged, onDeleted }: {
+  PostCard: ({ post, onChanged, onDeleted, onCommentClick }: {
     post: Post;
     onChanged: (post: Post) => void;
     onDeleted: (id: string) => void;
+    onCommentClick?: () => void;
   }) => (
     <article>
       <p>{post.caption}</p>
       <button onClick={() => onChanged({ ...post, caption: "Updated post" })}>Edit {post.id}</button>
       <button onClick={() => onDeleted(post.id)}>Delete {post.id}</button>
+      {onCommentClick ? <button onClick={onCommentClick}>Open comments {post.id}</button> : null}
     </article>
   ),
 }));
+
+function CurrentPath() {
+  const { pathname } = useLocation();
+  return <output data-testid="current-path">{pathname}</output>;
+}
 
 function makePosts(count: number): Post[] {
   return Array.from({ length: count }, (_, index) => ({
@@ -102,7 +110,10 @@ describe("HomePage infinite feed", () => {
 
   async function renderPage() {
     await act(async () => root.render(
-      <QueryClientProvider client={queryClient}><HomePage /></QueryClientProvider>,
+      <MemoryRouter>
+        <CurrentPath />
+        <QueryClientProvider client={queryClient}><HomePage /></QueryClientProvider>
+      </MemoryRouter>,
     ));
   }
 
@@ -136,6 +147,15 @@ describe("HomePage infinite feed", () => {
       .toEqual(posts.map((post) => post.caption));
     expect(container.querySelector('[role="status"]')?.textContent).toBe("No more posts to show.");
     expect(disconnect).toHaveBeenCalled();
+  });
+
+  it("opens a post detail page from the feed comment action", async () => {
+    await renderPage();
+    await settle(() => expect(container.querySelectorAll("article")).toHaveLength(5));
+
+    await click("Open comments post-0");
+
+    expect(container.querySelector('[data-testid="current-path"]')?.textContent).toBe("/posts/post-0");
   });
 
   it("keeps loaded posts during the next request and does not request another batch while fetching", async () => {

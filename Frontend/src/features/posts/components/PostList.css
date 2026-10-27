@@ -10,6 +10,17 @@
   gap: 1.5rem;
 }
 
+.post-list__container .media-gallery__stage {
+  aspect-ratio: 1;
+}
+
+.post-list__container .media-gallery__image,
+.post-list__container .media-gallery__video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .post-list-loading,
 .post-list-end,
 .post-list-fetching {

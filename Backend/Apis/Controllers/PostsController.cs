@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Apis.Authorization;
 using Apis.Interfaces;
+using Apis.Realtime;
 using Services.Models.Posts;
 using Services.Requests.Posts;
 using Services.Responses.Posts;
@@ -12,10 +14,16 @@ namespace Apis.Controllers;
 [ApiController]
 [Route("api/posts")]
 [Authorize]
-public class PostsController(IPostService postService, ICurrentUserContext currentUser) : ControllerBase
+public class PostsController(
+    IPostService postService,
+    ICurrentUserContext currentUser,
+    IHubContext<NotificationsHub> notificationsHub,
+    ILogger<PostsController> logger) : ControllerBase
 {
     private readonly IPostService _postService = postService;
     private readonly ICurrentUserContext _currentUser = currentUser;
+    private readonly IHubContext<NotificationsHub> _notificationsHub = notificationsHub;
+    private readonly ILogger<PostsController> _logger = logger;
 
     [HttpGet]
     public async Task<ActionResult<PagedFeedResponse<PostSummaryDto>>> GetFeedAsync(
@@ -33,8 +41,32 @@ public class PostsController(IPostService postService, ICurrentUserContext curre
         CancellationToken cancellationToken,
         [FromForm] string? caption = null,
         IFormFileCollection files = null!)
-        => Ok(await _postService.CreatePostAsync(
-            _currentUser.RequireUserId(), caption, (files ?? new FormFileCollection()).ToList(), cancellationToken));
+    {
+        var result = await _postService.CreatePostAsync(
+            _currentUser.RequireUserId(),
+            _currentUser.RequireUsername(),
+            caption,
+            (files ?? new FormFileCollection()).ToList(),
+            cancellationToken);
+
+        foreach (var delivery in result.Notifications)
+        {
+            try
+            {
+                await _notificationsHub.Clients
+                    .User(delivery.RecipientId.ToString())
+                    .SendAsync("PostUploaded", delivery.Notification, cancellationToken);
+            }
+            catch (Exception exception) when (exception is not OperationCanceledException)
+            {
+                _logger.LogWarning(exception,
+                    "Realtime notification {NotificationId} for recipient {RecipientId} could not be delivered",
+                    delivery.Notification.Id, delivery.RecipientId);
+            }
+        }
+
+        return Ok(result.Post);
+    }
 
     [HttpPut("{postId:guid}")]
     public async Task<ActionResult<PostSummaryDto>> UpdatePostAsync(
@@ -42,7 +74,6 @@ public class PostsController(IPostService postService, ICurrentUserContext curre
         => Ok(await _postService.UpdateCaptionAsync(
             postId, _currentUser.RequireUserId(), _currentUser.IsAdmin, request.Caption, cancellationToken));
 
-    [RequireAdmin]
     [HttpDelete("{postId:guid}")]
     public async Task<IActionResult> DeletePostAsync(Guid postId, CancellationToken cancellationToken)
     {

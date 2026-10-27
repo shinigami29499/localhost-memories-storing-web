@@ -1,5 +1,6 @@
 import { Spinner } from "./Status";
 import type { ReactNode } from "react";
+import { useLocale } from "../../context/LocaleContext";
 
 interface LoadingOverlayProps {
   isLoading: boolean;
@@ -7,6 +8,7 @@ interface LoadingOverlayProps {
 }
 
 export function LoadingOverlay({ isLoading, children }: LoadingOverlayProps) {
+  const { t } = useLocale();
   if (!isLoading) {
     return <>{children}</>;
   }
@@ -24,7 +26,7 @@ export function LoadingOverlay({ isLoading, children }: LoadingOverlayProps) {
         backgroundColor: "rgba(28, 31, 36, 0.4)",
       }}
       role="status"
-      aria-label="Loading..."
+      aria-label={t("Loading...")}
     >
       <Spinner label="Loading content…" />
     </div>

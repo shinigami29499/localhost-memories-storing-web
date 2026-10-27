@@ -11,20 +11,24 @@ import { ReactionControls, type ReactionType } from "./ReactionControls";
 import { CommentIcon } from "./CommentIcon";
 import { DeletePostDialog } from "./DeletePostDialog";
 import { useAuthStore } from "../../../store/authStore";
+import { useLocale } from "../../../context/LocaleContext";
 
 interface Props {
   post: Post;
   /** Whenever post data changes the parent should replace the card. */
   onChanged: (updated: Post) => void;
   onDeleted: (postId: string) => void;
+  onCommentClick?: () => void;
   onPreviousPost?: () => void;
   onNextPost?: () => void;
 }
 
 /** One feed card: media, caption, author, reactions, comments, owner actions. */
-export function PostCard({ post, onChanged, onDeleted, onPreviousPost, onNextPost }: Props) {
+export function PostCard({ post, onChanged, onDeleted, onCommentClick, onPreviousPost, onNextPost }: Props) {
+  const { language, t } = useLocale();
   const me = useAuthStore((s) => s.user);
   const isAdmin = me?.role?.toLowerCase() === "admin";
+  const isAuthor = post.author.id === me?.id;
 
   const [comments, setComments] = useState<Comment[]>([]);
   const [showComments, setShowComments] = useState(false);
@@ -39,7 +43,7 @@ export function PostCard({ post, onChanged, onDeleted, onPreviousPost, onNextPos
     try {
       setComments(await commentService.list(post.id));
     } catch {
-      setError("Could not load comments.");
+      setError(t("Could not load comments."));
     }
   }, [post.id, showComments]);
 
@@ -92,7 +96,7 @@ export function PostCard({ post, onChanged, onDeleted, onPreviousPost, onNextPos
         onChanged({ ...updated, reactionCounts, myReactionTypes: [type] });
       }
     } catch {
-      setError("Reaction failed. Please retry.");
+      setError(t("Reaction failed. Please retry."));
     } finally {
       reactionPending.current = false;
       setReactionBusy(false);
@@ -109,20 +113,20 @@ export function PostCard({ post, onChanged, onDeleted, onPreviousPost, onNextPos
           <div>
             <div className="post-card__username">{post.author.username}</div>
             <time className="post-card__time" dateTime={post.createdAt}>
-              {formatTimestamp(post.createdAt)}
-              {post.updatedAt ? " · edited" : ""}
+              {formatTimestamp(post.createdAt, language)}
+              {post.updatedAt ? ` Ã‚Â· ${t("edited")}` : ""}
             </time>
           </div>
         </div>
-        {isAdmin ? (
+        {isAdmin || isAuthor ? (
           <div className="post-card__actions">
-              <AnimateIcon animateOnHover asChild>
+              <AnimateIcon animateOnHover animateOnTap completeOnStop completeOnStop asChild>
                 <button
                   type="button"
                   className="btn btn--ghost post-card__delete"
                   onClick={() => setConfirmingDelete(true)}
-                  aria-label="Delete post"
-                  title="Delete post"
+                  aria-label={t("Delete post")}
+                  title={t("Delete post")}
                 >
                   <X size={20} aria-hidden="true" />
                 </button>
@@ -131,7 +135,12 @@ export function PostCard({ post, onChanged, onDeleted, onPreviousPost, onNextPos
         ) : null}
       </header>
       {confirmingDelete ? (
-        <DeletePostDialog postId={post.id} onClose={() => setConfirmingDelete(false)} onDeleted={onDeleted} />
+        <DeletePostDialog
+          postId={post.id}
+          allowPermanentDelete={isAdmin}
+          onClose={() => setConfirmingDelete(false)}
+          onDeleted={onDeleted}
+        />
       ) : null}
 
       {post.caption ? (
@@ -150,7 +159,7 @@ export function PostCard({ post, onChanged, onDeleted, onPreviousPost, onNextPos
                   aria-expanded={false}
                   onClick={() => setExpanded(true)}
                 >
-                  Show more
+                  {t("Show more")}
                 </button>
               </>
             ) : null}
@@ -163,7 +172,7 @@ export function PostCard({ post, onChanged, onDeleted, onPreviousPost, onNextPos
                   aria-expanded={true}
                   onClick={() => setExpanded(false)}
                 >
-                  Show less
+                  {t("Show less")}
                 </button>
               </>
             ) : null}
@@ -182,14 +191,27 @@ export function PostCard({ post, onChanged, onDeleted, onPreviousPost, onNextPos
           onToggle={toggleReaction}
           busy={reactionBusy}
         />
-        <AnimateIcon animateOnHover animateOnTap asChild>
+        <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
           <button
             type="button"
             className="post-card__comment-action"
-            onClick={() => setShowComments((v) => !v)}
-            aria-expanded={showComments}
-            aria-label={`${showComments ? "Hide" : "Show"} ${post.commentCount} comments`}
-            title={showComments ? "Hide comments" : "Show comments"}
+            onClick={() => {
+              if (onCommentClick) {
+                onCommentClick();
+              } else {
+                setShowComments((visible) => !visible);
+              }
+            }}
+            aria-expanded={onCommentClick ? undefined : showComments}
+            aria-label={t(
+              onCommentClick
+                ? "View {count} comments"
+                : showComments
+                  ? "Hide {count} comments"
+                  : "Show {count} comments",
+              { count: post.commentCount },
+            )}
+            title={t(onCommentClick ? "View comments" : showComments ? "Hide comments" : "Show comments")}
           >
             <CommentIcon />
             <span>{post.commentCount}</span>

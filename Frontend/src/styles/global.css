@@ -7,6 +7,7 @@
   --sidebar-bg: rgba(2, 2, 2, 0.9);
   --surface: #0d1018;
   --surface-raised: #12161f;
+  --surface-hover: rgba(255, 255, 255, 0.05);
   --surface-card: rgba(2, 2, 2, 0.9);
   --surface-card-raised: rgba(2, 2, 2, 0.9);
   --border-card: #292929;
@@ -30,6 +31,7 @@
   --sidebar-bg: #fff;
   --surface: #fff;
   --surface-raised: #edf1f7;
+  --surface-hover: rgba(0, 0, 0, 0.05);
   --surface-card: var(--surface);
   --surface-card-raised: var(--surface-raised);
   --border-card: var(--border);
@@ -73,7 +75,7 @@ body {
 }
 
 html {
-  font-size: 120%;
+  font-size: 100%;
   scroll-padding-top: 110px;
 }
 
@@ -129,7 +131,7 @@ textarea {
 
 .gradient-text {
   color: var(--accent-soft);
-  background: linear-gradient(100deg, #31f889, #00a5ef);
+  background: var(--gradient);
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -353,7 +355,7 @@ textarea {
 
 .btn--ghost:hover:not(:disabled) {
   color: var(--text-strong);
-  background: var(--surface-raised);
+  background: var(--surface-hover);
 }
 
 .btn--danger {
@@ -467,7 +469,7 @@ textarea::placeholder {
 }
 
 .app-shell--sidebar-collapsed {
-  --sidebar-width: 72px;
+  --sidebar-width: 90px;
 }
 
 .app-shell__content {
@@ -709,6 +711,12 @@ textarea::placeholder {
   background: var(--surface);
 }
 
+.post-card__footer:not(:last-child),
+.post-card__footer:not(:last-child) .reactions__chip,
+.post-card__footer:not(:last-child) .post-card__comment-action {
+  border-radius: 0;
+}
+
 .post-card__comment-action,
 .reactions__chip {
   min-height: 44px;
@@ -721,7 +729,7 @@ textarea::placeholder {
   gap: 7px;
   padding: 0 16px;
   border: 0;
-  border-radius: 0 0 var(--radius) 0;
+  border-radius: 0;
   background: transparent;
   color: var(--text-muted);
   font: inherit;
@@ -735,7 +743,7 @@ textarea::placeholder {
 
 .post-card__comment-action:hover,
 .post-card__comment-action:focus-visible {
-  background: var(--surface-raised);
+  background: rgba(255, 255, 255, 0.05);
   color: var(--text-strong);
 }
 
@@ -765,6 +773,9 @@ textarea::placeholder {
   cursor: pointer;
   display: block;
   user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: pan-y pinch-zoom;
 }
 
 .media-gallery__video {
@@ -849,6 +860,7 @@ textarea::placeholder {
 
 .reaction-icon--heart {
   flex-shrink: 0;
+  color: var(--danger);
 }
 
 .reactions {
@@ -879,7 +891,7 @@ textarea::placeholder {
 }
 
 .reactions__chip:hover:not(:disabled) {
-  background: var(--surface-raised);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .reactions__chip--active {
@@ -904,7 +916,7 @@ textarea::placeholder {
 /* Comments ------------------------------------------------------------------ */
 
 .comments {
-  padding: 4px 16px 14px;
+  padding: 12px 16px 14px;
   border-top: 1px solid var(--border);
 }
 
@@ -923,7 +935,7 @@ textarea::placeholder {
 }
 
 .comments__item {
-  background: var(--surface-raised);
+  background: var(--surface-card-raised);
   border-radius: 10px;
   padding: 8px 12px;
 }
@@ -1088,6 +1100,11 @@ textarea::placeholder {
 }
 
 @media (max-width: 560px) {
+  .community-intro h1 {
+    margin: 12px 0;
+    font-size: clamp(1.9rem, 9vw, 2.5rem);
+  }
+
   .brand {
     font-size: 1rem;
     gap: 8px;
@@ -1129,6 +1146,56 @@ textarea::placeholder {
     padding: 0 12px;
   }
 
+  .post-card__caption-wrapper {
+    padding: 14px 16px 0;
+  }
+
+  .post-card__caption-toggle {
+    padding: 6px 16px 12px;
+  }
+
+  .comments {
+    padding-inline: 12px;
+  }
+
+  .new-post__chip {
+    max-width: 100%;
+  }
+
+  .confirmation-dialog {
+    padding: 20px 16px 0;
+  }
+
+  .confirmation-dialog__actions {
+    flex-wrap: wrap;
+    margin: 0 -16px;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  }
+
+  .confirmation-dialog__actions .btn {
+    flex: 1 1 auto;
+  }
+
+  .media-lightbox {
+    padding: calc(56px + env(safe-area-inset-top)) 8px calc(8px + env(safe-area-inset-bottom));
+  }
+
+  .media-lightbox__close {
+    top: calc(8px + env(safe-area-inset-top));
+  }
+}
+
+@media (pointer: coarse) {
+  .comments__delete,
+  .new-post__chip-remove {
+    min-width: 32px;
+    min-height: 32px;
+  }
+
+  .post-card__delete {
+    width: 44px;
+    height: 44px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

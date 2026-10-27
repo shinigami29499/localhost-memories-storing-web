@@ -59,6 +59,8 @@ describe("ReactionControls", () => {
     expect(button?.getAttribute("aria-label")).toBe("Remove heart reaction. 2 hearts");
     expect(container.querySelector(".reactions__count")?.textContent).toBe("2");
     expect(container.querySelector(".reactions__picker")).toBeNull();
+    expect(container.querySelector(".reaction-icon--heart")?.getAttribute("fill")).toBe("var(--danger)");
+    expect(container.querySelector(".reaction-icon--heart")?.getAttribute("stroke")).toBe("var(--danger)");
 
     await act(async () => {
       button?.click();

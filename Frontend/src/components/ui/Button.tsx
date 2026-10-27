@@ -10,7 +10,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 export function Button({ variant = "primary", busy, disabled, children, ...rest }: ButtonProps) {
   return (
-    <AnimateIcon animateOnHover asChild>
+    <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
       <button
         className={`btn btn--${variant}`}
         disabled={disabled || busy}

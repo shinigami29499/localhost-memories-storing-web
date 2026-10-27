@@ -22,12 +22,14 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPostRepository, PostRepository>();
         services.AddScoped<ICommentRepository, CommentRepository>();
         services.AddScoped<IReactionRepository, ReactionRepository>();
+        services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<IMediaRepository, MediaRepository>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IPostService, PostService>();
         services.AddScoped<ICommentService, CommentService>();
         services.AddScoped<IReactionService, ReactionService>();
+        services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IMediaService, MediaService>();
 
         return services;

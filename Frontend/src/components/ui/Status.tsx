@@ -1,30 +1,34 @@
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
+import { useLocale } from "../../context/LocaleContext";
 
 export function Spinner({ label = "Loading…" }: { label?: string }) {
+  const { t } = useLocale();
   return (
     <div className="spinner" role="status" aria-live="polite">
       <LoaderCircle className="spinner__wheel" aria-hidden="true" />
-      <span>{label}</span>
+      <span>{t(label)}</span>
     </div>
   );
 }
 
 export function EmptyState({ title, hint }: { title: string; hint?: string }) {
+  const { t } = useLocale();
   return (
     <div className="empty-state">
-      <p className="empty-state__title">{title}</p>
-      {hint ? <p className="empty-state__hint">{hint}</p> : null}
+      <p className="empty-state__title">{t(title)}</p>
+      {hint ? <p className="empty-state__hint">{t(hint)}</p> : null}
     </div>
   );
 }
 
 export function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
+  const { t } = useLocale();
   return (
     <div className="error-state" role="alert">
-      <p>{message}</p>
+      <p>{t(message)}</p>
       {onRetry ? (
         <button className="btn btn--secondary" onClick={onRetry}>
-          Try again
+          {t("Try again")}
         </button>
       ) : null}
     </div>

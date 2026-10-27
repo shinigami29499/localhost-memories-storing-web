@@ -1,5 +1,6 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.IdentityModel.Tokens;
 using Apis.Core;
 using Apis.Interfaces;
@@ -14,11 +15,14 @@ using Services.DependencyInjection;
 using Infrastructures.Adapters.Storage;
 using Infrastructures.Adapters.Implementations;
 using Infrastructures.Adapters.Interfaces;
+using Apis.Realtime;
 using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<IUserIdProvider, SubClaimUserIdProvider>();
 
 builder.Services.AddOptions<JwtOptions>()
     .Bind(builder.Configuration.GetSection(JwtOptions.SectionName))
@@ -84,6 +88,17 @@ builder.Services
 
         options.Events = new JwtBearerEvents
         {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                if (!string.IsNullOrEmpty(accessToken)
+                    && context.HttpContext.Request.Path.StartsWithSegments("/hubs/notifications"))
+                {
+                    context.Token = accessToken;
+                }
+
+                return Task.CompletedTask;
+            },
             OnChallenge = async context =>
             {
                 // Distinguish expired from missing/invalid tokens in the response detail.
@@ -116,15 +131,16 @@ builder.Services.AddSingleton<IMediaStorageService>(sp => sp.GetRequiredService<
 builder.Services.AddApplicationServices();
 
 var mediaStorage = builder.Configuration.GetSection(MediaStorageOptions.SectionName).Get<MediaStorageOptions>()!;
+var maxFileSectionLength = (mediaStorage.MaxFileMegabytes + 10L) * 1024L * 1024L;
 
 builder.WebHost.ConfigureKestrel(options =>
 {
-    options.Limits.MaxRequestBodySize = (mediaStorage.MaxFileMegabytes + 10) * 1024L * 1024L; // + multipart overhead
+    options.Limits.MaxRequestBodySize = PostUploadLimits.MaxTotalBytes + 10L * 1024L * 1024L;
 });
 
 builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
 {
-    options.MultipartBodyLengthLimit = (mediaStorage.MaxFileMegabytes + 10) * 1024L * 1024L;
+    options.MultipartBodyLengthLimit = maxFileSectionLength;
 });
 
 builder.Services.AddEndpointsApiExplorer();
@@ -144,6 +160,7 @@ app.UseCors("Frontend");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<NotificationsHub>("/hubs/notifications").RequireAuthorization();
 
 await DataSeeder.SeedAsync(app.Services);
 

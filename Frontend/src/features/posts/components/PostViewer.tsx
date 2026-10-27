@@ -6,6 +6,7 @@ import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import type { Post } from "../types";
 import { ErrorState } from "../../../components/ui/Status";
 import { PostCard } from "./PostCard";
+import { useLocale } from "../../../context/LocaleContext";
 
 interface Props {
   posts: Post[];
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export function PostViewer({ posts, total, hasMore, loadMore, onChanged, onDeleted }: Props) {
+  const { t } = useLocale();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
@@ -58,30 +60,30 @@ export function PostViewer({ posts, total, hasMore, loadMore, onChanged, onDelet
     <div className="post-viewer">
       <div className="post-viewer__toolbar">
         <div>
-          <span className="post-viewer__eyebrow">One moment at a time</span>
+          <span className="post-viewer__eyebrow">{t("One moment at a time")}</span>
           <p className="post-viewer__position" role="status">
-            {post ? `Post ${index + 1} of ${total}` : "More moments to explore"}
+            {post ? t("Post {current} of {total}", { current: index + 1, total }) : t("More moments to explore")}
           </p>
         </div>
-        <div className="post-viewer__navigation" aria-label="Post navigation">
-          <AnimateIcon animateOnHover asChild>
+        <div className="post-viewer__navigation" aria-label={t("Post navigation")}>
+          <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
             <button
               type="button"
               className="viewer-icon-btn"
-              aria-label="Previous post"
-              title="Previous post"
+              aria-label={t("Previous post")}
+              title={t("Previous post")}
               disabled={index === 0 || loading}
               onClick={previous}
             >
               <ArrowLeft size={20} aria-hidden="true" />
             </button>
           </AnimateIcon>
-          <AnimateIcon animateOnHover asChild>
+          <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
             <button
               type="button"
               className="viewer-icon-btn"
-              aria-label={loading ? "Loading next post" : "Next post"}
-              title="Next post"
+              aria-label={t(loading ? "Loading next post" : "Next post")}
+              title={t("Next post")}
               disabled={(index === posts.length - 1 && !hasMore) || loading}
               onClick={() => void next()}
             >
@@ -91,13 +93,12 @@ export function PostViewer({ posts, total, hasMore, loadMore, onChanged, onDelet
         </div>
       </div>
       <p className="post-viewer__hint" id="post-viewer-hint">
-        Use the arrows or click the image edges for previous/next, or the center to zoom.
-        Multi-photo posts navigate photos; single-image posts navigate moments.
+        {t("Use the arrows, swipe, or tap the image edges for previous/next, or the center to zoom. Multi-photo posts navigate photos; single-image posts navigate moments.")}
       </p>
       <div
         className="post-viewer__stage"
         role="region"
-        aria-label="Post viewer"
+        aria-label={t("Post viewer")}
         aria-roledescription="carousel"
         aria-describedby="post-viewer-hint"
         aria-busy={loading}
@@ -123,9 +124,9 @@ export function PostViewer({ posts, total, hasMore, loadMore, onChanged, onDelet
               onDeleted(id);
             }}
           />
-        ) : <p>Use the next arrow to load more posts.</p>}
+        ) : <p>{t("Use the next arrow to load more posts.")}</p>}
       </div>
-      {error ? <ErrorState message="Could not load the next post." onRetry={() => void next()} /> : null}
+      {error ? <ErrorState message={t("Could not load the next post.")} onRetry={() => void next()} /> : null}
     </div>
   );
 }

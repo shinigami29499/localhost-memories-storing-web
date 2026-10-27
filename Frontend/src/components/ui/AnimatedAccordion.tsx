@@ -8,7 +8,7 @@ export function AnimatedAccordion() {
     <AccordionPrimitive.Root type="single" collapsible className="w-full max-w-md space-y-2">
       <AccordionPrimitive.Item value="item-1" className="border border-neutral-800 rounded-lg overflow-hidden bg-neutral-900/50">
         <AccordionPrimitive.Header className="flex">
-          <AnimateIcon animateOnHover asChild>
+          <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
             <AccordionPrimitive.Trigger className="flex flex-1 items-center justify-between p-4 font-medium text-neutral-200 transition-colors hover:bg-neutral-800/50">
               What is Animate UI?
               <ChevronDown className="h-4 w-4 text-neutral-400 transition-transform duration-200" />
@@ -24,7 +24,7 @@ export function AnimatedAccordion() {
 
       <AccordionPrimitive.Item value="item-2" className="border border-neutral-800 rounded-lg overflow-hidden bg-neutral-900/50">
         <AccordionPrimitive.Header className="flex">
-          <AnimateIcon animateOnHover asChild>
+          <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
             <AccordionPrimitive.Trigger className="flex flex-1 items-center justify-between p-4 font-medium text-neutral-200 transition-colors hover:bg-neutral-800/50">
               How does it work?
               <ChevronDown className="h-4 w-4 text-neutral-400 transition-transform duration-200" />

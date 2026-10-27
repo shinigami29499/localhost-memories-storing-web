@@ -4,10 +4,12 @@ import { Check } from '@/components/animate-ui/icons/check';
 import { ShieldCheck } from '@/components/animate-ui/icons/shield-check';
 import { X } from '@/components/animate-ui/icons/x';
 import './toast.css';
+import { useLocale } from "../../context/LocaleContext";
 
 export const toastManager = AnimateToast.createToastManager();
 
 export function Toaster() {
+  const { t } = useLocale();
   const { toasts } = AnimateToast.useToastManager();
 
   return (
@@ -16,7 +18,7 @@ export function Toaster() {
         {toasts.map((toast) => (
           <AnimateToast.Root key={toast.id} toast={toast} className="toast-root">
             <AnimateToast.Content className="toast-content">
-              <AnimateIcon animateOnHover asChild>
+              <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
                 <div className="toast-icon-wrapper" data-slot="toast-icon">
                   {toast.type === 'success' || toast.type === undefined ? (
                     <Check size={18} className="toast-icon toast-icon--success" aria-hidden="true" />
@@ -31,8 +33,8 @@ export function Toaster() {
                 <AnimateToast.Title className="toast-title" />
                 <AnimateToast.Description className="toast-description" />
               </div>
-              <AnimateIcon animateOnHover asChild>
-                <AnimateToast.Close className="toast-close" aria-label="Close">
+              <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
+                <AnimateToast.Close className="toast-close" aria-label={t("Close")}>
                   <X size={14} aria-hidden="true" />
                 </AnimateToast.Close>
               </AnimateIcon>

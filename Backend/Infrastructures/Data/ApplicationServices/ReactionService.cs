@@ -4,19 +4,23 @@ using Services.Exceptions;
 using Services.Models.Posts;
 using Services.Interfaces;
 using Domains.Entities;
+using Domains.Enums;
+using Services.Responses.Reactions;
 
 namespace Infrastructures.Data.ApplicationServices;
 
 public class ReactionService(
     IReactionRepository repository,
     IUnitOfWork unitOfWork,
-    ILogger<ReactionService> logger) : IReactionService
+    ILogger<ReactionService> logger,
+    INotificationRepository notificationRepository) : IReactionService
 {
     private readonly IReactionRepository _repository = repository;
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
     private readonly ILogger<ReactionService> _logger = logger;
+    private readonly INotificationRepository _notificationRepository = notificationRepository;
 
-    public async Task<IReadOnlyList<ReactionCountDto>> ReactAsync(
+    public async Task<ReactionResult> ReactAsync(
         Guid postId, Guid userId, string reactionType, CancellationToken cancellationToken = default)
     {
         if (!await _repository.PostExistsAsync(postId, cancellationToken))
@@ -24,7 +28,7 @@ public class ReactionService(
 
         var active = await _repository.FindReactionAsync(postId, userId, reactionType, includeDeleted: false, cancellationToken);
         if (active is not null)
-            return await GetCountsAsync(postId, cancellationToken);
+            return new ReactionResult(await GetCountsAsync(postId, cancellationToken), null);
 
         // Revive deleted reactions to preserve their history.
         var previouslyDeleted = await _repository.FindReactionAsync(
@@ -48,8 +52,10 @@ public class ReactionService(
             });
         }
 
+        var notification = await _notificationRepository.AddPostActivityNotificationAsync(
+            postId, userId, NotificationTypes.ReactionAdded, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
-        return await GetCountsAsync(postId, cancellationToken);
+        return new ReactionResult(await GetCountsAsync(postId, cancellationToken), notification);
     }
 
     public async Task<IReadOnlyList<ReactionCountDto>> UnreactAsync(

@@ -10,6 +10,15 @@
   pointer-events: none;
 }
 
+@media (max-width: 560px) {
+  .toast-viewport {
+    left: 12px;
+    right: 12px;
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    width: auto;
+  }
+}
+
 .toast-root {
   pointer-events: auto;
   background: var(--surface-raised, #12161f);

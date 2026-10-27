@@ -1,9 +1,11 @@
 import { useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import type { Post } from "../types";
 import { ErrorState } from "../../../components/ui/Status";
 import { PostCard } from "./PostCard";
 import "./PostList.css";
+import { useLocale } from "../../../context/LocaleContext";
 
 interface PostListProps {
   posts: Post[];
@@ -28,6 +30,8 @@ export function PostList({
   onChanged,
   onDeleted,
 }: PostListProps) {
+  const { t } = useLocale();
+  const navigate = useNavigate();
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -48,7 +52,7 @@ export function PostList({
     return (
       <div className="post-list-loading" role="status">
         <LoaderCircle className="spinner__wheel" aria-hidden="true" />
-        <span>Loading posts...</span>
+        <span>{t("Loading posts...")}</span>
       </div>
     );
   }
@@ -66,6 +70,7 @@ export function PostList({
             post={post}
             onChanged={onChanged}
             onDeleted={onDeleted}
+            onCommentClick={() => navigate(`/posts/${post.id}`)}
           />
         ))}
       </div>
@@ -76,10 +81,10 @@ export function PostList({
       ) : isFetching ? (
         <div className="post-list-fetching" role="status">
           <LoaderCircle className="spinner__wheel" aria-hidden="true" />
-          <span>Loading...</span>
+          <span>{t("Loading...")}</span>
         </div>
       ) : !hasNextPage ? (
-        <p className="post-list-end" role="status">No more posts to show.</p>
+        <p className="post-list-end" role="status">{t("No more posts to show.")}</p>
       ) : null}
     </div>
   );

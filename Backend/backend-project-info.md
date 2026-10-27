@@ -59,12 +59,15 @@ The Infrastructures project's Data area hosts workflow orchestration that coordi
 | ---------------------------------------------- | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
 | Authentication (register/login/refresh/logout) | `AuthController.cs`      | `Data/ApplicationServices/AuthService.cs`, `Services/Implementations/TokenService.cs`, and Data-owned persistence interfaces |
 | Posts (feed, CRUD)                             | `PostsController.cs`     | `Data/ApplicationServices/PostService.cs` → Data repositories and media storage port                                         |
+| Notifications                                  | `NotificationsController.cs` | `Data/ApplicationServices/NotificationService.cs` → notification repository; `NotificationsHub` delivers post, comment, and reaction notifications over SignalR |
 | Comments                                       | `CommentsController.cs`  | `Data/ApplicationServices/CommentService.cs` → Data repository and transaction interfaces                                    |
 | Reactions                                      | `ReactionsController.cs` | `Data/ApplicationServices/ReactionService.cs` → Data repository and transaction interfaces                                   |
 | Media (file access, delete, restore)           | `MediaController.cs`     | `Data/ApplicationServices/MediaService.cs` → Data repository, transaction, and media storage port                            |
 | Admin user management (list/approve/delete)    | `UsersController.cs`     | `Data/ApplicationServices/UserService.cs` → Data repository and transaction interfaces                                       |
 
 Repositories return domain entities or query results; workflows do not compose EF queries. `IUnitOfWork` provides asynchronous save and transaction operations without exposing EF Core transaction types.
+
+Post creation persists one notification for each other active user in the same database save as the post and uploaded media metadata. Comments and new reactions persist a notification only for the post owner, excluding activity by the owner themselves; each notification is saved in the same database save as its comment or reaction. Authenticated clients receive notifications through `/hubs/notifications`; `GET /api/notifications` returns recent notifications and the unread count, and `POST /api/notifications/{id}/read` marks an item as read. Apply the EF Core migrations for the notification table and notification type before deploying these changes.
 
 ## Runtime configuration
 

@@ -7,4 +7,5 @@ public interface ICurrentUserContext
     string? Username { get; }
     bool IsAdmin { get; }
     Guid RequireUserId();
+    string RequireUsername();
 }

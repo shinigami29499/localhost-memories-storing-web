@@ -1,0 +1,5 @@
+.post-detail {
+  width: min(100% - 32px, 780px);
+  margin: 0 auto;
+  padding: 48px 0 80px;
+}

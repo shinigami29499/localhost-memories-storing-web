@@ -2,9 +2,11 @@ import { useQueryClient, type InfiniteData } from "@tanstack/react-query";
 import { NewPostForm, PostList, useFeed, type FeedPage, type Post } from "../../features/posts";
 import { CommunityIntro } from "../../components/layout/CommunityIntro";
 import { EmptyState, ErrorState } from "../../components/ui/Status";
+import { useLocale } from "../../context/LocaleContext";
 import "./home.css";
 
 export function HomePage() {
+  const { t } = useLocale();
   const feed = useFeed(5);
   const queryClient = useQueryClient();
 
@@ -55,8 +57,8 @@ export function HomePage() {
           ) : null}
           {!feed.isError && !feed.isLoading && posts.length === 0 ? (
             <EmptyState
-              title="Nothing here yet"
-              hint="Be the first to share an image or video with the community."
+              title={t("Nothing here yet")}
+              hint={t("Be the first to share an image or video with the community.")}
             />
           ) : null}
 
@@ -72,7 +74,7 @@ export function HomePage() {
             onDeleted={onDeleted}
           />
         </section>
-        <aside className="community-rail" aria-label="Create a post">
+        <aside className="community-rail" aria-label={t("Create a post")}>
           <NewPostForm onCreated={onCreated} />
         </aside>
       </div>

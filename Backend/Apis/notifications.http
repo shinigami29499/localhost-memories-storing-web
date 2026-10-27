@@ -1,0 +1,6 @@
+@baseUrl = http://localhost:8000
+@token = replace-with-access-token
+
+### Mark all notifications as read
+POST {{baseUrl}}/api/notifications/read
+Authorization: Bearer {{token}}

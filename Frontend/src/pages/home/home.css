@@ -14,7 +14,7 @@
 
 .community-rail {
   position: sticky;
-  top: 24px;
+  top: calc(var(--app-topbar-height) + 24px);
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -154,7 +154,7 @@
 
 @media (max-width: 560px) {
   .community-page {
-    padding: 24px 16px 48px;
+    padding: 0 16px 48px;
   }
 
   .community-intro--feed {
@@ -162,5 +162,36 @@
     margin-right: -16px;
     padding-left: 16px;
     padding-right: 16px;
+    padding-top: 24px;
+    margin-bottom: 20px;
+    background-attachment: scroll;
+  }
+
+  .community-layout {
+    gap: 16px;
+  }
+
+  .feed {
+    gap: 16px;
+  }
+
+  .post-viewer__toolbar {
+    gap: 12px;
+  }
+
+  .post-viewer__stage {
+    margin-inline: -16px;
+    border-radius: 0;
+  }
+
+  .post-viewer__stage .post-card {
+    border-radius: 0;
+    border-inline: 0;
+  }
+
+  .post-viewer__stage .post-card__footer,
+  .post-viewer__stage .reactions__chip,
+  .post-viewer__stage .post-card__comment-action {
+    border-radius: 0;
   }
 }

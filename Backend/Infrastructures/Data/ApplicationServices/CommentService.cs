@@ -4,6 +4,8 @@ using Services.Models.Comments;
 using Services.Exceptions;
 using Services.Interfaces;
 using Domains.Entities;
+using Domains.Enums;
+using Services.Responses.Comments;
 
 namespace Infrastructures.Data.ApplicationServices;
 
@@ -11,11 +13,13 @@ public class CommentService(
     ICommentRepository repository,
     IUnitOfWork unitOfWork,
     ILogger<CommentService> logger,
-    IMapper mapper) : ICommentService
+    IMapper mapper,
+    INotificationRepository notificationRepository) : ICommentService
 {
     private readonly ICommentRepository _repository = repository;
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
     private readonly ILogger<CommentService> _logger = logger;
+    private readonly INotificationRepository _notificationRepository = notificationRepository;
 
     public async Task<IReadOnlyList<CommentDto>> GetCommentsAsync(
         Guid postId, int offset, int limit, CancellationToken cancellationToken = default)
@@ -30,7 +34,7 @@ public class CommentService(
         return pageItems.Select(comment => mapper.Map(comment, comment.User)).ToList();
     }
 
-    public async Task<CommentDto> AddCommentAsync(
+    public async Task<CommentCreationResult> AddCommentAsync(
         Guid postId, Guid authorId, string content, CancellationToken cancellationToken = default)
     {
         var postExists = await _repository.PostExistsAsync(postId, cancellationToken);
@@ -45,12 +49,14 @@ public class CommentService(
         };
 
         _repository.AddComment(comment);
+        var notification = await _notificationRepository.AddPostActivityNotificationAsync(
+            postId, authorId, NotificationTypes.CommentAdded, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         var author = await _repository.FindUserAsync(authorId, cancellationToken)
             ?? throw new NotFoundException($"User '{authorId}' was not found.");
         _logger.LogInformation("User {UserId} commented on post {PostId}", authorId, postId);
-        return mapper.Map(comment, author);
+        return new CommentCreationResult(mapper.Map(comment, author), notification);
     }
 
     public async Task<CommentDto> UpdateCommentAsync(

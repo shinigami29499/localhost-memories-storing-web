@@ -16,6 +16,12 @@ vi.mock("@/components/animate-ui/icons/paperclip", async () => {
   return { Paperclip: () => <svg data-paperclip data-animated={String(useAnimateIconContext().active === true)} /> };
 });
 
+function createFileWithSize(name: string, size: number): File {
+  const file = new File(["x"], name, { type: "image/png" });
+  Object.defineProperty(file, "size", { configurable: true, value: size });
+  return file;
+}
+
 describe("NewPostForm", () => {
   let container: HTMLDivElement;
   let root: Root;
@@ -114,13 +120,42 @@ describe("NewPostForm", () => {
       fileInput.dispatchEvent(new Event("change", { bubbles: true }));
     });
 
-    const postButton = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.textContent?.includes("Post"))!;
+    const postButton = container.querySelector<HTMLButtonElement>('button[aria-label="Post"]')!;
     expect(postButton.disabled).toBe(false);
     await act(async () => {
       postButton.click();
     });
 
     expect(postService.create).toHaveBeenCalledWith(undefined, [sampleFile]);
+  });
+
+  it("allows up to 20 GB of selected media and rejects files that exceed the combined limit", async () => {
+    await act(async () => root.render(<NewPostForm onCreated={vi.fn()} />));
+
+    const maxFileBytes = 100 * 1024 * 1024;
+    const atLimitFiles = [
+      ...Array.from({ length: 204 }, (_, index) => createFileWithSize(`photo-${index}.png`, maxFileBytes)),
+      createFileWithSize("last-photo.png", 80 * 1024 * 1024),
+    ];
+    const fileInput = container.querySelector<HTMLInputElement>('input[type="file"]')!;
+
+    Object.defineProperty(fileInput, "files", { configurable: true, value: atLimitFiles });
+    await act(async () => {
+      fileInput.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+
+    expect(container.querySelectorAll(".new-post__chip")).toHaveLength(atLimitFiles.length);
+    expect(container.textContent).toContain("20 GB total per post");
+
+    Object.defineProperty(fileInput, "files", {
+      configurable: true,
+      value: [createFileWithSize("over-limit.png", 1)],
+    });
+    await act(async () => {
+      fileInput.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+
+    expect(container.querySelectorAll(".new-post__chip")).toHaveLength(atLimitFiles.length);
+    expect(container.textContent).toContain("would exceed the 20 GB total limit");
   });
 });

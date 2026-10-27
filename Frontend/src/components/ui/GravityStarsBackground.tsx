@@ -34,7 +34,7 @@ type Particle = {
 };
 
 export function GravityStarsBackground({
-  starsCount = 500,
+  starsCount = 100,
   starsSize = 3,
   starsOpacity = 0.75,
   glowIntensity = 7.5,

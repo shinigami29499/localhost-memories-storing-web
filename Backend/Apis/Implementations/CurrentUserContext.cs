@@ -21,5 +21,8 @@ public class CurrentUserContext(IHttpContextAccessor httpContextAccessor) : ICur
     public Guid RequireUserId() =>
         UserId ?? throw new UnauthorizedAccessException("An authenticated user is required.");
 
+    public string RequireUsername() =>
+        Username ?? throw new UnauthorizedAccessException("An authenticated user is required.");
+
     Guid? IAuditActorProvider.GetActor() => UserId;
 }

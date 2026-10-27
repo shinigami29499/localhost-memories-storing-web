@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { ApiError } from "../../services/api";
 import { Button } from "./Button";
 import { AlertDialog } from "@animate-ui/react/primitives/base-ui/alert-dialog";
+import { useLocale } from "../../context/LocaleContext";
 
 interface Props {
   title: string;
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export function ConfirmationDialog({ title, children, danger, onConfirm, onClose }: Props) {
+  const { t } = useLocale();
   const cancelRef = useRef<HTMLButtonElement>(null);
   const pending = useRef(false);
   const [busy, setBusy] = useState(false);
@@ -32,7 +34,7 @@ export function ConfirmationDialog({ title, children, danger, onConfirm, onClose
     try {
       await onConfirm();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not complete this action. Please retry.");
+      setError(err instanceof ApiError ? err.message : t("Could not complete this action. Please retry."));
       pending.current = false;
       setBusy(false);
       return;
@@ -51,13 +53,13 @@ export function ConfirmationDialog({ title, children, danger, onConfirm, onClose
           }}
         >
           <AlertDialog.Popup from="top" className="confirmation-dialog" onClick={(e) => e.stopPropagation()}>
-            <AnimateIcon animateOnHover asChild>
-              <button type="button" className="btn btn--ghost confirmation-dialog__close" aria-label="Cancel action" title="Cancel action" disabled={busy} onClick={cancel}>
+            <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
+              <button type="button" className="btn btn--ghost confirmation-dialog__close" aria-label={t("Cancel action")} title={t("Cancel action")} disabled={busy} onClick={cancel}>
                 <X size={20} aria-hidden="true" />
               </button>
             </AnimateIcon>
             <AlertDialog.Title asChild>
-              <h2 className="confirmation-dialog__title">{title}</h2>
+              <h2 className="confirmation-dialog__title">{t(title)}</h2>
             </AlertDialog.Title>
             <AlertDialog.Description asChild>
               <div>
@@ -66,8 +68,8 @@ export function ConfirmationDialog({ title, children, danger, onConfirm, onClose
             </AlertDialog.Description>
             {error ? <p className="confirmation-dialog__error" role="alert">{error}</p> : null}
             <footer className="confirmation-dialog__actions">
-              <button ref={cancelRef} type="button" className="btn btn--secondary" disabled={busy} onClick={cancel}>Cancel</button>
-              <Button type="button" variant={danger ? "danger" : "primary"} busy={busy} onClick={() => void confirm()}>Continue</Button>
+              <button ref={cancelRef} type="button" className="btn btn--secondary" disabled={busy} onClick={cancel}>{t("Cancel")}</button>
+              <Button type="button" variant={danger ? "danger" : "primary"} busy={busy} onClick={() => void confirm()}>{t("Continue")}</Button>
             </footer>
           </AlertDialog.Popup>
         </AlertDialog.Viewport>

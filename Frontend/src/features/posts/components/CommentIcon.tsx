@@ -10,7 +10,7 @@ export function CommentIcon({ size = 20, animate = false }: { size?: number; ani
 
   if (animate) {
     return (
-      <AnimateIcon animateOnHover animateOnTap>
+      <AnimateIcon animateOnHover animateOnTap completeOnStop>
         <MessageCircle size={size} strokeWidth={1.7} aria-hidden="true" />
       </AnimateIcon>
     );

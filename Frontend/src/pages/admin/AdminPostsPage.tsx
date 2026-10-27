@@ -1,30 +1,41 @@
 import { AnimateIcon } from "@animate-ui/react/icons";
 import { Tabs } from "@animate-ui/react/primitives/base-ui/tabs";
+import { Highlight, HighlightItem } from "@animate-ui/react/primitives/effects/highlight";
 import { useEffect, useState } from "react";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DeletePostDialog, postService, type AdminPost, type PagedFeed } from "../../features/posts";
 import { ApiError } from "../../services/api";
 import { EmptyState, ErrorState, Spinner, showToast } from "../../components/ui";
 import { Eye } from "@/components/animate-ui/icons/eye";
+import { Clapperboard } from "@/components/animate-ui/icons/clapperboard";
 import { Image } from "@/components/animate-ui/icons/image";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import { RotateCcw } from "@/components/animate-ui/icons/rotate-ccw";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
-import { Video } from "@/components/animate-ui/icons/video";
 import { ConfirmationDialog } from "../../components/ui/ConfirmationDialog";
 import { Pagination, DEFAULT_PAGE_SIZE } from "../../components/ui/Pagination";
 import { mediaUrl } from "../../utils/media";
 import { AdminMediaPreview } from "./AdminMediaPreview";
 import type { PostTab } from "../../features/posts/hooks/useAdminPosts";
 import "./admin.css";
+import { useLocale } from "../../context/LocaleContext";
+
+const postTabs = [
+  { value: "all", label: "All" },
+  { value: "image", label: "Image", icon: Image },
+  { value: "video", label: "Video", icon: Clapperboard },
+] satisfies { value: PostTab; label: string; icon?: typeof Image }[];
 
 export function AdminPostsPage() {
+  const { t } = useLocale();
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
   const [previewPost, setPreviewPost] = useState<AdminPost | null>(null);
   const [deletePost, setDeletePost] = useState<AdminPost | null>(null);
   const [restorePost, setRestorePost] = useState<AdminPost | null>(null);
   const [tab, setTab] = useState<PostTab>("all");
+  const [hoveredTab, setHoveredTab] = useState<PostTab | null>(null);
+  const [focusedTab, setFocusedTab] = useState<PostTab | null>(null);
   const [offset, setOffset] = useState(0);
   const [limit, setLimit] = useState<number>(() => {
     const stored = Number(window.localStorage.getItem("admin-posts.limit"));
@@ -69,7 +80,7 @@ export function AdminPostsPage() {
   const restore = useMutation({
     mutationFn: (postId: string) => postService.restore(postId),
     onSuccess: (_data, postId) => {
-      showToast.success("Post restored successfully");
+      showToast.success(t("Post restored successfully"));
       copyRemoved(postId);
     },
     onError: (err) => setError(err instanceof ApiError ? err.message : "Could not restore the post."),
@@ -79,32 +90,60 @@ export function AdminPostsPage() {
 
   return (
     <>
-      <main className="admin-page admin-page--posts" aria-label="Post management">
+      <main className="admin-page admin-page--posts" aria-label={t("Post management")}>
         <div className="admin__heading">
         </div>
 
         {error ? <ErrorState message={error} onRetry={() => setError(null)} /> : null}
 
-        {posts.isLoading ? <Spinner label="Loading posts…" /> : null}
+        {posts.isLoading ?         <Spinner label={t("Loading posts…")} /> : null}
         {posts.isError ? (
-          <ErrorState message="Could not load posts." onRetry={() => void posts.refetch()} />
+          <ErrorState message={t("Could not load posts.")} onRetry={() => void posts.refetch()} />
         ) : null}
 
-        <Tabs.Root value={tab} onValueChange={(value: string) => { setTab(value as PostTab); setOffset(0); }}>
-          <Tabs.List className="admin-tabs" aria-label="Filter posts by media type">
-            <Tabs.Tab value="all" className="admin-tab">
-              All
-            </Tabs.Tab>
-            <Tabs.Tab value="image" className="admin-tab">
-              <Image size={16} aria-hidden="true" />
-              Image
-            </Tabs.Tab>
-            <Tabs.Tab value="video" className="admin-tab">
-              <Video size={16} aria-hidden="true" />
-              Video
-            </Tabs.Tab>
-            <Tabs.Indicator className="admin-tab-indicator" />
-          </Tabs.List>
+        <Tabs.Root value={tab} onValueChange={(value) => {
+          if (value === "all" || value === "image" || value === "video") {
+            setTab(value);
+            setOffset(0);
+          }
+        }}>
+          <Highlight
+            mode="parent"
+            controlledItems
+            value={hoveredTab ?? focusedTab}
+            click={false}
+            className="admin-tab-highlight"
+            containerClassName="admin-tabs-highlight"
+            exitDelay={0}
+          >
+            <Tabs.List
+              className="admin-tabs"
+              aria-label={t("Filter posts by media type")}
+              onPointerLeave={() => setHoveredTab(null)}
+            >
+              {postTabs.map(({ value, label, icon: Icon }) => (
+                <HighlightItem key={value} value={value} asChild>
+                  <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
+                    <Tabs.Tab
+                      value={value}
+                      className="admin-tab"
+                      onPointerEnter={(event) => {
+                        if (event.pointerType !== "touch" && window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+                          setHoveredTab(value);
+                        }
+                      }}
+                      onFocus={() => setFocusedTab(value)}
+                      onBlur={() => setFocusedTab(null)}
+                    >
+                      {Icon ? <Icon size={16} aria-hidden="true" /> : null}
+                      {t(label)}
+                    </Tabs.Tab>
+                  </AnimateIcon>
+                </HighlightItem>
+              ))}
+              <Tabs.Indicator className="admin-tab-indicator" />
+            </Tabs.List>
+          </Highlight>
 
           <Tabs.Panel value="all">
             <PostsPanel
@@ -145,7 +184,7 @@ export function AdminPostsPage() {
         </Tabs.Root>
 
         {posts.data ? (
-          <footer className="admin-posts__footer" aria-label="Post pagination controls">
+          <footer className="admin-posts__footer" aria-label={t("Post pagination controls")}>
             <Pagination
               page={page}
               pageSize={limit}
@@ -172,11 +211,11 @@ export function AdminPostsPage() {
       ) : null}
       {restorePost ? (
         <ConfirmationDialog
-          title="Restore this post?"
+          title={t("Restore this post?")}
           onClose={() => setRestorePost(null)}
           onConfirm={async () => { await restore.mutateAsync(restorePost.id); }}
         >
-          <p>Restore the post by {restorePost.author.username} and its media from trash? It will be visible in the feed again.</p>
+          <p>{t("Restore the post by {username} and its media from trash? It will be visible in the feed again.", { username: restorePost.author.username })}</p>
         </ConfirmationDialog>
       ) : null}
     </>
@@ -243,6 +282,7 @@ interface AdminPostCardProps {
 function AdminPostCard({
   post, onPreview, isLoading, isRestoring, onRestore, onDelete,
 }: AdminPostCardProps) {
+  const { language, t } = useLocale();
   const isDeleted = post.deletedAt !== null;
 
   return (
@@ -252,12 +292,12 @@ function AdminPostCard({
         type="button"
         className="admin-post__media"
         disabled={post.media.length === 0}
-        aria-label={`Preview media for post by ${post.author.username}`}
-        title="Preview media"
+        aria-label={t("Preview media for post by {username}", { username: post.author.username })}
+        title={t("Preview media")}
         onClick={onPreview}
       >
         {post.media.length === 0 ? (
-          <span className="admin-post__placeholder">No media</span>
+          <span className="admin-post__placeholder">{t("No media")}</span>
         ) : post.media[0].mediaKind === "video" ? (
           <video src={mediaUrl(post.media[0].id, true)} preload="metadata" muted aria-hidden="true" />
         ) : (
@@ -268,62 +308,64 @@ function AdminPostCard({
 
       <div className="admin-post__body">
         <div className="admin-post__topline">
-          <span className={isDeleted ? "admin-post__status admin-post__status--deleted" : "admin-post__status"}>
-            {isDeleted ? "Deleted" : "Active"}
-          </span>
-          <span className="admin-post__date">{new Date(post.createdAt).toLocaleDateString()}</span>
+          {isDeleted ? (
+            <span className="admin-post__status admin-post__status--deleted">
+              {t("Deleted")}
+            </span>
+          ) : null}
+          <span className="admin-post__date">{new Date(post.createdAt).toLocaleDateString(language === "vi" ? "vi-VN" : "en-US")}</span>
         </div>
 
         <p className="admin-post__caption" title={post.caption}>{post.caption}</p>
 
         <div className="admin-post__meta">
-          <span>By {post.author.username}</span>
-          <span>{post.mediaCount} media</span>
-          <span>{post.commentCount} comments</span>
+          <span className="admin-post__author">{t("By {username}", { username: post.author.username })}</span>
+          <span className="admin-post__media-count">{t("{count} media", { count: post.mediaCount })}</span>
+          <span className="admin-post__comment-count">{t("{count} comments", { count: post.commentCount })}</span>
         </div>
 
         {post.deletedAt !== null ? (
           <p className="admin-post__deleted-info">
-            Deleted {new Date(post.deletedAt).toLocaleDateString()}
-            {post.deletedBy ? ` by ${post.deletedBy.username}` : ""}
+            {t("Deleted")} {new Date(post.deletedAt).toLocaleDateString(language === "vi" ? "vi-VN" : "en-US")}
+            {post.deletedBy ? ` ${t("By {username}", { username: post.deletedBy.username })}` : ""}
           </p>
         ) : null}
 
         <div className="admin-post__actions">
-          <AnimateIcon animateOnHover asChild>
+          <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
             <button
               type="button"
               className="btn btn--secondary admin-icon-btn"
               disabled={post.media.length === 0 || isLoading}
-              aria-label={`Open media preview for post by ${post.author.username}`}
-              title="Preview media"
+              aria-label={t("Open media preview for post by {username}", { username: post.author.username })}
+              title={t("Preview media")}
               onClick={onPreview}
             >
               <Eye size={18} aria-hidden="true" />
             </button>
           </AnimateIcon>
           {isDeleted ? (
-            <AnimateIcon animateOnHover asChild>
+            <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
               <button
                 type="button"
                 className="btn btn--primary admin-icon-btn"
                 disabled={isLoading}
                 aria-busy={isRestoring || undefined}
-                aria-label={`Restore post by ${post.author.username}`}
-                title="Restore post"
+                aria-label={t("Restore post by {username}", { username: post.author.username })}
+                title={t("Restore post")}
                 onClick={onRestore}
               >
                 {isRestoring ? <LoaderCircle animate={false} className="btn__spinner" aria-hidden="true" /> : <RotateCcw size={16} aria-hidden="true" />}
               </button>
             </AnimateIcon>
           ) : null}
-          <AnimateIcon animateOnHover asChild>
+          <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
             <button
               type="button"
               className="btn btn--danger admin-icon-btn"
               disabled={isLoading}
-              aria-label={`Delete post by ${post.author.username}`}
-              title="Delete post"
+              aria-label={t("Delete post by {username}", { username: post.author.username })}
+              title={t("Delete post")}
               onClick={onDelete}
             >
               <Trash2 size={16} aria-hidden="true" />

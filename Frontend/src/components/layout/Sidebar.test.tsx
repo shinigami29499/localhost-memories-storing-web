@@ -2,14 +2,31 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AnimateUIProvider } from "@animate-ui/react/provider";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { ThemeProvider } from "../../context/ThemeContext";
 import { useAuthStore } from "../../store/authStore";
 import { AuthenticatedLayout } from "./AuthenticatedLayout";
 
 vi.mock("../animate-ui/icons/home", async () => {
   const { useAnimateIconContext } = await import("@animate-ui/react/icons");
   return { Home: () => <svg data-animated={String(useAnimateIconContext().active === true)} /> };
+});
+
+vi.mock("../animate-ui/icons/refresh-cw", async () => {
+  const { useAnimateIconContext } = await import("@animate-ui/react/icons");
+  return { RefreshCw: () => <svg data-animated={String(useAnimateIconContext().active === true)} /> };
+});
+
+vi.mock("../animate-ui/icons/download", async () => {
+  const { useAnimateIconContext } = await import("@animate-ui/react/icons");
+  return { Download: () => <svg data-animated={String(useAnimateIconContext().active === true)} /> };
+});
+
+vi.mock("../animate-ui/icons/upload", async () => {
+  const { useAnimateIconContext } = await import("@animate-ui/react/icons");
+  return { Upload: () => <svg data-animated={String(useAnimateIconContext().active === true)} /> };
 });
 
 vi.mock("../animate-ui/icons/users", async () => {
@@ -55,11 +72,15 @@ describe("Sidebar icon hover triggers", () => {
     root = createRoot(container);
     await act(async () => {
       root.render(
-        <AnimateUIProvider reducedMotion="never">
-          <MemoryRouter initialEntries={["/admin/users"]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-            <AuthenticatedLayout />
-          </MemoryRouter>
-        </AnimateUIProvider>,
+        <ThemeProvider>
+          <QueryClientProvider client={new QueryClient()}>
+            <AnimateUIProvider reducedMotion="never">
+              <MemoryRouter initialEntries={["/admin/users"]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+                <AuthenticatedLayout />
+              </MemoryRouter>
+            </AnimateUIProvider>
+          </QueryClientProvider>
+        </ThemeProvider>,
       );
     });
   });
@@ -90,6 +111,45 @@ describe("Sidebar icon hover triggers", () => {
     expect(link.querySelector("svg")?.getAttribute("data-animated")).toBe("false");
   });
 
+  it("shows Download and Upload under the expandable Sync group", async () => {
+    const navigation = container.querySelector<HTMLElement>(".sidebar__nav")!;
+    const groups = Array.from(navigation.children)
+      .filter((child) => child.classList.contains("sidebar__group"))
+      .map((group) => group.querySelector<HTMLButtonElement>(".sidebar__group-toggle")?.getAttribute("aria-label"));
+    const sync = container.querySelector<HTMLButtonElement>('[aria-label="Sync"]')!;
+    const syncActions = container.querySelector<HTMLElement>('[aria-label="Sync actions"]')!;
+    const items = Array.from(syncActions.querySelectorAll<HTMLElement>(".sidebar__sub-link"));
+
+    expect(groups).toEqual(["Admin", "Sync"]);
+    expect(sync.getAttribute("aria-expanded")).toBe("true");
+    expect(sync.querySelector("svg")?.getAttribute("data-animated")).toBe("false");
+    expect(items.map((item) => item.textContent?.trim())).toEqual(["Upload", "Download"]);
+    expect(items.every((item) => item.classList.contains("sidebar__link"))).toBe(true);
+    expect(items.every((item) => item.classList.contains("sidebar__link--static"))).toBe(true);
+    expect(items.map((item) => item.querySelector("svg")?.getAttribute("data-animated"))).toEqual(["false", "false"]);
+    expect(container.querySelector('[href="/sync/download"]')).toBeNull();
+    expect(container.querySelector('[href="/sync/upload"]')).toBeNull();
+
+    for (const item of items) {
+      const label = item.querySelector("span")!;
+      await act(async () => label.dispatchEvent(new MouseEvent("pointerover", { bubbles: true })));
+      expect(item.querySelector("svg")?.getAttribute("data-animated")).toBe("true");
+
+      await act(async () => label.dispatchEvent(new MouseEvent("pointerout", { bubbles: true, relatedTarget: document.body })));
+      expect(item.querySelector("svg")?.getAttribute("data-animated")).toBe("false");
+    }
+
+    await act(async () => sync.dispatchEvent(new MouseEvent("pointerover", { bubbles: true })));
+    expect(sync.querySelector("svg")?.getAttribute("data-animated")).toBe("true");
+
+    await act(async () => sync.dispatchEvent(new MouseEvent("pointerout", { bubbles: true, relatedTarget: document.body })));
+    expect(sync.querySelector("svg")?.getAttribute("data-animated")).toBe("false");
+
+    await act(async () => sync.click());
+
+    expect(sync.getAttribute("aria-expanded")).toBe("false");
+  });
+
   it("shows the account name and role and closes its menu on outside click", async () => {
     const account = container.querySelector<HTMLElement>(".sidebar__account")!;
     const trigger = account.querySelector<HTMLButtonElement>(".sidebar__account-trigger")!;
@@ -111,4 +171,5 @@ describe("Sidebar icon hover triggers", () => {
 
     expect(trigger.getAttribute("aria-expanded")).toBe("false");
   });
+
 });

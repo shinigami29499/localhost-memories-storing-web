@@ -146,3 +146,28 @@
     font-size: 0.75rem;
   }
 }
+
+@media (max-width: 480px) {
+  .login__header,
+  .login__footer {
+    padding: 16px;
+  }
+
+  .login {
+    padding: 16px 16px 32px;
+    gap: 24px;
+  }
+
+  .login .community-intro__description {
+    display: none;
+  }
+
+  .login__card {
+    padding: 22px 18px;
+    border-radius: 18px;
+  }
+
+  .login__subtitle {
+    margin-bottom: 20px;
+  }
+}

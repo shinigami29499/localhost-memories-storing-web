@@ -191,7 +191,7 @@ Errors are RFC 7807 problem details (`application/problem+json`).
 - `ConnectionStrings:Default` — PostgreSQL DSN
 - `Jwt:Key` — dev key; replace with user-secrets/env for anything beyond local dev
 - `MediaStorage:Root` — storage tree root (empty → `<Backend>/Storage`)
-- `MediaStorage:MaxFileMegabytes` — per-file upload limit
+- `MediaStorage:MaxFileMegabytes` — per-file upload limit (default 100 MB); each post can contain up to 20 GB total media
 - `Cors:AllowedOrigins` — `http://localhost:3000` by default
 - `Seed:*` — admin account seeding + auto-migrate toggle
 

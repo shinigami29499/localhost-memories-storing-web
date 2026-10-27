@@ -7,9 +7,12 @@ import { ErrorState } from "../../components/ui/Status";
 import { Brand } from "../../components/layout/Brand";
 import { CommunityIntro } from "../../components/layout/CommunityIntro";
 import { ThemeTogglerButton } from "../../components/ui/ThemeTogglerButton";
+import { LanguageToggleButton } from "../../components/ui/LanguageToggleButton";
+import { useLocale } from "../../context/LocaleContext";
 import "../login/login.css";
 
 export function RegisterPage() {
+  const { t } = useLocale();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -21,7 +24,7 @@ export function RegisterPage() {
     e.preventDefault();
     setError(null);
     if (password !== confirmPassword) {
-      setError("Passwords do not match.");
+      setError(t("Passwords do not match."));
       return;
     }
     setBusy(true);
@@ -30,7 +33,7 @@ export function RegisterPage() {
       await authService.register(username.trim(), password);
       setCreated(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Registration failed.");
+      setError(err instanceof Error ? err.message : t("Registration failed."));
     } finally {
       setBusy(false);
     }
@@ -42,23 +45,24 @@ export function RegisterPage() {
         <header className="login__header">
           <Brand />
           <div className="login__header-actions">
-            <span className="login__header-note">Your world. Your community.</span>
+            <span className="login__header-note">{t("Your world. Your community.")}</span>
+            <LanguageToggleButton />
             <ThemeTogglerButton />
           </div>
         </header>
         <main className="login">
           <CommunityIntro variant="login" />
           <section className="login__card" aria-labelledby="pending-title">
-            <h2 id="pending-title" className="login__title">Almost there<span className="brand__dot">.</span></h2>
+            <h2 id="pending-title" className="login__title">{t("Almost there")}<span className="brand__dot">.</span></h2>
             <p className="login__subtitle">
-              Your account is created and waiting for an admin to approve it. Come back and sign in once you have been approved.
+              {t("Your account is created and waiting for an admin to approve it. Come back and sign in once you have been approved.")}
             </p>
-            <Link className="btn btn--primary login__swap" to="/login">Sign in</Link>
+            <Link className="btn btn--primary login__swap" to="/login">{t("Sign in")}</Link>
           </section>
         </main>
         <footer className="login__footer">
           <span>ShinigaCim</span>
-          <span>Made for moments worth sharing.</span>
+          <span>{t("Made for moments worth sharing.")}</span>
         </footer>
       </div>
     );
@@ -69,69 +73,70 @@ export function RegisterPage() {
       <header className="login__header">
         <Brand />
         <div className="login__header-actions">
-          <span className="login__header-note">Your world. Your community.</span>
+          <span className="login__header-note">{t("Your world. Your community.")}</span>
+          <LanguageToggleButton />
           <ThemeTogglerButton />
         </div>
       </header>
       <main className="login">
         <CommunityIntro variant="login" />
         <form className="login__card" onSubmit={submit} aria-labelledby="register-title">
-          <span className="login__badge">JOIN THE COMMUNITY</span>
-          <h2 id="register-title" className="login__title">Create account<span className="brand__dot">.</span></h2>
-          <p className="login__subtitle">Pick a name and start sharing moments.</p>
+          <span className="login__badge">{t("JOIN THE COMMUNITY")}</span>
+          <h2 id="register-title" className="login__title">{t("Create account")}<span className="brand__dot">.</span></h2>
+          <p className="login__subtitle">{t("Pick a name and start sharing moments.")}</p>
 
-          <label className="login__label" htmlFor="username">Username</label>
+          <label className="login__label" htmlFor="username">{t("Username")}</label>
           <Input
             id="username"
             value={username}
             onChange={setUsername}
-            placeholder="Username"
+            placeholder={t("Username")}
             autoComplete="username"
             required
             minLength={3}
             maxLength={64}
             pattern="[a-zA-Z0-9_.\-]+"
-            title="Letters, digits, '_', '.' and '-' only."
-            aria-label="Username"
+            title={t("Letters, digits, '_', '.' and '-' only.")}
+            aria-label={t("Username")}
           />
-          <label className="login__label" htmlFor="password">Password</label>
+          <label className="login__label" htmlFor="password">{t("Password")}</label>
           <Input
             id="password"
             value={password}
             onChange={setPassword}
             type="password"
-            placeholder="Password"
+            placeholder={t("Password")}
             autoComplete="new-password"
             required
             minLength={8}
             maxLength={128}
-            aria-label="Password"
+            aria-label={t("Password")}
           />
-          <label className="login__label" htmlFor="confirm-password">Confirm password</label>
+          <label className="login__label" htmlFor="confirm-password">{t("Confirm password")}</label>
           <Input
             id="confirm-password"
             value={confirmPassword}
             onChange={setConfirmPassword}
             type="password"
-            placeholder="Confirm password"
+            placeholder={t("Confirm password")}
             autoComplete="new-password"
             required
-            aria-label="Confirm password"
+            aria-label={t("Confirm password")}
           />
 
           {error ? <ErrorState message={error} /> : null}
 
           <Button type="submit" busy={busy}>
-            Create account <ArrowRight size={18} aria-hidden="true" />
+            {t("Create account")} <ArrowRight size={18} aria-hidden="true" />
           </Button>
           <p className="login__footnote">
-            Already have an account? <Link className="login__swap" to="/login">Sign in</Link>
+            {t("Already have an account?")} <Link className="login__swap" to="/login">{t("Sign in")}</Link>
           </p>
         </form>
       </main>
       <footer className="login__footer">
         <span>ShinigaCim</span>
-        <span>Made for moments worth sharing.</span>
+        <span>{t("Made for moments worth sharing.")}</span>
       </footer>
     </div>
   );

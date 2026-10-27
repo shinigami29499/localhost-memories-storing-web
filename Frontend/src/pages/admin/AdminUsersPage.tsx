@@ -13,6 +13,7 @@ import { Trash2 } from "@/components/animate-ui/icons/trash-2";
 import { ConfirmationDialog } from "../../components/ui/ConfirmationDialog";
 import type { AuthUser } from "../../features/auth";
 import "./admin.css";
+import { useLocale } from "../../context/LocaleContext";
 
 const statusLabels: Record<string, string> = {
   active: "Active",
@@ -21,6 +22,7 @@ const statusLabels: Record<string, string> = {
 };
 
 export function AdminUsersPage() {
+  const { language, t } = useLocale();
   const me = useAuthStore((s) => s.user);
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
@@ -46,13 +48,13 @@ export function AdminUsersPage() {
   const approve = useMutation({
     mutationFn: (userId: string) => userService.approve(userId),
     onSuccess: copyUpdated,
-    onError: (err) => setError(err instanceof ApiError ? err.message : "Could not approve the user."),
+    onError: (err) => setError(err instanceof ApiError ? err.message : t("Could not approve the user.")),
   });
 
   const remove = useMutation({
     mutationFn: (userId: string) => userService.remove(userId),
     onSuccess: (_data, userId) => copyRemoved(userId),
-    onError: (err) => setError(err instanceof ApiError ? err.message : "Could not delete the user."),
+    onError: (err) => setError(err instanceof ApiError ? err.message : t("Could not delete the user.")),
   });
 
   return (
@@ -60,37 +62,38 @@ export function AdminUsersPage() {
       <main className="admin-page">
         <div className="admin__layout">
           <div className="admin__heading">
-            <h2>Manage users<span className="brand__dot">.</span></h2>
+            <h2>{t("Manage users")}<span className="brand__dot">.</span></h2>
           </div>
 
           {error ? <ErrorState message={error} onRetry={() => setError(null)} /> : null}
 
-          {users.isLoading ? <Spinner label="Loading users…" /> : null}
+          {users.isLoading ? <Spinner label={t("Loading users…")} /> : null}
           {users.isError ? (
-            <ErrorState message="Could not load users." onRetry={() => void users.refetch()} />
+            <ErrorState message={t("Could not load users.")} onRetry={() => void users.refetch()} />
           ) : null}
 
           {!users.isLoading && !users.isError && users.data?.length === 0 ? (
-            <EmptyState title="No members yet" hint="New accounts appear here once they register." />
+            <EmptyState title={t("No members yet")} hint={t("New accounts appear here once they register.")} />
           ) : null}
 
           {users.data && users.data.length > 0 ? (
             <div className="admin-table-wrap">
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th scope="col">Username</th>
-                    <th scope="col">Role</th>
-                    <th scope="col">Status</th>
-                    <th scope="col">Joined</th>
-                    <th scope="col" aria-label="Actions"></th>
+              <table className="admin-table" role="table">
+                <thead role="rowgroup">
+                  <tr role="row">
+                    <th role="columnheader" scope="col">{t("Username")}</th>
+                    <th role="columnheader" scope="col">{t("Role")}</th>
+                    <th role="columnheader" scope="col">{t("Status")}</th>
+                    <th role="columnheader" scope="col">{t("Joined")}</th>
+                    <th role="columnheader" scope="col" aria-label={t("Actions")}></th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody role="rowgroup">
                   {users.data.map((user) => (
                     <AdminUserRow
                       key={user.id}
                       user={user}
+                      language={language}
                       isSelf={user.id === me?.id}
                       isLoading={approve.isPending || remove.isPending || action !== null}
                       isApproving={approve.isPending && approve.variables === user.id}
@@ -107,7 +110,9 @@ export function AdminUsersPage() {
       </main>
       {action ? (
         <ConfirmationDialog
-          title={`${action.type === "approve" ? "Approve" : "Delete"} ${action.user.username}?`}
+          title={action.type === "approve"
+            ? t("Approve {username}?", { username: action.user.username })
+            : t("Delete {username}?", { username: action.user.username })}
           danger={action.type === "delete"}
           onClose={() => setAction(null)}
           onConfirm={async () => {
@@ -116,8 +121,8 @@ export function AdminUsersPage() {
           }}
         >
           <p>{action.type === "approve"
-            ? `Approve ${action.user.username} and activate their account so they can sign in?`
-            : `Delete ${action.user.username}? Their account will be disabled and their sessions revoked.`}</p>
+            ? t("Approve {username} and activate their account so they can sign in?", { username: action.user.username })
+            : t("Delete {username}? Their account will be disabled and their sessions revoked.", { username: action.user.username })}</p>
         </ConfirmationDialog>
       ) : null}
     </>
@@ -126,6 +131,7 @@ export function AdminUsersPage() {
 
 interface RowProps {
   user: AuthUser;
+  language: "en" | "vi";
   isSelf: boolean;
   /** Any moderation action in flight disables the row's buttons. */
   isLoading: boolean;
@@ -137,28 +143,29 @@ interface RowProps {
 }
 
 function AdminUserRow({
-  user, isSelf, isLoading, isApproving, isDeleting, onApprove, onDelete,
+  user, language, isSelf, isLoading, isApproving, isDeleting, onApprove, onDelete,
 }: RowProps) {
+  const { t } = useLocale();
   const isPending = user.status === "pending_approval";
 
   return (
-    <tr>
-      <td data-label="Username">{user.username}</td>
-      <td data-label="Role">{user.role}</td>
-      <td data-label="Status">
-        <span className={`admin-badge admin-badge--${user.status}`}>{statusLabels[user.status] ?? user.status}</span>
+    <tr role="row">
+      <td role="cell" data-label={t("Username")}>{user.username}</td>
+      <td role="cell" data-label={t("Role")}>{user.role}</td>
+      <td role="cell" data-label={t("Status")}>
+        <span className={`admin-badge admin-badge--${user.status}`}>{t(statusLabels[user.status] ?? user.status)}</span>
       </td>
-      <td data-label="Joined">{new Date(user.createdAt).toLocaleDateString()}</td>
-      <td className="admin-table__actions" data-label="Actions">
+      <td role="cell" data-label={t("Joined")}>{new Date(user.createdAt).toLocaleDateString(language === "vi" ? "vi-VN" : "en-US")}</td>
+      <td role="cell" className="admin-table__actions" data-label={t("Actions")}>
         {isPending ? (
-          <AnimateIcon animateOnHover asChild>
+          <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
             <button
               type="button"
               className="btn btn--primary admin-icon-btn"
               disabled={isLoading}
               aria-busy={isApproving || undefined}
-              aria-label={`Approve ${user.username}`}
-              title={`Approve ${user.username}`}
+              aria-label={t("Approve {username}", { username: user.username })}
+              title={t("Approve {username}", { username: user.username })}
               onClick={onApprove}
             >
               {isApproving ? <LoaderCircle animate={false} className="btn__spinner" aria-hidden="true" /> : <Check size={16} aria-hidden="true" />}
@@ -166,14 +173,14 @@ function AdminUserRow({
           </AnimateIcon>
         ) : null}
         {!isSelf ? (
-          <AnimateIcon animateOnHover asChild>
+          <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
             <button
               type="button"
               className="btn btn--danger admin-icon-btn"
               disabled={isLoading || isSelf}
               aria-busy={isDeleting || undefined}
-              aria-label={`Delete ${user.username}`}
-              title={`Delete ${user.username}`}
+              aria-label={t("Delete {username}", { username: user.username })}
+              title={t("Delete {username}", { username: user.username })}
               onClick={onDelete}
             >
               {isDeleting ? <LoaderCircle animate={false} className="btn__spinner" aria-hidden="true" /> : <Trash2 size={16} aria-hidden="true" />}

@@ -1,0 +1,300 @@
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useLayoutEffect,
+  useState,
+  type ReactNode,
+} from "react";
+
+export type Language = "en" | "vi";
+
+interface LocaleContextValue {
+  language: Language;
+  setLanguage: (language: Language) => void;
+  toggleLanguage: () => void;
+  t: (key: string, values?: Record<string, string | number>) => string;
+}
+
+const storageKey = "shinigacim.language";
+const LocaleContext = createContext<LocaleContextValue>({
+  language: "en",
+  setLanguage: () => undefined,
+  toggleLanguage: () => undefined,
+  t: interpolate,
+});
+
+const vietnamese: Record<string, string> = {
+  "Switch language to {language}": "Chuyển ngôn ngữ sang {language}",
+  Vietnamese: "Tiếng Việt",
+  English: "Tiếng Anh",
+  "ShinigaCim home": "Trang chủ ShinigaCim",
+  "Your world. Your community.": "Thế giới của bạn. Cộng đồng của bạn.",
+  "A space for your perspective": "Không gian cho góc nhìn của bạn",
+  "The community, in focus": "Cộng đồng trong tầm nhìn",
+  "Your moments.": "Khoảnh khắc của bạn.",
+  "More connected.": "Gắn kết hơn.",
+  "Good moments.": "Khoảnh khắc đẹp.",
+  "Better together.": "Cùng nhau tốt hơn.",
+  "A photo, a story, a new point of view. Bring your world to ShinigaCim and find something worth connecting over.":
+    "Một bức ảnh, một câu chuyện, một góc nhìn mới. Mang thế giới của bạn đến ShinigaCim và tìm điều khiến mọi người thêm gắn kết.",
+  "Share what moves you. Discover a new perspective. Make a little room for connection.":
+    "Chia sẻ điều khiến bạn rung động. Khám phá góc nhìn mới. Mở lòng để kết nối.",
+  "A different perspective": "Một góc nhìn khác",
+  "Share. Connect. Belong.": "Chia sẻ. Kết nối. Thuộc về.",
+  "Small moments. Real connections.": "Khoảnh khắc nhỏ. Kết nối chân thành.",
+  "Made to be shared": "Dành cho sẻ chia",
+  "LET'S CONNECT": "HÃY KẾT NỐI",
+  "Welcome back": "Mừng bạn quay lại",
+  "Sign in to share and browse media.": "Đăng nhập để chia sẻ và khám phá nội dung.",
+  Username: "Tên người dùng",
+  Password: "Mật khẩu",
+  "Sign in": "Đăng nhập",
+  "New to ShinigaCim?": "Bạn mới dùng ShinigaCim?",
+  "Create an account": "Tạo tài khoản",
+  "Made for moments worth sharing.": "Nơi lưu giữ những khoảnh khắc đáng sẻ chia.",
+  "Almost there": "Sắp hoàn tất",
+  "Your account is created and waiting for an admin to approve it. Come back and sign in once you have been approved.":
+    "Tài khoản của bạn đã được tạo và đang chờ quản trị viên phê duyệt. Hãy quay lại đăng nhập sau khi tài khoản được duyệt.",
+  "JOIN THE COMMUNITY": "THAM GIA CỘNG ĐỒNG",
+  "Create account": "Tạo tài khoản",
+  "Pick a name and start sharing moments.": "Chọn tên và bắt đầu chia sẻ khoảnh khắc.",
+  "Letters, digits, '_', '.' and '-' only.": "Chỉ dùng chữ cái, chữ số, '_', '.' và '-'.",
+  "Confirm password": "Xác nhận mật khẩu",
+  "Already have an account?": "Bạn đã có tài khoản?",
+  "Passwords do not match.": "Mật khẩu không khớp.",
+  "Registration failed.": "Đăng ký không thành công.",
+  "Authentication failed": "Xác thực không thành công",
+  "Login failed.": "Đăng nhập không thành công.",
+  "Login as {username} successfully": "Đăng nhập thành công với tài khoản {username}",
+  "Feed": "Bảng tin",
+  "Admin": "Quản trị",
+  "User": "Người dùng",
+  "Manage posts": "Quản lý bài viết",
+  "Sync": "Đồng bộ",
+  "Upload": "Tải lên",
+  "Download": "Tải xuống",
+  "Main navigation": "Điều hướng chính",
+  "Admin pages": "Trang quản trị",
+  "Sync actions": "Tác vụ đồng bộ",
+  "Account menu for {username}": "Trình đơn tài khoản của {username}",
+  "Log out": "Đăng xuất",
+  "Logout successfully": "Đăng xuất thành công",
+  "Expand navigation": "Mở rộng điều hướng",
+  "Collapse navigation": "Thu gọn điều hướng",
+  "Switch to {theme} theme": "Chuyển sang giao diện {theme}",
+  "light": "sáng",
+  "dark": "tối",
+  "Toggle theme": "Đổi giao diện",
+  "Notifications": "Thông báo",
+  "Could not mark notifications as read.": "Không thể đánh dấu thông báo là đã đọc.",
+  "Notifications, {count} unread": "Thông báo, {count} chưa đọc",
+  "{count} unread notifications": "{count} thông báo chưa đọc",
+  "Live updates connected": "Đã kết nối cập nhật trực tiếp",
+  "Live updates reconnecting": "Đang kết nối lại cập nhật trực tiếp",
+  "Loading notifications…": "Đang tải thông báo…",
+  "Could not load notifications.": "Không thể tải thông báo.",
+  "Try again": "Thử lại",
+  "Notifications will appear here when available.": "Thông báo sẽ xuất hiện ở đây khi có.",
+  "Could not mark this notification as read.": "Không thể đánh dấu thông báo này là đã đọc.",
+  "shared a new post": "đã chia sẻ một bài viết mới",
+  "commented on your post": "đã bình luận về bài viết của bạn",
+  "reacted to your post": "đã thả cảm xúc vào bài viết của bạn",
+  "Could not load the feed.": "Không thể tải bảng tin.",
+  "Nothing here yet": "Chưa có nội dung",
+  "Be the first to share an image or video with the community.": "Hãy là người đầu tiên chia sẻ hình ảnh hoặc video với cộng đồng.",
+  "Create a post": "Tạo bài viết",
+  "What is your moment?": "Khoảnh khắc của bạn là gì?",
+  "A little of your world, shared with everyone.": "Chia sẻ một chút thế giới của bạn với mọi người.",
+  "Write something…": "Viết điều gì đó…",
+  "Post caption": "Nội dung bài viết",
+  "Attach media": "Đính kèm nội dung",
+  Post: "Đăng",
+  "Post successfully": "Đăng bài thành công",
+  "Upload failed.": "Tải lên không thành công.",
+  "Images (jpg, png, gif, webp) and videos (mp4, webm, mov) up to {maxMb} MB each and {maxGb} GB total per post.":
+    "Ảnh (jpg, png, gif, webp) và video (mp4, webm, mov) tối đa {maxMb} MB mỗi tệp và tổng {maxGb} GB mỗi bài.",
+  "'{name}' exceeds the {limit} MB limit.": "'{name}' vượt quá giới hạn {limit} MB.",
+  "Adding '{name}' would exceed the {limit} GB total limit.": "Thêm '{name}' sẽ vượt quá giới hạn tổng {limit} GB.",
+  "Remove {name}": "Xóa {name}",
+  "Loading posts...": "Đang tải bài viết...",
+  "Loading...": "Đang tải...",
+  "No more posts to show.": "Không còn bài viết nào.",
+  "No comments yet — be the first.": "Chưa có bình luận — hãy là người đầu tiên.",
+  Comments: "Bình luận",
+  "Loading comments…": "Đang tải bình luận…",
+  "Could not load comments.": "Không thể tải bình luận.",
+  "Could not post the comment.": "Không thể đăng bình luận.",
+  "Could not delete the comment.": "Không thể xóa bình luận.",
+  "Delete comment": "Xóa bình luận",
+  "New comment": "Bình luận mới",
+  "Write a comment…": "Viết bình luận…",
+  "Delete post": "Xóa bài viết",
+  "Show more": "Xem thêm",
+  "Show less": "Thu gọn",
+  "Hide comments": "Ẩn bình luận",
+  "Show comments": "Hiện bình luận",
+  "Hide {count} comments": "Ẩn {count} bình luận",
+  "Show {count} comments": "Hiện {count} bình luận",
+  "View comments": "Xem bình luận",
+  "View {count} comments": "Xem {count} bình luận",
+  "edited": "đã chỉnh sửa",
+  "Reaction failed. Please retry.": "Thả cảm xúc không thành công. Vui lòng thử lại.",
+  "Post reaction": "Cảm xúc bài viết",
+  "Remove heart reaction": "Bỏ cảm xúc trái tim",
+  "Add heart reaction": "Thêm cảm xúc trái tim",
+  "Remove heart reaction. {count} hearts": "Bỏ cảm xúc trái tim. {count} lượt thích",
+  "Add heart reaction. {count} hearts": "Thêm cảm xúc trái tim. {count} lượt thích",
+  "Post photos and videos": "Ảnh và video trong bài viết",
+  "Post media": "Nội dung bài viết",
+  "Could not load this media.": "Không thể tải nội dung này.",
+  "Image: click edges to navigate or center to enlarge": "Ảnh: nhấn hai bên để chuyển, nhấn giữa để phóng to",
+  "Unsupported media type ({mimeType})": "Định dạng nội dung không được hỗ trợ ({mimeType})",
+  "Close image preview": "Đóng xem trước ảnh",
+  "One moment at a time": "Từng khoảnh khắc một",
+  "Post {current} of {total}": "Bài viết {current}/{total}",
+  "More moments to explore": "Còn nhiều khoảnh khắc để khám phá",
+  "Post navigation": "Điều hướng bài viết",
+  "Previous post": "Bài viết trước",
+  "Next post": "Bài viết tiếp theo",
+  "Loading next post": "Đang tải bài viết tiếp theo",
+  "Use the arrows, swipe, or tap the image edges for previous/next, or the center to zoom. Multi-photo posts navigate photos; single-image posts navigate moments.":
+    "Dùng mũi tên, vuốt hoặc chạm cạnh ảnh để chuyển bài; chạm giữa ảnh để phóng to. Bài có nhiều ảnh sẽ chuyển giữa các ảnh; bài một ảnh sẽ chuyển giữa các khoảnh khắc.",
+  "Post viewer": "Trình xem bài viết",
+  "Use the next arrow to load more posts.": "Nhấn mũi tên tiếp theo để tải thêm bài viết.",
+  "Could not load the next post.": "Không thể tải bài viết tiếp theo.",
+  "Delete this post?": "Xóa bài viết này?",
+  "Permanently delete this post?": "Xóa vĩnh viễn bài viết này?",
+  "Post deleted successfully": "Đã xóa bài viết",
+  "Warning: this permanently deletes the post, its media files, comments, and reactions. This cannot be undone or restored.":
+    "Cảnh báo: thao tác này sẽ xóa vĩnh viễn bài viết, tệp nội dung, bình luận và cảm xúc. Bạn không thể hoàn tác hoặc khôi phục.",
+  "This will remove the post from the feed and move its media to trash. An administrator can restore it later.":
+    "Bài viết sẽ bị gỡ khỏi bảng tin và nội dung được chuyển vào thùng rác. Quản trị viên có thể khôi phục sau.",
+  "Do you want to permanently delete instead?": "Bạn muốn xóa vĩnh viễn thay thế?",
+  "Cancel action": "Hủy thao tác",
+  Cancel: "Hủy",
+  Continue: "Tiếp tục",
+  "Could not complete this action. Please retry.": "Không thể hoàn tất thao tác. Vui lòng thử lại.",
+  "Loading…": "Đang tải…",
+  "Loading content…": "Đang tải nội dung…",
+  "Post pagination controls": "Điều khiển phân trang bài viết",
+  "Filter posts by media type": "Lọc bài viết theo loại nội dung",
+  "All": "Tất cả",
+  Image: "Ảnh",
+  Video: "Video",
+  "Could not load posts.": "Không thể tải bài viết.",
+  "Post restored successfully": "Đã khôi phục bài viết",
+  "Could not restore the post.": "Không thể khôi phục bài viết.",
+  "Restore this post?": "Khôi phục bài viết này?",
+  "Restore the post by {username} and its media from trash? It will be visible in the feed again.":
+    "Khôi phục bài viết của {username} và nội dung từ thùng rác? Bài viết sẽ hiển thị lại trên bảng tin.",
+  "No posts": "Không có bài viết",
+  "Every post, active or deleted, appears here for review.": "Tất cả bài viết, đang hoạt động hoặc đã xóa, sẽ xuất hiện tại đây để xem xét.",
+  "Preview media": "Xem trước nội dung",
+  "No media": "Không có nội dung",
+  Deleted: "Đã xóa",
+  Active: "Đang hoạt động",
+  "By {username}": "Bởi {username}",
+  "{count} media": "{count} nội dung",
+  "{count} comments": "{count} bình luận",
+  "Restore post": "Khôi phục bài viết",
+  "Manage users.": "Quản lý người dùng.",
+  "No members yet": "Chưa có thành viên",
+  "New accounts appear here once they register.": "Tài khoản mới sẽ xuất hiện tại đây sau khi đăng ký.",
+  Role: "Vai trò",
+  Status: "Trạng thái",
+  Joined: "Ngày tham gia",
+  Actions: "Thao tác",
+  Disabled: "Đã vô hiệu hóa",
+  "Pending approval": "Chờ phê duyệt",
+  "Loading users…": "Đang tải người dùng…",
+  "Could not load users.": "Không thể tải người dùng.",
+  "Could not approve the user.": "Không thể duyệt người dùng.",
+  "Could not delete the user.": "Không thể xóa người dùng.",
+  "Approve {username}": "Duyệt {username}",
+  "Delete {username}": "Xóa {username}",
+  "Approve {username}?": "Duyệt {username}?",
+  "Delete {username}?": "Xóa {username}?",
+  "Approve {username} and activate their account so they can sign in?":
+    "Duyệt {username} và kích hoạt tài khoản để họ có thể đăng nhập?",
+  "Delete {username}? Their account will be disabled and their sessions revoked.":
+    "Xóa {username}? Tài khoản sẽ bị vô hiệu hóa và các phiên đăng nhập bị thu hồi.",
+  "Post management": "Quản lý bài viết",
+  "{label} pagination": "Phân trang {label}",
+  posts: "bài viết",
+  items: "mục",
+  "Previous page": "Trang trước",
+  Previous: "Trước",
+  "Page {page}": "Trang {page}",
+  "Next page": "Trang tiếp theo",
+  Next: "Tiếp",
+  "Items per page": "Số mục mỗi trang",
+  "/ page": "/ trang",
+  "Media {current} of {total}": "Nội dung {current}/{total}",
+  "Preview from trash": "Xem trước từ thùng rác",
+  "Close media preview": "Đóng xem trước nội dung",
+  "Could not load this media. It may be missing or your session may have expired.":
+    "Không thể tải nội dung này. Tệp có thể không tồn tại hoặc phiên của bạn đã hết hạn.",
+  "Video {current} of {total}": "Video {current}/{total}",
+  "Previous media": "Nội dung trước",
+  "Next media": "Nội dung tiếp theo",
+  "Unsupported media type ({mimeType}).": "Định dạng nội dung không được hỗ trợ ({mimeType}).",
+  "Media preview for post by {username}": "Xem trước nội dung bài viết của {username}",
+  "Preview media for post by {username}": "Xem trước nội dung bài viết của {username}",
+  "Open media preview for post by {username}": "Mở xem trước nội dung bài viết của {username}",
+  "Restore post by {username}": "Khôi phục bài viết của {username}",
+  "Delete post by {username}": "Xóa bài viết của {username}",
+  "Image {current} of {total} by {username}": "Ảnh {current}/{total} của {username}",
+  "Back to feed": "Quay lại bảng tin",
+  "Unexpected Error": "Đã xảy ra lỗi",
+  "Something went wrong. Please try again.": "Đã xảy ra sự cố. Vui lòng thử lại.",
+  "The requested page could not be found.": "Không tìm thấy trang được yêu cầu.",
+  "Component Error": "Lỗi thành phần",
+  "A component failed to load. This may be due to a missing or incorrect import.":
+    "Không thể tải thành phần. Có thể thiếu hoặc sai đường dẫn nhập.",
+  "Go Home": "Về trang chủ",
+  "Try Again": "Thử lại",
+  "Loading post…": "Đang tải bài viết…",
+  "Could not load this post.": "Không thể tải bài viết này.",
+  "This post is no longer available.": "Bài viết này không còn khả dụng.",
+  "Close": "Đóng",
+  "⚠️ Trigger Test Error (Debug)": "⚠️ Tạo lỗi thử nghiệm (gỡ lỗi)",
+};
+
+function readInitialLanguage(): Language {
+  if (typeof window === "undefined") return "en";
+  return window.localStorage.getItem(storageKey) === "vi" ? "vi" : "en";
+}
+
+function interpolate(template: string, values?: Record<string, string | number>) {
+  if (!values) return template;
+  return template.replace(/\{(\w+)\}/g, (placeholder, name: string) =>
+    String(values[name] ?? placeholder),
+  );
+}
+
+export function LocaleProvider({ children }: { children: ReactNode }) {
+  const [language, setLanguageState] = useState<Language>(readInitialLanguage);
+  const setLanguage = useCallback((nextLanguage: Language) => setLanguageState(nextLanguage), []);
+  const toggleLanguage = useCallback(() => {
+    setLanguageState((currentLanguage) => currentLanguage === "en" ? "vi" : "en");
+  }, []);
+  const t = useCallback((key: string, values?: Record<string, string | number>) => {
+    return interpolate(language === "vi" ? vietnamese[key] ?? key : key, values);
+  }, [language]);
+
+  useLayoutEffect(() => {
+    document.documentElement.lang = language === "vi" ? "vi" : "en";
+    window.localStorage.setItem(storageKey, language);
+  }, [language]);
+
+  return (
+    <LocaleContext.Provider value={{ language, setLanguage, toggleLanguage, t }}>
+      {children}
+    </LocaleContext.Provider>
+  );
+}
+
+export function useLocale() {
+  return useContext(LocaleContext);
+}

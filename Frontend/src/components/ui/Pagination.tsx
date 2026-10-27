@@ -5,6 +5,7 @@ import { ChevronDown } from "@/components/animate-ui/icons/chevron-down";
 import { ChevronLeft } from "@/components/animate-ui/icons/chevron-left";
 import { ChevronRight } from "@/components/animate-ui/icons/chevron-right";
 import "./Pagination.css";
+import { useLocale } from "../../context/LocaleContext";
 
 export const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
 export const DEFAULT_PAGE_SIZE = 10;
@@ -28,23 +29,24 @@ export function Pagination({
   onPageChange,
   onPageSizeChange,
 }: PaginationProps) {
+  const { t } = useLocale();
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const pageNumbers = getPageNumbers(page, totalPages);
 
   return (
-    <PaginationPrimitive.Root className="pagination" aria-label={`${itemLabel} pagination`}>
+    <PaginationPrimitive.Root className="pagination" aria-label={t("{label} pagination", { label: t(itemLabel) })}>
       <ul className="pagination__controls" data-slot="pagination-content">
         <li data-slot="pagination-item">
-          <AnimateIcon animateOnHover asChild>
+          <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
             <button
               type="button"
               className="pagination-btn"
               onClick={() => onPageChange(page - 1)}
               disabled={page === 1 || isFetching}
-              aria-label="Previous page"
+              aria-label={t("Previous page")}
             >
               <ChevronLeft size={18} aria-hidden="true" />
-              <span>Previous</span>
+              <span>{t("Previous")}</span>
             </button>
           </AnimateIcon>
         </li>
@@ -64,7 +66,7 @@ export function Pagination({
                 className={`pagination-page ${page === pageNumber ? "pagination-page--active" : ""}`}
                 onClick={() => onPageChange(pageNumber)}
                 disabled={isFetching}
-                aria-label={`Page ${pageNumber}`}
+                aria-label={t("Page {page}", { page: pageNumber })}
                 aria-current={page === pageNumber ? "page" : undefined}
               >
                 {pageNumber}
@@ -73,15 +75,15 @@ export function Pagination({
           ),
         )}
         <li data-slot="pagination-item">
-          <AnimateIcon animateOnHover asChild>
+          <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
             <button
               type="button"
               className="pagination-btn"
               onClick={() => onPageChange(page + 1)}
               disabled={page === totalPages || isFetching}
-              aria-label="Next page"
+              aria-label={t("Next page")}
             >
-              <span>Next</span>
+              <span>{t("Next")}</span>
               <ChevronRight size={18} aria-hidden="true" />
             </button>
           </AnimateIcon>
@@ -95,7 +97,7 @@ export function Pagination({
         >
           <Select.Trigger
             className="pagination__select-trigger"
-            aria-label="Items per page"
+            aria-label={t("Items per page")}
           >
             <Select.Value />
             <Select.Icon asChild>
@@ -116,7 +118,7 @@ export function Pagination({
             </Select.Positioner>
           </Select.Portal>
         </Select.Root>
-        <span>/ page</span>
+        <span>{t("/ page")}</span>
       </div>
     </PaginationPrimitive.Root>
   );

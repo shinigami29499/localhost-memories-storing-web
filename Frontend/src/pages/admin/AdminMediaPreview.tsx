@@ -5,8 +5,11 @@ import { ArrowRight } from "@/components/animate-ui/icons/arrow-right";
 import { X } from "@/components/animate-ui/icons/x";
 import type { AdminPost } from "../../features/posts";
 import { mediaUrl } from "../../utils/media";
+import { useSwipe } from "../../hooks/useSwipe";
+import { useLocale } from "../../context/LocaleContext";
 
 export function AdminMediaPreview({ post, onClose }: { post: AdminPost; onClose: () => void }) {
+  const { t } = useLocale();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [index, setIndex] = useState(0);
   const [failedId, setFailedId] = useState<string | null>(null);
@@ -26,12 +29,16 @@ export function AdminMediaPreview({ post, onClose }: { post: AdminPost; onClose:
     setFailedId(null);
     setIndex(next);
   };
+  const swipe = useSwipe({
+    onSwipeLeft: () => { if (index < post.media.length - 1) changeMedia(index + 1); },
+    onSwipeRight: () => { if (index > 0) changeMedia(index - 1); },
+  });
 
   return (
     <dialog
       ref={dialogRef}
       className="admin-preview"
-      aria-label={`Media preview for post by ${post.author.username}`}
+      aria-label={t("Media preview for post by {username}", { username: post.author.username })}
       onCancel={(event) => { event.preventDefault(); onClose(); }}
       onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}
       onKeyDown={(event) => {
@@ -47,60 +54,60 @@ export function AdminMediaPreview({ post, onClose }: { post: AdminPost; onClose:
     >
       <div className="admin-preview__content">
         <div className="admin-preview__toolbar">
-          <span aria-live="polite">Media {index + 1} of {post.media.length}</span>
-          {post.deletedAt !== null ? <span>Preview from trash</span> : null}
-          <AnimateIcon animateOnHover asChild>
+          <span aria-live="polite">{t("Media {current} of {total}", { current: index + 1, total: post.media.length })}</span>
+          {post.deletedAt !== null ? <span>{t("Preview from trash")}</span> : null}
+          <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
             <button
               type="button"
               className="btn btn--secondary admin-icon-btn"
-              aria-label="Close media preview"
-              title="Close media preview"
+              aria-label={t("Close media preview")}
+              title={t("Close media preview")}
               onClick={onClose}
             >
               <X size={20} aria-hidden="true" />
             </button>
           </AnimateIcon>
         </div>
-        <div className="admin-preview__media" key={file.id}>
+        <div className="admin-preview__media" key={file.id} {...swipe}>
           {failedId === file.id ? (
-            <p role="alert">Could not load this media. It may be missing or your session may have expired.</p>
+            <p role="alert">{t("Could not load this media. It may be missing or your session may have expired.")}</p>
           ) : file.mediaKind === "video" ? (
             <video
               src={mediaUrl(file.id, true)}
               controls
               preload="metadata"
-              aria-label={`Video ${index + 1} of ${post.media.length}`}
+              aria-label={t("Video {current} of {total}", { current: index + 1, total: post.media.length })}
               onError={() => setFailedId(file.id)}
             />
           ) : file.mediaKind === "image" ? (
             <img
               src={mediaUrl(file.id, true)}
-              alt={`Image ${index + 1} of ${post.media.length} by ${post.author.username}`}
+              alt={t("Image {current} of {total} by {username}", { current: index + 1, total: post.media.length, username: post.author.username })}
               onError={() => setFailedId(file.id)}
             />
           ) : (
-            <p role="alert">Unsupported media type ({file.mimeType}).</p>
+            <p role="alert">{t("Unsupported media type ({mimeType}).", { mimeType: file.mimeType })}</p>
           )}
         </div>
         <div className="admin-preview__navigation">
-          <AnimateIcon animateOnHover asChild>
+          <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
             <button
               type="button"
               className="btn btn--secondary admin-icon-btn"
-              aria-label="Previous media"
-              title="Previous media"
+              aria-label={t("Previous media")}
+              title={t("Previous media")}
               disabled={index === 0}
               onClick={() => changeMedia(index - 1)}
             >
               <ArrowLeft size={20} aria-hidden="true" />
             </button>
           </AnimateIcon>
-          <AnimateIcon animateOnHover asChild>
+          <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
             <button
               type="button"
               className="btn btn--secondary admin-icon-btn"
-              aria-label="Next media"
-              title="Next media"
+              aria-label={t("Next media")}
+              title={t("Next media")}
               disabled={index === post.media.length - 1}
               onClick={() => changeMedia(index + 1)}
             >

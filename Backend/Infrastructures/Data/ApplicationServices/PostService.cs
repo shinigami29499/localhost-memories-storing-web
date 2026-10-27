@@ -6,6 +6,8 @@ using Services.Models.Posts;
 using Services.Interfaces;
 using Services.Requests.Posts;
 using Services.Responses.Posts;
+using Services.Models.Notifications;
+using Services.Core;
 using Domains.Entities;
 
 namespace Infrastructures.Data.ApplicationServices;
@@ -15,12 +17,14 @@ public class PostService(
     IUnitOfWork unitOfWork,
     IMediaStorage storage,
     ILogger<PostService> logger,
-    IMapper mapper) : IPostService
+    IMapper mapper,
+    INotificationRepository notificationRepository) : IPostService
 {
     private readonly IPostRepository _repository = repository;
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
     private readonly IMediaStorage _storage = storage;
     private readonly ILogger<PostService> _logger = logger;
+    private readonly INotificationRepository _notificationRepository = notificationRepository;
 
     public async Task<PagedFeedResponse<PostSummaryDto>> GetFeedAsync(
         Guid viewerId, int offset, int limit, CancellationToken cancellationToken = default)
@@ -76,13 +80,33 @@ public class PostService(
         return mapper.Map(post, commentCount, reactionCounts, myReactions);
     }
 
-    public async Task<PostSummaryDto> CreatePostAsync(
-        Guid authorId, string? caption, IReadOnlyList<IFormFile> mediaFiles, CancellationToken cancellationToken = default)
+    public async Task<PostCreationResult> CreatePostAsync(
+        Guid authorId, string authorUsername, string? caption, IReadOnlyList<IFormFile> mediaFiles,
+        CancellationToken cancellationToken = default)
     {
         if (caption?.Length > 4000)
             throw new ValidationException(
                 "Caption is too long.",
                 new Dictionary<string, string[]> { ["caption"] = ["Maximum length is 4000 characters."] });
+
+        long totalSize = 0;
+        foreach (var file in mediaFiles)
+        {
+            if (file.Length == 0)
+                throw new ValidationException(
+                    "Empty upload.",
+                    new Dictionary<string, string[]> { ["mediaFiles"] = [$"'{file.FileName}' is empty."] });
+
+            if (file.Length > PostUploadLimits.MaxTotalBytes - totalSize)
+                throw new ValidationException(
+                    "Post media exceeds the total upload limit.",
+                    new Dictionary<string, string[]>
+                    {
+                        ["mediaFiles"] = [$"Total media size must not exceed {PostUploadLimits.MaxTotalGigabytes} GB."]
+                    });
+
+            totalSize += file.Length;
+        }
 
         var post = new Post { Caption = caption?.Trim() ?? string.Empty, UserId = authorId };
         _repository.AddPost(post);
@@ -91,11 +115,6 @@ public class PostService(
 
         foreach (var file in mediaFiles)
         {
-            if (file.Length == 0)
-                throw new ValidationException(
-                    "Empty upload.",
-                    new Dictionary<string, string[]> { ["mediaFiles"] = [$"'{file.FileName}' is empty."] });
-
             await using var stream = file.OpenReadStream();
             var stored = await _storage.SaveAsync(stream, file.FileName, file.Length, cancellationToken);
 
@@ -103,9 +122,22 @@ public class PostService(
         }
 
         _repository.AddMediaFiles(uploaded);
+        var notifications = new List<PostUploadNotification>();
 
         try
         {
+            var recipientIds = await _notificationRepository.GetActiveRecipientIdsAsync(authorId, cancellationToken);
+            var notificationTime = DateTime.UtcNow;
+            notifications.AddRange(recipientIds.Select(recipientId => new PostUploadNotification
+            {
+                RecipientId = recipientId,
+                ActorId = authorId,
+                ActorUsername = authorUsername,
+                PostId = post.Id,
+                PostCaption = post.Caption,
+                CreatedAt = notificationTime,
+            }));
+            _notificationRepository.AddRange(notifications);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
         }
         catch
@@ -131,7 +163,22 @@ public class PostService(
             "User {UserId} created post {PostId} with {MediaCount} media file(s)",
             authorId, post.Id, uploaded.Count);
 
-        return await GetPostAsync(post.Id, authorId, cancellationToken);
+        var createdPost = await GetPostAsync(post.Id, authorId, cancellationToken);
+        var deliveries = notifications
+            .Select(notification => new NotificationDeliveryDto(
+                notification.RecipientId,
+                new PostNotificationDto(
+                    notification.Id,
+                    notification.NotificationType,
+                    notification.PostId,
+                    notification.ActorId,
+                    notification.ActorUsername,
+                    notification.PostCaption,
+                    notification.CreatedAt,
+                    notification.ReadAt)))
+            .ToList();
+
+        return new PostCreationResult(createdPost, deliveries);
     }
 
     public async Task<PostSummaryDto> UpdateCaptionAsync(

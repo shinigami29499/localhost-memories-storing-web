@@ -23,7 +23,7 @@
   transition: left var(--animate-ui-sidebar-duration) var(--animate-ui-sidebar-easing);
 }
 
-@media (max-width: 900px) {
+@media (max-width: 900px) and (min-width: 641px) {
   .app-shell .admin-posts__footer {
     left: 72px;
   }
@@ -149,11 +149,23 @@
 
 /* Tabs ---------------------------------------------------------------------- */
 
+.admin-tabs-highlight {
+  isolation: isolate;
+  margin-bottom: 20px;
+  width: fit-content;
+  max-width: 100%;
+}
+
 .admin-tabs {
   display: flex;
   gap: 4px;
-  margin-bottom: 20px;
   position: relative;
+}
+
+.admin-tab-highlight {
+  background: var(--surface-hover);
+  border-radius: var(--radius);
+  pointer-events: none;
 }
 
 .admin-tab {
@@ -161,7 +173,7 @@
   background: transparent;
   border: none;
   border-radius: var(--radius);
-  color: var(--text-muted);
+  color: var(--text);
   cursor: pointer;
   display: flex;
   font-size: 0.875rem;
@@ -169,6 +181,7 @@
   padding: 10px 16px;
   position: relative;
   transition: color 0.15s ease;
+  z-index: 1;
 }
 
 .admin-tab:hover {
@@ -185,15 +198,24 @@
 }
 
 .admin-tab-indicator {
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: 0 1px 3px rgb(0 0 0 / 0.08);
-  height: calc(100% - 4px);
+  background: var(--accent-soft);
+  border-radius: 2px;
+  bottom: 0;
+  height: 2px;
+  left: 0;
+  pointer-events: none;
   position: absolute;
-  top: 2px;
+  transform: translateX(var(--active-tab-left));
   transition: transform 0.2s ease, width 0.2s ease;
-  z-index: -1;
+  width: var(--active-tab-width);
+  z-index: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-tab,
+  .admin-tab-indicator {
+    transition: none;
+  }
 }
 
 /* Manage-posts grid ---------------------------------------------------------- */
@@ -290,21 +312,18 @@
 }
 
 .admin-post__status {
-  border-radius: 999px;
-  color: var(--accent-soft);
-  background: color-mix(in srgb, var(--accent-soft) 18%, transparent);
   font-size: 0.6875rem;
   font-weight: 600;
   letter-spacing: 0.02em;
-  padding: 3px 10px;
 }
 
-.admin-post__status--deleted {
-  background: color-mix(in srgb, var(--danger) 16%, transparent);
+.admin-post__status.admin-post__status--deleted {
+  background: transparent;
   color: var(--danger);
 }
 
 .admin-post__date {
+  margin-left: auto;
   color: var(--text-muted);
   font-size: 0.75rem;
 }
@@ -402,5 +421,150 @@
   margin-top: 12px;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 640px) {
+  .admin-page {
+    padding: 16px 12px 48px;
+  }
+
+  .admin-page--posts {
+    padding-bottom: calc(7rem + env(safe-area-inset-bottom));
+  }
+
+  .app-shell .admin-posts__footer {
+    left: 0;
+  }
+
+  .admin__layout {
+    padding: 16px;
+  }
+
+  .admin__heading h2 {
+    font-size: 1.4rem;
+  }
+
+  .admin-tabs {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .admin-tab {
+    flex-shrink: 0;
+  }
+
+  .admin-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+    gap: 12px;
+  }
+
+  .admin-post__body {
+    padding: 10px;
+  }
+
+  .admin-post__caption,
+  .admin-post__deleted-info,
+  .admin-post__comment-count {
+    display: none;
+  }
+
+  .admin-post__body {
+    gap: 8px;
+  }
+
+  .admin-post {
+    align-self: start;
+  }
+
+  .admin-post__actions {
+    flex-wrap: wrap;
+  }
+
+  .admin-table-wrap {
+    overflow-x: visible;
+  }
+
+  .admin-table,
+  .admin-table tbody,
+  .admin-table tr,
+  .admin-table td {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .admin-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+
+  .admin-table tr {
+    padding: 4px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface-raised);
+  }
+
+  .admin-table tr + tr {
+    margin-top: 12px;
+  }
+
+  .admin-table td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 0;
+    overflow-wrap: anywhere;
+  }
+
+  .admin-table tr td:first-child {
+    border-top: 0;
+  }
+
+  .admin-table td::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .admin-table__actions {
+    justify-content: flex-end;
+  }
+
+  .admin-table__actions::before {
+    content: none;
+  }
+
+  .admin-table__actions:empty {
+    display: none;
+  }
+
+  .admin-preview {
+    width: calc(100vw - 16px);
+    max-height: calc(100dvh - 16px);
+    overflow-y: auto;
+  }
+
+  .admin-preview__content {
+    padding: 12px;
+  }
+
+  .admin-preview__media img,
+  .admin-preview__media video {
+    max-height: calc(100dvh - 180px);
+  }
+}
+
+@media (pointer: coarse) {
+  .admin-icon-btn {
+    width: 40px;
+    height: 40px;
+  }
 }

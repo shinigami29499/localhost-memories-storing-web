@@ -5,9 +5,11 @@ import {
   useTempoTransition,
 } from "@animate-ui/react/utils/motion";
 import { useTheme } from "../../context/ThemeContext";
+import { useLocale } from "../../context/LocaleContext";
 
 export function ThemeTogglerButton({ className = "" }: { className?: string }) {
   const { theme, toggleTheme } = useTheme();
+  const { t } = useLocale();
   const shouldReduceMotion = useShouldReduceMotion();
   const transition = useTempoTransition(motionTokens.transition.spin);
   const pressTransition = useTempoTransition({
@@ -22,9 +24,9 @@ export function ThemeTogglerButton({ className = "" }: { className?: string }) {
       type="button"
       className={`theme-toggler${className ? ` ${className}` : ""}`}
       data-theme={theme}
-      aria-label="Toggle theme"
+      aria-label={t("Toggle theme")}
       aria-pressed={theme === "dark"}
-      title={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
+      title={t("Switch to {theme} theme", { theme: t(theme === "dark" ? "light" : "dark") })}
       onClick={toggleTheme}
       whileTap={shouldReduceMotion ? undefined : { scale: 0.97 }}
       transition={pressTransition}
