@@ -36,6 +36,8 @@ The Vite development server runs at `http://localhost:3000`. `Frontend/.env` nor
 
 Vitest discovers `src/**/*.test.{ts,tsx}` and uses the Node environment. For supported test commands and validation policy, refer to the frontend overview skill.
 
+The frontend is installable as a standalone PWA from HTTPS deployments and localhost. Its service worker caches only the app shell and built frontend assets; API responses and protected media remain network-only.
+
 ## API client details
 
 Request flow:

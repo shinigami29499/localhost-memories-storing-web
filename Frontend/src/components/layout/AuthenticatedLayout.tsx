@@ -5,6 +5,7 @@ import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { Brand } from "./Brand";
 import { Sidebar } from "./Sidebar";
 import { NotificationBell } from "./NotificationBell";
+import { PageStackTransition } from "../animate-ui/components/PageStackTransition";
 
 export const MOBILE_QUERY = "(max-width: 640px)";
 
@@ -52,7 +53,9 @@ export function AuthenticatedLayout() {
           <NotificationBell />
         </header>
         <div className="app-shell__content">
-          <Outlet />
+          <PageStackTransition>
+            <Outlet />
+          </PageStackTransition>
         </div>
       </div>
     </Provider>

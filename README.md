@@ -111,7 +111,18 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:3000. `Frontend/.env` sets `VITE_API_URL=http://localhost:8000`.
+Open http://localhost:3000. During development, Vite uses same-origin API and media
+URLs and proxies `/api` and `/hubs` (including notification WebSockets) to
+`http://localhost:8000`. Keep the backend running separately.
+
+For ngrok, tunnel port 3000 and add your exact ngrok hostname to
+`server.allowedHosts` in `Frontend/vite.config.ts`. Restart Vite after changing
+the configuration. No separate backend tunnel or CORS change is needed.
+Only share the tunnel with trusted users and use disposable development credentials.
+
+Development overrides `VITE_API_URL` to use the proxy. Production builds still use
+`VITE_API_URL`; set it to the deployed API base URL before `npm run build`.
+The development proxy does not run in the built frontend.
 
 ### Validation
 

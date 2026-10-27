@@ -1,12 +1,12 @@
 import { AnimateIcon } from "@animate-ui/react/icons";
+import { Tabs } from "@animate-ui/react/primitives/base-ui/tabs";
+import { Highlight, HighlightItem } from "@animate-ui/react/primitives/effects/highlight";
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { userService } from "../../features/users";
 import { ApiError } from "../../services/api";
 import { useAuthStore } from "../../store/authStore";
 import { EmptyState, ErrorState, Spinner } from "../../components/ui/Status";
-import { ArrowLeft } from "@/components/animate-ui/icons/arrow-left";
 import { Check } from "@/components/animate-ui/icons/check";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
@@ -21,12 +21,25 @@ const statusLabels: Record<string, string> = {
   pending_approval: "Pending approval",
 };
 
+type UserFilter = "all" | "pending_approval" | "active" | "disabled";
+
+const userFilters: { value: UserFilter; label: string }[] = [
+  { value: "all", label: "All users" },
+  { value: "pending_approval", label: "Pending" },
+  { value: "active", label: "Active" },
+  { value: "disabled", label: "Disabled" },
+];
+
 export function AdminUsersPage() {
   const { language, t } = useLocale();
   const me = useAuthStore((s) => s.user);
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
   const [action, setAction] = useState<{ type: "approve" | "delete"; user: AuthUser } | null>(null);
+  const [filter, setFilter] = useState<UserFilter>("all");
+  const [hoveredTab, setHoveredTab] = useState<UserFilter | null>(null);
+  const [focusedTab, setFocusedTab] = useState<UserFilter | null>(null);
+  const [search, setSearch] = useState("");
 
   const users = useQuery({
     queryKey: ["admin-users"],
@@ -57,12 +70,45 @@ export function AdminUsersPage() {
     onError: (err) => setError(err instanceof ApiError ? err.message : t("Could not delete the user.")),
   });
 
+  const allUsers = users.data ?? [];
+  const pendingCount = allUsers.filter((user) => user.status === "pending_approval").length;
+  const activeCount = allUsers.filter((user) => user.status === "active").length;
+  const normalizedSearch = search.trim().toLocaleLowerCase();
+  const visibleUsers = allUsers.filter((user) => {
+    const matchesStatus = filter === "all" || user.status === filter;
+    const matchesSearch = !normalizedSearch || `${user.username} ${user.role}`.toLocaleLowerCase().includes(normalizedSearch);
+    return matchesStatus && matchesSearch;
+  });
+
   return (
     <>
       <main className="admin-page">
-        <div className="admin__layout">
-          <div className="admin__heading">
-            <h2>{t("Manage users")}<span className="brand__dot">.</span></h2>
+        <section className="admin__layout admin-users" aria-labelledby="admin-users-title">
+          <header className="admin-users__header">
+            <div>
+              <p className="admin-users__eyebrow">{t("Community access")}</p>
+              <h2 id="admin-users-title">{t("Manage users")}<span className="brand__dot">.</span></h2>
+              <p className="admin-users__description">{t("Review accounts and membership status.")}</p>
+            </div>
+            <div className="admin-users__total" aria-live="polite">
+              <strong>{allUsers.length}</strong>
+              <span>{t("Members")}</span>
+            </div>
+          </header>
+
+          <div className="admin-users__summary" aria-label={t("User account summary")}>
+            <div className="admin-users__stat">
+              <span>{t("Total accounts")}</span>
+              <strong>{allUsers.length}</strong>
+            </div>
+            <div className="admin-users__stat admin-users__stat--pending">
+              <span>{t("Awaiting approval")}</span>
+              <strong>{pendingCount}</strong>
+            </div>
+            <div className="admin-users__stat admin-users__stat--active">
+              <span>{t("Active accounts")}</span>
+              <strong>{activeCount}</strong>
+            </div>
           </div>
 
           {error ? <ErrorState message={error} onRetry={() => setError(null)} /> : null}
@@ -72,41 +118,109 @@ export function AdminUsersPage() {
             <ErrorState message={t("Could not load users.")} onRetry={() => void users.refetch()} />
           ) : null}
 
-          {!users.isLoading && !users.isError && users.data?.length === 0 ? (
+          {!users.isLoading && !users.isError && allUsers.length === 0 ? (
             <EmptyState title={t("No members yet")} hint={t("New accounts appear here once they register.")} />
           ) : null}
 
-          {users.data && users.data.length > 0 ? (
-            <div className="admin-table-wrap">
-              <table className="admin-table" role="table">
-                <thead role="rowgroup">
-                  <tr role="row">
-                    <th role="columnheader" scope="col">{t("Username")}</th>
-                    <th role="columnheader" scope="col">{t("Role")}</th>
-                    <th role="columnheader" scope="col">{t("Status")}</th>
-                    <th role="columnheader" scope="col">{t("Joined")}</th>
-                    <th role="columnheader" scope="col" aria-label={t("Actions")}></th>
-                  </tr>
-                </thead>
-                <tbody role="rowgroup">
-                  {users.data.map((user) => (
-                    <AdminUserRow
-                      key={user.id}
-                      user={user}
-                      language={language}
-                      isSelf={user.id === me?.id}
-                      isLoading={approve.isPending || remove.isPending || action !== null}
-                      isApproving={approve.isPending && approve.variables === user.id}
-                      isDeleting={remove.isPending && remove.variables === user.id}
-                      onApprove={() => { setError(null); setAction({ type: "approve", user }); }}
-                      onDelete={() => { setError(null); setAction({ type: "delete", user }); }}
-                    />
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          {allUsers.length > 0 ? (
+            <Tabs.Root
+              value={filter}
+              onValueChange={(value) => {
+                if (value === "all" || value === "pending_approval" || value === "active" || value === "disabled") {
+                  setFilter(value);
+                }
+              }}
+            >
+              <div className="admin-users__toolbar">
+                <Highlight
+                  mode="parent"
+                  controlledItems
+                  value={hoveredTab ?? focusedTab}
+                  click={false}
+                  className="admin-tab-highlight"
+                  containerClassName="admin-tabs-highlight admin-users__filters"
+                  exitDelay={0}
+                >
+                  <Tabs.List
+                    className="admin-tabs admin-users__tab-list"
+                    aria-label={t("Filter users by status")}
+                    onPointerLeave={() => setHoveredTab(null)}
+                  >
+                    {userFilters.map((option) => {
+                      const count = option.value === "all"
+                        ? allUsers.length
+                        : allUsers.filter((user) => user.status === option.value).length;
+                      return (
+                        <HighlightItem key={option.value} value={option.value} asChild>
+                          <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
+                            <Tabs.Tab
+                              value={option.value}
+                              className="admin-tab admin-users__tab"
+                              onPointerEnter={(event) => {
+                                if (event.pointerType !== "touch" && window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+                                  setHoveredTab(option.value);
+                                }
+                              }}
+                              onFocus={() => setFocusedTab(option.value)}
+                              onBlur={() => setFocusedTab(null)}
+                            >
+                              {t(option.label)} <span>{count}</span>
+                            </Tabs.Tab>
+                          </AnimateIcon>
+                        </HighlightItem>
+                      );
+                    })}
+                    <Tabs.Indicator className="admin-tab-indicator" />
+                  </Tabs.List>
+                </Highlight>
+                <label className="admin-users__search">
+                  <span>{t("Search users")}</span>
+                  <input
+                    type="search"
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                    placeholder={t("Username or role")}
+                  />
+                </label>
+              </div>
+
+              <Tabs.Panel value={filter}>
+                {visibleUsers.length === 0 ? (
+                  <EmptyState title={t("No matching users")} hint={t("Try another name or status filter.")} />
+                ) : (
+                  <div className="admin-table-wrap">
+                    <table className="admin-table admin-users__table">
+                      <thead>
+                        <tr>
+                          <th scope="col">{t("Member")}</th>
+                          <th scope="col">{t("Role")}</th>
+                          <th scope="col">{t("Status")}</th>
+                          <th scope="col">{t("Joined")}</th>
+                          <th scope="col" aria-label={t("Actions")}></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {visibleUsers.map((user) => (
+                          <AdminUserRow
+                            key={user.id}
+                            user={user}
+                            language={language}
+                            isSelf={user.id === me?.id}
+                            isLoading={approve.isPending || remove.isPending || action !== null}
+                            isApproving={approve.isPending && approve.variables === user.id}
+                            isDeleting={remove.isPending && remove.variables === user.id}
+                            onApprove={() => { setError(null); setAction({ type: "approve", user }); }}
+                            onDelete={() => { setError(null); setAction({ type: "delete", user }); }}
+                          />
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </Tabs.Panel>
+            </Tabs.Root>
           ) : null}
-        </div>
+        </section>
       </main>
       {action ? (
         <ConfirmationDialog
@@ -147,16 +261,22 @@ function AdminUserRow({
 }: RowProps) {
   const { t } = useLocale();
   const isPending = user.status === "pending_approval";
+  const initials = user.username.slice(0, 2).toLocaleUpperCase();
 
   return (
-    <tr role="row">
-      <td role="cell" data-label={t("Username")}>{user.username}</td>
-      <td role="cell" data-label={t("Role")}>{user.role}</td>
-      <td role="cell" data-label={t("Status")}>
+    <tr>
+      <td data-label={t("Member")}>
+        <div className="admin-users__identity">
+          <span className="admin-users__avatar" aria-hidden="true">{initials}</span>
+          <span className="admin-users__username">{user.username}</span>
+        </div>
+      </td>
+      <td data-label={t("Role")}><span className="admin-users__role">{t(user.role)}</span></td>
+      <td data-label={t("Status")}>
         <span className={`admin-badge admin-badge--${user.status}`}>{t(statusLabels[user.status] ?? user.status)}</span>
       </td>
-      <td role="cell" data-label={t("Joined")}>{new Date(user.createdAt).toLocaleDateString(language === "vi" ? "vi-VN" : "en-US")}</td>
-      <td role="cell" className="admin-table__actions" data-label={t("Actions")}>
+      <td data-label={t("Joined")}>{new Date(user.createdAt).toLocaleDateString(language === "vi" ? "vi-VN" : "en-US")}</td>
+      <td className="admin-table__actions" data-label={t("Actions")}>
         {isPending ? (
           <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
             <button

@@ -99,12 +99,15 @@ describe("AdminPostsPage", () => {
     ));
   }
 
-  it("renders posts in order without an enclosing panel, heading, or column controls", () => {
+  it("renders a clear management hierarchy without a panel or column controls", () => {
     renderPage();
     expect(container.querySelector("main")?.getAttribute("aria-label")).toBe("Post management");
     expect(container.querySelector(".admin-page--posts")).not.toBeNull();
     expect(container.querySelector(".admin__layout")).toBeNull();
     expect(container.querySelector("h2")).toBeNull();
+    expect(container.querySelector("h1")?.textContent).toBe("Manage posts.");
+    expect(container.querySelector(".admin-posts__total strong")?.textContent).toBe("6");
+    expect(container.querySelector(".admin-posts__page-note")?.textContent).toBe("Showing 6 posts on this page");
     expect(container.querySelector(".admin__toolbar")).toBeNull();
     expect(container.querySelectorAll(".admin-post__resize")).toHaveLength(0);
     expect(Array.from(container.querySelectorAll(".admin-grid > .admin-post .admin-post__caption"),

@@ -3,8 +3,11 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [react(), tailwindcss()],
+  define: command === "serve" ? {
+    "import.meta.env.VITE_API_URL": JSON.stringify(""),
+  } : {},
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
@@ -12,9 +15,11 @@ export default defineConfig({
   },
   server: {
     port: 3000,
+    allowedHosts: ["wilder-unbolted-septum.ngrok-free.dev"],
     proxy: {
-      // Only used as a fallback; the app calls the API directly via VITE_API_URL.
+      // Development requests stay same-origin, including when accessed through ngrok.
       "/api": { target: "http://localhost:8000", changeOrigin: true },
+      "/hubs": { target: "http://localhost:8000", changeOrigin: true, ws: true },
     },
   },
   build: { outDir: "dist" },
@@ -23,4 +28,4 @@ export default defineConfig({
     globals: true,
     include: ["src/**/*.test.{ts,tsx}"],
   },
-});
+}));

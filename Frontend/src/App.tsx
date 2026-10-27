@@ -1,9 +1,16 @@
-import { Navigate, RouterProvider, createBrowserRouter } from "react-router-dom";
+import {
+  Navigate,
+  Outlet,
+  RouterProvider,
+  createBrowserRouter,
+  useLocation,
+} from "react-router-dom";
 import type { ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AnimateUIProvider } from "@animate-ui/react/provider";
 import { useAuthStore } from "./store/authStore";
 import { AuthenticatedLayout } from "./components/layout/AuthenticatedLayout";
+import { PageStackTransition } from "./components/animate-ui/components/PageStackTransition";
 import { LoginPage } from "./pages/login/LoginPage";
 import { RegisterPage } from "./pages/register/RegisterPage";
 import { HomePage } from "./pages/home/HomePage";
@@ -24,37 +31,68 @@ const queryClient = new QueryClient({
 /** / is the protected feed; unauthenticated visitors land on /login or /register. */
 const router = createBrowserRouter([
   {
+    element: <AppRouteTransition />,
     errorElement: <ErrorPage />,
-    element: (
-      <RequireAuth>
-        <AuthenticatedLayout />
-      </RequireAuth>
-    ),
     children: [
-      { path: "/", element: <HomePage /> },
-      { path: "/posts/:postId", element: <PostDetailPage /> },
       {
-        path: "/admin/users",
+        errorElement: <ErrorPage />,
         element: (
-          <RequireAdmin>
-            <AdminUsersPage />
-          </RequireAdmin>
+          <RequireAuth>
+            <AuthenticatedLayout />
+          </RequireAuth>
         ),
+        children: [
+          { path: "/", element: <HomePage /> },
+          { path: "/posts/:postId", element: <PostDetailPage /> },
+          {
+            path: "/admin/users",
+            element: (
+              <RequireAdmin>
+                <AdminUsersPage />
+              </RequireAdmin>
+            ),
+          },
+          {
+            path: "/admin/posts",
+            element: (
+              <RequireAdmin>
+                <AdminPostsPage />
+              </RequireAdmin>
+            ),
+          },
+        ],
       },
       {
-        path: "/admin/posts",
-        element: (
-          <RequireAdmin>
-            <AdminPostsPage />
-          </RequireAdmin>
-        ),
+        element: <PublicRouteLayout />,
+        children: [
+          { path: "/login", element: <LoginPage />, errorElement: <ErrorPage /> },
+          { path: "/register", element: <RegisterPage />, errorElement: <ErrorPage /> },
+        ],
       },
+      { path: "*", element: <Navigate replace to="/" /> },
     ],
   },
-  { path: "/login", element: <LoginPage />, errorElement: <ErrorPage /> },
-  { path: "/register", element: <RegisterPage />, errorElement: <ErrorPage /> },
-  { path: "*", element: <Navigate replace to="/" /> },
 ]);
+
+function AppRouteTransition() {
+  const { pathname } = useLocation();
+  const pageKey =
+    pathname === "/login" || pathname === "/register" ? "public" : "authenticated";
+
+  return (
+    <PageStackTransition pageKey={pageKey}>
+      <Outlet />
+    </PageStackTransition>
+  );
+}
+
+function PublicRouteLayout() {
+  return (
+    <PageStackTransition>
+      <Outlet />
+    </PageStackTransition>
+  );
+}
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const token = useAuthStore((s) => s.accessToken);

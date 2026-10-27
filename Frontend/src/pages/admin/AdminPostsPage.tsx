@@ -91,8 +91,19 @@ export function AdminPostsPage() {
   return (
     <>
       <main className="admin-page admin-page--posts" aria-label={t("Post management")}>
-        <div className="admin__heading">
-        </div>
+        <header className="admin-posts__header">
+          <div>
+            <p className="admin-posts__eyebrow">{t("Content moderation")}</p>
+            <h1>{t("Manage posts")}<span className="brand__dot">.</span></h1>
+            <p className="admin-posts__description">
+              {t("Review community posts and moderation actions.")}
+            </p>
+          </div>
+          <div className="admin-posts__total" aria-live="polite">
+            <strong>{posts.data?.total ?? "—"}</strong>
+            <span>{t("Posts")}</span>
+          </div>
+        </header>
 
         {error ? <ErrorState message={error} onRetry={() => setError(null)} /> : null}
 
@@ -107,43 +118,53 @@ export function AdminPostsPage() {
             setOffset(0);
           }
         }}>
-          <Highlight
-            mode="parent"
-            controlledItems
-            value={hoveredTab ?? focusedTab}
-            click={false}
-            className="admin-tab-highlight"
-            containerClassName="admin-tabs-highlight"
-            exitDelay={0}
-          >
-            <Tabs.List
-              className="admin-tabs"
-              aria-label={t("Filter posts by media type")}
-              onPointerLeave={() => setHoveredTab(null)}
-            >
-              {postTabs.map(({ value, label, icon: Icon }) => (
-                <HighlightItem key={value} value={value} asChild>
-                  <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
-                    <Tabs.Tab
-                      value={value}
-                      className="admin-tab"
-                      onPointerEnter={(event) => {
-                        if (event.pointerType !== "touch" && window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
-                          setHoveredTab(value);
-                        }
-                      }}
-                      onFocus={() => setFocusedTab(value)}
-                      onBlur={() => setFocusedTab(null)}
-                    >
-                      {Icon ? <Icon size={16} aria-hidden="true" /> : null}
-                      {t(label)}
-                    </Tabs.Tab>
-                  </AnimateIcon>
-                </HighlightItem>
-              ))}
-              <Tabs.Indicator className="admin-tab-indicator" />
-            </Tabs.List>
-          </Highlight>
+          <div className="admin-posts__toolbar">
+            <div className="admin-posts__filter">
+              <span className="admin-posts__filter-label">{t("Filter by media")}</span>
+              <Highlight
+                mode="parent"
+                controlledItems
+                value={hoveredTab ?? focusedTab}
+                click={false}
+                className="admin-tab-highlight"
+                containerClassName="admin-tabs-highlight"
+                exitDelay={0}
+              >
+                <Tabs.List
+                  className="admin-tabs"
+                  aria-label={t("Filter posts by media type")}
+                  onPointerLeave={() => setHoveredTab(null)}
+                >
+                  {postTabs.map(({ value, label, icon: Icon }) => (
+                    <HighlightItem key={value} value={value} asChild>
+                      <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
+                        <Tabs.Tab
+                          value={value}
+                          className="admin-tab"
+                          onPointerEnter={(event) => {
+                            if (event.pointerType !== "touch" && window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+                              setHoveredTab(value);
+                            }
+                          }}
+                          onFocus={() => setFocusedTab(value)}
+                          onBlur={() => setFocusedTab(null)}
+                        >
+                          {Icon ? <Icon size={16} aria-hidden="true" /> : null}
+                          {t(label)}
+                        </Tabs.Tab>
+                      </AnimateIcon>
+                    </HighlightItem>
+                  ))}
+                  <Tabs.Indicator className="admin-tab-indicator" />
+                </Tabs.List>
+              </Highlight>
+            </div>
+            {posts.data ? (
+              <p className="admin-posts__page-note" aria-live="polite">
+                {t("Showing {count} posts on this page", { count: filteredPosts.length })}
+              </p>
+            ) : null}
+          </div>
 
           <Tabs.Panel value="all">
             <PostsPanel
