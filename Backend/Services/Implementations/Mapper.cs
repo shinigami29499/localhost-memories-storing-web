@@ -1,4 +1,5 @@
 using Domains.Entities;
+using Services.Models.Collections;
 using Services.Models.Media;
 using Services.Interfaces;
 using Services.Mappings;
@@ -32,4 +33,6 @@ public sealed class Mapper : IMapper
 
     public AdminPostDto Map(AdminPostSource source)
         => PostMappings.ToAdminDto(source);
+
+    public CollectionDto Map(CollectionSource source) => CollectionMappings.ToDto(source);
 }

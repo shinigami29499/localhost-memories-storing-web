@@ -16,6 +16,9 @@ export default defineConfig(({ command }) => ({
   server: {
     port: 3000,
     allowedHosts: ["wilder-unbolted-septum.ngrok-free.dev"],
+    watch: {
+      ignored: ["**/dist/**"],
+    },
     proxy: {
       // Development requests stay same-origin, including when accessed through ngrok.
       "/api": { target: "http://localhost:8000", changeOrigin: true },

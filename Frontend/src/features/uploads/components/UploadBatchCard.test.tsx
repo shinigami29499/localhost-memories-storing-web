@@ -226,7 +226,7 @@ describe("UploadBatchCard", () => {
   });
 
   it("shows progress and only retries failed items or cancels pending and uploading items", async () => {
-    expect(container.querySelector(".upload-item__progress-row")?.textContent).toContain("70%");
+    expect(container.querySelector(".upload-item__controls")?.textContent).toContain("70%");
     expect(container.querySelector('[aria-label="Retry failed.png"]')).not.toBeNull();
     expect(container.querySelector('[aria-label="Cancel uploading.mp4"]')).not.toBeNull();
     expect(container.querySelector('[aria-label="Cancel pending.webp"]')).not.toBeNull();
@@ -236,11 +236,13 @@ describe("UploadBatchCard", () => {
     expect(container.textContent).toContain("100%");
     expect(container.querySelector('[href="/posts/feed-post"]')?.textContent).toBe("View post");
     expect(container.querySelector(".upload-batch__post-link")?.classList.contains("btn--secondary")).toBe(true);
-    expect(container.textContent).toContain("My feed post");
+    expect(container.textContent).not.toContain(batch.caption);
     expect(container.textContent).not.toContain("Batch status");
     expect(container.textContent).not.toContain("Item status");
+    expect(container.querySelectorAll(".upload-item__file-type")).toHaveLength(items.length);
+    expect(container.querySelectorAll(".upload-item__progress-row .upload-progress")).toHaveLength(items.length);
     for (const action of container.querySelectorAll(".upload-item__action")) {
-      expect(action.closest(".upload-item__progress-row")).not.toBeNull();
+      expect(action.closest(".upload-item__controls")).not.toBeNull();
     }
 
     await act(async () => {
@@ -253,18 +255,18 @@ describe("UploadBatchCard", () => {
     expect(onCancel).toHaveBeenNthCalledWith(2, batch, items[1]);
   });
 
-  it("places the expand control before the post link without summary counters", () => {
+  it("places the expand control first in the summary without summary counters", () => {
     const footer = container.querySelector(".upload-batch__footer")!;
     expect(Array.from(footer.children, (child) => child.className)).toEqual([
-      "upload-batch__toggle",
       "btn btn--secondary upload-batch__post-link",
     ]);
+    expect(container.querySelector(".upload-batch__summary")?.firstElementChild?.className).toBe("upload-batch__toggle");
     expect(container.querySelector(".upload-batch__identity .upload-batch__post-link")).toBeNull();
     expect(container.querySelector(".upload-batch__counts")).toBeNull();
     expect(container.querySelector(".upload-batch__summary")?.textContent).not.toContain("Succeeded");
   });
 
-  it("places the batch status below its label in a centered field", () => {
+  it("places the batch status below its label in the compact summary", () => {
     const field = container.querySelector(".upload-batch__status-field")!;
     expect(Array.from(field.children, (child) => child.className)).toEqual([
       "upload-batch__label",
@@ -274,7 +276,7 @@ describe("UploadBatchCard", () => {
     expect(field.lastElementChild?.textContent).toBe("Uploading");
   });
 
-  it.each([0, 17, 40])("shows %i successful files out of 40 and a one-line GUID", async (successfulFiles) => {
+  it.each([0, 17, 40])("shows batch progress as %i of 40 files without the batch GUID", async (successfulFiles) => {
     const id = "12345678-1234-1234-1234-123456789abc";
     await act(async () => {
       root.render(
@@ -293,13 +295,16 @@ describe("UploadBatchCard", () => {
         </LocaleProvider>,
       );
     });
-    const files = Array.from(container.querySelectorAll(".upload-batch__field"))
-      .find((field) => field.querySelector(".upload-batch__label")?.textContent === "Files")!;
-    expect(files.querySelector(".upload-batch__value")?.textContent).toBe(`${successfulFiles}/40`);
-    const guid = container.querySelector(".upload-batch__id")!;
-    expect(guid.textContent).toBe(id);
-    expect(guid.querySelectorAll("br")).toHaveLength(0);
-    expect(guid.childNodes).toHaveLength(1);
+    const progressField = container.querySelector(".upload-batch__progress-field")!;
+    expect(progressField.querySelector(".upload-batch__label")?.textContent).toBe("Batch progress");
+    expect(progressField.querySelector(".upload-progress__value")?.textContent?.trim()).toBe(`${successfulFiles}/40`);
+    expect(progressField.querySelector(".upload-progress__value")?.textContent).not.toContain("%");
+    expect(container.querySelector(".upload-batch__files-field")).toBeNull();
+    expect(progressField.querySelector('[aria-valuetext]')?.getAttribute("aria-valuetext")).toBe(`${successfulFiles}/40`);
+    expect(container.querySelector(".upload-batch__id")).toBeNull();
+    expect(container.textContent).not.toContain(id);
+    expect(container.querySelector(".upload-batch__caption")).toBeNull();
+    expect(container.textContent).not.toContain(batch.caption);
   });
 
   it("collapses and expands active files without losing their progress", async () => {
@@ -317,10 +322,10 @@ describe("UploadBatchCard", () => {
     await act(async () => toggle.click());
     expect(toggle.getAttribute("aria-expanded")).toBe("true");
     expect(panel.hidden).toBe(false);
-    expect(panel.querySelector(".upload-item__progress-row")?.textContent).toContain("70%");
+    expect(panel.querySelector(".upload-item__controls")?.textContent).toContain("70%");
   });
 
-  it.each<UploadBatchStatus>(["Success", "Failed", "Cancelled", "PartialFailure"])(
+  it.each<UploadBatchStatus>(["Completed", "Failed", "Cancelled"])(
     "expands previous %s batches to show file history",
     async (status) => {
       await act(async () => {
@@ -348,7 +353,7 @@ describe("UploadBatchCard", () => {
       expect(toggle.getAttribute("aria-expanded")).toBe("false");
       expect(panel.hasAttribute("inert")).toBe(true);
       expect(container.querySelector(".upload-status")?.textContent).toBe(
-        status === "PartialFailure" ? "Partial failure" : status,
+        status,
       );
 
       await act(async () => toggle.click());
@@ -385,7 +390,7 @@ describe("UploadBatchCard", () => {
     expect(cancel.disabled).toBe(true);
     expect(cancel.getAttribute("aria-busy")).toBe("true");
     expect(cancel.querySelector(".btn__spinner")).not.toBeNull();
-    expect(cancel.closest(".upload-item__progress-row")).not.toBeNull();
+    expect(cancel.closest(".upload-item__controls")).not.toBeNull();
 
     await act(async () => root.render(renderCard(false)));
     expect(container.querySelector(".upload-item__action")).toBeNull();
@@ -401,7 +406,7 @@ describe("UploadBatchCard", () => {
             <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
               <AnimateUIProvider reducedMotion="never">
                 <UploadBatchCard
-                  batch={{ ...batch, status: "PartialFailure" }}
+                  batch={{ ...batch, status: "Failed" }}
                   showUsername={false}
                   busyItemIds={new Set()}
                   onRetry={onRetry}
@@ -412,7 +417,7 @@ describe("UploadBatchCard", () => {
           </LocaleProvider>,
         );
       });
-      expect(container.querySelector(".upload-status")?.textContent).toBe("Có lỗi một phần");
+      expect(container.querySelector(".upload-status")?.textContent).toBe("Thất bại");
       const toggle = container.querySelector<HTMLButtonElement>(".upload-batch__toggle")!;
       expect(toggle.getAttribute("aria-label")).toBe("Xem lịch sử");
       await act(async () => toggle.click());

@@ -1,9 +1,12 @@
 // @vitest-environment jsdom
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NewPostForm } from "./NewPostForm";
+import { mentionService } from "../services/mentionService";
 import { postService } from "../services/postService";
+import { renderCaptionTags } from "../utils/renderCaptionTags";
 
 const navigate = vi.hoisted(() => vi.fn());
 vi.mock("react-router-dom", () => ({ useNavigate: () => navigate }));
@@ -11,6 +14,11 @@ vi.mock("react-router-dom", () => ({ useNavigate: () => navigate }));
 vi.mock("../services/postService", () => ({
   postService: {
     submitTracked: vi.fn(),
+  },
+}));
+vi.mock("../services/mentionService", () => ({
+  mentionService: {
+    searchCandidates: vi.fn(),
   },
 }));
 
@@ -64,6 +72,43 @@ describe("NewPostForm", () => {
     expect(label.querySelector("[data-paperclip]")?.getAttribute("data-animated")).toBe("true");
     await act(async () => label.dispatchEvent(new MouseEvent("pointerout", { bubbles: true, relatedTarget: document.body })));
     expect(label.querySelector("[data-paperclip]")?.getAttribute("data-animated")).toBe("false");
+  });
+
+  it("searches and inserts a selected person mention", async () => {
+    vi.mocked(mentionService.searchCandidates).mockResolvedValue([
+      { id: "user-1", username: "shinigami" },
+    ]);
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+      callback(0);
+      return 1;
+    });
+
+    await act(async () => root.render(<NewPostForm onSubmitted={vi.fn()} />));
+    const caption = container.querySelector<HTMLTextAreaElement>(".new-post__caption")!;
+    await act(async () => {
+      const valueSetter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!;
+      valueSetter.call(caption, "hello @shini");
+      caption.setSelectionRange(caption.value.length, caption.value.length);
+      caption.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 220));
+    });
+
+    expect(mentionService.searchCandidates).toHaveBeenCalledWith("shini");
+    const suggestion = container.querySelector<HTMLButtonElement>(".new-post__mention-option")!;
+    await act(async () => suggestion.click());
+    expect(caption.value).toBe("hello @shinigami ");
+  });
+
+  it("renders mentions and topic tags while leaving email addresses unchanged", () => {
+    const markup = renderToStaticMarkup(
+      <p>{renderCaptionTags("Meet @alice about #art and a@b.com")}</p>,
+    );
+
+    expect(markup).toContain('class="post-card__tag post-card__tag--mention">@alice</span>');
+    expect(markup).toContain('class="post-card__tag post-card__tag--hashtag">#art</span>');
+    expect(markup).toContain("a@b.com");
   });
 
   it("handles drag over, drag enter, drag leave, and drop events to attach files", async () => {

@@ -73,7 +73,7 @@ export function startUploadRuntime(
       failed: batch.failedFiles,
       cancelled: batch.cancelledFiles,
     });
-    if (batch.status === "Success") {
+    if (batch.status === "Completed") {
       if (window.location.pathname === "/") {
         showToast.success(translate("Upload batch completed"), summary);
       } else {

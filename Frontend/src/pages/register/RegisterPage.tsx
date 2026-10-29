@@ -2,8 +2,7 @@ import { useState } from "react";
 import { ArrowRight } from "@/components/animate-ui/icons/arrow-right";
 import { Link } from "react-router-dom";
 import { authService } from "../../features/auth";
-import { Button, Input, PasswordInput } from "../../components/ui";
-import { ErrorState } from "../../components/ui/Status";
+import { Button, Input, PasswordInput, showToast } from "../../components/ui";
 import { Brand } from "../../components/layout/Brand";
 import { CommunityIntro } from "../../components/layout/CommunityIntro";
 import { ThemeTogglerButton } from "../../components/ui/ThemeTogglerButton";
@@ -17,14 +16,12 @@ export function RegisterPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
     if (password !== confirmPassword) {
-      setError(t("Passwords do not match."));
+      showToast.error(t("Passwords do not match."));
       return;
     }
     setBusy(true);
@@ -33,7 +30,7 @@ export function RegisterPage() {
       await authService.register(username.trim(), password);
       setCreated(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("Registration failed."));
+      showToast.error(err instanceof Error ? err.message : t("Registration failed."));
     } finally {
       setBusy(false);
     }
@@ -121,8 +118,6 @@ export function RegisterPage() {
             required
             aria-label={t("Confirm password")}
           />
-
-          {error ? <ErrorState message={error} /> : null}
 
           <Button type="submit" busy={busy}>
             {t("Create account")} <ArrowRight size={18} aria-hidden="true" />

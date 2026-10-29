@@ -32,7 +32,7 @@ function item(id: string): UploadItem {
 function batch(items: UploadItem[], complete = false): UploadBatch {
   return {
     id: "batch", postId: complete ? "post" : null, caption: "A feed post",
-    status: complete ? "Success" : "Pending", username: null, canManage: true,
+    status: complete ? "Completed" : "Pending", username: null, canManage: true,
     createdAt: "2026-10-28T00:00:00Z", startedAt: null,
     completedAt: complete ? "2026-10-28T00:01:00Z" : null,
     totalFiles: items.length, successfulFiles: complete ? items.length : 0,
@@ -271,11 +271,11 @@ describe("feed post upload runtime", () => {
     }
   });
 
-  it("reports partial failure instead of announcing that the whole post upload succeeded", async () => {
+  it("reports a failed batch instead of announcing that the whole post upload succeeded", async () => {
     const failed = { ...item("failed-file"), status: "Failed" as const };
     vi.mocked(uploadService.get).mockResolvedValue({
       ...batch([item("success-file"), failed], true),
-      status: "PartialFailure",
+      status: "Failed",
       successfulFiles: 1,
       failedFiles: 1,
     });

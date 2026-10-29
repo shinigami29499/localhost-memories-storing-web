@@ -1,12 +1,11 @@
 import { AnimateIcon } from "@animate-ui/react/icons";
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft } from "@/components/animate-ui/icons/arrow-left";
-import { ArrowRight } from "@/components/animate-ui/icons/arrow-right";
 import { X } from "@/components/animate-ui/icons/x";
 import type { MediaFile } from "../types";
 import { mediaUrl } from "../../../utils/media";
-import { useSwipe } from "../../../hooks/useSwipe";
 import { useLocale } from "../../../context/LocaleContext";
+import { useSwipe } from "../../../hooks/useSwipe";
+import { MediaCarousel } from "./MediaCarousel";
 
 interface Props {
   media: MediaFile[];
@@ -20,13 +19,21 @@ export function MediaGallery({ media, onPreviousPost, onNextPost }: Props) {
   const [lightbox, setLightbox] = useState(false);
   const [failedId, setFailedId] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const backdropPointer = useRef<{ x: number; y: number } | null>(null);
+  const swiped = useRef(false);
   const activeIndex = Math.min(index, Math.max(0, media.length - 1));
   const file = media[activeIndex];
-  const previous = () => setIndex(Math.max(0, activeIndex - 1));
-  const next = () => setIndex(Math.min(media.length - 1, activeIndex + 1));
   const swipe = useSwipe({
-    onSwipeLeft: () => (media.length > 1 ? next() : onNextPost?.()),
-    onSwipeRight: () => (media.length > 1 ? previous() : onPreviousPost?.()),
+    onSwipeLeft: () => {
+      swiped.current = true;
+      if (media.length > 1) setIndex((activeIndex + 1) % media.length);
+      else onNextPost?.();
+    },
+    onSwipeRight: () => {
+      swiped.current = true;
+      if (media.length > 1) setIndex((activeIndex - 1 + media.length) % media.length);
+      else onPreviousPost?.();
+    },
   });
 
   useEffect(() => {
@@ -43,86 +50,77 @@ export function MediaGallery({ media, onPreviousPost, onNextPost }: Props) {
   if (!file) return null;
 
   return (
-    <div
-      className="media-gallery"
-      role="region"
-      aria-label={t(media.length > 1 ? "Post photos and videos" : "Post media")}
-      aria-roledescription="carousel"
-      tabIndex={media.length > 1 ? 0 : undefined}
-      onKeyDown={(event) => {
-        if (event.target !== event.currentTarget) return;
-        if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
-          event.preventDefault();
-          if (event.key === "ArrowLeft") previous();
-          else next();
-        }
-      }}
-    >
-      <figure className="media-gallery__item" {...swipe}>
-        <div className="media-gallery__stage" key={file.id}>
+    <div className="media-gallery media-gallery--inline">
+      <div
+        className="media-gallery__stage"
+        {...swipe}
+        onTouchStart={(event) => {
+          swiped.current = false;
+          swipe.onTouchStart(event);
+        }}
+      >
+        <figure className="media-gallery__slide media-gallery__slide--current">
           {failedId === file.id ? (
             <p className="media-gallery__unsupported" role="alert">{t("Could not load this media.")}</p>
           ) : file.mediaKind === "image" ? (
             <img
               src={mediaUrl(file.id)}
               alt={file.originalFilename}
-              loading="eager"
               draggable={false}
               className="media-gallery__image"
               role="button"
               tabIndex={0}
-              aria-label={t("Image: click edges to navigate or center to enlarge")}
+              aria-label={t("Open image preview")}
+              onClick={() => {
+                if (!swiped.current) setLightbox(true);
+                swiped.current = false;
+              }}
               onKeyDown={(event) => {
                 if (event.key === "Enter" || event.key === " ") {
                   event.preventDefault();
                   setLightbox(true);
                 }
               }}
-              onClick={(event) => {
-                const bounds = event.currentTarget.getBoundingClientRect();
-                const position = (event.clientX - bounds.left) / bounds.width;
-                if (position < 0.25) {
-                  if (media.length > 1) previous();
-                  else onPreviousPost?.();
-                } else if (position > 0.75) {
-                  if (media.length > 1) next();
-                  else onNextPost?.();
-                } else {
-                  setLightbox(true);
-                }
-              }}
               onError={() => setFailedId(file.id)}
             />
           ) : file.mediaKind === "video" ? (
-            <video
-              src={mediaUrl(file.id)}
-              controls
-              preload="metadata"
-              className="media-gallery__video"
-              onError={() => setFailedId(file.id)}
-            />
+            <video key={file.id} src={mediaUrl(file.id)} controls preload="metadata" className="media-gallery__video" onError={() => setFailedId(file.id)} />
           ) : (
             <div className="media-gallery__unsupported">
               <p>{t("Unsupported media type ({mimeType})", { mimeType: file.mimeType })}</p>
               <a href={mediaUrl(file.id)} download={file.originalFilename}>{t("Download")}</a>
             </div>
           )}
-        </div>
-      </figure>
+        </figure>
+      </div>
       {lightbox ? (
         <dialog
           ref={dialogRef}
           className="media-lightbox"
           aria-label={file.originalFilename}
           onCancel={(event) => { event.preventDefault(); setLightbox(false); }}
-          onClick={(event) => { if (event.target === event.currentTarget) setLightbox(false); }}
+          onPointerDown={(event) => {
+            backdropPointer.current = event.target instanceof Element
+              && !event.target.closest("img, video, button, a, .media-carousel__controls")
+              ? { x: event.clientX, y: event.clientY }
+              : null;
+          }}
+          onClick={(event) => {
+            const start = backdropPointer.current;
+            backdropPointer.current = null;
+            if (start && Math.hypot(event.clientX - start.x, event.clientY - start.y) < 6
+              && event.target instanceof Element
+              && !event.target.closest("img, video, button, a, .media-carousel__controls")) {
+              setLightbox(false);
+            }
+          }}
         >
           <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
             <button type="button" className="viewer-icon-btn media-lightbox__close" aria-label={t("Close image preview")} title={t("Close image preview")} onClick={() => setLightbox(false)}>
               <X size={20} aria-hidden="true" />
             </button>
           </AnimateIcon>
-          <img src={mediaUrl(file.id)} alt={file.originalFilename} />
+          <MediaCarousel media={media} initialIndex={activeIndex} />
         </dialog>
       ) : null}
     </div>

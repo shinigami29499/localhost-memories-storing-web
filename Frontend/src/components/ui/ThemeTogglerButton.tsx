@@ -1,12 +1,14 @@
 import { useRef, useState } from "react";
 import { flushSync } from "react-dom";
-import { AnimatePresence, motion } from "motion/react";
+import { motion } from "motion/react";
 import {
   motionTokens,
   toCssTiming,
   useShouldReduceMotion,
   useTempoTransition,
 } from "@animate-ui/react/utils/motion";
+import { Moon } from "../animate-ui/icons/moon";
+import { Sun } from "../animate-ui/icons/sun";
 import { useTheme } from "../../context/ThemeContext";
 import { useLocale } from "../../context/LocaleContext";
 
@@ -16,7 +18,6 @@ export function ThemeTogglerButton({ className = "" }: { className?: string }) {
   const shouldReduceMotion = useShouldReduceMotion();
   const changing = useRef(false);
   const [busy, setBusy] = useState(false);
-  const transition = useTempoTransition(motionTokens.transition.spin);
   const slideTiming = toCssTiming(useTempoTransition(motionTokens.transition.collapse));
   const pressTransition = useTempoTransition({
     type: "spring",
@@ -65,7 +66,7 @@ export function ThemeTogglerButton({ className = "" }: { className?: string }) {
       type="button"
       className={`theme-toggler${className ? ` ${className}` : ""}`}
       data-theme={theme}
-      aria-label={t("Toggle theme")}
+      aria-label={t("Switch to {theme} theme", { theme: t(theme === "dark" ? "light" : "dark") })}
       aria-pressed={theme === "dark"}
       aria-busy={busy}
       disabled={busy}
@@ -74,62 +75,13 @@ export function ThemeTogglerButton({ className = "" }: { className?: string }) {
       whileTap={shouldReduceMotion ? undefined : { scale: 0.97 }}
       transition={pressTransition}
     >
-      <AnimatePresence mode="popLayout" initial={false}>
-        <motion.span
-          key={theme}
-          className="theme-toggler__icon"
-          aria-hidden="true"
-          initial={
-            shouldReduceMotion
-              ? { opacity: 0, filter: "blur(2px)" }
-              : { opacity: 0, scale: 0.5, filter: "blur(2px)", rotate: -90 }
-          }
-          animate={
-            shouldReduceMotion
-              ? { opacity: 1, filter: "blur(0px)" }
-              : { opacity: 1, scale: 1, filter: "blur(0px)", rotate: 0 }
-          }
-          exit={
-            shouldReduceMotion
-              ? { opacity: 0, filter: "blur(2px)" }
-              : { opacity: 0, scale: 0.5, filter: "blur(2px)", rotate: 90 }
-          }
-          transition={transition}
-        >
-          {theme === "dark" ? <MoonIcon /> : <SunIcon />}
-        </motion.span>
-      </AnimatePresence>
+      <span key={theme} className="theme-toggler__icon" aria-hidden="true">
+        {theme === "dark" ? (
+          <Moon size={18} fill="currentColor" animate animateOnHover animateOnTap />
+        ) : (
+          <Sun size={18} fill="currentColor" animate animateOnHover animateOnTap />
+        )}
+      </span>
     </motion.button>
-  );
-}
-
-function SunIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <circle cx="12" cy="12" r="4" />
-      <path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" />
-    </svg>
-  );
-}
-
-function MoonIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M20.9 13A9 9 0 0 1 11 3.1 9 9 0 1 0 20.9 13Z" />
-    </svg>
   );
 }

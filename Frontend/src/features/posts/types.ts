@@ -13,7 +13,7 @@ export interface Post {
   mediaCount: number;
   commentCount: number;
   reactionCounts: ReactionCount[];
-  myReactions: string[];
+  myReactionTypes: string[];
   media: MediaFile[];
 }
 

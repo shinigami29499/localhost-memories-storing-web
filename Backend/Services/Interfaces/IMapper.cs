@@ -1,4 +1,5 @@
 using Domains.Entities;
+using Services.Models.Collections;
 using Services.Models.Media;
 using Services.Models.Comments;
 using Services.Models.Posts;
@@ -20,4 +21,5 @@ public interface IMapper
         IReadOnlyList<string> myReactions);
     DeletedPostDto Map(Post post, User? deletedBy, int mediaCount, long commentCount);
     AdminPostDto Map(AdminPostSource source);
+    CollectionDto Map(CollectionSource source);
 }

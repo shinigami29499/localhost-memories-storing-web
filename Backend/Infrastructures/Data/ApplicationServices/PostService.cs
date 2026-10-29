@@ -28,7 +28,28 @@ public class PostService(
     private readonly INotificationRepository _notificationRepository = notificationRepository;
 
     public async Task<PagedFeedResponse<PostSummaryDto>> GetFeedAsync(
-        Guid viewerId, int offset, int limit, CancellationToken cancellationToken = default)
+        Guid viewerId, int offset, int limit, string? mediaKind = null, CancellationToken cancellationToken = default)
+    {
+        ValidatePage(offset, limit, mediaKind);
+        var page = await _repository.GetFeedPageAsync(offset, limit, mediaKind, cancellationToken);
+        var total = await _repository.CountActivePostsAsync(mediaKind, cancellationToken);
+        return await BuildFeedPageAsync(viewerId, offset, limit, total, page, cancellationToken);
+    }
+
+    public async Task<PagedFeedResponse<PostSummaryDto>> GetFavoritesAsync(
+        Guid viewerId, int offset, int limit, string? mediaKind = null, CancellationToken cancellationToken = default)
+    {
+        ValidatePage(offset, limit, mediaKind);
+        var page = await _repository.GetFavoritePageAsync(
+            viewerId, FavoriteReactionType, offset, limit, mediaKind, cancellationToken);
+        var total = await _repository.CountFavoritePostsAsync(
+            viewerId, FavoriteReactionType, mediaKind, cancellationToken);
+        return await BuildFeedPageAsync(viewerId, offset, limit, total, page, cancellationToken);
+    }
+
+    private const string FavoriteReactionType = "heart";
+
+    private static void ValidatePage(int offset, int limit, string? mediaKind)
     {
         if (limit < 1 || limit > FeedRequest.MaxLimit)
             throw new ValidationException(
@@ -38,10 +59,16 @@ public class PostService(
             throw new ValidationException(
                 "Invalid feed page.",
                 new Dictionary<string, string[]> { ["offset"] = ["Must be zero or greater."] });
+        if (mediaKind is not null && mediaKind is not ("image" or "video"))
+            throw new ValidationException(
+                "Invalid feed page.",
+                new Dictionary<string, string[]> { ["mediaKind"] = ["Must be 'image' or 'video'."] });
+    }
 
-        var page = await _repository.GetFeedPageAsync(offset, limit, cancellationToken);
-        var total = await _repository.CountActivePostsAsync(cancellationToken);
-
+    private async Task<PagedFeedResponse<PostSummaryDto>> BuildFeedPageAsync(
+        Guid viewerId, int offset, int limit, long total, IReadOnlyList<Post> page,
+        CancellationToken cancellationToken)
+    {
         if (page.Count == 0)
             return new PagedFeedResponse<PostSummaryDto>(offset, limit, total, []);
 
@@ -333,6 +360,10 @@ public class PostService(
 
     public async Task<PagedFeedResponse<AdminPostDto>> GetAllPostsAsync(
         int offset, int limit, CancellationToken cancellationToken = default)
+        => await GetAllPostsAsync(offset, limit, new AdminPostSearchRequest(), cancellationToken);
+
+    public async Task<PagedFeedResponse<AdminPostDto>> GetAllPostsAsync(
+        int offset, int limit, AdminPostSearchRequest filters, CancellationToken cancellationToken = default)
     {
         if (limit < 1 || limit > FeedRequest.MaxLimit)
             throw new ValidationException(
@@ -343,8 +374,8 @@ public class PostService(
                 "Invalid feed page.",
                 new Dictionary<string, string[]> { ["offset"] = ["Must be zero or greater."] });
 
-        var page = await _repository.GetAllPostsPageAsync(offset, limit, cancellationToken);
-        var total = await _repository.CountAllPostsAsync(cancellationToken);
+        var page = await _repository.GetAllPostsPageAsync(offset, limit, filters, cancellationToken);
+        var total = await _repository.CountAllPostsAsync(filters, cancellationToken);
 
         if (page.Count == 0)
             return new PagedFeedResponse<AdminPostDto>(offset, limit, total, []);

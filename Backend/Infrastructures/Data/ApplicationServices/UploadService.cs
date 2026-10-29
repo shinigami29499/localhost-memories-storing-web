@@ -411,18 +411,19 @@ public sealed class UploadService(
 
         if (statuses.Any(status => status == UploadItemStatus.Pending))
         {
-            batch.Status = UploadBatchStatus.Pending;
-            batch.CompletedAt = null;
+            batch.Status = batch.StartedAt.HasValue
+                ? UploadBatchStatus.Uploading
+                : UploadBatchStatus.Pending;
+            if (!batch.StartedAt.HasValue)
+                batch.CompletedAt = null;
             return;
         }
 
-        batch.Status = statuses.All(status => status == UploadItemStatus.Success)
-            ? UploadBatchStatus.Success
-            : statuses.All(status => status == UploadItemStatus.Cancelled)
+        batch.Status = statuses.Any(status => status == UploadItemStatus.Failed)
+            ? UploadBatchStatus.Failed
+            : statuses.Any(status => status == UploadItemStatus.Cancelled)
                 ? UploadBatchStatus.Cancelled
-                : statuses.Any(status => status == UploadItemStatus.Success)
-                    ? UploadBatchStatus.PartialFailure
-                    : UploadBatchStatus.Failed;
+                : UploadBatchStatus.Completed;
         batch.CompletedAt = batch.Items
             .Select(item => item.CompletedAt)
             .Where(time => time.HasValue)

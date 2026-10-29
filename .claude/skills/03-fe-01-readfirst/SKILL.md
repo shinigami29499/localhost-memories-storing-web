@@ -101,6 +101,7 @@ Load only the skill matching the frontend task:
 | -------------------------------- | ------------------------------ |
 | Component and UI implementation  | `03-fe-03-ui-engineering`      |
 | Visual design and UX             | `03-fe-04-ui-ux`               |
+| Design direction and UI quality passes | `03-fe-05-impeccable`     |
 | Cross-cutting performance        | `01-overview-03-performance`   |
 | Serialization and data contracts | `01-overview-04-serialization` |
 

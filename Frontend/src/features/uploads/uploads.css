@@ -79,26 +79,33 @@
 
 .upload-batch__summary {
   display: grid;
-  grid-template-columns: minmax(18rem, 1.6fr) minmax(0, 1fr) minmax(0, 0.4fr) minmax(0, 0.8fr) minmax(0, 1.2fr);
-  align-items: start;
+  grid-template-columns: 44px 36px minmax(0, 1fr) 120px minmax(160px, 1.2fr) 160px;
+  grid-template-areas: "toggle ordinal created status progress footer";
+  align-items: center;
   gap: 16px;
-  padding: 16px;
+  padding: 10px 16px;
 }
 
 .upload-batch__summary--admin {
-  grid-template-columns: minmax(18rem, 1.5fr) minmax(0, 0.8fr) minmax(0, 1fr) minmax(0, 0.4fr) minmax(0, 0.8fr) minmax(0, 1.2fr);
+  grid-template-columns: 44px 36px minmax(0, 0.8fr) minmax(0, 1fr) 120px minmax(140px, 1.2fr) 160px;
+  grid-template-areas: "toggle ordinal username created status progress footer";
 }
 
 .upload-batch__field {
   display: grid;
   min-width: 0;
-  gap: 6px;
+  gap: 2px;
 }
 
 .upload-batch__status-field {
+  grid-area: status;
   justify-items: center;
   text-align: center;
 }
+
+.upload-batch__ordinal-field { grid-area: ordinal; }
+.upload-batch__username-field { grid-area: username; }
+.upload-batch__created-field { grid-area: created; }
 
 .upload-batch__label {
   color: var(--text-muted);
@@ -115,6 +122,7 @@
 }
 
 .upload-batch__toggle {
+  grid-area: toggle;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -141,13 +149,6 @@
 .upload-batch__chevron {
   display: inline-flex;
   flex-shrink: 0;
-}
-
-.upload-batch__id {
-  max-width: 100%;
-  white-space: nowrap;
-  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
-  font-size: 0.78rem;
 }
 
 .upload-batch__post-link.btn {
@@ -181,13 +182,13 @@
   overflow-wrap: anywhere;
 }
 
-.upload-status--failed,
-.upload-status--partialfailure {
+.upload-status--failed {
   border-color: var(--danger);
   background: var(--danger-wash);
 }
 
 .upload-batch__progress-field {
+  grid-area: progress;
   min-width: 0;
 }
 
@@ -233,11 +234,11 @@
 }
 
 .upload-batch__footer {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  display: flex;
   align-items: center;
-  grid-column: 1 / -1;
-  gap: 12px;
+  justify-content: flex-end;
+  grid-area: footer;
+  gap: 8px;
   min-width: 0;
 }
 
@@ -248,19 +249,34 @@
 
 .upload-item {
   display: grid;
-  gap: 8px;
-  padding: 14px 0;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  grid-template-areas:
+    "icon details controls"
+    "progress progress progress";
+  align-items: center;
+  gap: 8px 12px;
+  padding: 12px 0;
 }
 
 .upload-item + .upload-item {
   border-top: 1px solid var(--border);
 }
 
+.upload-item__file-type {
+  display: grid;
+  width: 36px;
+  height: 40px;
+  grid-area: icon;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) / 2);
+  background: var(--surface-raised);
+  color: var(--text-muted);
+}
+
 .upload-item__details {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  grid-area: details;
+  min-width: 0;
 }
 
 .upload-item__name-group {
@@ -283,17 +299,47 @@
   overflow-wrap: anywhere;
 }
 
+.upload-item__meta-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  min-width: 0;
+}
+
+.upload-item__status.upload-status {
+  min-height: 20px;
+  padding: 0 6px;
+  font-size: 0.7rem;
+}
+
+.upload-item__controls {
+  display: flex;
+  align-items: center;
+  grid-area: controls;
+  gap: 8px;
+}
+
+.upload-item__progress-row {
+  grid-area: progress;
+}
+
 .upload-item__error {
+  grid-column: 1 / -1;
   margin: 0;
   color: var(--danger);
   font-size: 0.82rem;
   overflow-wrap: anywhere;
 }
 
+.upload-item__retry-count {
+  grid-column: 1 / -1;
+}
+
 .upload-item__actions {
   display: flex;
   flex-shrink: 0;
-  gap: 6px;
+  gap: 4px;
 }
 
 .upload-item__action.btn {
@@ -315,19 +361,6 @@
   to { transform: translateX(190%); }
 }
 
-@container (max-width: 900px) {
-  .upload-batch__summary,
-  .upload-batch__summary--admin {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .upload-batch__identity,
-  .upload-batch__progress-field,
-  .upload-batch__footer {
-    grid-column: 1 / -1;
-  }
-}
-
 @media (max-width: 640px) {
   .upload-page__content {
     padding: 16px 12px 24px;
@@ -344,22 +377,62 @@
 
 }
 
-@container (max-width: 520px) {
+@container (max-width: 760px) {
   .upload-batch__summary,
   .upload-batch__summary--admin {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: 44px 32px repeat(3, minmax(0, 1fr));
+    grid-template-areas:
+      "toggle ordinal created created created"
+      ". status progress progress footer";
+    gap: 10px 12px;
+  }
+
+  .upload-batch__summary--admin {
+    grid-template-areas:
+      "toggle ordinal username created created"
+      ". status progress progress footer";
+  }
+
+  .upload-item {
+    grid-template-columns: 32px minmax(0, 1fr) auto;
+  }
+
+  .upload-item__file-type {
+    width: 32px;
+  }
+}
+
+@container (max-width: 520px) {
+  .upload-batch__summary:not(.upload-batch__summary--admin) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas: none;
     gap: 12px;
   }
 
-  .upload-batch__identity,
-  .upload-batch__progress-field,
-  .upload-batch__footer {
-    grid-column: auto;
+  .upload-batch__summary--admin {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-areas:
+      "toggle ordinal ordinal"
+      "username created status"
+      "progress progress progress"
+      "footer footer footer";
+    gap: 12px;
   }
 
-  .upload-item__details {
-    align-items: flex-start;
+  .upload-batch__summary:not(.upload-batch__summary--admin) .upload-batch__toggle,
+  .upload-batch__summary:not(.upload-batch__summary--admin) .upload-batch__ordinal-field,
+  .upload-batch__summary:not(.upload-batch__summary--admin) .upload-batch__created-field,
+  .upload-batch__summary:not(.upload-batch__summary--admin) .upload-batch__status-field,
+  .upload-batch__summary:not(.upload-batch__summary--admin) .upload-batch__progress-field,
+  .upload-batch__summary:not(.upload-batch__summary--admin) .upload-batch__footer {
+    grid-area: auto;
   }
+
+  .upload-batch__progress-field,
+  .upload-batch__footer {
+    grid-column: 1 / -1;
+  }
+
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -367,9 +440,4 @@
     animation-duration: 3s;
   }
 
-  @container (max-width: 360px) {
-    .upload-batch__id {
-      font-size: min(0.78rem, 3.9cqi);
-    }
-  }
 }

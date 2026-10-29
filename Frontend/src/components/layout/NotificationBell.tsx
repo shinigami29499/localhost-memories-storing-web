@@ -106,7 +106,7 @@ export function NotificationBell() {
           title={unreadCount > 0 ? t("{count} unread notifications", { count: unreadCount }) : t("Notifications")}
           onClick={() => setOpen((value) => !value)}
         >
-          <Bell size={18} aria-hidden="true" />
+          <Bell size={18} fill="currentColor" aria-hidden="true" />
           {unreadCount > 0 ? (
             <span className="notification-bar__badge" aria-hidden="true">
               {unreadCount > 99 ? "99+" : unreadCount}

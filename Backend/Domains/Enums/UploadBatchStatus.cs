@@ -4,8 +4,7 @@ public enum UploadBatchStatus
 {
     Pending,
     Uploading,
-    Success,
+    Completed,
     Failed,
     Cancelled,
-    PartialFailure,
 }

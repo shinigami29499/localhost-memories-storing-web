@@ -39,7 +39,7 @@ npm run dev
 npm run build
 npm test -- --run
 npm test -- --run src/store/authStore.test.ts
-npm test -- --run src/pages/admin/AdminPostsPage.test.tsx
+npm test -- --run src/pages/gallery/TrashPage.test.tsx
 npm run preview
 ```
 

@@ -18,6 +18,11 @@ vi.mock("../animate-ui/icons/home", async () => {
   return { Home: () => <svg data-animated={String(useAnimateIconContext().active === true)} /> };
 });
 
+vi.mock("../animate-ui/icons/image", async () => {
+  const { useAnimateIconContext } = await import("@animate-ui/react/icons");
+  return { Image: () => <svg data-animated={String(useAnimateIconContext().active === true)} /> };
+});
+
 vi.mock("../animate-ui/icons/refresh-cw", async () => {
   const { useAnimateIconContext } = await import("@animate-ui/react/icons");
   return { RefreshCw: () => <svg data-animated={String(useAnimateIconContext().active === true)} /> };
@@ -38,9 +43,9 @@ vi.mock("../animate-ui/icons/users", async () => {
   return { Users: () => <svg data-animated={String(useAnimateIconContext().active === true)} /> };
 });
 
-vi.mock("../animate-ui/icons/file-text", async () => {
+vi.mock("../animate-ui/icons/trash-2", async () => {
   const { useAnimateIconContext } = await import("@animate-ui/react/icons");
-  return { FileText: () => <svg data-animated={String(useAnimateIconContext().active === true)} /> };
+  return { Trash2: () => <svg data-animated={String(useAnimateIconContext().active === true)} /> };
 });
 
 describe("Sidebar icon hover triggers", () => {
@@ -79,7 +84,7 @@ describe("Sidebar icon hover triggers", () => {
         <ThemeProvider>
           <QueryClientProvider client={new QueryClient()}>
             <AnimateUIProvider reducedMotion="never">
-              <MemoryRouter initialEntries={["/admin/users"]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+              <MemoryRouter initialEntries={["/users"]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
                 <AuthenticatedLayout />
               </MemoryRouter>
             </AnimateUIProvider>
@@ -99,13 +104,13 @@ describe("Sidebar icon hover triggers", () => {
     vi.unstubAllGlobals();
   });
 
-  it.each(["/", "/admin/users", "/admin/posts"])("animates the icon when hovering the %s link text", async (href) => {
+  it.each(["/", "/gallery", "/gallery/trash", "/users"])("animates the icon when hovering the %s link text", async (href) => {
     const link = container.querySelector<HTMLAnchorElement>(`.sidebar__nav a[href="${href}"]`)!;
     const label = link.querySelector("span")!;
     expect(link.classList.contains("sidebar__link")).toBe(true);
-    expect(link.classList.contains("sidebar__sub-link")).toBe(href !== "/");
-    expect(link.classList.contains("sidebar__link--active")).toBe(href === "/admin/users");
-    expect(link.getAttribute("aria-current")).toBe(href === "/admin/users" ? "page" : null);
+    expect(link.classList.contains("sidebar__sub-link")).toBe(href.startsWith("/gallery"));
+    expect(link.classList.contains("sidebar__link--active")).toBe(href === "/users");
+    expect(link.getAttribute("aria-current")).toBe(href === "/users" ? "page" : null);
     expect(link.querySelector("svg")?.getAttribute("data-animated")).toBe("false");
 
     await act(async () => label.dispatchEvent(new MouseEvent("pointerover", { bubbles: true })));
@@ -113,6 +118,20 @@ describe("Sidebar icon hover triggers", () => {
 
     await act(async () => label.dispatchEvent(new MouseEvent("pointerout", { bubbles: true, relatedTarget: document.body })));
     expect(link.querySelector("svg")?.getAttribute("data-animated")).toBe("false");
+  });
+
+  it("shows Gallery pages and Users to non-admin users without Trash", async () => {
+    await act(async () => useAuthStore.setState({
+      user: { id: "reader", username: "reader", role: "user", status: "active", createdAt: "2026-01-01T00:00:00Z" },
+    }));
+    const galleryPages = container.querySelector<HTMLElement>('[aria-label="Gallery pages"]')!;
+    expect(Array.from(galleryPages.querySelectorAll("a"), (link) => link.getAttribute("href")))
+      .toEqual(["/gallery", "/gallery/videos", "/gallery/favorites", "/saved"]);
+    expect(container.querySelector('[href="/gallery"]')?.textContent).toBe("Pictures");
+    expect(container.querySelector('[href="/saved"]')?.textContent).toBe("Saved");
+    expect(container.querySelector('[href="/users"]')?.textContent).toBe("Users");
+    expect(container.querySelector('[href="/gallery/trash"]')).toBeNull();
+    expect(container.querySelector('[href^="/admin"]')).toBeNull();
   });
 
   it("keeps the upload watcher inside Sync beside the static Download action", async () => {
@@ -124,7 +143,7 @@ describe("Sidebar icon hover triggers", () => {
     const syncActions = container.querySelector<HTMLElement>('[aria-label="Sync actions"]')!;
     const items = Array.from(syncActions.querySelectorAll<HTMLElement>(".sidebar__sub-link"));
 
-    expect(groups).toEqual(["Admin", "Sync"]);
+    expect(groups).toEqual(["Gallery", "Sync"]);
     expect(sync.getAttribute("aria-expanded")).toBe("true");
     expect(sync.querySelector("svg")?.getAttribute("data-animated")).toBe("false");
     expect(items.map((item) => item.textContent?.trim())).toEqual(["Upload", "Download"]);

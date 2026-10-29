@@ -19,6 +19,8 @@ public class ApplicationDbContext(
     public DbSet<PostUploadNotification> PostUploadNotifications => Set<PostUploadNotification>();
     public DbSet<UploadBatch> UploadBatches => Set<UploadBatch>();
     public DbSet<UploadItem> UploadItems => Set<UploadItem>();
+    public DbSet<Collection> Collections => Set<Collection>();
+    public DbSet<CollectionPost> CollectionPosts => Set<CollectionPost>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -158,7 +160,15 @@ public class ApplicationDbContext(
                 .WithOne()
                 .HasForeignKey<UploadBatch>(batch => batch.PostId)
                 .OnDelete(DeleteBehavior.NoAction);
-            entity.Property(batch => batch.Status).HasConversion<string>().HasMaxLength(32);
+            entity.Property(batch => batch.Status)
+                .HasConversion(
+                    status => status.ToString(),
+                    status => status == "Success"
+                        ? UploadBatchStatus.Completed
+                        : status == "PartialFailure"
+                            ? UploadBatchStatus.Failed
+                            : Enum.Parse<UploadBatchStatus>(status))
+                .HasMaxLength(32);
             entity.HasOne(batch => batch.Owner)
                 .WithMany()
                 .HasForeignKey(batch => batch.OwnerId)
@@ -189,6 +199,49 @@ public class ApplicationDbContext(
                 .HasFilter("status = 'Uploading' AND deleted_at IS NULL")
                 .HasDatabaseName("ix_upload_items_one_uploading_per_batch");
             entity.HasQueryFilter(item => item.DeletedAt == null);
+        });
+
+        modelBuilder.Entity<Collection>(entity =>
+        {
+            entity.Property(c => c.Name).HasMaxLength(100).IsRequired();
+
+            entity.HasOne(c => c.Owner)
+                .WithMany()
+                .HasForeignKey(c => c.OwnerId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(c => c.PreviewMediaFile)
+                .WithMany()
+                .HasForeignKey(c => c.PreviewMediaFileId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasIndex(c => new { c.OwnerId, c.CreatedAt });
+            entity.HasIndex(c => new { c.IsPublic, c.CreatedAt });
+            entity.HasIndex(c => c.PreviewMediaFileId);
+
+            entity.HasQueryFilter(c => c.DeletedAt == null);
+        });
+
+        modelBuilder.Entity<CollectionPost>(entity =>
+        {
+            entity.HasOne(cp => cp.Collection)
+                .WithMany(c => c.Posts)
+                .HasForeignKey(cp => cp.CollectionId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(cp => cp.Post)
+                .WithMany()
+                .HasForeignKey(cp => cp.PostId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            // Removed entries free the unique slot so a post can be saved again.
+            entity.HasIndex(cp => new { cp.CollectionId, cp.PostId })
+                .IsUnique()
+                .HasFilter("deleted_at IS NULL");
+            entity.HasIndex(cp => new { cp.CollectionId, cp.CreatedAt });
+            entity.HasIndex(cp => cp.PostId);
+
+            entity.HasQueryFilter(cp => cp.DeletedAt == null);
         });
     }
 

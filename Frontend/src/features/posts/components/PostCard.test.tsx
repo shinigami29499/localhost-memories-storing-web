@@ -10,6 +10,7 @@ vi.mock("@animate-ui/react/icons", () => ({
   AnimateIcon: ({ children }: { children: ReactNode }) => children,
 }));
 vi.mock("@/components/animate-ui/icons/x", () => ({ X: () => null }));
+vi.mock("@/components/animate-ui/icons/bookmark", () => ({ Bookmark: () => null }));
 vi.mock("../services/postService", () => ({
   commentService: { list: vi.fn() },
   postService: {},

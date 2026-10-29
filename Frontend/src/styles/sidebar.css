@@ -118,6 +118,13 @@
   color: var(--text-strong);
 }
 
+.sidebar__link--active {
+  background: var(--accent-wash);
+  color: var(--text-strong);
+  font-weight: 650;
+  box-shadow: inset 3px 0 var(--accent-soft);
+}
+
 .notification-bar {
   position: relative;
   flex-shrink: 0;
@@ -129,7 +136,7 @@
   border-radius: 999px;
   background: var(--sidebar-bg);
   color: var(--text-strong);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.24);
+  box-shadow: var(--shadow-popover);
 }
 
 .notification-bar .theme-toggler {
@@ -156,7 +163,7 @@
   border: 0;
   border-radius: 999px;
   background: transparent;
-  color: inherit;
+  color: var(--notification-icon);
   cursor: pointer;
   transition: background-color var(--animate-ui-sidebar-color-duration) var(--animate-ui-sidebar-color-easing);
 }
@@ -201,7 +208,7 @@
   border: 2px solid var(--sidebar-bg);
   border-radius: 999px;
   background: var(--danger);
-  color: var(--text-on-accent);
+  color: var(--text-on-danger);
   font-size: 0.65rem;
   font-weight: 700;
   line-height: 1;
@@ -218,7 +225,7 @@
   border-radius: 12px;
   background: var(--sidebar-bg);
   color: var(--text-strong);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.24);
+  box-shadow: var(--shadow-popover);
   max-height: min(70vh, 560px);
   overflow: auto;
 }
@@ -269,6 +276,7 @@
 .notification-bar__message {
   color: var(--text-strong);
   font-size: 0.875rem;
+  overflow-wrap: anywhere;
 }
 
 .notification-bar__caption {
@@ -362,12 +370,34 @@
   font-size: 0.9rem;
 }
 
+.sidebar__sub-link[href="/gallery/favorites"] > svg > path {
+  fill: var(--danger) !important;
+}
+
+.sidebar__sub-link[href="/saved"] > svg > path,
+.gallery-card__saved > svg > path {
+  fill: var(--notification-icon) !important;
+}
+
+.sidebar__sub-link[href="/gallery/trash"] > svg > path {
+  fill: color-mix(in srgb, var(--text-muted) 50%, var(--surface-raised));
+}
+
+.sidebar__sub-link[href="/gallery/videos"] > svg > g > path,
+.sidebar__sub-link[href="/gallery/videos"] > svg > g > rect {
+  fill: #fff !important;
+}
+
+.sidebar__sub-link[href="/gallery"] > svg > g > path {
+  fill: #000 !important;
+}
+
 .sidebar__sub-link:hover {
   background: var(--surface-hover);
 }
 
 .sidebar__sub-link.sidebar__link--active {
-  background: transparent;
+  background: var(--accent-wash);
   color: var(--text-strong);
 }
 
@@ -484,7 +514,7 @@
   border-radius: 12px;
   background: var(--sidebar-bg);
   color: var(--text-strong);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.24);
+  box-shadow: var(--shadow-popover);
   opacity: 0;
   visibility: hidden;
   transform: translateX(-4px);
@@ -526,7 +556,7 @@
 
 .dark .sidebar__account-menu .sidebar__link--danger,
 .dark .sidebar__account-menu .sidebar__link--danger:hover {
-  color: var(--accent-soft);
+  color: var(--danger);
 }
 
 .sidebar--collapsed .sidebar__account-trigger {
@@ -611,7 +641,7 @@
   .app-shell,
   .app-shell.app-shell--sidebar-collapsed {
     --sidebar-width: min(288px, 85vw);
-    --app-topbar-height: calc(60px + env(safe-area-inset-top));
+    --app-topbar-height: calc(68px + env(safe-area-inset-top));
   }
 
   .app-topbar::after {
@@ -712,8 +742,8 @@
   .notification-bar__trigger,
   .notification-bar .theme-toggler,
   .notification-bar .language-toggler {
-    width: 32px;
-    height: 32px;
+    width: 44px;
+    height: 44px;
   }
 
   .notification-bar__trigger svg,
@@ -726,11 +756,11 @@
 
   .notification-bar__panel {
     position: fixed;
-    top: calc(68px + env(safe-area-inset-top));
+    top: calc(var(--app-topbar-height) + 8px);
     right: calc(12px + env(safe-area-inset-right));
     left: calc(12px + env(safe-area-inset-left));
     width: auto;
-    max-height: calc(100dvh - 80px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    max-height: calc(100dvh - var(--app-topbar-height) - 20px - env(safe-area-inset-bottom));
     overscroll-behavior: contain;
     overflow-wrap: anywhere;
   }
@@ -744,5 +774,14 @@
 @media (max-width: 400px) {
   .app-topbar .brand > span:last-child {
     display: none;
+  }
+
+  @media (pointer: coarse) and (min-width: 641px) {
+    .notification-bar__trigger,
+    .notification-bar .theme-toggler,
+    .notification-bar .language-toggler {
+      width: 44px;
+      height: 44px;
+    }
   }
 }

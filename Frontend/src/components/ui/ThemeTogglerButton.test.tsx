@@ -14,6 +14,11 @@ describe("ThemeTogglerButton", () => {
 
   beforeEach(() => {
     vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+    vi.stubGlobal("IntersectionObserver", class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    });
     vi.stubGlobal("matchMedia", vi.fn((media: string) => ({
       matches: false,
       media,

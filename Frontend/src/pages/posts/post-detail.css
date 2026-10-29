@@ -3,3 +3,11 @@
   margin: 0 auto;
   padding: 48px 0 80px;
 }
+
+.post-detail__progress {
+  position: fixed;
+  inset: auto 0 0;
+  z-index: 16;
+  height: 4px;
+  background-color: var(--accent-strong);
+}

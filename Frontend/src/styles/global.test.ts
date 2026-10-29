@@ -97,6 +97,20 @@ describe("Global styles", () => {
     expect(contentRule?.style.minHeight).toBe("0px");
   });
 
+  it("keeps phone header controls touch-sized and panels below the shared header", () => {
+    const rules = Array.from(style.sheet!.cssRules)
+      .filter((rule): rule is CSSMediaRule => rule instanceof CSSMediaRule)
+      .filter((rule) => rule.conditionText === "(max-width: 640px)")
+      .flatMap((rule) => Array.from(rule.cssRules))
+      .filter((rule): rule is CSSStyleRule => rule instanceof CSSStyleRule);
+    const controlRule = rules.find((rule) => rule.selectorText.includes(".notification-bar__trigger"));
+    const panelRule = rules.find((rule) => rule.selectorText === ".notification-bar__panel");
+
+    expect(controlRule?.style.width).toBe("44px");
+    expect(controlRule?.style.height).toBe("44px");
+    expect(panelRule?.style.top).toBe("calc(var(--app-topbar-height) + 8px)");
+  });
+
   it("uses a solid background for primary buttons", () => {
     const rules = Array.from(style.sheet!.cssRules)
       .filter((rule): rule is CSSStyleRule => rule instanceof CSSStyleRule);
@@ -119,37 +133,37 @@ describe("Global styles", () => {
     expect(adminStyles).toMatch(/\.admin-page--posts\s+\.empty-state\s*\{[^}]*max-width:\s*1600px;[^}]*margin-inline:\s*auto;/);
   });
 
-  it("uses the theme class for the reference palette while the saved theme is unchanged during a wipe", () => {
+  it("uses the theme class for the palette while the saved theme is unchanged during a wipe", () => {
     document.documentElement.dataset.theme = "dark";
     document.documentElement.classList.remove("dark");
     const lightPalette = getComputedStyle(document.documentElement);
     expect(lightPalette.getPropertyValue("--bg").trim()).toBe("#eef0f2");
     expect(lightPalette.getPropertyValue("--surface").trim()).toBe("#fafaff");
-    expect(lightPalette.getPropertyValue("--surface-raised").trim()).toBe("#daddd8");
-    expect(lightPalette.getPropertyValue("--surface-card-raised").trim()).toBe("#ecebe4");
-    expect(lightPalette.getPropertyValue("--text").trim()).toBe("#000000");
-    expect(lightPalette.getPropertyValue("--text-muted").trim()).toBe("#000000");
-    expect(lightPalette.getPropertyValue("--text-strong").trim()).toBe("#000000");
-    expect(lightPalette.getPropertyValue("--border").trim()).toBe("#000000");
-    expect(lightPalette.getPropertyValue("--border-card").trim()).toBe("#000000");
-    expect(lightPalette.getPropertyValue("--accent").trim()).toBe("#000000");
+    expect(lightPalette.getPropertyValue("--surface-raised").trim()).toBe("#f0f1f3");
+    expect(lightPalette.getPropertyValue("--surface-card-raised").trim()).toBe("#f0f1f3");
+    expect(lightPalette.getPropertyValue("--text").trim()).toBe("#30343a");
+    expect(lightPalette.getPropertyValue("--text-muted").trim()).toBe("#606771");
+    expect(lightPalette.getPropertyValue("--text-strong").trim()).toBe("#17191d");
+    expect(lightPalette.getPropertyValue("--border").trim()).toBe("#cdd1d6");
+    expect(lightPalette.getPropertyValue("--border-card").trim()).toBe("#cdd1d6");
+    expect(lightPalette.getPropertyValue("--accent").trim()).toBe("#30343a");
     expect(lightPalette.getPropertyValue("--text-on-accent").trim()).toBe("#ffffff");
 
     document.documentElement.dataset.theme = "light";
     document.documentElement.classList.add("dark");
     const darkPalette = getComputedStyle(document.documentElement);
-    expect(darkPalette.getPropertyValue("--bg").trim()).toBe("#0f0f0f");
-    expect(darkPalette.getPropertyValue("--surface").trim()).toBe("#2b2b2b");
-    expect(darkPalette.getPropertyValue("--surface-card").trim()).toBe("#2b2b2b");
-    expect(darkPalette.getPropertyValue("--surface-raised").trim()).toBe("#4d4d4d");
-    expect(darkPalette.getPropertyValue("--surface-card-raised").trim()).toBe("#4d4d4d");
-    expect(darkPalette.getPropertyValue("--border").trim()).toBe("#777777");
-    expect(darkPalette.getPropertyValue("--border-card").trim()).toBe("#777777");
-    expect(darkPalette.getPropertyValue("--text").trim()).toBe("#dedede");
-    expect(darkPalette.getPropertyValue("--text-muted").trim()).toBe("#dedede");
-    expect(darkPalette.getPropertyValue("--text-strong").trim()).toBe("#dedede");
+    expect(darkPalette.getPropertyValue("--bg").trim()).toBe("#111315");
+    expect(darkPalette.getPropertyValue("--surface").trim()).toBe("#1c1f23");
+    expect(darkPalette.getPropertyValue("--surface-card").trim()).toBe("var(--surface)");
+    expect(darkPalette.getPropertyValue("--surface-raised").trim()).toBe("#30343a");
+    expect(darkPalette.getPropertyValue("--surface-card-raised").trim()).toBe("#262a30");
+    expect(darkPalette.getPropertyValue("--border").trim()).toBe("#3e444d");
+    expect(darkPalette.getPropertyValue("--border-card").trim()).toBe("#3e444d");
+    expect(darkPalette.getPropertyValue("--text").trim()).toBe("#d5d9df");
+    expect(darkPalette.getPropertyValue("--text-muted").trim()).toBe("#aeb4bd");
+    expect(darkPalette.getPropertyValue("--text-strong").trim()).toBe("#f4f5f7");
     expect(darkPalette.getPropertyValue("--accent-soft").trim()).toBe("#dedede");
-    expect(darkPalette.getPropertyValue("--accent").trim()).toBe("#4d4d4d");
+    expect(darkPalette.getPropertyValue("--accent").trim()).toBe("#dedede");
   });
 
   it.each(["dark", "light"])("matches the sidebar hover background in %s mode", (theme) => {
@@ -184,21 +198,15 @@ describe("Global styles", () => {
     expect(ruleFor(".confirmation-dialog-backdrop")?.style.backgroundColor).toBe("var(--overlay-backdrop)");
   });
 
-  it("uses the supplied dark palette and full black text and borders in light mode", () => {
-    const darkTokens = getComputedStyle(document.documentElement);
-    expect(darkTokens.getPropertyValue("--text").trim()).toBe("#dedede");
-    expect(darkTokens.getPropertyValue("--text-muted").trim()).toBe("#dedede");
-    expect(darkTokens.getPropertyValue("--text-strong").trim()).toBe("#dedede");
-    expect(darkTokens.getPropertyValue("--accent-soft").trim()).toBe("#dedede");
-    expect(darkTokens.getPropertyValue("--border").trim()).toBe("#777777");
-    expect(darkTokens.getPropertyValue("--border-card").trim()).toBe("#777777");
+  it.each(["dark", "light"])("separates text hierarchy and control borders in %s mode", (theme) => {
+    document.documentElement.classList.toggle("dark", theme === "dark");
+    const tokens = getComputedStyle(document.documentElement);
+    const textColors = ["--text", "--text-muted", "--text-strong"]
+      .map((token) => tokens.getPropertyValue(token).trim());
 
-    document.documentElement.dataset.theme = "light";
-    document.documentElement.classList.remove("dark");
-    const lightTokens = getComputedStyle(document.documentElement);
-    for (const token of ["--text", "--text-muted", "--text-strong", "--accent-soft", "--border", "--border-card"]) {
-      expect(lightTokens.getPropertyValue(token).trim()).toBe("#000000");
-    }
+    expect(new Set(textColors).size).toBe(3);
+    expect(tokens.getPropertyValue("--border-control").trim())
+      .not.toBe(tokens.getPropertyValue("--border").trim());
   });
 
   it.each(["dark", "light"])("uses contrasting palette colors for the brand mark in %s mode", (theme) => {
@@ -226,15 +234,24 @@ describe("Global styles", () => {
       const alias = value.match(/^var\((--[^)]+)\)$/);
       return alias ? token(alias[1]) : value;
     };
-    const surfaces = ["--bg", "--surface", "--surface-card", "--surface-card-raised"];
+    const surfaces = ["--bg", "--surface", "--surface-card", "--surface-raised", "--surface-card-raised", "--community-intro-bg"];
 
-    for (const foreground of ["--text", "--text-muted"]) {
+    for (const foreground of ["--text", "--text-muted", "--text-strong", "--danger"]) {
       for (const background of surfaces) {
         expect(contrastRatio(token(foreground), token(background))).toBeGreaterThanOrEqual(4.5);
       }
     }
 
     expect(contrastRatio(token("--text-on-accent"), token("--accent"))).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(token("--text-on-accent"), token("--accent-strong"))).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(token("--text-on-danger"), token("--danger"))).toBeGreaterThanOrEqual(4.5);
+
+    for (const background of ["--surface", "--surface-raised", "--surface-card-raised"]) {
+      expect(contrastRatio(token("--border-control"), token(background))).toBeGreaterThanOrEqual(3);
+      expect(contrastRatio(token("--focus-ring"), token(background))).toBeGreaterThanOrEqual(3);
+      expect(contrastRatio(token("--theme-icon"), token(background))).toBeGreaterThanOrEqual(3);
+      expect(contrastRatio(token("--notification-icon"), token(background))).toBeGreaterThanOrEqual(3);
+    }
   });
 
   it("lets SVG icons inherit their control color while preserving semantic heart color", () => {
@@ -247,7 +264,7 @@ describe("Global styles", () => {
     expect(heartRule?.style.color).toBe("var(--danger)");
   });
 
-  it("brightens dark-mode avatars and logout action, and keeps disabled send controls readable", () => {
+  it("brightens dark-mode avatars, preserves semantic logout color, and keeps disabled send controls readable", () => {
     const rules = Array.from(style.sheet!.cssRules)
       .filter((rule): rule is CSSStyleRule => rule instanceof CSSStyleRule);
     const ruleFor = (selector: string) => rules.find((rule) => rule.selectorText.includes(selector));
@@ -257,7 +274,7 @@ describe("Global styles", () => {
 
     expect(avatarRule?.style.background).toBe("var(--accent-soft)");
     expect(avatarRule?.style.color).toBe("var(--selection-text)");
-    expect(logoutRule?.style.color).toBe("var(--accent-soft)");
+    expect(logoutRule?.style.color).toBe("var(--danger)");
     expect(sendRule?.style.background).toBe("var(--surface-raised)");
     expect(sendRule?.style.color).toBe("var(--accent-soft)");
     expect(sendRule?.style.opacity).toBe("1");

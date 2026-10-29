@@ -107,18 +107,18 @@ describe("AuthenticatedLayout sidebar", () => {
     expect(container.querySelector(".app-shell")?.getAttribute("data-state")).toBe("expanded");
   });
 
-  it("opens the Admin section from the collapsed rail", async () => {
+  it("opens the Gallery section from the collapsed rail", async () => {
     narrowScreen = true;
     useAuthStore.setState({
       user: { id: "admin", username: "Admin", role: "admin", status: "active", createdAt: "2026-01-01T00:00:00Z" },
     });
     await renderLayout();
-    const admin = container.querySelector<HTMLButtonElement>('[aria-label="Admin"]')!;
-    expect(admin.getAttribute("aria-expanded")).toBe("false");
-    await act(async () => admin.click());
+    const gallery = container.querySelector<HTMLButtonElement>('[aria-label="Gallery"]')!;
+    expect(gallery.getAttribute("aria-expanded")).toBe("false");
+    await act(async () => gallery.click());
     expect(container.querySelector(".app-shell")?.getAttribute("data-state")).toBe("expanded");
-    expect(admin.getAttribute("aria-expanded")).toBe("true");
-    expect(container.querySelector('[href="/admin/users"]')).not.toBeNull();
+    expect(gallery.getAttribute("aria-expanded")).toBe("true");
+    expect(container.querySelector('[href="/gallery/trash"]')).not.toBeNull();
   });
 
   it("uses an off-canvas drawer with a top bar on phones", async () => {

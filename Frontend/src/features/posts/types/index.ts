@@ -60,6 +60,14 @@ export interface AdminPost {
   media: AdminPostMedia[];
 }
 
+export interface AdminPostFilters {
+  username?: string;
+  caption?: string;
+  createdFrom?: string;
+  createdBefore?: string;
+  status?: "active" | "deleted";
+}
+
 export interface PagedFeed<T> {
   offset: number;
   limit: number;

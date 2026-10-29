@@ -62,8 +62,11 @@ The Infrastructures project's Data area hosts workflow orchestration that coordi
 | Notifications                                  | `NotificationsController.cs` | `Data/ApplicationServices/NotificationService.cs` → notification repository; `NotificationsHub` delivers post, comment, and reaction notifications over SignalR |
 | Comments                                       | `CommentsController.cs`      | `Data/ApplicationServices/CommentService.cs` → Data repository and transaction interfaces                                                                       |
 | Reactions                                      | `ReactionsController.cs`     | `Data/ApplicationServices/ReactionService.cs` → Data repository and transaction interfaces                                                                      |
+| Saved collections                              | `CollectionsController.cs`   | `Data/ApplicationServices/CollectionService.cs` → `ICollectionRepository`, post repository, and unit of work                                                    |
 | Media (file access, delete, restore)           | `MediaController.cs`         | `Data/ApplicationServices/MediaService.cs` → Data repository, transaction, and media storage port                                                               |
-| Admin user management (list/approve/delete)    | `UsersController.cs`         | `Data/ApplicationServices/UserService.cs` → Data repository and transaction interfaces                                                                          |
+| Users (list for members; approve/delete admin) | `UsersController.cs`         | `Data/ApplicationServices/UserService.cs` → Data repository and transaction interfaces                                                                          |
+
+Post deletion (`DELETE /api/posts/{id}`), restore, purge, and media delete/restore are `[RequireAdmin]`. `GET /api/posts` and `GET /api/posts/favorites` accept an optional `mediaKind` (`image`/`video`); favorites are posts the caller reacted to with `heart`.
 
 Repositories return domain entities or query results; workflows do not compose EF queries. `IUnitOfWork` provides asynchronous save and transaction operations without exposing EF Core transaction types.
 
@@ -84,6 +87,18 @@ key to upload batches. Permanent post deletion clears that link while keeping hi
 failed items cannot recreate a permanently deleted post.
 
 Post creation persists one notification for each other active user in the same database save as the post and uploaded media metadata. Comments and new reactions persist a notification only for the post owner, excluding activity by the owner themselves; each notification is saved in the same database save as its comment or reaction. Authenticated clients receive notifications through `/hubs/notifications`; `GET /api/notifications` returns recent notifications and the unread count, and `POST /api/notifications/{id}/read` marks an item as read. Apply the EF Core migrations for the notification table and notification type before deploying these changes.
+
+Saved collections (`/api/collections`) are owned by one user and private by default;
+public collections are readable by any signed-in user (`scope=public` lists other users'
+public collections; the viewer's own appear only under `scope=mine`), while only the owner can edit,
+add or remove posts, or delete them. Non-owners receive 404 for private collections and
+403 for edits to public ones. `PreviewMediaId` is the owner-selected preview
+(`CustomPreviewMediaId`, which must be an image from a post in the collection) or else
+the first image of the earliest saved active post. Entries and collections are
+soft-deleted; soft-deleted posts drop out of collections and reappear on restore.
+Removing a post clears a custom preview taken from it, and permanent post deletion
+removes collection entries and preview references. Apply the `AddCollections`
+migration before deploying.
 
 ## Runtime configuration
 

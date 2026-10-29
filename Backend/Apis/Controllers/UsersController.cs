@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Apis.Authorization;
 using Apis.Interfaces;
@@ -8,7 +9,7 @@ namespace Apis.Controllers;
 
 [ApiController]
 [Route("api/users")]
-[RequireAdmin]
+[Authorize]
 public class UsersController(IUserService userService, ICurrentUserContext currentUser) : ControllerBase
 {
     private readonly IUserService _userService = userService;
@@ -18,10 +19,12 @@ public class UsersController(IUserService userService, ICurrentUserContext curre
     public async Task<ActionResult<IReadOnlyList<UserResponse>>> ListAsync(CancellationToken cancellationToken)
         => Ok(await _userService.ListAsync(cancellationToken));
 
+    [RequireAdmin]
     [HttpPost("{id:guid}/approve")]
     public async Task<ActionResult<UserResponse>> ApproveAsync(Guid id, CancellationToken cancellationToken)
         => Ok(await _userService.ApproveAsync(id, cancellationToken));
 
+    [RequireAdmin]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> DeleteAsync(Guid id, CancellationToken cancellationToken)
     {

@@ -10,12 +10,13 @@
   gap: 1.5rem;
 }
 
-.post-list__container .media-gallery__stage {
+.post-list__container .media-gallery--inline .media-gallery__stage {
   aspect-ratio: 1;
+  height: auto;
 }
 
-.post-list__container .media-gallery__image,
-.post-list__container .media-gallery__video {
+.post-list__container .media-gallery--inline > .media-gallery__stage .media-gallery__image,
+.post-list__container .media-gallery--inline > .media-gallery__stage .media-gallery__video {
   width: 100%;
   height: 100%;
   object-fit: cover;

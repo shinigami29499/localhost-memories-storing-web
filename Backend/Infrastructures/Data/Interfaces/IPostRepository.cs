@@ -1,12 +1,19 @@
 using Domains.Entities;
 using Services.Models.Posts;
+using Services.Requests.Posts;
 
 namespace Infrastructures.Data.Interfaces;
 
 public interface IPostRepository
 {
-    Task<IReadOnlyList<Post>> GetFeedPageAsync(int offset, int limit, CancellationToken cancellationToken = default);
-    Task<long> CountActivePostsAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Post>> GetFeedPageAsync(
+        int offset, int limit, string? mediaKind = null, CancellationToken cancellationToken = default);
+    Task<long> CountActivePostsAsync(string? mediaKind = null, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Post>> GetFavoritePageAsync(
+        Guid userId, string reactionType, int offset, int limit, string? mediaKind = null,
+        CancellationToken cancellationToken = default);
+    Task<long> CountFavoritePostsAsync(
+        Guid userId, string reactionType, string? mediaKind = null, CancellationToken cancellationToken = default);
     Task<IReadOnlyDictionary<Guid, long>> GetActiveCommentCountsAsync(
         IReadOnlyCollection<Guid> postIds, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<PostReactionCount>> GetActiveReactionCountsAsync(
@@ -41,7 +48,11 @@ public interface IPostRepository
         IReadOnlyCollection<Guid> userIds, bool includeDeleted, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Post>> GetAllPostsPageAsync(
         int offset, int limit, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Post>> GetAllPostsPageAsync(
+        int offset, int limit, AdminPostSearchRequest filters, CancellationToken cancellationToken = default);
     Task<long> CountAllPostsAsync(CancellationToken cancellationToken = default);
+    Task<long> CountAllPostsAsync(
+        AdminPostSearchRequest filters, CancellationToken cancellationToken = default);
     Task RestorePostInteractionsAsync(
         Guid postId, DateTime deletedAt, Guid? deletedBy, Guid actorId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<string>> GetPostStoragePathsAsync(

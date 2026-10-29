@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { PostCard } from "../../features/posts/components/PostCard";
 import { postService } from "../../features/posts/services/postService";
 import type { Post } from "../../features/posts/types";
-import { ErrorState, Spinner } from "../../components/ui/Status";
+import { EmptyState, ErrorState, Spinner } from "../../components/ui/Status";
 import "./post-detail.css";
 import { useLocale } from "../../context/LocaleContext";
 
@@ -33,7 +33,7 @@ export function PostDetailPage() {
       </main>
     );
   }
-  if (!post.data) return <main className="post-detail"><ErrorState message={t("This post is no longer available.")} /></main>;
+  if (!post.data) return <main className="post-detail"><EmptyState title={t("This post is no longer available.")} /></main>;
 
   return (
     <main className="post-detail">

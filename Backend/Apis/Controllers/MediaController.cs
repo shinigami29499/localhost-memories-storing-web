@@ -58,6 +58,7 @@ public class MediaController(
         return NoContent();
     }
 
+    [RequireAdmin]
     [HttpPost("{mediaId:guid}/restore")]
     public async Task<IActionResult> RestoreMediaAsync(Guid mediaId, CancellationToken cancellationToken)
     {

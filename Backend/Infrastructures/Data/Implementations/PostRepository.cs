@@ -3,14 +3,38 @@ using Domains.Entities;
 using Domains.Enums;
 using Infrastructures.Data.Interfaces;
 using Services.Models.Posts;
+using Services.Requests.Posts;
 
 namespace Infrastructures.Data.Implementations;
 
 public sealed class PostRepository(ApplicationDbContext db) : IPostRepository
 {
-    public async Task<IReadOnlyList<Post>> GetFeedPageAsync(
-        int offset, int limit, CancellationToken cancellationToken = default)
-        => await db.Posts.AsNoTracking()
+    public Task<IReadOnlyList<Post>> GetFeedPageAsync(
+        int offset, int limit, string? mediaKind = null, CancellationToken cancellationToken = default)
+        => PageAsync(FilterByMediaKind(db.Posts, mediaKind), offset, limit, cancellationToken);
+
+    public Task<long> CountActivePostsAsync(string? mediaKind = null, CancellationToken cancellationToken = default)
+        => FilterByMediaKind(db.Posts, mediaKind).LongCountAsync(cancellationToken);
+
+    public Task<IReadOnlyList<Post>> GetFavoritePageAsync(
+        Guid userId, string reactionType, int offset, int limit, string? mediaKind = null,
+        CancellationToken cancellationToken = default)
+        => PageAsync(FavoritePosts(userId, reactionType, mediaKind), offset, limit, cancellationToken);
+
+    public Task<long> CountFavoritePostsAsync(
+        Guid userId, string reactionType, string? mediaKind = null, CancellationToken cancellationToken = default)
+        => FavoritePosts(userId, reactionType, mediaKind).LongCountAsync(cancellationToken);
+
+    private IQueryable<Post> FavoritePosts(Guid userId, string reactionType, string? mediaKind)
+        => FilterByMediaKind(db.Posts, mediaKind)
+            .Where(p => db.Reactions.Any(r => r.PostId == p.Id && r.UserId == userId && r.ReactionType == reactionType));
+
+    private static IQueryable<Post> FilterByMediaKind(IQueryable<Post> posts, string? mediaKind)
+        => mediaKind is null ? posts : posts.Where(p => p.MediaFiles.Any(m => m.MediaKind == mediaKind));
+
+    private static async Task<IReadOnlyList<Post>> PageAsync(
+        IQueryable<Post> posts, int offset, int limit, CancellationToken cancellationToken)
+        => await posts.AsNoTracking()
             .Include(p => p.User)
             .Include(p => p.MediaFiles)
             .OrderByDescending(p => p.CreatedAt)
@@ -18,9 +42,6 @@ public sealed class PostRepository(ApplicationDbContext db) : IPostRepository
             .Skip(offset)
             .Take(limit)
             .ToListAsync(cancellationToken);
-
-    public Task<long> CountActivePostsAsync(CancellationToken cancellationToken = default)
-        => db.Posts.LongCountAsync(cancellationToken);
 
     public async Task<IReadOnlyDictionary<Guid, long>> GetActiveCommentCountsAsync(
         IReadOnlyCollection<Guid> postIds, CancellationToken cancellationToken = default)
@@ -98,7 +119,7 @@ public sealed class PostRepository(ApplicationDbContext db) : IPostRepository
         await db.UploadBatches
             .Where(batch => batch.PostId == postId && batch.CompletedAt == null)
             .ExecuteUpdateAsync(setters => setters
-                .SetProperty(batch => batch.Status, UploadBatchStatus.PartialFailure)
+                .SetProperty(batch => batch.Status, UploadBatchStatus.Cancelled)
                 .SetProperty(batch => batch.CompletedAt, utcNow)
                 .SetProperty(batch => batch.UpdatedAt, utcNow)
                 .SetProperty(batch => batch.UpdatedBy, actorId), cancellationToken);
@@ -188,7 +209,11 @@ public sealed class PostRepository(ApplicationDbContext db) : IPostRepository
 
     public async Task<IReadOnlyList<Post>> GetAllPostsPageAsync(
         int offset, int limit, CancellationToken cancellationToken = default)
-        => await db.Posts.IgnoreQueryFilters().AsNoTracking()
+        => await GetAllPostsPageAsync(offset, limit, new AdminPostSearchRequest(), cancellationToken);
+
+    public async Task<IReadOnlyList<Post>> GetAllPostsPageAsync(
+        int offset, int limit, AdminPostSearchRequest filters, CancellationToken cancellationToken = default)
+        => await GetFilteredAllPosts(filters)
             .Include(p => p.User)
             .Include(p => p.MediaFiles)
             .OrderByDescending(p => p.CreatedAt)
@@ -198,7 +223,52 @@ public sealed class PostRepository(ApplicationDbContext db) : IPostRepository
             .ToListAsync(cancellationToken);
 
     public Task<long> CountAllPostsAsync(CancellationToken cancellationToken = default)
-        => db.Posts.IgnoreQueryFilters().LongCountAsync(cancellationToken);
+        => CountAllPostsAsync(new AdminPostSearchRequest(), cancellationToken);
+
+    public Task<long> CountAllPostsAsync(
+        AdminPostSearchRequest filters, CancellationToken cancellationToken = default)
+        => GetFilteredAllPosts(filters).LongCountAsync(cancellationToken);
+
+    private IQueryable<Post> GetFilteredAllPosts(AdminPostSearchRequest filters)
+    {
+        var query = db.Posts.IgnoreQueryFilters().AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(filters.Username))
+        {
+            var usernamePattern = $"%{EscapeLikePattern(filters.Username.Trim())}%";
+            query = query.Where(post => EF.Functions.ILike(post.User.Username, usernamePattern, "\\"));
+        }
+
+        if (!string.IsNullOrWhiteSpace(filters.Caption))
+        {
+            var captionPattern = $"%{EscapeLikePattern(filters.Caption.Trim())}%";
+            query = query.Where(post => EF.Functions.ILike(post.Caption, captionPattern, "\\"));
+        }
+
+        if (filters.CreatedFrom.HasValue)
+        {
+            var createdFrom = filters.CreatedFrom.Value.UtcDateTime;
+            query = query.Where(post => post.CreatedAt >= createdFrom);
+        }
+
+        if (filters.CreatedBefore.HasValue)
+        {
+            var createdBefore = filters.CreatedBefore.Value.UtcDateTime;
+            query = query.Where(post => post.CreatedAt < createdBefore);
+        }
+
+        if (filters.Status == "active")
+            query = query.Where(post => post.DeletedAt == null);
+        else if (filters.Status == "deleted")
+            query = query.Where(post => post.DeletedAt != null);
+
+        return query;
+    }
+
+    private static string EscapeLikePattern(string value)
+        => value.Replace("\\", "\\\\", StringComparison.Ordinal)
+            .Replace("%", "\\%", StringComparison.Ordinal)
+            .Replace("_", "\\_", StringComparison.Ordinal);
 
     public async Task RestorePostInteractionsAsync(
         Guid postId, DateTime deletedAt, Guid? deletedBy, Guid actorId,
@@ -236,6 +306,14 @@ public sealed class PostRepository(ApplicationDbContext db) : IPostRepository
             .ExecuteUpdateAsync(setters => setters
                 .SetProperty(batch => batch.PostId, (Guid?)null)
                 .SetProperty(batch => batch.UpdatedAt, DateTime.UtcNow), cancellationToken);
+        await db.Collections.IgnoreQueryFilters()
+            .Where(c => c.PreviewMediaFile != null && c.PreviewMediaFile.PostId == postId)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(c => c.PreviewMediaFileId, (Guid?)null)
+                .SetProperty(c => c.UpdatedAt, DateTime.UtcNow), cancellationToken);
+        await db.CollectionPosts.IgnoreQueryFilters()
+            .Where(cp => cp.PostId == postId)
+            .ExecuteDeleteAsync(cancellationToken);
         await db.Comments.IgnoreQueryFilters()
             .Where(c => c.PostId == postId)
             .ExecuteDeleteAsync(cancellationToken);

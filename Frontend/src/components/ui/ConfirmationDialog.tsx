@@ -4,6 +4,7 @@ import { X } from "@/components/animate-ui/icons/x";
 import type { ReactNode } from "react";
 import { ApiError } from "../../services/api";
 import { Button } from "./Button";
+import { showToast } from "./Toast";
 import { AlertDialog } from "@animate-ui/react/primitives/base-ui/alert-dialog";
 import { useLocale } from "../../context/LocaleContext";
 
@@ -20,7 +21,6 @@ export function ConfirmationDialog({ title, children, danger, onConfirm, onClose
   const cancelRef = useRef<HTMLButtonElement>(null);
   const pending = useRef(false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const cancel = () => {
     if (!pending.current) onClose();
@@ -30,11 +30,10 @@ export function ConfirmationDialog({ title, children, danger, onConfirm, onClose
     if (pending.current) return;
     pending.current = true;
     setBusy(true);
-    setError(null);
     try {
       await onConfirm();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("Could not complete this action. Please retry."));
+      showToast.error(err instanceof ApiError ? err.message : t("Could not complete this action. Please retry."));
       pending.current = false;
       setBusy(false);
       return;
@@ -66,7 +65,6 @@ export function ConfirmationDialog({ title, children, danger, onConfirm, onClose
                 <fieldset className="confirmation-dialog__message" disabled={busy}>{children}</fieldset>
               </div>
             </AlertDialog.Description>
-            {error ? <p className="confirmation-dialog__error" role="alert">{error}</p> : null}
             <footer className="confirmation-dialog__actions">
               <button ref={cancelRef} type="button" className="btn btn--secondary" disabled={busy} onClick={cancel}>{t("Cancel")}</button>
               <Button type="button" variant={danger ? "danger" : "primary"} busy={busy} onClick={() => void confirm()}>{t("Continue")}</Button>

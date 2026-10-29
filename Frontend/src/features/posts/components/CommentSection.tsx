@@ -6,8 +6,8 @@ import type { Comment } from "../types";
 import { commentService } from "../services/postService";
 import { useAuthStore } from "../../../store/authStore";
 import { formatTimestamp } from "../../../utils/media";
-import { Button, Input } from "../../../components/ui";
-import { ErrorState, Spinner } from "../../../components/ui/Status";
+import { Button, Input, showToast } from "../../../components/ui";
+import { Spinner } from "../../../components/ui/Status";
 import { useLocale } from "../../../context/LocaleContext";
 
 interface Props {
@@ -24,7 +24,6 @@ export function CommentSection({ postId, comments, onAdded, reload }: Props) {
   const isAdmin = me?.role?.toLowerCase() === "admin";
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const load = useCallback(async () => {
@@ -33,7 +32,7 @@ export function CommentSection({ postId, comments, onAdded, reload }: Props) {
       await commentService.list(postId);
       reload();
     } catch {
-      setError(t("Could not load comments."));
+      showToast.error(t("Could not load comments."));
     } finally {
       setLoading(false);
     }
@@ -46,13 +45,12 @@ export function CommentSection({ postId, comments, onAdded, reload }: Props) {
   const submit = async () => {
     if (!draft.trim()) return;
     setBusy(true);
-    setError(null);
     try {
       const created = await commentService.add(postId, draft.trim());
       onAdded(created);
       setDraft("");
     } catch {
-      setError(t("Could not post the comment."));
+      showToast.error(t("Could not post the comment."));
     } finally {
       setBusy(false);
     }
@@ -63,15 +61,13 @@ export function CommentSection({ postId, comments, onAdded, reload }: Props) {
       await commentService.remove(commentId);
       reload();
     } catch {
-      setError(t("Could not delete the comment."));
+      showToast.error(t("Could not delete the comment."));
     }
   };
 
   return (
     <section className="comments" aria-label={t("Comments")}>
       {loading ? <Spinner label={t("Loading comments…")} /> : null}
-      {error ? <ErrorState message={error} /> : null}
-
       {comments.length === 0 && !loading ? (
         <p className="comments__none">{t("No comments yet — be the first.")}</p>
       ) : (

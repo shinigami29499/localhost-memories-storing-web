@@ -2,11 +2,24 @@ import { api } from "../../../services/api";
 import { removeUploadFile, saveUploadFile } from "../../uploads/services/uploadFileStore";
 import { wakeUploadRuntime } from "../../uploads/services/uploadRuntime";
 import type { UploadBatch, UploadItemMetadata } from "../../uploads/types";
-import type { AdminPost, Comment, DeletedPost, PagedFeed, Post, ReactionCount } from "../types";
+import type { AdminPost, AdminPostFilters, Comment, DeletedPost, PagedFeed, Post, ReactionCount } from "../types";
+
+export type MediaKindFilter = "image" | "video";
+
+function pagedQuery(offset: number, limit: number, mediaKind?: MediaKindFilter): string {
+  const params = new URLSearchParams({ offset: String(offset), limit: String(limit) });
+  if (mediaKind) params.set("mediaKind", mediaKind);
+  return params.toString();
+}
 
 export const postService = {
-  feed(offset = 0, limit = 10): Promise<PagedFeed<Post>> {
-    return api(`/api/posts?offset=${offset}&limit=${limit}`);
+  feed(offset = 0, limit = 10, mediaKind?: MediaKindFilter): Promise<PagedFeed<Post>> {
+    return api(`/api/posts?${pagedQuery(offset, limit, mediaKind)}`);
+  },
+
+  /** Posts the current user has hearted. */
+  favorites(offset = 0, limit = 10, mediaKind?: MediaKindFilter): Promise<PagedFeed<Post>> {
+    return api(`/api/posts/favorites?${pagedQuery(offset, limit, mediaKind)}`);
   },
 
   get(postId: string): Promise<Post> {
@@ -62,8 +75,12 @@ export const postService = {
   },
 
   /** Admin listing of every post, active and soft-deleted. */
-  listAll(offset = 0, limit = 50): Promise<PagedFeed<AdminPost>> {
-    return api(`/api/posts/all?offset=${offset}&limit=${limit}`);
+  listAll(offset = 0, limit = 50, filters: AdminPostFilters = {}): Promise<PagedFeed<AdminPost>> {
+    const params = new URLSearchParams({ offset: String(offset), limit: String(limit) });
+    for (const [key, value] of Object.entries(filters)) {
+      if (value) params.set(key, value);
+    }
+    return api(`/api/posts/all?${params.toString()}`);
   },
 
   restore(postId: string): Promise<void> {

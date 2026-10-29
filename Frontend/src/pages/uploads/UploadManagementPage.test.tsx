@@ -59,7 +59,9 @@ vi.mock("../../context/LocaleContext", () => ({
   }),
 }));
 vi.mock("../../features/uploads/components/UploadBatchCard", () => ({
-  UploadBatchCard: ({ batch }: { batch: UploadBatch }) => <div>{batch.caption}</div>,
+  UploadBatchCard: ({ batch, displayId }: { batch: UploadBatch; displayId?: number }) => (
+    <div data-batch-number={displayId}>{batch.caption}</div>
+  ),
 }));
 vi.mock("../../components/ui/Button", () => ({
   Button: (props: React.ButtonHTMLAttributes<HTMLButtonElement>) => <button {...props} />,
@@ -256,6 +258,30 @@ describe("UploadManagementPage live updates", () => {
     expect(mocks.list).toHaveBeenCalledTimes(initialCalls + 1);
     expect(mocks.wakeUploadRuntime).toHaveBeenCalledTimes(2);
     expect(container.textContent).toContain("Live upload");
+  });
+
+  it("numbers batches sequentially across pages", async () => {
+    mocks.list.mockImplementation((offset: number, limit: number) =>
+      Promise.resolve({
+        items: Array.from({ length: 3 }, (_, index) => ({
+          id: `batch-${offset + index + 1}`,
+          caption: `Batch ${offset + index + 1}`,
+        })),
+        offset,
+        limit,
+        totalItems: 30,
+      }));
+    await renderScreen();
+
+    const batchNumbers = () =>
+      Array.from(container.querySelectorAll<HTMLElement>("[data-batch-number]"), (item) =>
+        item.dataset.batchNumber,
+      );
+    expect(batchNumbers()).toEqual(["1", "2", "3"]);
+
+    await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Page 3"]')!.click());
+    await flush();
+    expect(batchNumbers()).toEqual(["21", "22", "23"]);
   });
 
   it("refreshes the admin list on events and reconnects", async () => {

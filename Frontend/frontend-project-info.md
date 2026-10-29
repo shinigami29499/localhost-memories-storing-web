@@ -70,20 +70,23 @@ The watcher fills the available page width without a create-post button. Its bat
 list scrolls above the shared management pagination, with numbered pages and 10,
 20, or 50 batches per page. The page size is saved as `uploads.limit` in localStorage;
 changing it returns to page one. Live updates keep the current page within range.
-The list shows each post submission's batch, caption, post link, and individual file
-progress, with retry/cancel controls on the same row as each file's progress bar.
+The list shows each post submission's batch, post link, and individual file
+progress. Compact batch summaries keep fields on one row when space allows and reflow
+on narrower cards. File rows use a type tile, filename/details, percentage and retry/
+cancel controls above a full-width progress bar.
 Administrators also see owner usernames. Active batches start expanded; previous
 batches have an icon-only **View history** toggle with an accessible label and
 tooltip for file results, errors, and retry counts. History uses the shared Animate UI
 collapsible with subtle height/fade motion and reduced-motion support. The toggle is
 borderless, and **View post** is a prominent secondary link button.
 Each batch has independent file pagination fixed at five files per page, without
-a page-size selector. Batch GUIDs stay on one line, and the **View post** button
-is scaled to 1.3 times its original size.
-Batch fields reflow based on card width, including when the sidebar reduces space.
-The batch GUID uses two lines, and the status badge is centered below its label.
-Files show successful uploads out of the total (for example, `0/40` or `40/40`)
-instead of separate summary counters for each file status.
+a page-size selector. The **View post** button is scaled to 1.3 times its original size.
+The batch summary includes a sequential ID that continues across pages, hides the
+batch GUID, shows only the creation date, and centers status under its label.
+The expand/collapse chevron appears before the sequential ID column.
+Fields reflow when the sidebar reduces available space.
+Batch progress shows successful uploads out of the total (for example, `0/40` or
+`40/40`) in place of a separate Files summary; its bar tracks the same file count.
 The authenticated upload runtime sends one file at a time and invalidates feed,
 post-detail, and admin-post queries after each successful attachment. File bytes remain
 in IndexedDB until success or cancellation so retries and refresh recovery use the
@@ -100,6 +103,67 @@ Feature-specific components, hooks, services, and types live in `src/features/<f
 
 On phones (≤640px), `AuthenticatedLayout` also shows the brand in the shared top bar, and the sidebar becomes an off-canvas drawer with a backdrop. The drawer closes after navigation, when you tap the backdrop, or when you press Escape.
 
+Post images remain full-size inline. Clicking an image opens `MediaCarousel`, which uses
+Animate UI's Embla integration with drag navigation, looping, animated dots, and a sliding
+counter. All three visible slides share Animate UI's scroll-driven scale animation
+(`scale: 0.45`, `visible: 3`), with an enlarged center overlapping the smaller neighbors.
+Media fills the available slide area with its aspect ratio preserved, including upscaling small originals.
+Media elements fit their intrinsic aspect ratio so rounded corners clip the visible image,
+including side previews. Clicking a visible side navigates in that direction.
+Clicking outside the media and tracking controls closes the preview; dragging does not dismiss it.
+Small albums repeat track entries to meet Embla's minimum
+loop length while retaining one animated dot per original media item and logical counts.
+Images remain uncropped. The viewer is transparent except for the compact
+tracking controls and modal backdrop. Video controls retain
+native seeking, and videos pause when their slide loses selection.
+
+**Gallery** in the sidebar is a collapsible group for every signed-in user with
+**Pictures** (`/gallery`), **Videos** (`/gallery/videos`), **Favorites**
+(`/gallery/favorites`), **Saved** (`/saved`), and, for administrators only,
+**Trash** (`/gallery/trash`). Pictures, Videos, and Favorites share `GalleryPage`
+(`view` prop) and the public feed listing, not the admin listing: they show
+community media without post details, moderation controls, or deleted-media
+access; posts without media are omitted. Gallery tiles are square. Selecting a
+tile opens a full-screen carousel (`GalleryLightbox`) over every media file in the
+currently shown day groups, starting at that post; its "Open post" button links
+to the post being viewed. Favorites has All/Image/Video filters; Pictures shows all media
+without filter tabs. The filter is sent as `mediaKind` so the server returns only
+matching posts, and image/video filters show only matching media within each
+post. Videos always requests `mediaKind=video`. Favorites lists posts the current
+user has hearted (`GET /api/posts/favorites`). Posts are grouped by local
+creation day (Today, Yesterday, then dates). The first 5 day groups show
+initially; scrolling to the end reveals 5 more and loads further 20-post batches
+as needed (`useGalleryFeed`). Saved posts show a bookmark in the tile's top-right
+corner; selecting it opens the only matching collection or a chooser when the post
+is saved in multiple collections. There are no pagination controls.
+
+**Trash** (`src/pages/gallery/TrashPage.tsx`) replaces the former Manage posts
+page and lists only soft-deleted posts (`status=deleted`). Administrators can
+preview, restore, or permanently delete them. Deleting and restoring posts and
+media are admin-only in both the UI and the API; post cards show the delete
+button only to administrators.
+
+**Users** (`/users`, `src/pages/users/UsersPage.tsx`) replaces Manage users and is
+visible to every signed-in user. Approve and delete actions render only for
+administrators and remain `[RequireAdmin]` on the API. The old `/admin/users`
+and `/admin/posts` URLs redirect to `/users` and `/gallery/trash`.
+
+**Saved** (inside the Gallery group) opens `/saved`, which lists collections as preview cards
+(My collections / Public collections tabs, plus **New collection**). The Public tab
+shows other users' public collections with their owner; your own public collections
+stay in My collections, where the pencil button on each card edits it.
+The three-dot menu in every post card header (feed and post detail) includes
+**Save to collection**, which opens a dialog to add or
+remove the post from your collections, or create a new collection containing it.
+The menu sits left of the delete button when deletion is allowed, and at the
+right edge otherwise. The reaction bar contains only reactions and comments.
+`/saved/:collectionId` shows the collection's posts as a paginated gallery grid.
+Owners can edit the name, public/private visibility, and preview image, remove
+posts, copy a share link for public collections, and delete the collection.
+A collection's preview is its custom preview image when set; otherwise it is the
+first image of the earliest saved post. The editor offers images from the first
+100 saved posts. Code lives in `src/features/collections/` and `src/pages/saved/`.
+
 The mobile drawer and its toggle animate transforms instead of layout properties. Drawer width and navigation sections stay stable during opening and closing; desktop retains Animate UI's collapse and highlight behavior. A six-toggle synthetic sample at 390 × 844 with 4× CPU throttling reduced layout passes from 307 to 6. This is not a physical-device FPS guarantee.
 
 The theme control keeps the left-to-right palette reveal using native View Transitions with Animate UI's collapse timing (280ms at the default tempo). Local transition handling replaces the fixed-duration ThemeToggler primitive so overlapping toggles are blocked and interrupted transitions still apply and persist the selected theme. Reduced motion, unsupported browsers, and hidden documents switch without a page wipe. A transform-only theme-slide experiment did not improve the measured p95 frame interval (12.2ms in both samples), so the clip reveal was retained.
@@ -110,15 +174,19 @@ Protected media uses the authenticated query-token URL form because browser `<im
 
 ## Admin and theme details
 
+- The theme toggle uses Animate UI's default Moon and Sun icon animations, without a custom icon spin, scale, or blur transition. Icon colors and the page-wide palette reveal remain unchanged.
+- The theme toggle's moon and sun center, plus the notification bell body, are filled with their current icon color.
 - Admin pages require the backend admin policy and a JWT with `role: admin`.
-- Post management has no enclosing panel or visible page heading. A centered grid up to 1424px wide fits five 272px cards with 16px gaps; wrapped rows start at the grid's left edge. Cards shrink on narrow screens. Column counts are automatic; saved manual column settings are no longer used. Pagination uses server-side offsets and saves the page size (10, 20, or 50) locally. A previously saved size of 100 falls back to 10. Shared pagination controls use Animate UI's pagination primitive for the sliding active-page indicator and its reduced-motion crossfade.
-- Post-management pagination sits in a persistent bottom footer alongside the compact `10 / page` selector. Cards scroll in a separate area above the transparent footer, so only the background pattern shows behind its controls. The footer follows the available content width; controls wrap on narrow screens. Shared pagination uses an outlined active page, neighboring page numbers, and non-interactive ellipses without an extra page picker.
-- User management reuses the same persistent pagination footer and scrollable content layout. Users are paged locally after status and search filters, while summary and tab counts cover all accounts. Page size (10, 20, or 50) is saved separately under `admin-users.limit`; invalid saved sizes fall back to 10. Changing filters or page size resets to page one, and moderation actions clamp the current page when results shrink.
-- On phones (≤640px), all post-management cards (active and deleted) keep the thumbnail, date, deleted status when applicable, author, media count, and all actions while hiding the caption, comments, and extra deletion details. Desktop cards retain the full details.
-- Post-management All / Image / Video filters keep tab semantics and arrow-key navigation. An Animate UI Highlight surface follows mouse hover and keyboard focus, inspired by the Navigation Menu primitive; a separate underline identifies the selected filter. Touch does not trigger hover, and reduced motion disables sliding.
+- Trash has no enclosing panel. A centered grid up to 1424px wide fits five 272px cards with 16px gaps; wrapped rows start at the grid's left edge. Cards shrink on narrow screens. Column counts are automatic; saved manual column settings are no longer used. Pagination uses server-side offsets and saves the page size (10, 20, or 50) locally. A previously saved size of 100 falls back to 10. Shared pagination controls use Animate UI's pagination primitive for the sliding active-page indicator and its reduced-motion crossfade.
+- Trash pagination sits in a persistent bottom footer alongside the compact `10 / page` selector. Cards scroll in a separate area above the transparent footer, so only the background pattern shows behind its controls. The footer follows the available content width; controls wrap on narrow screens. Shared pagination uses an outlined active page, neighboring page numbers, and non-interactive ellipses without an extra page picker.
+- The Users page reuses the same persistent pagination footer and scrollable content layout. Users are paged locally after status and search filters, while summary and tab counts cover all accounts. Page size (10, 20, or 50) is saved separately under `users.limit`; invalid saved sizes fall back to 10. Changing filters or page size resets to page one, and moderation actions clamp the current page when results shrink. Mobile rows use compact cards that group role/status and joined/actions side by side where width allows; very narrow screens keep the fields stacked.
+- Trash cards show the thumbnail, date, author, and restore/permanent-delete actions. Captions, media and comment counts, and the deleted status badge are omitted; thumbnail clicks still open media preview. Deleted cards retain their deletion details on desktop.
+- Post filters are collapsed by default on the right side of the media controls. They use the admin user list for username options and filter by a creation-date range; dates follow the browser's local time zone. Applying filters resets pagination.
+- Collapsed filters indicate when filters are active. Media controls contain Image and Video only; with neither selected, all posts on the current server page show. Selecting an active media control again clears it. Controls use pressed-button semantics, and an Animate UI Highlight follows mouse hover and keyboard focus. Touch does not trigger hover, and reduced motion disables sliding.
 - Deleted-media previews use the existing media endpoint with `includeDeleted=true`; the backend validates admin access before bypassing soft-delete filters.
 - Deleted media streams from stored trash paths without restoration, and caching is disabled for deleted-media requests.
-- Global styles and theme tokens are in `src/styles/global.css`. Light mode uses the supplied `#1C1C1C`, `#DADDD8`, `#ECEBE4`, `#EEF0F2`, and `#FAFAFF` palette; dark mode uses the supplied `#0F0F0F`, `#2B2B2B`, `#4D4D4D`, `#777777`, and `#DEDEDE` palette. Dark text uses `#DEDEDE` and borders use `#777777`; light text and borders remain solid black. Nested surfaces use contrasting palette steps so adjacent controls remain distinct.
+- Global styles and theme tokens are in `src/styles/global.css`. Both themes use neutral surfaces with distinct strong, body, and muted text. Dark mode pairs charcoal surfaces with a light primary action; light mode pairs pale surfaces with a dark primary action. Decorative borders use `--border`/`--border-card`; interactive outlines use the higher-contrast `--border-control`. Use `--focus-ring` for keyboard focus, `--theme-icon` and `--notification-icon` for shell icons, and `--text-on-danger` on filled danger controls rather than `--text-on-accent`. Popovers share the theme-aware `--shadow-popover`. Typography retains the system font stack, with 1.6 body line-height and balanced introductory headings; narrow-screen inputs use 1rem to avoid mobile focus zoom.
+- The shell keeps selected navigation distinct from neutral hover with an inset marker and accent wash. Header controls have 44px targets on phones and coarse-pointer devices. The mobile header reserves 68px plus the top safe-area inset, and the notification panel positions below that shared height.
 - UI copy supports English and Vietnamese through `src/context/LocaleContext.tsx`. `LocaleProvider` persists the language in `shinigacim.language` and updates the document language; use `useLocale().t()` for user-facing text. The globe control sits beside notifications and is also available on sign-in and registration screens.
 - The default neutral hover background is `var(--surface-hover)`, shared by sidebar controls, post-filter highlights, and ghost buttons (14% #DEDEDE in dark mode; 12% #1C1C1C in light mode). Post-filter tabs use Animate UI Image and Clapperboard icons with whole-tab hover animation.
 - Sidebar styles live in `src/styles/sidebar.css`. `AuthenticatedLayout` owns the shared Animate UI sidebar provider; the sidebar spacer is a sibling of the fixed panel so content and footer stay aligned with its collapse timing. Narrow screens start with a compact rail that can expand over the content.

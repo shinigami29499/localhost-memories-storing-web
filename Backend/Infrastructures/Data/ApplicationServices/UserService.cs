@@ -5,11 +5,13 @@ using Services.Interfaces;
 using Services.Responses.Auth;
 using Domains.Entities;
 using Domains.Enums;
+using Services.Models.Users;
 
 namespace Infrastructures.Data.ApplicationServices;
 
 public class UserService(IUserRepository repository, IUnitOfWork unitOfWork, IMapper mapper) : IUserService
 {
+    private const int MentionCandidateLimit = 8;
     private readonly IUserRepository _repository = repository;
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
@@ -19,6 +21,14 @@ public class UserService(IUserRepository repository, IUnitOfWork unitOfWork, IMa
         var users = await _repository.ListUsersAsync(cancellationToken);
 
         return users.Select(mapper.Map).ToList();
+    }
+
+    public Task<IReadOnlyList<UserMentionCandidateDto>> SearchMentionCandidatesAsync(
+        string usernamePrefix, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(usernamePrefix);
+        return _repository.FindMentionCandidatesAsync(
+            usernamePrefix.Trim(), MentionCandidateLimit, cancellationToken);
     }
 
     public async Task<UserResponse> ApproveAsync(Guid userId, CancellationToken cancellationToken = default)

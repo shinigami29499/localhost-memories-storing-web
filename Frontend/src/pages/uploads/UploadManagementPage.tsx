@@ -159,10 +159,11 @@ export function UploadManagementPage() {
           />
         ) : (
           <div className="upload-list" aria-live="polite">
-            {batches.map((batch) => (
+            {batches.map((batch, index) => (
               <UploadBatchCard
                 key={batch.id}
                 batch={batch}
+                displayId={offset + index + 1}
                 showUsername={isAdmin}
                 busyItemIds={busyItemIds}
                 onRetry={retry}

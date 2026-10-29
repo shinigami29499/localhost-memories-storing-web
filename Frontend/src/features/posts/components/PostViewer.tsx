@@ -4,7 +4,7 @@ import { ArrowLeft } from "@/components/animate-ui/icons/arrow-left";
 import { ArrowRight } from "@/components/animate-ui/icons/arrow-right";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import type { Post } from "../types";
-import { ErrorState } from "../../../components/ui/Status";
+import { showToast } from "../../../components/ui/Toast";
 import { PostCard } from "./PostCard";
 import { useLocale } from "../../../context/LocaleContext";
 
@@ -21,20 +21,17 @@ export function PostViewer({ posts, total, hasMore, loadMore, onChanged, onDelet
   const { t } = useLocale();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
   const pending = useRef(false);
   const index = Math.max(0, posts.findIndex((post) => post.id === selectedId));
   const post = posts[index];
 
   const previous = () => {
     if (pending.current || index === 0) return;
-    setError(false);
     setSelectedId(posts[index - 1].id);
   };
 
   const next = async () => {
     if (pending.current) return;
-    setError(false);
     if (index < posts.length - 1) {
       setSelectedId(posts[index + 1].id);
     } else if (hasMore) {
@@ -46,7 +43,7 @@ export function PostViewer({ posts, total, hasMore, loadMore, onChanged, onDelet
         const following = updated[currentIndex + 1];
         if (following) setSelectedId(following.id);
       } catch {
-        setError(true);
+        showToast.error(t("Could not load the next post."));
       } finally {
         pending.current = false;
         setLoading(false);
@@ -126,7 +123,6 @@ export function PostViewer({ posts, total, hasMore, loadMore, onChanged, onDelet
           />
         ) : <p>{t("Use the next arrow to load more posts.")}</p>}
       </div>
-      {error ? <ErrorState message={t("Could not load the next post.")} onRetry={() => void next()} /> : null}
     </div>
   );
 }

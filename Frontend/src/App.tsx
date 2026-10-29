@@ -12,8 +12,11 @@ import { AuthenticatedLayout } from "./components/layout/AuthenticatedLayout";
 import { LoginPage } from "./pages/login/LoginPage";
 import { RegisterPage } from "./pages/register/RegisterPage";
 import { HomePage } from "./pages/home/HomePage";
-import { AdminUsersPage } from "./pages/admin/AdminUsersPage";
-import { AdminPostsPage } from "./pages/admin/AdminPostsPage";
+import { GalleryPage } from "./pages/gallery/GalleryPage";
+import { TrashPage } from "./pages/gallery/TrashPage";
+import { SavedPage } from "./pages/saved/SavedPage";
+import { CollectionPage } from "./pages/saved/CollectionPage";
+import { UsersPage } from "./pages/users/UsersPage";
 import { UploadManagementPage } from "./pages/uploads/UploadManagementPage";
 import { ErrorPage } from "./pages/ErrorPage";
 import { PostDetailPage } from "./pages/posts/PostDetailPage";
@@ -42,25 +45,25 @@ const router = createBrowserRouter([
         ),
         children: [
           { path: "/", element: <HomePage /> },
+          { path: "/gallery", element: <GalleryPage key="pictures" view="pictures" /> },
+          { path: "/gallery/videos", element: <GalleryPage key="videos" view="videos" /> },
+          { path: "/gallery/favorites", element: <GalleryPage key="favorites" view="favorites" /> },
+          {
+            path: "/gallery/trash",
+            element: (
+              <RequireAdmin>
+                <TrashPage />
+              </RequireAdmin>
+            ),
+          },
+          { path: "/saved", element: <SavedPage /> },
+          { path: "/saved/:collectionId", element: <CollectionPage /> },
           { path: "/uploads", element: <UploadManagementPage /> },
           { path: "/uploads/new", element: <Navigate replace to="/uploads" /> },
           { path: "/posts/:postId", element: <PostDetailPage /> },
-          {
-            path: "/admin/users",
-            element: (
-              <RequireAdmin>
-                <AdminUsersPage />
-              </RequireAdmin>
-            ),
-          },
-          {
-            path: "/admin/posts",
-            element: (
-              <RequireAdmin>
-                <AdminPostsPage />
-              </RequireAdmin>
-            ),
-          },
+          { path: "/users", element: <UsersPage /> },
+          { path: "/admin/users", element: <Navigate replace to="/users" /> },
+          { path: "/admin/posts", element: <Navigate replace to="/gallery/trash" /> },
         ],
       },
       {

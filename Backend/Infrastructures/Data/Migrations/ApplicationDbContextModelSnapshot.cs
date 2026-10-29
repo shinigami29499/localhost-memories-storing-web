@@ -22,6 +22,128 @@ namespace Infrastructures.Data.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Domains.Entities.Collection", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("deleted_by");
+
+                    b.Property<bool>("IsPublic")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_public");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("owner_id");
+
+                    b.Property<Guid?>("PreviewMediaFileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("preview_media_file_id");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_collections");
+
+                    b.HasIndex("PreviewMediaFileId")
+                        .HasDatabaseName("ix_collections_preview_media_file_id");
+
+                    b.HasIndex("IsPublic", "CreatedAt")
+                        .HasDatabaseName("ix_collections_is_public_created_at");
+
+                    b.HasIndex("OwnerId", "CreatedAt")
+                        .HasDatabaseName("ix_collections_owner_id_created_at");
+
+                    b.ToTable("collections", (string)null);
+                });
+
+            modelBuilder.Entity("Domains.Entities.CollectionPost", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<Guid>("CollectionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("collection_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("deleted_by");
+
+                    b.Property<Guid>("PostId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("post_id");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_collection_posts");
+
+                    b.HasIndex("PostId")
+                        .HasDatabaseName("ix_collection_posts_post_id");
+
+                    b.HasIndex("CollectionId", "CreatedAt")
+                        .HasDatabaseName("ix_collection_posts_collection_id_created_at");
+
+                    b.HasIndex("CollectionId", "PostId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_collection_posts_collection_id_post_id")
+                        .HasFilter("deleted_at IS NULL");
+
+                    b.ToTable("collection_posts", (string)null);
+                });
+
             modelBuilder.Entity("Domains.Entities.Comment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -693,6 +815,47 @@ namespace Infrastructures.Data.Migrations
                     b.ToTable("users", (string)null);
                 });
 
+            modelBuilder.Entity("Domains.Entities.Collection", b =>
+                {
+                    b.HasOne("Domains.Entities.User", "Owner")
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired()
+                        .HasConstraintName("fk_collections_users_owner_id");
+
+                    b.HasOne("Domains.Entities.MediaFile", "PreviewMediaFile")
+                        .WithMany()
+                        .HasForeignKey("PreviewMediaFileId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .HasConstraintName("fk_collections_media_files_preview_media_file_id");
+
+                    b.Navigation("Owner");
+
+                    b.Navigation("PreviewMediaFile");
+                });
+
+            modelBuilder.Entity("Domains.Entities.CollectionPost", b =>
+                {
+                    b.HasOne("Domains.Entities.Collection", "Collection")
+                        .WithMany("Posts")
+                        .HasForeignKey("CollectionId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired()
+                        .HasConstraintName("fk_collection_posts_collections_collection_id");
+
+                    b.HasOne("Domains.Entities.Post", "Post")
+                        .WithMany()
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired()
+                        .HasConstraintName("fk_collection_posts_posts_post_id");
+
+                    b.Navigation("Collection");
+
+                    b.Navigation("Post");
+                });
+
             modelBuilder.Entity("Domains.Entities.Comment", b =>
                 {
                     b.HasOne("Domains.Entities.Post", "Post")
@@ -801,6 +964,11 @@ namespace Infrastructures.Data.Migrations
                         .HasConstraintName("fk_upload_items_upload_batches_upload_batch_id");
 
                     b.Navigation("Batch");
+                });
+
+            modelBuilder.Entity("Domains.Entities.Collection", b =>
+                {
+                    b.Navigation("Posts");
                 });
 
             modelBuilder.Entity("Domains.Entities.Post", b =>

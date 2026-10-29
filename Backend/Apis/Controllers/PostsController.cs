@@ -41,9 +41,15 @@ public class PostsController(
 
     [HttpGet]
     public async Task<ActionResult<PagedFeedResponse<PostSummaryDto>>> GetFeedAsync(
-        [FromQuery] FeedRequest request, CancellationToken cancellationToken)
+        [FromQuery] FeedRequest request, CancellationToken cancellationToken, [FromQuery] string? mediaKind = null)
         => Ok(await _postService.GetFeedAsync(
-            _currentUser.RequireUserId(), request.Offset, request.Limit, cancellationToken));
+            _currentUser.RequireUserId(), request.Offset, request.Limit, mediaKind, cancellationToken));
+
+    [HttpGet("favorites")]
+    public async Task<ActionResult<PagedFeedResponse<PostSummaryDto>>> GetFavoritesAsync(
+        [FromQuery] FeedRequest request, CancellationToken cancellationToken, [FromQuery] string? mediaKind = null)
+        => Ok(await _postService.GetFavoritesAsync(
+            _currentUser.RequireUserId(), request.Offset, request.Limit, mediaKind, cancellationToken));
 
     [HttpGet("{postId:guid}")]
     public async Task<ActionResult<PostSummaryDto>> GetPostAsync(Guid postId, CancellationToken cancellationToken)
@@ -88,6 +94,7 @@ public class PostsController(
         => Ok(await _postService.UpdateCaptionAsync(
             postId, _currentUser.RequireUserId(), _currentUser.IsAdmin, request.Caption, cancellationToken));
 
+    [RequireAdmin]
     [HttpDelete("{postId:guid}")]
     public async Task<IActionResult> DeletePostAsync(Guid postId, CancellationToken cancellationToken)
     {
@@ -111,8 +118,11 @@ public class PostsController(
     [RequireAdmin]
     [HttpGet("all")]
     public async Task<ActionResult<PagedFeedResponse<AdminPostDto>>> GetAllAsync(
-        [FromQuery] FeedRequest request, CancellationToken cancellationToken)
-        => Ok(await _postService.GetAllPostsAsync(request.Offset, request.Limit, cancellationToken));
+        [FromQuery] FeedRequest request,
+        [FromQuery] AdminPostSearchRequest filters,
+        CancellationToken cancellationToken)
+        => Ok(await _postService.GetAllPostsAsync(
+            request.Offset, request.Limit, filters, cancellationToken));
 
     [RequireAdmin]
     [HttpPost("{postId:guid}/restore")]

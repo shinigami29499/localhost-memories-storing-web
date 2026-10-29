@@ -12,6 +12,9 @@ import { CommentIcon } from "./CommentIcon";
 import { DeletePostDialog } from "./DeletePostDialog";
 import { useAuthStore } from "../../../store/authStore";
 import { useLocale } from "../../../context/LocaleContext";
+import { renderCaptionTags } from "../utils/renderCaptionTags";
+import { SaveToCollectionMenu } from "../../collections/components/SaveToCollectionMenu";
+import { showToast } from "../../../components/ui/Toast";
 
 interface Props {
   post: Post;
@@ -39,13 +42,11 @@ export function PostCard({
   const { language, t } = useLocale();
   const me = useAuthStore((s) => s.user);
   const isAdmin = me?.role?.toLowerCase() === "admin";
-  const isAuthor = post.author.id === me?.id;
 
   const [comments, setComments] = useState<Comment[]>([]);
   const [showComments, setShowComments] = useState(commentsLockedOpen || initialCommentsOpen);
   const [reactionBusy, setReactionBusy] = useState(false);
   const reactionPending = useRef(false);
-  const [error, setError] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
@@ -54,7 +55,7 @@ export function PostCard({
     try {
       setComments(await commentService.list(post.id));
     } catch {
-      setError(t("Could not load comments."));
+      showToast.error(t("Could not load comments."));
     }
   }, [post.id, showComments]);
 
@@ -92,7 +93,6 @@ export function PostCard({
     if (reactionPending.current) return;
     reactionPending.current = true;
     setReactionBusy(true);
-    setError(null);
     try {
       const isRemoving = post.myReactionTypes.includes(type);
       let updated = post;
@@ -107,7 +107,7 @@ export function PostCard({
         onChanged({ ...updated, reactionCounts, myReactionTypes: [type] });
       }
     } catch {
-      setError(t("Reaction failed. Please retry."));
+      showToast.error(t("Reaction failed. Please retry."));
     } finally {
       reactionPending.current = false;
       setReactionBusy(false);
@@ -129,9 +129,10 @@ export function PostCard({
             </time>
           </div>
         </div>
-        {isAdmin || isAuthor ? (
-          <div className="post-card__actions">
-              <AnimateIcon animateOnHover animateOnTap completeOnStop completeOnStop asChild>
+        <div className="post-card__actions">
+          <SaveToCollectionMenu postId={post.id} />
+          {isAdmin ? (
+              <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
                 <button
                   type="button"
                   className="btn btn--ghost post-card__delete"
@@ -142,13 +143,13 @@ export function PostCard({
                   <X size={20} aria-hidden="true" />
                 </button>
               </AnimateIcon>
-          </div>
-        ) : null}
+          ) : null}
+        </div>
       </header>
       {confirmingDelete ? (
         <DeletePostDialog
           postId={post.id}
-          allowPermanentDelete={isAdmin}
+          allowPermanentDelete
           onClose={() => setConfirmingDelete(false)}
           onDeleted={onDeleted}
         />
@@ -159,8 +160,16 @@ export function PostCard({
           deps={[expanded]}
           className="post-card__caption-wrapper"
         >
-          <p className="post-card__caption">
-            <span>{expanded || !shouldShowToggle ? post.caption : visiblePart}</span>
+          <p
+            className="post-card__caption"
+            onClick={(event) => {
+              if (!shouldShowToggle || !window.matchMedia("(max-width: 768px)").matches) return;
+              if (event.target instanceof Element && event.target.closest("button, a")) return;
+              if (window.getSelection()?.toString()) return;
+              setExpanded((value) => !value);
+            }}
+          >
+            <span>{renderCaptionTags(expanded || !shouldShowToggle ? post.caption : visiblePart)}</span>
             {!expanded && shouldShowToggle ? (
               <>
                 {"... "}
@@ -192,8 +201,6 @@ export function PostCard({
       ) : null}
 
       <MediaGallery media={post.media} onPreviousPost={onPreviousPost} onNextPost={onNextPost} />
-
-      {error ? <p className="post-card__error" role="alert">{error}</p> : null}
 
       <div className="post-card__footer">
         <ReactionControls

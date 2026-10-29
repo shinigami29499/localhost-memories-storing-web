@@ -106,10 +106,6 @@
   margin-top: 8px;
 }
 
-.login__card .error-state {
-  margin-bottom: 16px;
-}
-
 .login__footnote {
   margin: 22px 0 0;
   color: var(--text-muted);
