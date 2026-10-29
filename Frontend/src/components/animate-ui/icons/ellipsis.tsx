@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { IconWrapper, useAnimateIconContext, type IconProps } from "@animate-ui/react/icons";
+import { IconWrapper, useAnimateIconContext, type IconProps } from "./icon";
 
 function IconComponent({ size, ...props }: IconProps<"default">) {
   const { controls } = useAnimateIconContext();

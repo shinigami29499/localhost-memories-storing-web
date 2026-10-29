@@ -23,6 +23,7 @@ For full-stack work, load both overviews. Do not load skills for an unaffected s
 ## Repository restrictions
 
 - Do not read, edit, or move `Backend/Adapter/Security/` or `Backend/Scripts/`.
+- Do not run Playwright or browser-driven tests unless the user explicitly asks.
 - Backend validation restrictions and startup side effects are documented in [`02-be-01-readfirst`](.agents/skills/02-be-01-readfirst/SKILL.md).
 - Frontend build and test guidance is documented in [`03-fe-01-readfirst`](.agents/skills/03-fe-01-readfirst/SKILL.md).
 

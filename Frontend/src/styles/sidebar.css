@@ -62,7 +62,8 @@
   cursor: pointer;
   transition:
     left var(--animate-ui-sidebar-duration) var(--animate-ui-sidebar-easing),
-    background-color var(--animate-ui-sidebar-color-duration) var(--animate-ui-sidebar-color-easing);
+    background-color var(--animate-ui-sidebar-color-duration) var(--animate-ui-sidebar-color-easing),
+    scale 140ms ease-out;
 }
 
 .sidebar--collapsed ~ .sidebar__toggle {
@@ -108,7 +109,7 @@
   min-width: 0;
   flex-shrink: 0;
   overflow: hidden;
-  transition-property: background-color, color;
+  transition-property: background-color, color, scale;
   transition-duration: var(--animate-ui-sidebar-color-duration);
   transition-timing-function: var(--animate-ui-sidebar-color-easing);
 }
@@ -123,6 +124,22 @@
   color: var(--text-strong);
   font-weight: 650;
   box-shadow: inset 3px 0 var(--accent-soft);
+}
+
+.sidebar__home-icon {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  place-items: center;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+}
+
+.sidebar__home-link.sidebar__link--active .sidebar__home-icon {
+  border-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
 }
 
 .notification-bar {
@@ -165,7 +182,7 @@
   background: transparent;
   color: var(--notification-icon);
   cursor: pointer;
-  transition: background-color var(--animate-ui-sidebar-color-duration) var(--animate-ui-sidebar-color-easing);
+  transition: background-color var(--animate-ui-sidebar-color-duration) var(--animate-ui-sidebar-color-easing), scale 140ms ease-out;
 }
 
 .language-toggler {
@@ -183,7 +200,7 @@
   font-weight: 700;
   letter-spacing: 0.03em;
   cursor: pointer;
-  transition: background-color var(--animate-ui-sidebar-color-duration) var(--animate-ui-sidebar-color-easing);
+  transition: background-color var(--animate-ui-sidebar-color-duration) var(--animate-ui-sidebar-color-easing), scale 140ms ease-out;
 }
 
 .language-toggler:hover,
@@ -372,10 +389,15 @@
 
 .sidebar__sub-link[href="/gallery/favorites"] > svg > path {
   fill: var(--danger) !important;
+  stroke: var(--danger) !important;
 }
 
-.sidebar__sub-link[href="/saved"] > svg > path,
-.gallery-card__saved > svg > path {
+.sidebar__sub-link[href="/albums"] > svg > path {
+  stroke: var(--notification-icon) !important;
+}
+
+.sidebar__sub-link[href="/albums"] > svg > path,
+.gallery-card__album > svg > path {
   fill: var(--notification-icon) !important;
 }
 
@@ -439,7 +461,7 @@
   text-align: left;
   cursor: pointer;
   white-space: nowrap;
-  transition: background-color var(--animate-ui-sidebar-color-duration) var(--animate-ui-sidebar-color-easing);
+  transition: background-color var(--animate-ui-sidebar-color-duration) var(--animate-ui-sidebar-color-easing), scale 140ms ease-out;
 }
 
 .sidebar__account-trigger:hover,

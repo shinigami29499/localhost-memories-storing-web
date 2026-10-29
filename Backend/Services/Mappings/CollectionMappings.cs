@@ -1,5 +1,5 @@
 using Services.Models.Collections;
-using Services.Models.Posts;
+using Services.Models.Users;
 
 namespace Services.Mappings;
 
@@ -10,10 +10,10 @@ internal static class CollectionMappings
         source.Collection.Name,
         source.Collection.IsPublic,
         new UserSummaryDto(source.Owner.Id, source.Owner.Username),
-        source.PostCount,
+        source.MediaCount,
         source.CustomPreviewMediaId ?? source.DefaultPreviewMediaId,
         source.CustomPreviewMediaId,
-        source.ContainsPost,
+        source.ContainsMedia,
         source.Collection.CreatedAt,
         source.Collection.UpdatedAt);
 }

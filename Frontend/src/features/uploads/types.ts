@@ -17,8 +17,6 @@ export interface UploadItem {
 
 export interface UploadBatch {
   id: string;
-  postId: string | null;
-  caption: string;
   status: UploadBatchStatus;
   username: string | null;
   canManage: boolean;

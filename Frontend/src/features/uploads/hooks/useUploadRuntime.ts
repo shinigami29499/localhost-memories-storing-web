@@ -12,7 +12,7 @@ export function useUploadRuntime(): void {
   useEffect(() => {
     if (!userId) return;
     return startUploadRuntime(userId, t, () => {
-      for (const key of ["feed", "admin-all-posts", "post", "uploads"]) {
+      for (const key of ["media", "albums", "uploads"]) {
         void queryClient.invalidateQueries({ queryKey: [key] });
       }
     });

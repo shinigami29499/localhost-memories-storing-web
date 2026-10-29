@@ -122,7 +122,7 @@ describe("UsersPage", () => {
     expect(container.querySelector('[aria-current="page"]')?.textContent).toBe("2");
   });
 
-  it.each([20, 50])("restores the saved page size %i independently of posts", (size) => {
+  it.each([20, 50])("restores the saved page size %i independently of trash", (size) => {
     window.localStorage.setItem("users.limit", String(size));
     window.localStorage.setItem("trash.limit", "10");
     renderPage();

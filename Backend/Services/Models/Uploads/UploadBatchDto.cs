@@ -2,8 +2,6 @@ namespace Services.Models.Uploads;
 
 public sealed record UploadBatchDto(
     Guid Id,
-    Guid? PostId,
-    string Caption,
     string Status,
     string? Username,
     bool CanManage,

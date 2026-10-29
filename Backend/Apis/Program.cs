@@ -135,7 +135,7 @@ var maxFileSectionLength = (mediaStorage.MaxFileMegabytes + 10L) * 1024L * 1024L
 
 builder.WebHost.ConfigureKestrel(options =>
 {
-    options.Limits.MaxRequestBodySize = PostUploadLimits.MaxTotalBytes + 10L * 1024L * 1024L;
+    options.Limits.MaxRequestBodySize = UploadLimits.MaxTotalBytes + 10L * 1024L * 1024L;
 });
 
 builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>

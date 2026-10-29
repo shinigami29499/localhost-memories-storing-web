@@ -1,5 +1,5 @@
 import React from "react";
-import { AnimateIcon } from "@animate-ui/react/icons";
+import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { Accordion as AccordionPrimitive } from "@animate-ui/react/primitives/radix-ui";
 import { ChevronDown } from "@/components/animate-ui/icons/chevron-down";
 

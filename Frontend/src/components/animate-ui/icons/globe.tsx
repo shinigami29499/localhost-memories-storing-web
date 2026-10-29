@@ -6,7 +6,7 @@ import {
   useAnimateIconContext,
   IconWrapper,
   type IconProps,
-} from '@animate-ui/react/icons';
+} from './icon';
 
 type GlobeProps = IconProps<keyof typeof animations>;
 

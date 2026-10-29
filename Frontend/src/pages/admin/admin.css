@@ -92,7 +92,7 @@
   min-height: 44px;
   min-width: 132px;
   padding: 8px 10px 8px 12px;
-  transition: background-color 0.16s ease, border-color 0.16s ease;
+  transition: background-color 0.16s ease, border-color 0.16s ease, scale 140ms ease-out;
 }
 
 .admin-posts__filter-trigger:hover,
@@ -726,7 +726,7 @@
   gap: 6px;
   padding: 10px 16px;
   position: relative;
-  transition-property: background-color, color, box-shadow;
+  transition-property: background-color, color, box-shadow, scale;
   transition-duration: var(--animate-ui-sidebar-color-duration);
   transition-timing-function: var(--animate-ui-sidebar-color-easing);
   z-index: 1;

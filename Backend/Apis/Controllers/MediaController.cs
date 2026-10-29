@@ -10,6 +10,9 @@ using Apis.Interfaces;
 using Services.Options;
 using Services.Exceptions;
 using Services.Interfaces;
+using Services.Models.Media;
+using Services.Requests.Media;
+using Services.Responses.Media;
 
 namespace Apis.Controllers;
 
@@ -24,6 +27,31 @@ public class MediaController(
     private readonly IMediaService _mediaService = mediaService;
     private readonly ICurrentUserContext _currentUser = currentUser;
     private readonly JwtOptions _jwtOptions = jwtOptions.Value;
+
+    [HttpGet]
+    public async Task<ActionResult<PagedMediaResponse<MediaFileDto>>> GetMediaAsync(
+        [FromQuery] MediaPageRequest request, CancellationToken cancellationToken)
+        => Ok(await _mediaService.GetMediaPageAsync(
+            _currentUser.RequireUserId(),
+            request.Offset,
+            request.Limit,
+            request.MediaKind,
+            favoritesOnly: false,
+            includeDeleted: false,
+            cancellationToken));
+
+    [RequireAdmin]
+    [HttpGet("deleted")]
+    public async Task<ActionResult<PagedMediaResponse<MediaFileDto>>> GetDeletedMediaAsync(
+        [FromQuery] MediaPageRequest request, CancellationToken cancellationToken)
+        => Ok(await _mediaService.GetMediaPageAsync(
+            _currentUser.RequireUserId(),
+            request.Offset,
+            request.Limit,
+            request.MediaKind,
+            favoritesOnly: false,
+            includeDeleted: true,
+            cancellationToken));
 
     /// <summary>Streams media; includeDeleted allows admins to preview files in trash without restoring them.</summary>
     [HttpGet("{mediaId:guid}/file")]

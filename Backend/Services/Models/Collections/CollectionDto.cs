@@ -1,4 +1,4 @@
-using Services.Models.Posts;
+using Services.Models.Users;
 
 namespace Services.Models.Collections;
 
@@ -7,9 +7,9 @@ public record CollectionDto(
     string Name,
     bool IsPublic,
     UserSummaryDto Owner,
-    int PostCount,
+    int MediaCount,
     Guid? PreviewMediaId,
     Guid? CustomPreviewMediaId,
-    bool ContainsPost,
+    bool ContainsMedia,
     DateTime CreatedAt,
     DateTime? UpdatedAt);

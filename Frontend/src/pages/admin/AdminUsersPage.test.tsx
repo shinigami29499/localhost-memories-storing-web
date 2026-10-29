@@ -121,9 +121,9 @@ describe("AdminUsersPage pagination", () => {
     expect(container.querySelector('[aria-current="page"]')?.textContent).toBe("2");
   });
 
-  it.each([20, 50])("restores the saved page size %i independently of posts", (size) => {
+  it.each([20, 50])("restores the saved page size %i independently of other lists", (size) => {
     window.localStorage.setItem("admin-users.limit", String(size));
-    window.localStorage.setItem("admin-posts.limit", "10");
+    window.localStorage.setItem("trash.limit", "10");
     renderPage();
     expect(displayedNames()).toHaveLength(Math.min(size, users.length));
     expect(container.querySelector('[aria-label="Items per page"]')?.textContent).toContain(String(size));
@@ -137,7 +137,7 @@ describe("AdminUsersPage pagination", () => {
   });
 
   it("saves page size changes and resets to page one", async () => {
-    window.localStorage.setItem("admin-posts.limit", "50");
+    window.localStorage.setItem("trash.limit", "50");
     renderPage();
     click("Page 3");
     await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Items per page"]')!.click());
@@ -147,7 +147,7 @@ describe("AdminUsersPage pagination", () => {
     expect(displayedNames()).toHaveLength(20);
     expect(container.querySelector('[aria-current="page"]')?.textContent).toBe("1");
     expect(window.localStorage.getItem("admin-users.limit")).toBe("20");
-    expect(window.localStorage.getItem("admin-posts.limit")).toBe("50");
+    expect(window.localStorage.getItem("trash.limit")).toBe("50");
   });
 
   it("filters all users before paging and resets the page when status or search changes", () => {

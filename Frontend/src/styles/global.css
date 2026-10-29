@@ -124,6 +124,12 @@ textarea {
   -webkit-tap-highlight-color: transparent;
 }
 
+@media (hover: none) and (pointer: coarse) {
+  * {
+    -webkit-touch-callout: none;
+  }
+}
+
 :focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 4px;
@@ -314,6 +320,23 @@ textarea {
 
 /* Shared primitives -------------------------------------------------------- */
 
+:where(button, a[href], [role="button"]) {
+  scale: 1;
+  transition: scale 140ms ease-out;
+}
+
+@media (display-mode: browser) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  :where(button:not(:disabled), a[href], [role="button"]):hover {
+    scale: 1.02;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :where(button:not(:disabled), a[href], [role="button"]):active {
+    scale: 0.97;
+  }
+}
+
 .btn {
   display: inline-flex;
   align-items: center;
@@ -325,7 +348,7 @@ textarea {
   font: inherit;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease, filter 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease, filter 0.15s ease, scale 140ms ease-out;
 }
 
 .theme-toggler {
@@ -341,7 +364,7 @@ textarea {
   background: var(--surface-raised);
   color: var(--text-strong);
   cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease, scale 140ms ease-out;
 }
 
 .theme-toggler:hover:not(:disabled),
@@ -747,13 +770,13 @@ textarea::placeholder {
   background: var(--surface-card-raised);
 }
 
-/* Collection dialogs ------------------------------------------------------- */
+/* Album dialogs ------------------------------------------------------- */
 
-.collection-dialog {
+.album-dialog {
   width: min(480px, calc(100vw - 32px));
 }
 
-.collection-dialog__body {
+.album-dialog__body {
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -763,23 +786,23 @@ textarea::placeholder {
   border: 0;
 }
 
-.collection-dialog__empty {
+.album-dialog__empty {
   margin: 0;
   color: var(--text-muted);
   font-size: 0.9rem;
 }
 
-.collection-dialog__create {
+.album-dialog__create {
   display: flex;
   gap: 8px;
 }
 
-.collection-dialog__create input {
+.album-dialog__create input {
   flex: 1;
   min-width: 0;
 }
 
-.collection-picker {
+.album-picker {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -790,7 +813,7 @@ textarea::placeholder {
   list-style: none;
 }
 
-.collection-picker__item {
+.album-picker__item {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -805,20 +828,21 @@ textarea::placeholder {
   cursor: pointer;
 }
 
-.collection-picker__item:hover:not(:disabled),
-.collection-picker__item:focus-visible {
+.album-picker__item:hover:not(:disabled),
+.album-picker__item:focus-visible {
   background: var(--surface-hover);
+  scale: 1;
 }
 
-.collection-picker__item:disabled {
+.album-picker__item:disabled {
   cursor: wait;
 }
 
-.collection-picker__item[aria-pressed="true"] {
+.album-picker__item[aria-pressed="true"] {
   border-color: var(--border-control);
 }
 
-.collection-picker__thumb {
+.album-picker__thumb {
   display: grid;
   place-items: center;
   width: 48px;
@@ -830,20 +854,20 @@ textarea::placeholder {
   color: var(--text-muted);
 }
 
-.collection-picker__thumb img {
+.album-picker__thumb img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.collection-picker__text {
+.album-picker__text {
   display: flex;
   flex: 1;
   flex-direction: column;
   min-width: 0;
 }
 
-.collection-picker__name {
+.album-picker__name {
   overflow: hidden;
   color: var(--text-strong);
   font-weight: 600;
@@ -851,12 +875,12 @@ textarea::placeholder {
   white-space: nowrap;
 }
 
-.collection-picker__meta {
+.album-picker__meta {
   color: var(--text-muted);
   font-size: 0.78rem;
 }
 
-.collection-picker__state {
+.album-picker__state {
   flex-shrink: 0;
   padding: 4px 12px;
   border: 1px solid var(--border-control);
@@ -866,13 +890,13 @@ textarea::placeholder {
   font-weight: 600;
 }
 
-.collection-picker__item[aria-pressed="true"] .collection-picker__state {
+.album-picker__item[aria-pressed="true"] .album-picker__state {
   border-color: transparent;
   background: var(--accent-strong);
   color: var(--text-on-accent);
 }
 
-.collection-form__field {
+.album-form__field {
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -881,21 +905,21 @@ textarea::placeholder {
   font-weight: 600;
 }
 
-.collection-form__toggle {
+.album-form__toggle {
   display: flex;
   align-items: flex-start;
   gap: 10px;
   cursor: pointer;
 }
 
-.collection-form__toggle input {
+.album-form__toggle input {
   width: 18px;
   height: 18px;
   margin: 2px 0 0;
   flex-shrink: 0;
 }
 
-.collection-form__toggle span {
+.album-form__toggle span {
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -903,8 +927,8 @@ textarea::placeholder {
   font-size: 0.875rem;
 }
 
-.collection-form__toggle small,
-.collection-form__hint {
+.album-form__toggle small,
+.album-form__hint {
   color: var(--text-muted);
   font-size: 0.78rem;
   font-weight: 400;
@@ -1323,6 +1347,8 @@ textarea::placeholder {
 
 .media-lightbox::backdrop {
   background: var(--overlay-backdrop);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 .media-lightbox > .media-carousel {
@@ -1392,23 +1418,39 @@ textarea::placeholder {
   object-fit: contain;
 }
 
-.media-carousel__select {
-  position: absolute;
-  inset: auto;
-  place-self: center;
-  width: min(100cqw, calc(100cqh * var(--media-aspect, 1)));
-  height: min(100cqh, calc(100cqw / var(--media-aspect, 1)));
-  z-index: 1;
-  border: 0;
-  padding: 0;
-  border-radius: var(--radius);
-  background: transparent;
-  cursor: pointer;
+.media-carousel--fullscreen {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
 }
 
-.media-carousel__select:focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: -4px;
+.media-carousel--fullscreen .media-carousel__images {
+  flex: 1;
+  min-height: 0;
+  padding-inline: 0;
+}
+
+.media-carousel--fullscreen .media-carousel__viewport {
+  height: 100%;
+  overflow: hidden;
+}
+
+.media-carousel--fullscreen .media-carousel__track {
+  height: 100%;
+  margin-left: 0;
+}
+
+.media-carousel--fullscreen .media-carousel__item {
+  height: 100%;
+  padding-left: 0;
+  visibility: visible;
+}
+
+.media-carousel--fullscreen .media-carousel__card {
+  width: 100%;
+  height: 100%;
+  margin-inline: 0;
 }
 
 .media-carousel__controls {
@@ -1422,6 +1464,19 @@ textarea::placeholder {
   border-radius: var(--radius);
   background: var(--surface);
   color: var(--text-strong);
+}
+
+.media-carousel__zoom {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.media-carousel__zoom img {
+  touch-action: none;
 }
 
 .media-carousel__counter {
@@ -1451,6 +1506,8 @@ textarea::placeholder {
 .media-carousel__logical-indicator {
   position: absolute;
   top: 0;
+  left: 0;
+  width: 100%;
   height: 8px;
   border-radius: 999px;
   background: currentColor;
@@ -1502,7 +1559,7 @@ textarea::placeholder {
   color: var(--text-muted);
   font: inherit;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background 0.15s ease, scale 140ms ease-out;
   position: relative;
 }
 
@@ -1877,6 +1934,50 @@ textarea::placeholder {
   .post-card__delete {
     width: 44px;
     height: 44px;
+  }
+}
+
+@keyframes content-reveal {
+  from {
+    opacity: 0;
+    translate: 0 0.5rem;
+  }
+
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@media (display-mode: standalone) and (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    main :where(
+      section,
+      article,
+      header,
+      footer,
+      form,
+      li,
+      h1,
+      h2,
+      h3,
+      p,
+      button,
+      a[href],
+      input,
+      textarea,
+      select,
+      [role="button"],
+      [role="listitem"],
+      [class$="-card"],
+      [class$="__card"],
+      [class$="-panel"],
+      [class$="__panel"]
+    ) {
+      animation: content-reveal 600ms ease-out both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 30%;
+    }
   }
 }
 

@@ -40,7 +40,7 @@ export async function cancelRunningUpload(batchId: string, itemId: string): Prom
 export function startUploadRuntime(
   userId: string,
   translate: (key: string, values?: Record<string, string | number>) => string,
-  onPostChanged: () => void,
+  onMediaChanged: () => void,
 ): () => void {
   const controller = new AbortController();
   let wake: (() => void) | undefined;
@@ -246,7 +246,7 @@ export function startUploadRuntime(
         },
         itemController.signal,
       );
-      onPostChanged();
+      onMediaChanged();
       try {
         await removeUploadFile(itemId);
       } catch (error) {
@@ -260,7 +260,7 @@ export function startUploadRuntime(
         const batch = await uploadService.get(batchId);
         const item = batch.items.find((candidate) => candidate.id === itemId);
         if (item?.status === "Success") {
-          onPostChanged();
+          onMediaChanged();
           await removeUploadFile(itemId);
         } else if (item?.status === "Pending" || item?.status === "Uploading") {
           const message = error instanceof Error ? error.message : "Upload failed.";

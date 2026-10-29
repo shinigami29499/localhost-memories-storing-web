@@ -93,7 +93,7 @@ describe("AuthenticatedLayout sidebar", () => {
     await act(async () => container.querySelector<HTMLButtonElement>(".sidebar__toggle")!.click());
     expect(shell?.getAttribute("data-collapsible")).toBe("icon");
     expect(container.querySelector(".sidebar__toggle")?.getAttribute("aria-label")).toBe("Expand navigation");
-    expect(container.querySelector(".sidebar__nav a")?.getAttribute("aria-label")).toBe("Feed");
+    expect(container.querySelector(".sidebar__nav a")?.getAttribute("aria-label")).toBe("Home");
 
     await act(async () => container.querySelector<HTMLButtonElement>(".sidebar__toggle")!.click());
     expect(shell?.getAttribute("data-state")).toBe("expanded");
@@ -215,14 +215,14 @@ describe("AuthenticatedLayout sidebar", () => {
 
     expect(document.documentElement.lang).toBe("vi");
     expect(window.localStorage.getItem("shinigacim.language")).toBe("vi");
-    expect(container.querySelector(".sidebar__nav a")?.textContent).toContain("Bảng tin");
+    expect(container.querySelector(".sidebar__nav a")?.textContent).toContain("Trang chủ");
     expect(languageButton.getAttribute("aria-label")).toBe("Chuyển ngôn ngữ sang Tiếng Anh");
 
     await act(async () => languageButton.click());
 
     expect(document.documentElement.lang).toBe("en");
     expect(window.localStorage.getItem("shinigacim.language")).toBe("en");
-    expect(container.querySelector(".sidebar__nav a")?.textContent).toContain("Feed");
+    expect(container.querySelector(".sidebar__nav a")?.textContent).toContain("Home");
   });
 
   it("places the theme toggle beside language and notifications and persists the selected theme", async () => {

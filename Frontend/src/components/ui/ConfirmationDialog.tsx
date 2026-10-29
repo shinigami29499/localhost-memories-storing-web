@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { AnimateIcon } from "@animate-ui/react/icons";
+import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { X } from "@/components/animate-ui/icons/x";
 import type { ReactNode } from "react";
 import { ApiError } from "../../services/api";

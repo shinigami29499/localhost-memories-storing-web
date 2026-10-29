@@ -7,8 +7,8 @@ public class Collection : AuditableEntity
     public User Owner { get; set; } = null!;
     public bool IsPublic { get; set; }
 
-    // Null uses the first image of the earliest saved post.
+    // Null uses the first active image saved in the album.
     public Guid? PreviewMediaFileId { get; set; }
     public MediaFile? PreviewMediaFile { get; set; }
-    public List<CollectionPost> Posts { get; set; } = [];
+    public List<CollectionMedia> MediaItems { get; set; } = [];
 }

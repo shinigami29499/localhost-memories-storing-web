@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pagination, DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS } from "../../components/ui/Pagination";
 import { EmptyState, ErrorState, Spinner } from "../../components/ui/Status";
@@ -16,6 +16,8 @@ export function UploadManagementPage() {
   const { t } = useLocale();
   const queryClient = useQueryClient();
   const user = useAuthStore((state) => state.user);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [submitting, setSubmitting] = useState(false);
   const isAdmin = user?.role.toLowerCase() === "admin";
   const [offset, setOffset] = useState(0);
   const [limit, setLimit] = useState<number>(() => {
@@ -27,6 +29,7 @@ export function UploadManagementPage() {
   const busyTimeouts = useRef(new Map<string, number>());
   const retryTarget = useRef<{ batch: UploadBatch; item: UploadItem } | null>(null);
   const retryInput = useRef<HTMLInputElement>(null);
+  const uploadInput = useRef<HTMLInputElement>(null);
   const query = useQuery({
     queryKey: ["uploads", isAdmin, offset, limit],
     queryFn: () => (isAdmin ? uploadService.listAll(offset, limit) : uploadService.list(offset, limit)),
@@ -43,6 +46,24 @@ export function UploadManagementPage() {
     setLimit(pageSize);
     setOffset(0);
     window.localStorage.setItem("uploads.limit", String(pageSize));
+  };
+
+  const submitFiles = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (selectedFiles.length === 0 || submitting) return;
+
+    setSubmitting(true);
+    try {
+      await uploadService.submit(selectedFiles);
+      setSelectedFiles([]);
+      if (uploadInput.current) uploadInput.current.value = "";
+      await queryClient.invalidateQueries({ queryKey: ["uploads"] });
+      showToast.success(t("Upload batch started"));
+    } catch (error) {
+      showToast.error(t("Could not start this upload."), error instanceof Error ? error.message : undefined);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   useEffect(() => {
@@ -148,14 +169,30 @@ export function UploadManagementPage() {
         <header className="upload-page__header">
           <div>
             <h1 id="upload-page-title">{t("Upload management")}</h1>
-            <p>{t("Watch media uploads from your feed posts and retry failed files.")}</p>
+            <p>{t("Upload images and videos, then retry failed files here.")}</p>
           </div>
         </header>
+
+        <form className="upload-page__form" onSubmit={(event) => void submitFiles(event)}>
+          <label htmlFor="upload-media-files">{t("Select images or videos")}</label>
+          <input
+            ref={uploadInput}
+            id="upload-media-files"
+            type="file"
+            accept="image/*,video/*"
+            multiple
+            disabled={submitting}
+            onChange={(event) => setSelectedFiles(Array.from(event.currentTarget.files ?? []))}
+          />
+          <button type="submit" className="btn btn--primary" disabled={selectedFiles.length === 0 || submitting}>
+            {submitting ? t("Starting upload…") : t("Upload media")}
+          </button>
+        </form>
 
         {batches.length === 0 ? (
           <EmptyState
             title="No upload batches"
-            hint="Share images or videos from the feed composer to track their upload here."
+            hint="Select images or videos above to start an upload batch."
           />
         ) : (
           <div className="upload-list" aria-live="polite">

@@ -9,6 +9,7 @@ import {
 } from "@animate-ui/react/utils/motion";
 import { Moon } from "../animate-ui/icons/moon";
 import { Sun } from "../animate-ui/icons/sun";
+import { AnimateIcon } from "../animate-ui/icons/icon";
 import { useTheme } from "../../context/ThemeContext";
 import { useLocale } from "../../context/LocaleContext";
 
@@ -62,26 +63,28 @@ export function ThemeTogglerButton({ className = "" }: { className?: string }) {
   };
 
   return (
-    <motion.button
-      type="button"
-      className={`theme-toggler${className ? ` ${className}` : ""}`}
-      data-theme={theme}
-      aria-label={t("Switch to {theme} theme", { theme: t(theme === "dark" ? "light" : "dark") })}
-      aria-pressed={theme === "dark"}
-      aria-busy={busy}
-      disabled={busy}
-      title={t("Switch to {theme} theme", { theme: t(theme === "dark" ? "light" : "dark") })}
-      onClick={toggleTheme}
-      whileTap={shouldReduceMotion ? undefined : { scale: 0.97 }}
-      transition={pressTransition}
-    >
-      <span key={theme} className="theme-toggler__icon" aria-hidden="true">
-        {theme === "dark" ? (
-          <Moon size={18} fill="currentColor" animate animateOnHover animateOnTap />
-        ) : (
-          <Sun size={18} fill="currentColor" animate animateOnHover animateOnTap />
-        )}
-      </span>
-    </motion.button>
+    <AnimateIcon asChild>
+      <motion.button
+        type="button"
+        className={`theme-toggler${className ? ` ${className}` : ""}`}
+        data-theme={theme}
+        aria-label={t("Switch to {theme} theme", { theme: t(theme === "dark" ? "light" : "dark") })}
+        aria-pressed={theme === "dark"}
+        aria-busy={busy}
+        disabled={busy}
+        title={t("Switch to {theme} theme", { theme: t(theme === "dark" ? "light" : "dark") })}
+        onClick={toggleTheme}
+        whileTap={shouldReduceMotion ? undefined : { scale: 0.97 }}
+        transition={pressTransition}
+      >
+        <span key={theme} className="theme-toggler__icon" aria-hidden="true">
+          {theme === "dark" ? (
+            <Moon size={18} fill="currentColor" />
+          ) : (
+            <Sun size={18} fill="currentColor" />
+          )}
+        </span>
+      </motion.button>
+    </AnimateIcon>
   );
 }

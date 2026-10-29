@@ -31,7 +31,7 @@ function item(id: string): UploadItem {
 
 function batch(items: UploadItem[], complete = false): UploadBatch {
   return {
-    id: "batch", postId: complete ? "post" : null, caption: "A feed post",
+    id: "batch",
     status: complete ? "Completed" : "Pending", username: null, canManage: true,
     createdAt: "2026-10-28T00:00:00Z", startedAt: null,
     completedAt: complete ? "2026-10-28T00:01:00Z" : null,
@@ -41,7 +41,7 @@ function batch(items: UploadItem[], complete = false): UploadBatch {
   };
 }
 
-describe("feed post upload runtime", () => {
+describe("media upload runtime", () => {
   let stop: (() => void) | undefined;
   const originalLocks = Object.getOwnPropertyDescriptor(navigator, "locks");
 
@@ -187,7 +187,7 @@ describe("feed post upload runtime", () => {
     expect(held.size).toBe(0);
   });
 
-  it("uploads ten post files one at a time, invalidates the feed, and notifies once", async () => {
+  it("uploads ten media files one at a time, invalidates media, and notifies once", async () => {
     const files = Array.from({ length: 10 }, (_, index) => item(`file-${index}`));
     const pending = [...files];
     let active = 0;
@@ -233,9 +233,9 @@ describe("feed post upload runtime", () => {
   });
 
   it.each([
-    ["/admin/posts", "/"],
+    ["/gallery/trash", "/"],
     ["/", "/uploads"],
-    ["/", "/posts/another-post"],
+    ["/", "/albums/example"],
   ])("uses the completion route after navigating from %s to %s", async (initialPath, completionPath) => {
     window.history.replaceState(null, "", initialPath);
     const pending = item("route-file");
@@ -259,19 +259,19 @@ describe("feed post upload runtime", () => {
     } else {
       expect(showToast.success).not.toHaveBeenCalled();
       expect(useUploadNotificationStore.getState().items).toEqual([
-        expect.objectContaining({ userId, postId: "post", readAt: null }),
+        expect.objectContaining({ userId, notificationType: "UploadCompleted", readAt: null }),
       ]);
       const persisted = localStorage.getItem("shinigacim-upload-notifications")!;
       useUploadNotificationStore.setState({ items: [] });
       localStorage.setItem("shinigacim-upload-notifications", persisted);
       await useUploadNotificationStore.persist.rehydrate();
       expect(useUploadNotificationStore.getState().items).toEqual([
-        expect.objectContaining({ userId, postId: "post", readAt: null }),
+        expect.objectContaining({ userId, notificationType: "UploadCompleted", readAt: null }),
       ]);
     }
   });
 
-  it("reports a failed batch instead of announcing that the whole post upload succeeded", async () => {
+  it("reports a failed batch instead of announcing a successful upload", async () => {
     const failed = { ...item("failed-file"), status: "Failed" as const };
     vi.mocked(uploadService.get).mockResolvedValue({
       ...batch([item("success-file"), failed], true),

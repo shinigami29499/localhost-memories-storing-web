@@ -2,7 +2,7 @@
 
 ## Purpose and stack
 
-ShinigaCim is an authenticated social feed with posts, comments, reactions, and filesystem-backed media.
+ShinigaCim is an authenticated media library with private/public albums and filesystem-backed media.
 
 - Backend: ASP.NET Core 8, EF Core, PostgreSQL, and JWT authentication.
 - Frontend: React, TypeScript, Vite, TanStack Query, and Zustand.

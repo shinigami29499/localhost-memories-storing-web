@@ -3,8 +3,9 @@ import {
   Outlet,
   RouterProvider,
   createBrowserRouter,
+  useParams,
 } from "react-router-dom";
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AnimateUIProvider } from "@animate-ui/react/provider";
 import { useAuthStore } from "./store/authStore";
@@ -14,12 +15,11 @@ import { RegisterPage } from "./pages/register/RegisterPage";
 import { HomePage } from "./pages/home/HomePage";
 import { GalleryPage } from "./pages/gallery/GalleryPage";
 import { TrashPage } from "./pages/gallery/TrashPage";
-import { SavedPage } from "./pages/saved/SavedPage";
-import { CollectionPage } from "./pages/saved/CollectionPage";
+import { AlbumsPage } from "./pages/albums/AlbumsPage";
+import { AlbumPage } from "./pages/albums/AlbumPage";
 import { UsersPage } from "./pages/users/UsersPage";
 import { UploadManagementPage } from "./pages/uploads/UploadManagementPage";
 import { ErrorPage } from "./pages/ErrorPage";
-import { PostDetailPage } from "./pages/posts/PostDetailPage";
 import { LoadingOverlay } from "./components/ui/LoadingOverlay";
 import { TopographyBackground } from "./components/animate-ui/backgrounds/topography";
 import { ThemeProvider } from "./context/ThemeContext";
@@ -30,7 +30,7 @@ const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 15_000, refetchOnWindowFocus: false } },
 });
 
-/** / is the protected feed; unauthenticated visitors land on /login or /register. */
+/** / is the protected Home page; unauthenticated visitors land on /login or /register. */
 const router = createBrowserRouter([
   {
     element: <Outlet />,
@@ -56,14 +56,14 @@ const router = createBrowserRouter([
               </RequireAdmin>
             ),
           },
-          { path: "/saved", element: <SavedPage /> },
-          { path: "/saved/:collectionId", element: <CollectionPage /> },
+          { path: "/albums", element: <AlbumsPage /> },
+          { path: "/albums/:albumId", element: <AlbumPage /> },
+          { path: "/saved", element: <LegacyAlbumRedirect /> },
+          { path: "/saved/:albumId", element: <LegacyAlbumRedirect /> },
           { path: "/uploads", element: <UploadManagementPage /> },
           { path: "/uploads/new", element: <Navigate replace to="/uploads" /> },
-          { path: "/posts/:postId", element: <PostDetailPage /> },
           { path: "/users", element: <UsersPage /> },
           { path: "/admin/users", element: <Navigate replace to="/users" /> },
-          { path: "/admin/posts", element: <Navigate replace to="/gallery/trash" /> },
         ],
       },
       {
@@ -83,14 +83,30 @@ function RequireAuth({ children }: { children: ReactNode }) {
   return token ? children : <Navigate to="/login" replace />;
 }
 
-/** Session must carry the admin role; non-admins fall back to the feed. */
+/** Session must carry the admin role; non-admins fall back to Home. */
 function RequireAdmin({ children }: { children: ReactNode }) {
   const user = useAuthStore((s) => s.user);
   return user?.role?.toLowerCase() === "admin" ? children : <Navigate to="/" replace />;
 }
 
+function LegacyAlbumRedirect() {
+  const { albumId } = useParams<{ albumId: string }>();
+  return <Navigate replace to={albumId ? `/albums/${albumId}` : "/albums"} />;
+}
+
 export function App() {
   const routerState = false; // Placeholder for future route state management
+
+  useEffect(() => {
+    const preventTouchContextMenu = (event: MouseEvent) => {
+      if (window.matchMedia("(hover: none) and (pointer: coarse)").matches) {
+        event.preventDefault();
+      }
+    };
+
+    document.addEventListener("contextmenu", preventTouchContextMenu);
+    return () => document.removeEventListener("contextmenu", preventTouchContextMenu);
+  }, []);
 
   return (
     <ThemeProvider>

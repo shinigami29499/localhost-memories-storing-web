@@ -8,7 +8,16 @@ public interface IMediaRepository
         Guid mediaId, CancellationToken cancellationToken = default);
     Task<MediaFile?> FindMediaIncludingDeletedAsync(
         Guid mediaId, CancellationToken cancellationToken = default);
-    Task<bool> ActivePostExistsAsync(Guid postId, CancellationToken cancellationToken = default);
-    Task<bool> PostExistsAsync(
-        Guid postId, bool includeDeleted, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<MediaFile>> GetMediaPageAsync(
+        int offset, int limit, string? mediaKind, Guid? favoriteUserId, bool includeDeleted,
+        CancellationToken cancellationToken = default);
+    Task<long> CountMediaAsync(
+        string? mediaKind, Guid? favoriteUserId, bool includeDeleted,
+        CancellationToken cancellationToken = default);
+    Task<bool> MediaExistsAsync(Guid mediaId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyCollection<Guid>> GetFavoritedMediaIdsAsync(
+        Guid userId, IReadOnlyCollection<Guid> mediaIds, CancellationToken cancellationToken = default);
+    Task<MediaFavorite?> FindMediaFavoriteAsync(
+        Guid userId, Guid mediaId, bool includeDeleted, CancellationToken cancellationToken = default);
+    void AddMediaFavorite(MediaFavorite favorite);
 }

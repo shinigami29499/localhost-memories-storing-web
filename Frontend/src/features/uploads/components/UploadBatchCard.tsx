@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { motion } from "motion/react";
-import { AnimateIcon } from "@animate-ui/react/icons";
+import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { Collapsible } from "@animate-ui/react/primitives/base-ui/collapsible";
 import { Progress } from "@animate-ui/react/primitives/base-ui/progress";
 import { motionTokens, useShouldReduceMotion, useTempoTransition } from "@animate-ui/react/utils/motion";
@@ -10,7 +9,6 @@ import { Pagination } from "../../../components/ui/Pagination";
 import { RotateCcw } from "../../../components/animate-ui/icons/rotate-ccw";
 import { X } from "../../../components/animate-ui/icons/x";
 import { ChevronDown } from "../../../components/animate-ui/icons/chevron-down";
-import { ArrowRight } from "../../../components/animate-ui/icons/arrow-right";
 import { Image } from "../../../components/animate-ui/icons/image";
 import { Video } from "../../../components/animate-ui/icons/video";
 import { FileText } from "../../../components/animate-ui/icons/file-text";
@@ -138,16 +136,6 @@ export function UploadBatchCard({
               {batch.successfulFiles}/{batch.totalFiles}
             </span>
           </div>
-        </div>
-        <div className="upload-batch__footer">
-          {batch.postId ? (
-            <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
-              <Link to={`/posts/${batch.postId}`} className="btn btn--secondary upload-batch__post-link">
-                {t("View post")}
-                <ArrowRight size={14} aria-hidden="true" />
-              </Link>
-            </AnimateIcon>
-          ) : null}
         </div>
       </div>
 

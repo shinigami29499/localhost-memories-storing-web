@@ -1,4 +1,4 @@
-import { AnimateIcon } from "@animate-ui/react/icons";
+import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { Tabs } from "@animate-ui/react/primitives/base-ui/tabs";
 import { Highlight, HighlightItem } from "@animate-ui/react/primitives/effects/highlight";
 import { useEffect, useState } from "react";
@@ -11,6 +11,7 @@ import { showToast } from "../../components/ui/Toast";
 import { Check } from "@/components/animate-ui/icons/check";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
+import { Search } from "@/components/animate-ui/icons/search";
 import { ConfirmationDialog } from "../../components/ui/ConfirmationDialog";
 import { Pagination, DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS } from "../../components/ui/Pagination";
 import type { AuthUser } from "../../features/auth";
@@ -189,20 +190,12 @@ export function UsersPage() {
                   </Tabs.List>
                 </Highlight>
                 <label className="admin-users__search">
-                  <svg
+                  <Search
+                    size={24}
                     className="admin-users__search-icon"
                     aria-hidden="true"
                     focusable="false"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <circle cx="11" cy="11" r="7" />
-                    <path d="m20 20-4-4" />
-                  </svg>
+                  />
                   <input
                     type="search"
                     aria-label={t("Search users")}

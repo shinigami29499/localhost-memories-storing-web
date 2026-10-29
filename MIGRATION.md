@@ -14,6 +14,11 @@ code changes.
 - Migration state ships in the repository; on deploy either let `Seed:AutoMigrate=true`
   apply pending migrations at startup, or run
   `dotnet ef database update --project Backend\Infrastructures\Infrastructures.csproj --startup-project Backend\Apis\Apis.csproj`.
+- Back up the database before applying `RemovePostFeatures`. It drops post, comment,
+  reaction, and post-notification data while preserving media files, media ownership,
+  and album membership. Rolling the migration back creates synthetic posts by media
+  owner; it cannot restore original post groups, captions, comments, reactions, or
+  notifications.
 
 ## 2. Storage
 

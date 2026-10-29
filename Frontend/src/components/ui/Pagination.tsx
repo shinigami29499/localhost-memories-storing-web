@@ -1,4 +1,4 @@
-import { AnimateIcon } from "@animate-ui/react/icons";
+import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import * as PaginationPrimitive from "@animate-ui/react/primitives/pagination";
 import { Select } from "@animate-ui/react/primitives/base-ui/select";
 import { ChevronDown } from "@/components/animate-ui/icons/chevron-down";

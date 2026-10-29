@@ -15,7 +15,7 @@ export default defineConfig(({ command }) => ({
   },
   server: {
     port: 3000,
-    allowedHosts: ["wilder-unbolted-septum.ngrok-free.dev"],
+    allowedHosts: ["fling-yummy-sled.ngrok-free.dev"],
     watch: {
       ignored: ["**/dist/**"],
     },

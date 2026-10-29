@@ -63,7 +63,7 @@ describe("Pagination", () => {
         pageSize={10}
         total={total}
         isFetching={isFetching}
-        itemLabel="posts"
+        itemLabel="media items"
         onPageChange={onPageChange}
         onPageSizeChange={onPageSizeChange}
       />,

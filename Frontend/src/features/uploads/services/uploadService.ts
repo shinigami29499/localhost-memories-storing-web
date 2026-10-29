@@ -1,6 +1,8 @@
 import { api, uploadWithProgress } from "../../../services/api";
-import { getUploadFile, removeUploadFile } from "./uploadFileStore";
+import { getUploadFile, removeUploadFile, saveUploadFile } from "./uploadFileStore";
+import { wakeUploadRuntime } from "./uploadRuntime";
 import type { PagedUploadBatches, UploadBatch, UploadItem } from "../types";
+import type { UploadItemMetadata } from "../types";
 
 const BASE_PATH = "/api/uploads";
 
@@ -27,6 +29,35 @@ export const uploadService = {
 
   recover(): Promise<void> {
     return api(`${BASE_PATH}/recover`, { method: "POST" });
+  },
+
+  async submit(files: File[]): Promise<UploadBatch> {
+    const items: UploadItemMetadata[] = files.map((file) => ({
+      id: crypto.randomUUID(),
+      originalFilename: file.name,
+      contentType: file.type || "application/octet-stream",
+      fileSizeBytes: file.size,
+    }));
+    try {
+      for (let index = 0; index < items.length; index++) {
+        await saveUploadFile(items[index].id, files[index]);
+      }
+      const batch = await api<UploadBatch>(`${BASE_PATH}/batches`, {
+        method: "POST",
+        body: { items },
+      });
+      wakeUploadRuntime();
+      return batch;
+    } catch (error) {
+      for (const item of items) {
+        try {
+          await removeUploadFile(item.id);
+        } catch (cleanupError) {
+          console.error("Could not remove a file after its upload submission failed.", cleanupError);
+        }
+      }
+      throw error;
+    }
   },
 
   start(batchId: string, itemId: string): Promise<UploadItem> {

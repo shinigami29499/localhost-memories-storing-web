@@ -6,8 +6,6 @@ export interface UploadNotification {
   id: string;
   userId: string;
   notificationType: "UploadCompleted";
-  postId: string | null;
-  postCaption: string;
   createdAt: string;
   readAt: string | null;
 }
@@ -29,8 +27,6 @@ export const useUploadNotificationStore = create<UploadNotificationState>()(
           id,
           userId,
           notificationType: "UploadCompleted",
-          postId: batch.postId,
-          postCaption: batch.caption,
           createdAt: batch.completedAt ?? new Date().toISOString(),
           readAt: null,
         };

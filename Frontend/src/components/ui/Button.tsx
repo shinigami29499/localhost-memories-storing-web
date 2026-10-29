@@ -1,5 +1,5 @@
 import type { ReactNode, ButtonHTMLAttributes } from "react";
-import { AnimateIcon } from "@animate-ui/react/icons";
+import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {

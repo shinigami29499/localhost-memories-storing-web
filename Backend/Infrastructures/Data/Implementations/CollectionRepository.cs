@@ -9,111 +9,110 @@ namespace Infrastructures.Data.Implementations;
 public sealed class CollectionRepository(ApplicationDbContext db) : ICollectionRepository
 {
     public async Task<IReadOnlyList<CollectionSource>> GetOwnedCollectionsAsync(
-        Guid ownerId, Guid? postId, CancellationToken cancellationToken = default)
+        Guid ownerId, Guid? mediaId, CancellationToken cancellationToken = default)
         => await Project(
                 db.Collections.AsNoTracking()
-                    .Where(c => c.OwnerId == ownerId)
-                    .OrderByDescending(c => c.CreatedAt)
-                    .ThenByDescending(c => c.Id),
-                postId)
+                    .Where(collection => collection.OwnerId == ownerId)
+                    .OrderByDescending(collection => collection.CreatedAt)
+                    .ThenByDescending(collection => collection.Id),
+                mediaId)
             .ToListAsync(cancellationToken);
 
     public async Task<IReadOnlyList<CollectionSource>> GetPublicCollectionsAsync(
-        Guid excludedOwnerId, Guid? postId, CancellationToken cancellationToken = default)
+        Guid excludedOwnerId, Guid? mediaId, CancellationToken cancellationToken = default)
         => await Project(
                 db.Collections.AsNoTracking()
-                    .Where(c => c.IsPublic && c.OwnerId != excludedOwnerId)
-                    .OrderByDescending(c => c.CreatedAt)
-                    .ThenByDescending(c => c.Id),
-                postId)
+                    .Where(collection => collection.IsPublic && collection.OwnerId != excludedOwnerId)
+                    .OrderByDescending(collection => collection.CreatedAt)
+                    .ThenByDescending(collection => collection.Id),
+                mediaId)
             .ToListAsync(cancellationToken);
 
-    public Task<CollectionSource?> GetCollectionSourceAsync(Guid collectionId, CancellationToken cancellationToken = default)
-        => Project(db.Collections.AsNoTracking().Where(c => c.Id == collectionId), null)
+    public Task<CollectionSource?> GetCollectionSourceAsync(
+        Guid collectionId, CancellationToken cancellationToken = default)
+        => Project(db.Collections.AsNoTracking().Where(collection => collection.Id == collectionId), null)
             .FirstOrDefaultAsync(cancellationToken);
 
-    public Task<Collection?> FindCollectionAsync(Guid collectionId, CancellationToken cancellationToken = default)
-        => db.Collections.FirstOrDefaultAsync(c => c.Id == collectionId, cancellationToken);
+    public Task<Collection?> FindCollectionAsync(
+        Guid collectionId, CancellationToken cancellationToken = default)
+        => db.Collections.FirstOrDefaultAsync(collection => collection.Id == collectionId, cancellationToken);
 
-    public async Task<IReadOnlyList<Guid>> GetCollectionPostIdsPageAsync(
+    public async Task<IReadOnlyList<Guid>> GetCollectionMediaIdsPageAsync(
         Guid collectionId, int offset, int limit, CancellationToken cancellationToken = default)
-        => await db.CollectionPosts.AsNoTracking()
-            .Where(cp => cp.CollectionId == collectionId && cp.Post.DeletedAt == null)
-            .OrderBy(cp => cp.CreatedAt)
-            .ThenBy(cp => cp.Id)
+        => await db.CollectionMedia.AsNoTracking()
+            .Where(item => item.CollectionId == collectionId && item.MediaFile.DeletedAt == null)
+            .OrderBy(item => item.CreatedAt)
+            .ThenBy(item => item.Id)
             .Skip(offset)
             .Take(limit)
-            .Select(cp => cp.PostId)
+            .Select(item => item.MediaFileId)
             .ToListAsync(cancellationToken);
 
-    public Task<long> CountCollectionPostsAsync(Guid collectionId, CancellationToken cancellationToken = default)
-        => db.CollectionPosts
-            .Where(cp => cp.CollectionId == collectionId && cp.Post.DeletedAt == null)
+    public Task<long> CountCollectionMediaAsync(
+        Guid collectionId, CancellationToken cancellationToken = default)
+        => db.CollectionMedia
+            .Where(item => item.CollectionId == collectionId && item.MediaFile.DeletedAt == null)
             .LongCountAsync(cancellationToken);
 
-    public async Task<IReadOnlyList<Post>> GetPostsWithMediaAsync(
-        IReadOnlyCollection<Guid> postIds, CancellationToken cancellationToken = default)
-        => await db.Posts.AsNoTracking()
-            .Include(p => p.User)
-            .Include(p => p.MediaFiles)
-            .Where(p => postIds.Contains(p.Id))
+    public async Task<IReadOnlyList<MediaFile>> GetMediaFilesAsync(
+        IReadOnlyCollection<Guid> mediaIds, CancellationToken cancellationToken = default)
+        => await db.MediaFiles.AsNoTracking()
+            .Where(media => mediaIds.Contains(media.Id))
             .ToListAsync(cancellationToken);
 
-    public Task<bool> PostExistsAsync(Guid postId, CancellationToken cancellationToken = default)
-        => db.Posts.AnyAsync(p => p.Id == postId, cancellationToken);
-
-    public Task<CollectionPost?> FindCollectionPostAsync(
-        Guid collectionId, Guid postId, CancellationToken cancellationToken = default)
-        => db.CollectionPosts.FirstOrDefaultAsync(
-            cp => cp.CollectionId == collectionId && cp.PostId == postId, cancellationToken);
-
-    public Task<bool> IsCollectionImageAsync(Guid collectionId, Guid mediaId, CancellationToken cancellationToken = default)
-        => db.MediaFiles.AnyAsync(
-            m => m.Id == mediaId
-                && m.MediaKind == MediaKinds.Image
-                && db.CollectionPosts.Any(cp => cp.CollectionId == collectionId && cp.PostId == m.PostId),
+    public Task<bool> IsCollectionImageAsync(
+        Guid collectionId, Guid mediaId, CancellationToken cancellationToken = default)
+        => db.CollectionMedia.AnyAsync(item =>
+                item.CollectionId == collectionId
+                && item.MediaFileId == mediaId
+                && item.MediaFile.MediaKind == MediaKinds.Image
+                && item.MediaFile.DeletedAt == null,
             cancellationToken);
 
-    public Task<bool> IsPostMediaAsync(Guid postId, Guid mediaId, CancellationToken cancellationToken = default)
-        => db.MediaFiles.IgnoreQueryFilters()
-            .AnyAsync(m => m.Id == mediaId && m.PostId == postId, cancellationToken);
+    public Task<bool> MediaExistsAsync(Guid mediaId, CancellationToken cancellationToken = default)
+        => db.MediaFiles.AnyAsync(media => media.Id == mediaId, cancellationToken);
 
-    public async Task DeleteCollectionPostsAsync(
+    public Task<CollectionMedia?> FindCollectionMediaAsync(
+        Guid collectionId, Guid mediaId, CancellationToken cancellationToken = default)
+        => db.CollectionMedia.FirstOrDefaultAsync(
+            item => item.CollectionId == collectionId && item.MediaFileId == mediaId,
+            cancellationToken);
+
+    public async Task DeleteCollectionMediaAsync(
         Guid collectionId, Guid actorId, DateTime utcNow, CancellationToken cancellationToken = default)
-        => await db.CollectionPosts
-            .Where(cp => cp.CollectionId == collectionId)
+        => await db.CollectionMedia
+            .Where(item => item.CollectionId == collectionId)
             .ExecuteUpdateAsync(setters => setters
-                .SetProperty(cp => cp.DeletedAt, utcNow)
-                .SetProperty(cp => cp.DeletedBy, actorId)
-                .SetProperty(cp => cp.UpdatedAt, utcNow)
-                .SetProperty(cp => cp.UpdatedBy, actorId), cancellationToken);
+                .SetProperty(item => item.DeletedAt, utcNow)
+                .SetProperty(item => item.DeletedBy, actorId)
+                .SetProperty(item => item.UpdatedAt, utcNow)
+                .SetProperty(item => item.UpdatedBy, actorId), cancellationToken);
 
     public void AddCollection(Collection collection) => db.Collections.Add(collection);
 
-    public void AddCollectionPost(CollectionPost collectionPost) => db.CollectionPosts.Add(collectionPost);
+    public void AddCollectionMedia(CollectionMedia collectionMedia) => db.CollectionMedia.Add(collectionMedia);
 
-    // A custom preview counts only while its image still belongs to an active saved post.
-    private static IQueryable<CollectionSource> Project(IQueryable<Collection> query, Guid? postId)
-        => query.Select(c => new CollectionSource(
-            c,
-            c.Owner,
-            c.Posts.Count(cp => cp.Post.DeletedAt == null),
-            c.PreviewMediaFileId != null
-                && c.Posts.Any(cp => cp.Post.DeletedAt == null
-                    && cp.Post.MediaFiles.Any(m => m.Id == c.PreviewMediaFileId))
-                ? c.PreviewMediaFileId
+    // A custom preview is valid only while an active saved image remains in the collection.
+    private static IQueryable<CollectionSource> Project(
+        IQueryable<Collection> query, Guid? mediaId)
+        => query.Select(collection => new CollectionSource(
+            collection,
+            collection.Owner,
+            collection.MediaItems.Count(item => item.MediaFile.DeletedAt == null),
+            collection.PreviewMediaFileId != null
+                && collection.MediaItems.Any(item =>
+                    item.MediaFileId == collection.PreviewMediaFileId
+                    && item.MediaFile.MediaKind == MediaKinds.Image
+                    && item.MediaFile.DeletedAt == null)
+                ? collection.PreviewMediaFileId
                 : null,
-            c.Posts
-                .Where(cp => cp.Post.DeletedAt == null
-                    && cp.Post.MediaFiles.Any(m => m.MediaKind == MediaKinds.Image))
-                .OrderBy(cp => cp.CreatedAt)
-                .ThenBy(cp => cp.Id)
-                .Select(cp => cp.Post.MediaFiles
-                    .Where(m => m.MediaKind == MediaKinds.Image)
-                    .OrderBy(m => m.CreatedAt)
-                    .ThenBy(m => m.Id)
-                    .Select(m => (Guid?)m.Id)
-                    .FirstOrDefault())
+            collection.MediaItems
+                .Where(item => item.MediaFile.MediaKind == MediaKinds.Image
+                    && item.MediaFile.DeletedAt == null)
+                .OrderBy(item => item.CreatedAt)
+                .ThenBy(item => item.Id)
+                .Select(item => (Guid?)item.MediaFileId)
                 .FirstOrDefault(),
-            postId != null && c.Posts.Any(cp => cp.PostId == postId)));
+            mediaId != null && collection.MediaItems.Any(item =>
+                item.MediaFileId == mediaId && item.MediaFile.DeletedAt == null)));
 }

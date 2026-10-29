@@ -3,16 +3,16 @@ using Infrastructures.Data.Interfaces;
 using Services.Exceptions;
 using Services.Interfaces;
 using Services.Models.Collections;
-using Services.Models.Posts;
+using Services.Models.Media;
 using Services.Requests.Collections;
-using Services.Requests.Posts;
-using Services.Responses.Posts;
+using Services.Requests.Media;
+using Services.Responses.Media;
 
 namespace Infrastructures.Data.ApplicationServices;
 
-public class CollectionService(
+public sealed class CollectionService(
     ICollectionRepository repository,
-    IPostRepository postRepository,
+    IMediaRepository mediaRepository,
     IUnitOfWork unitOfWork,
     IMapper mapper) : ICollectionService
 {
@@ -23,9 +23,9 @@ public class CollectionService(
         var sources = scope switch
         {
             CollectionListRequest.MineScope => await repository.GetOwnedCollectionsAsync(
-                viewerId, request.PostId, cancellationToken),
+                viewerId, request.MediaId, cancellationToken),
             CollectionListRequest.PublicScope => await repository.GetPublicCollectionsAsync(
-                viewerId, request.PostId, cancellationToken),
+                viewerId, request.MediaId, cancellationToken),
             _ => throw new ValidationException(
                 "Invalid collection scope.",
                 new Dictionary<string, string[]> { ["scope"] = ["Must be 'mine' or 'public'."] }),
@@ -37,65 +37,40 @@ public class CollectionService(
         Guid collectionId, Guid viewerId, CancellationToken cancellationToken = default)
         => mapper.Map(await GetViewableSourceAsync(collectionId, viewerId, cancellationToken));
 
-    public async Task<PagedFeedResponse<PostSummaryDto>> GetCollectionPostsAsync(
+    public async Task<PagedMediaResponse<MediaFileDto>> GetCollectionMediaAsync(
         Guid collectionId, Guid viewerId, int offset, int limit, CancellationToken cancellationToken = default)
     {
-        if (limit < 1 || limit > FeedRequest.MaxLimit)
-            throw new ValidationException(
-                "Invalid collection page.",
-                new Dictionary<string, string[]> { ["limit"] = [$"Must be between 1 and {FeedRequest.MaxLimit}."] });
-        if (offset < 0)
-            throw new ValidationException(
-                "Invalid collection page.",
-                new Dictionary<string, string[]> { ["offset"] = ["Must be zero or greater."] });
-
+        ValidatePage(offset, limit);
         await GetViewableSourceAsync(collectionId, viewerId, cancellationToken);
 
-        var postIds = await repository.GetCollectionPostIdsPageAsync(collectionId, offset, limit, cancellationToken);
-        var total = await repository.CountCollectionPostsAsync(collectionId, cancellationToken);
-        if (postIds.Count == 0)
-            return new PagedFeedResponse<PostSummaryDto>(offset, limit, total, []);
+        var mediaIds = await repository.GetCollectionMediaIdsPageAsync(
+            collectionId, offset, limit, cancellationToken);
+        var total = await repository.CountCollectionMediaAsync(collectionId, cancellationToken);
+        if (mediaIds.Count == 0)
+            return new PagedMediaResponse<MediaFileDto>(offset, limit, total, []);
 
-        var posts = (await repository.GetPostsWithMediaAsync(postIds, cancellationToken))
-            .ToDictionary(p => p.Id);
-        var commentCounts = await postRepository.GetActiveCommentCountsAsync(postIds, cancellationToken);
-        var reactionCounts = await postRepository.GetActiveReactionCountsAsync(postIds, cancellationToken);
-        IReadOnlyList<UserPostReaction> myReactions = reactionCounts.Count == 0
-            ? []
-            : await postRepository.GetActiveUserReactionsAsync(viewerId, postIds, cancellationToken);
-
-        var items = postIds
-            .Where(posts.ContainsKey)
-            .Select(id => posts[id])
-            .Select(p => mapper.Map(
-                p,
-                commentCounts.GetValueOrDefault(p.Id),
-                reactionCounts
-                    .Where(rc => rc.PostId == p.Id)
-                    .Select(rc => new ReactionCountDto(rc.ReactionType, rc.Count))
-                    .ToList(),
-                myReactions
-                    .Where(mr => mr.PostId == p.Id)
-                    .Select(mr => mr.ReactionType)
-                    .Distinct()
-                    .ToList()))
+        var mediaById = (await repository.GetMediaFilesAsync(mediaIds, cancellationToken))
+            .ToDictionary(media => media.Id);
+        var favoritedIds = (await mediaRepository.GetFavoritedMediaIdsAsync(
+            viewerId, mediaIds, cancellationToken)).ToHashSet();
+        var items = mediaIds
+            .Where(mediaById.ContainsKey)
+            .Select(mediaId => mapper.Map(mediaById[mediaId], favoritedIds.Contains(mediaId)))
             .ToList();
 
-        return new PagedFeedResponse<PostSummaryDto>(offset, limit, total, items);
+        return new PagedMediaResponse<MediaFileDto>(offset, limit, total, items);
     }
 
     public async Task<CollectionDto> CreateCollectionAsync(
         Guid ownerId, CreateCollectionRequest request, CancellationToken cancellationToken = default)
     {
-        var name = NormalizeName(request.Name);
-        if (request.PostId is { } postId && !await repository.PostExistsAsync(postId, cancellationToken))
-            throw new NotFoundException($"Post '{postId}' was not found.");
-
-        var collection = new Collection { Name = name, OwnerId = ownerId, IsPublic = request.IsPublic };
+        var collection = new Collection
+        {
+            Name = NormalizeName(request.Name),
+            OwnerId = ownerId,
+            IsPublic = request.IsPublic,
+        };
         repository.AddCollection(collection);
-        if (request.PostId is { } savedPostId)
-            repository.AddCollectionPost(new CollectionPost { CollectionId = collection.Id, PostId = savedPostId });
-
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return await GetOwnedDtoAsync(collection.Id, cancellationToken);
     }
@@ -112,7 +87,7 @@ public class CollectionService(
                 "Invalid preview image.",
                 new Dictionary<string, string[]>
                 {
-                    ["previewMediaId"] = ["Choose an image from a post saved in this collection."]
+                    ["previewMediaId"] = ["Choose an image saved in this collection."]
                 });
 
         collection.Name = name;
@@ -122,47 +97,50 @@ public class CollectionService(
         return await GetOwnedDtoAsync(collectionId, cancellationToken);
     }
 
-    public async Task DeleteCollectionAsync(Guid collectionId, Guid ownerId, CancellationToken cancellationToken = default)
+    public async Task DeleteCollectionAsync(
+        Guid collectionId, Guid ownerId, CancellationToken cancellationToken = default)
     {
         var collection = await FindOwnedCollectionAsync(collectionId, ownerId, cancellationToken);
         var utcNow = DateTime.UtcNow;
 
         await using var transaction = await unitOfWork.BeginTransactionAsync(cancellationToken);
-        await repository.DeleteCollectionPostsAsync(collectionId, ownerId, utcNow, cancellationToken);
+        await repository.DeleteCollectionMediaAsync(collectionId, ownerId, utcNow, cancellationToken);
         collection.DeletedAt = utcNow;
         collection.DeletedBy = ownerId;
         await unitOfWork.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
     }
 
-    public async Task<CollectionDto> AddPostAsync(
-        Guid collectionId, Guid ownerId, Guid postId, CancellationToken cancellationToken = default)
+    public async Task<CollectionDto> AddMediaAsync(
+        Guid collectionId, Guid ownerId, Guid mediaId, CancellationToken cancellationToken = default)
     {
         await FindOwnedCollectionAsync(collectionId, ownerId, cancellationToken);
-        if (!await repository.PostExistsAsync(postId, cancellationToken))
-            throw new NotFoundException($"Post '{postId}' was not found.");
+        if (!await repository.MediaExistsAsync(mediaId, cancellationToken))
+            throw new NotFoundException($"Media '{mediaId}' was not found.");
 
-        if (await repository.FindCollectionPostAsync(collectionId, postId, cancellationToken) is null)
+        if (await repository.FindCollectionMediaAsync(collectionId, mediaId, cancellationToken) is null)
         {
-            repository.AddCollectionPost(new CollectionPost { CollectionId = collectionId, PostId = postId });
+            repository.AddCollectionMedia(new CollectionMedia
+            {
+                CollectionId = collectionId,
+                MediaFileId = mediaId,
+            });
             await unitOfWork.SaveChangesAsync(cancellationToken);
         }
 
         return await GetOwnedDtoAsync(collectionId, cancellationToken);
     }
 
-    public async Task<CollectionDto> RemovePostAsync(
-        Guid collectionId, Guid ownerId, Guid postId, CancellationToken cancellationToken = default)
+    public async Task<CollectionDto> RemoveMediaAsync(
+        Guid collectionId, Guid ownerId, Guid mediaId, CancellationToken cancellationToken = default)
     {
         var collection = await FindOwnedCollectionAsync(collectionId, ownerId, cancellationToken);
-        var saved = await repository.FindCollectionPostAsync(collectionId, postId, cancellationToken);
+        var saved = await repository.FindCollectionMediaAsync(collectionId, mediaId, cancellationToken);
         if (saved is not null)
         {
-            var utcNow = DateTime.UtcNow;
-            saved.DeletedAt = utcNow;
+            saved.DeletedAt = DateTime.UtcNow;
             saved.DeletedBy = ownerId;
-            if (collection.PreviewMediaFileId is { } previewId
-                && await repository.IsPostMediaAsync(postId, previewId, cancellationToken))
+            if (collection.PreviewMediaFileId == mediaId)
                 collection.PreviewMediaFileId = null;
             await unitOfWork.SaveChangesAsync(cancellationToken);
         }
@@ -192,7 +170,8 @@ public class CollectionService(
         throw new NotFoundException($"Collection '{collectionId}' was not found.");
     }
 
-    private async Task<CollectionDto> GetOwnedDtoAsync(Guid collectionId, CancellationToken cancellationToken)
+    private async Task<CollectionDto> GetOwnedDtoAsync(
+        Guid collectionId, CancellationToken cancellationToken)
         => mapper.Map(await repository.GetCollectionSourceAsync(collectionId, cancellationToken)
             ?? throw new NotFoundException($"Collection '{collectionId}' was not found."));
 
@@ -207,5 +186,17 @@ public class CollectionService(
                     ["name"] = [$"Must be 1 to {CreateCollectionRequest.MaxNameLength} characters."]
                 });
         return trimmed;
+    }
+
+    private static void ValidatePage(int offset, int limit)
+    {
+        if (limit < 1 || limit > MediaPageRequest.MaxLimit)
+            throw new ValidationException(
+                "Invalid media page.",
+                new Dictionary<string, string[]> { ["limit"] = [$"Must be between 1 and {MediaPageRequest.MaxLimit}."] });
+        if (offset < 0)
+            throw new ValidationException(
+                "Invalid media page.",
+                new Dictionary<string, string[]> { ["offset"] = ["Must be zero or greater."] });
     }
 }

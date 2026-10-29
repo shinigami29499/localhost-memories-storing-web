@@ -22,21 +22,19 @@ public sealed class UploadService(
     IUnitOfWork unitOfWork,
     IMediaStorage storage,
     MediaStorageOptions storageOptions,
-    IPostService postService,
+    IMapper mapper,
     ILogger<UploadService> logger) : IUploadService
 {
     private readonly IUploadRepository _repository = repository;
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
     private readonly IMediaStorage _storage = storage;
     private readonly MediaStorageOptions _storageOptions = storageOptions;
-    private readonly IPostService _postService = postService;
+    private readonly IMapper _mapper = mapper;
     private readonly ILogger<UploadService> _logger = logger;
 
     public async Task<UploadBatchDto> CreateBatchAsync(
         Guid ownerId, CreateUploadBatchRequest request, CancellationToken cancellationToken = default)
     {
-        if (request.Caption?.Length > 4000)
-            throw InvalidRequest("Caption is too long.", "caption", "Maximum length is 4000 characters.");
         if (request.Items is null || request.Items.Count == 0)
             throw InvalidRequest("At least one file is required.", "items", "Select one or more files.");
 
@@ -71,11 +69,11 @@ public sealed class UploadService(
                     "items",
                     $"'{filename}' must be larger than 0 and no larger than {_storageOptions.MaxFileMegabytes} MB.");
 
-            if (requestItem.FileSizeBytes > PostUploadLimits.MaxTotalBytes - totalBytes)
+            if (requestItem.FileSizeBytes > UploadLimits.MaxTotalBytes - totalBytes)
                 throw InvalidRequest(
                     "Upload batch is too large.",
                     "items",
-                    $"Total media size must not exceed {PostUploadLimits.MaxTotalGigabytes} GB.");
+                    $"Total media size must not exceed {UploadLimits.MaxTotalGigabytes} GB.");
 
             totalBytes += requestItem.FileSizeBytes;
             items.Add(new UploadItem
@@ -95,7 +93,6 @@ public sealed class UploadService(
         var batch = new UploadBatch
         {
             OwnerId = ownerId,
-            Caption = request.Caption?.Trim() ?? string.Empty,
             Status = UploadBatchStatus.Pending,
             Items = items,
         };
@@ -178,9 +175,6 @@ public sealed class UploadService(
         var item = await FindOwnedItemAsync(ownerId, batchId, itemId, cancellationToken);
         if (item.Status is not (UploadItemStatus.Pending or UploadItemStatus.Failed))
             throw new ConflictException("Only pending or failed uploads can start.");
-        if (item.Batch.PostId is null && item.Batch.Items.Any(other => other.Status == UploadItemStatus.Success))
-            throw new ConflictException("This post was permanently deleted. Its uploads cannot be retried.");
-
         if (item.Batch.Items.Any(other =>
                 other.Id != item.Id && other.Status == UploadItemStatus.Uploading))
             throw new ConflictException("Another file in this batch is already uploading.");
@@ -288,10 +282,7 @@ public sealed class UploadService(
             if (item.Status != UploadItemStatus.Uploading || item.Revision != registered.Revision)
                 throw new ConflictException("This upload was cancelled or changed before it could finish.");
 
-            var postResult = await _postService.AttachUploadedMediaAsync(
-                ownerId, item.Batch.Owner.Username, item.Batch.Caption, item.Batch.PostId,
-                stored, item.OriginalFilename, cancellationToken);
-            item.Batch.PostId = postResult.Post.Id;
+            _repository.AddMediaFile(_mapper.Map(stored, ownerId, item.OriginalFilename));
             item.StoredFilename = stored.StoredFilename;
             item.RelativePath = stored.RelativePath;
             item.MimeType = stored.MimeType;
@@ -306,7 +297,7 @@ public sealed class UploadService(
             RefreshBatchStatus(item.Batch, item.CompletedAt.Value);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
-            return new UploadFileResult(MapItem(item), postResult.Notifications);
+            return new UploadFileResult(MapItem(item));
         }
         catch (DbUpdateConcurrencyException)
         {
@@ -446,8 +437,6 @@ public sealed class UploadService(
 
         return new UploadBatchDto(
             batch.Id,
-            batch.PostId,
-            batch.Caption,
             batch.Status.ToString(),
             includeUsername ? batch.Owner.Username : null,
             batch.OwnerId == actorId,

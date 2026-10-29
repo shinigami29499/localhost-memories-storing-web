@@ -1,15 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { AnimateIcon } from "@animate-ui/react/icons";
+import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { Bell } from "@/components/animate-ui/icons/bell";
-import { useNotifications, notificationQueryKey } from "../../features/notifications/hooks/useNotifications";
-import { notificationService } from "../../features/notifications/services/notificationService";
-import type { NotificationFeed } from "../../features/notifications/types";
 import { useUploadNotificationStore } from "../../features/notifications/uploadNotificationStore";
 import { useAuthStore } from "../../store/authStore";
 import { formatTimestamp } from "../../utils/media";
-import { showToast } from "../ui";
 import { LanguageToggleButton } from "../ui/LanguageToggleButton";
 import { ThemeTogglerButton } from "../ui/ThemeTogglerButton";
 import { useLocale } from "../../context/LocaleContext";
@@ -19,34 +14,15 @@ export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const queryClient = useQueryClient();
   const userId = useAuthStore((state) => state.user?.id);
-  const accessToken = useAuthStore((state) => state.accessToken);
-  const { data, isLoading, isError, refetch, liveStatus } = useNotifications();
   const uploadItems = useUploadNotificationStore((state) => state.items);
   const markUploadsRead = useUploadNotificationStore((state) => state.markRead);
-  const uploadNotifications = uploadItems.filter((item) => item.userId === userId);
-  const notifications = [...(data?.items ?? []), ...uploadNotifications]
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  const unreadCount = (data?.unreadCount ?? 0)
-    + uploadNotifications.filter((item) => !item.readAt).length;
+  const notifications = uploadItems.filter((item) => item.userId === userId);
+  const unreadCount = notifications.filter((item) => !item.readAt).length;
 
   useEffect(() => {
-    if (!open || !accessToken) return;
-    if (userId) markUploadsRead(userId);
-
-    const markNotificationsAsRead = async () => {
-      try {
-        await notificationService.markAllRead();
-      } catch {
-        showToast.error(t("Could not mark notifications as read."));
-      } finally {
-        await refetch();
-      }
-    };
-
-    void markNotificationsAsRead();
-  }, [accessToken, open, refetch, t, userId, markUploadsRead]);
+    if (open && userId) markUploadsRead(userId);
+  }, [open, userId, markUploadsRead]);
 
   useEffect(() => {
     if (!open) return;
@@ -70,26 +46,6 @@ export function NotificationBell() {
       document.removeEventListener("keydown", closeOnEscape);
     };
   }, [open]);
-
-  const markRead = async (id: string) => {
-    try {
-      await notificationService.markRead(id);
-      queryClient.setQueryData<NotificationFeed>(notificationQueryKey(userId), (current) => {
-        if (!current) return current;
-        const selected = current.items.find((item) => item.id === id);
-        if (!selected || selected.readAt) return current;
-        return {
-          ...current,
-          unreadCount: Math.max(0, current.unreadCount - 1),
-          items: current.items.map((item) => item.id === id
-            ? { ...item, readAt: new Date().toISOString() }
-            : item),
-        };
-      });
-    } catch {
-      showToast.error(t("Could not mark this notification as read."));
-    }
-  };
 
   return (
     <div ref={containerRef} className="notification-bar">
@@ -121,56 +77,21 @@ export function NotificationBell() {
           aria-label={t("Notifications")}
         >
           <h2>{t("Notifications")}</h2>
-          <p className="notification-bar__connection" role="status">
-            {liveStatus === "connected" ? t("Live updates connected") : t("Live updates reconnecting")}
-          </p>
-          {isLoading ? <p>{t("Loading notifications…")}</p> : null}
-          {isError ? (
-            <p role="alert">
-              {t("Could not load notifications.")}{" "}
-              <button type="button" className="notification-bar__retry" onClick={() => void refetch()}>
-                {t("Try again")}
-              </button>
-            </p>
-          ) : null}
-          {!isLoading && !isError && notifications.length === 0 ? (
+          {notifications.length === 0 ? (
             <p>{t("Notifications will appear here when available.")}</p>
-          ) : null}
-          {notifications.length > 0 ? (
+          ) : (
             <ul className="notification-bar__list">
               {notifications.map((notification) => (
                 <li key={notification.id}>
                   <Link
-                    to={notification.postId ? `/posts/${notification.postId}` : "/uploads"}
+                    to="/uploads"
                     className={`notification-bar__item${notification.readAt ? "" : " notification-bar__item--unread"}`}
                     onClick={() => {
                       setOpen(false);
-                      if (!notification.readAt) {
-                        if (notification.notificationType === "UploadCompleted") {
-                          if (userId) markUploadsRead(userId, notification.id);
-                        } else {
-                          void markRead(notification.id);
-                        }
-                      }
+                      if (userId && !notification.readAt) markUploadsRead(userId, notification.id);
                     }}
                   >
-                    <span className="notification-bar__message">
-                      {notification.notificationType === "UploadCompleted" ? (
-                        t("Upload batch completed")
-                      ) : (
-                        <>
-                          <strong>{notification.actorUsername}</strong>{" "}
-                          {t(notification.notificationType === "CommentAdded"
-                            ? "commented on your post"
-                            : notification.notificationType === "ReactionAdded"
-                              ? "reacted to your post"
-                              : "shared a new post")}
-                        </>
-                      )}
-                    </span>
-                    {notification.postCaption ? (
-                      <span className="notification-bar__caption">{notification.postCaption}</span>
-                    ) : null}
+                    <span className="notification-bar__message">{t("Upload batch completed")}</span>
                     <time dateTime={notification.createdAt}>
                       {formatTimestamp(notification.createdAt, language)}
                     </time>
@@ -178,7 +99,7 @@ export function NotificationBell() {
                 </li>
               ))}
             </ul>
-          ) : null}
+          )}
         </section>
       ) : null}
     </div>

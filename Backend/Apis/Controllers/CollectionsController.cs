@@ -3,10 +3,10 @@ using Microsoft.AspNetCore.Mvc;
 using Apis.Interfaces;
 using Services.Interfaces;
 using Services.Models.Collections;
-using Services.Models.Posts;
+using Services.Models.Media;
 using Services.Requests.Collections;
-using Services.Requests.Posts;
-using Services.Responses.Posts;
+using Services.Requests.Media;
+using Services.Responses.Media;
 
 namespace Apis.Controllers;
 
@@ -27,10 +27,10 @@ public class CollectionsController(
         Guid collectionId, CancellationToken cancellationToken)
         => Ok(await collectionService.GetCollectionAsync(collectionId, currentUser.RequireUserId(), cancellationToken));
 
-    [HttpGet("{collectionId:guid}/posts")]
-    public async Task<ActionResult<PagedFeedResponse<PostSummaryDto>>> GetCollectionPostsAsync(
-        Guid collectionId, [FromQuery] FeedRequest request, CancellationToken cancellationToken)
-        => Ok(await collectionService.GetCollectionPostsAsync(
+    [HttpGet("{collectionId:guid}/media")]
+    public async Task<ActionResult<PagedMediaResponse<MediaFileDto>>> GetCollectionMediaAsync(
+        Guid collectionId, [FromQuery] MediaPageRequest request, CancellationToken cancellationToken)
+        => Ok(await collectionService.GetCollectionMediaAsync(
             collectionId, currentUser.RequireUserId(), request.Offset, request.Limit, cancellationToken));
 
     [HttpPost]
@@ -55,15 +55,15 @@ public class CollectionsController(
         return NoContent();
     }
 
-    [HttpPost("{collectionId:guid}/posts")]
-    public async Task<ActionResult<CollectionDto>> AddPostAsync(
-        Guid collectionId, AddCollectionPostRequest request, CancellationToken cancellationToken)
-        => Ok(await collectionService.AddPostAsync(
-            collectionId, currentUser.RequireUserId(), request.PostId, cancellationToken));
+    [HttpPost("{collectionId:guid}/media")]
+    public async Task<ActionResult<CollectionDto>> AddMediaAsync(
+        Guid collectionId, AddCollectionMediaRequest request, CancellationToken cancellationToken)
+        => Ok(await collectionService.AddMediaAsync(
+            collectionId, currentUser.RequireUserId(), request.MediaId, cancellationToken));
 
-    [HttpDelete("{collectionId:guid}/posts/{postId:guid}")]
-    public async Task<ActionResult<CollectionDto>> RemovePostAsync(
-        Guid collectionId, Guid postId, CancellationToken cancellationToken)
-        => Ok(await collectionService.RemovePostAsync(
-            collectionId, currentUser.RequireUserId(), postId, cancellationToken));
+    [HttpDelete("{collectionId:guid}/media/{mediaId:guid}")]
+    public async Task<ActionResult<CollectionDto>> RemoveMediaAsync(
+        Guid collectionId, Guid mediaId, CancellationToken cancellationToken)
+        => Ok(await collectionService.RemoveMediaAsync(
+            collectionId, currentUser.RequireUserId(), mediaId, cancellationToken));
 }

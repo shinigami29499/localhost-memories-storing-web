@@ -9,6 +9,8 @@ public sealed class UploadRepository(ApplicationDbContext db) : IUploadRepositor
 {
     public void AddBatch(UploadBatch batch) => db.UploadBatches.Add(batch);
 
+    public void AddMediaFile(MediaFile mediaFile) => db.MediaFiles.Add(mediaFile);
+
     public async Task LockBatchAsync(Guid ownerId, Guid batchId, CancellationToken cancellationToken = default)
     {
         await db.UploadBatches

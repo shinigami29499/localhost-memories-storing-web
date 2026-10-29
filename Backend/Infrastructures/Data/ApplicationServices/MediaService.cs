@@ -3,6 +3,8 @@ using Infrastructures.Data.Interfaces;
 using Services.Exceptions;
 using Services.Interfaces;
 using Services.Models.Media;
+using Services.Requests.Media;
+using Services.Responses.Media;
 using Domains.Entities;
 
 namespace Infrastructures.Data.ApplicationServices;
@@ -11,11 +13,13 @@ public class MediaService(
     IMediaRepository repository,
     IUnitOfWork unitOfWork,
     IMediaStorage storage,
+    IMapper mapper,
     ILogger<MediaService> logger) : IMediaService
 {
     private readonly IMediaRepository _repository = repository;
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
     private readonly IMediaStorage _storage = storage;
+    private readonly IMapper _mapper = mapper;
     private readonly ILogger<MediaService> _logger = logger;
 
     public async Task<MediaFileContent> GetMediaFileAsync(
@@ -27,9 +31,6 @@ public class MediaService(
 
         if (media is null)
             throw new NotFoundException($"Media '{mediaId}' was not found.");
-
-        if (!await _repository.PostExistsAsync(media.PostId, includeDeleted, cancellationToken))
-            throw new NotFoundException($"Media '{mediaId}' belongs to an unavailable post.");
 
         var relativePath = media.DeletedAt is null
             ? media.RelativePath
@@ -81,11 +82,6 @@ public class MediaService(
         if (!media.IsDeleted)
             throw new ConflictException("Media is not deleted; nothing to restore.");
 
-        // Restored media must belong to an active post.
-        var parentActive = await _repository.ActivePostExistsAsync(media.PostId, cancellationToken);
-        if (!parentActive)
-            throw new ConflictException("The owning post is deleted; restore it first.");
-
         // Restore the file first; compensate if the database update fails.
         await _storage.RestoreFromTrashAsync(
             media.TrashRelativePath!, media.RelativePath, cancellationToken);
@@ -119,9 +115,82 @@ public class MediaService(
         var media = await _repository.FindOwnedMediaAsync(mediaId, cancellationToken)
             ?? throw new NotFoundException($"Media '{mediaId}' was not found.");
 
-        if (!isAdmin && media.Post.UserId != actorId)
-            throw new ForbiddenException("Only the post owner or an administrator may manage this media.");
+        if (!isAdmin && media.OwnerId != actorId)
+            throw new ForbiddenException("Only the media owner or an administrator may manage this media.");
 
         return media;
+    }
+
+    public async Task<PagedMediaResponse<MediaFileDto>> GetMediaPageAsync(
+        Guid viewerId,
+        int offset,
+        int limit,
+        string? mediaKind,
+        bool favoritesOnly,
+        bool includeDeleted,
+        CancellationToken cancellationToken = default)
+    {
+        if (offset < 0 || limit < 1 || limit > MediaPageRequest.MaxLimit)
+            throw new Services.Exceptions.ValidationException(
+                "Invalid media page.",
+                new Dictionary<string, string[]>
+                {
+                    ["offset"] = ["Offset must be zero or greater."],
+                    ["limit"] = [$"Must be between 1 and {MediaPageRequest.MaxLimit}."],
+                });
+        if (mediaKind is not null && mediaKind is not ("image" or "video"))
+            throw new Services.Exceptions.ValidationException(
+                "Invalid media page.",
+                new Dictionary<string, string[]> { ["mediaKind"] = ["Must be 'image' or 'video'."] });
+
+        Guid? favoriteUserId = favoritesOnly ? viewerId : null;
+        var media = await _repository.GetMediaPageAsync(
+            offset, limit, mediaKind, favoriteUserId, includeDeleted, cancellationToken);
+        var total = await _repository.CountMediaAsync(
+            mediaKind, favoriteUserId, includeDeleted, cancellationToken);
+        var favoriteIds = (await _repository.GetFavoritedMediaIdsAsync(
+            viewerId, media.Select(item => item.Id).ToArray(), cancellationToken)).ToHashSet();
+        return new PagedMediaResponse<MediaFileDto>(
+            offset,
+            limit,
+            total,
+            media.Select(item => _mapper.Map(item, favoriteIds.Contains(item.Id))).ToList());
+    }
+
+    public async Task SetMediaFavoriteAsync(
+        Guid mediaId, Guid userId, bool isFavorite, CancellationToken cancellationToken = default)
+    {
+        if (!await _repository.MediaExistsAsync(mediaId, cancellationToken))
+            throw new NotFoundException($"Media '{mediaId}' was not found.");
+
+        var favorite = await _repository.FindMediaFavoriteAsync(
+            userId, mediaId, includeDeleted: !isFavorite, cancellationToken);
+        if (isFavorite)
+        {
+            if (favorite is { DeletedAt: null })
+                return;
+            if (favorite is not null)
+            {
+                favorite.DeletedAt = null;
+                favorite.DeletedBy = null;
+                favorite.UpdatedAt = DateTime.UtcNow;
+                favorite.UpdatedBy = userId;
+            }
+            else
+            {
+                _repository.AddMediaFavorite(new MediaFavorite { MediaFileId = mediaId, UserId = userId });
+            }
+        }
+        else if (favorite is { DeletedAt: null })
+        {
+            favorite.DeletedAt = DateTime.UtcNow;
+            favorite.DeletedBy = userId;
+        }
+        else
+        {
+            return;
+        }
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 }

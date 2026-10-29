@@ -8,7 +8,7 @@ import {
   useAnimateIconContext,
   IconWrapper,
   type IconProps,
-} from '@animate-ui/react/icons';
+} from './icon';
 
 type BookmarkProps = IconProps<keyof typeof animations>;
 
@@ -68,7 +68,7 @@ function IconComponent({ size, ...props }: BookmarkProps) {
       variants={variants.group}
       initial="initial"
       animate={controls}
-      style={{ originY: 0 }}
+      style={{ originY: 0, color: 'var(--notification-icon)' }}
       {...props}
     >
       <motion.path

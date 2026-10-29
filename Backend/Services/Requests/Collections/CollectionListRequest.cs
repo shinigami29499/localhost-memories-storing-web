@@ -8,6 +8,6 @@ public record CollectionListRequest
     /// <summary>"mine" (default) or "public" for other users' public collections.</summary>
     public string Scope { get; init; } = MineScope;
 
-    /// <summary>When set, each result reports whether it contains this post.</summary>
-    public Guid? PostId { get; init; }
+    /// <summary>When set, each result reports whether it contains this media file.</summary>
+    public Guid? MediaId { get; init; }
 }

@@ -1,31 +1,15 @@
 # ShinigaCim — Local Media-Sharing Site
 
-A locally hosted media-sharing web application: registered users upload images/Videos to a
-feed, comment, react, and manage their own posts. The backend is an ASP.NET Core 8 Web API
-backed by PostgreSQL; the frontend is React 18 + Vite + TypeScript.
+A locally hosted media library: registered users upload images and videos, organize them
+into private or public albums, and browse albums they can view from Home. The backend is
+an ASP.NET Core 8 Web API backed by PostgreSQL; the frontend is React 18 + Vite + TypeScript.
 
 Everything runs on one machine — no cloud services are required.
 
-The home feed displays one post at a time. Use the post arrow icons
-or focus the post viewer and press the arrow keys to switch posts. More posts
-load when you reach the end of the current batch. Multi-photo posts show one
-image/video at a time with separate media arrows. Videos
-retain their native playback controls; use the post arrows to move past a video.
-Click the left or right quarter of an image to go previous/next (photos within
-multi-photo posts, or posts for single-image posts). Click the middle half to zoom.
-Drag/swipe navigation is disabled. Image filenames and sizes are not displayed
-below images. Post cards use a consistent dark surface without colored zones.
-The compact reaction bar uses outline reaction/comment icons with counts and
-colored badges summarizing reactions on the right.
-Frontend UI icons and loading indicators use `lucide-react`; branding letters
-and user initials remain text.
-Administrators can use a post's X icon to open a deletion warning. Confirm moves
-the post to trash; the underlined permanent-delete link opens a separate
-irreversible-delete confirmation. Cancel, Escape, the dialog X, or clicking outside
-dismisses the dialog before submission. Actions are locked while deletion is in progress.
-Manage Posts uses the same deletion dialog (already-trashed posts require permanent
-deletion confirmation). Restoring a post, approving a user, and deleting a user
-also require an explicit confirmation popup before the action is submitted.
+Home lists owned and public albums using their preview images. Opening an album loads
+its paged media; Pictures, Videos, and Favorites browse the user's media library.
+Uploads are managed separately and create standalone media records. Administrators can
+restore deleted media from Trash.
 
 ## Technology Stack
 
@@ -150,50 +134,37 @@ npm test -- --run
   Animate UI reveals the new theme with a left-to-right page wipe; reduced-motion
   preferences and browsers without View Transitions use an instant switch.
 - **Interface:** original Zenith AI-inspired styling with charcoal surfaces, pink/violet
-  gradients, pill controls, a responsive sign-in screen, and a community feed layout.
+  gradients, pill controls, a responsive sign-in screen, and an album-library layout.
   Existing authentication and media-sharing workflows are unchanged. Decorative artwork
   is CSS-only; no paid template code, assets, fonts, or external UI services are required.
 - **Auth:** public registration, plaintext passwords (local development only),
   JWT access tokens (15 min) + rotating refresh tokens (7 days, stored as SHA-256
   hashes). Refresh-token reuse revokes the whole token family (theft detection).
-- **Feed:** paged, newest-first; posts with captions + multiple media attachments.
-- **Admin post layout:** choose 1-6 posts per row. The saved column count applies
-  on entry and reload at every screen width; column widths reset evenly when the count changes.
-- **Admin media preview:** open a post thumbnail or preview icon to browse its images
-  and videos. Deleted-post media is previewed directly from trash without restoring it.
-  The file endpoint's `includeDeleted=true` option requires an admin token.
+- **Home:** owned and public albums appear as preview cards; album media loads after opening an album.
+- **Albums:** private or public albums organize media and support custom preview images.
+- **Gallery:** Pictures, Videos, and Favorites browse standalone media records.
 - **Media:** images (jpg/jpeg/png/gif/webp) and videos (mp4/webm/mov/m4v/avi/mkv), up to
   100 MB each (configurable). Files live on disk; the DB stores metadata only. Serving
   supports HTTP range requests (video seeking) and authenticates via Authorization header
   **or** `?accessToken=` (browser `<img>`/`<video>` cannot send headers).
-- **Post upload watcher:** share media using the existing feed composer, then follow
-  progress under **Sync > Upload**. Each post submission creates one persistent batch
-  with sequential per-file progress, retry, and cancellation controls; there is no separate
-  upload composer. The first successful file creates the feed post with its caption.
-  Later files and retries attach to that same post without re-uploading successful files.
-  All-failed or all-cancelled submissions do not create empty posts. Users see only their
-  own batches; admins see all batches and owner usernames. Pending bytes remain in the
-  submitting browser's IndexedDB, so resuming or retrying requires the same browser
-  profile and device. Closing the browser pauses processing; the server retains results.
-  Deleting the post cancels its pending and uploading items before moving media to trash.
+- **Uploads:** standalone image/video batches support per-file progress, retry, and cancellation.
+  Users see their own batches; admins can view all batches and owner usernames. Pending
+  bytes remain in the browser's IndexedDB for retry and refresh recovery.
   The upload screen refreshes on `UploadsChanged` events from `/hubs/notifications`,
-  not on a timer. Events cover batch creation, recovery, progress, status changes,
-  and post deletion, and reach only the owner and administrators. Connecting or
+  not on a timer. Events cover batch creation, recovery, and progress, and reach only
+  the owner and administrators. Connecting or
   reconnecting refreshes the upload list to catch missed events. The browser's
   background upload worker also stays idle without polling `/api/uploads/queue`
   or `/api/uploads/active`. Notifications, connection recovery, local submissions,
   retries, and cancellations wake it. It drains pending files sequentially, then
   waits for another change; failed requests retain retry backoff.
-- **Comments:** add/edit/delete, author-or-admin authorization, oldest-first paging.
-- **Reactions:** multiple types (`like`, `heart`, `laugh`), idempotent add/remove; removing
-  is a soft delete; unique per (post, user, type) among active rows via a partial index.
 - **Audit columns on every entity:** `created_by/created_at`, `updated_by/updated_at`,
   `deleted_by/deleted_at`, stamped centrally in `SaveChangesAsync` from the authenticated
   principal (never client input).
 - **Soft delete everywhere:** `Remove()` throws — physical DB deletes are impossible
   through the API or context. Deleted rows are hidden by global query filters while
   remaining in the table.
-- **Media trash workflow:** deleting a post/Media moves the file(s) into
+- **Media trash workflow:** deleting media moves the file into
   `storage/Trash/<kind>/` and records `trash_relative_path`/`trashed_at` while keeping the
   original `relative_path` for restoration (`POST /api/media/{id}/restore`). Filesystem
   and DB steps are kept consistent with verify-copy + compensation-rollback logic.
@@ -208,20 +179,21 @@ npm test -- --run
 | `/users?`                                        | GET            | admin — all accounts, pending first                            |
 | `/users/{id}/approve`                            | POST           | admin — activates a pending account                            |
 | `/users/{id}`                                    | DELETE         | admin — soft delete + session revoke                           |
-| `/posts?offset=&limit=`                          | GET            | feed                                                           |
-| `/posts`                                         | POST           | multipart: caption + files[]                                   |
-| `/posts/{id}`                                    | GET/PUT/DELETE | PUT = caption; DELETE = soft delete + trash                    |
-| `/posts/uploads`                                 | POST           | caption + file metadata; queue one tracked feed post submission |
-| `/uploads/batches`                               | GET            | authorized — list the current user's post upload batches   |
+| `/media?offset=&limit=`                          | GET            | current user's media, optionally filtered by kind              |
+| `/media/favorites`                               | GET            | current user's favorited media                                 |
+| `/media/deleted`                                 | GET            | admin — deleted media                                          |
+| `/media/{id}/favorite`                           | POST/DELETE    | add/remove a media favorite                                    |
+| `/media/{id}/file`                               | GET            | authorized with header or `?accessToken=`                      |
+| `/media/{id}` / `/media/{id}/restore`            | DELETE/POST    | admin — media trash/restore                                    |
+| `/collections?scope=`                            | GET            | current user's or public albums                                |
+| `/collections`                                   | POST           | create an album                                                |
+| `/collections/{id}`                              | GET/PUT/DELETE | read, update, or delete an album                               |
+| `/collections/{id}/media`                        | GET/POST       | list or add album media                                        |
+| `/collections/{id}/media/{mediaId}`              | DELETE         | remove media from an album                                     |
+| `/uploads/batches`                               | GET/POST       | list batches or submit standalone media metadata               |
 | `/uploads/batches/{id}`                          | GET            | authorized — owner only (admins may view any batch)            |
 | `/uploads/admin/batches`                         | GET            | admin — all batches, including owner usernames                 |
 | `/uploads/batches/{id}/items/{itemId}/...`       | POST           | authorized — start, report progress, upload, cancel, or fail   |
-| `/posts/{id}/comments`                           | GET/POST       |                                                                |
-| `/comments/{id}`                                 | PUT/DELETE     | soft delete, idempotent                                        |
-| `/posts/{id}/reactions`                          | POST           | body: `{ reactionType }`                                       |
-| `/posts/{id}/reactions/{type}`                   | DELETE         | idempotent                                                     |
-| `/Media/{id}/file`                               | GET            | anonymous w/ header or `?accessToken=`                         |
-| `/Media/{id}` / `/Media/{id}/restore`            | DELETE/POST    | per-file trash/restore                                         |
 
 Errors are RFC 7807 problem details (`application/problem+json`).
 
@@ -230,7 +202,7 @@ Errors are RFC 7807 problem details (`application/problem+json`).
 - `ConnectionStrings:Default` — PostgreSQL DSN
 - `Jwt:Key` — dev key; replace with user-secrets/env for anything beyond local dev
 - `MediaStorage:Root` — storage tree root (empty → `<Backend>/Storage`)
-- `MediaStorage:MaxFileMegabytes` — per-file upload limit (default 100 MB); each post can contain up to 20 GB total media
+- `MediaStorage:MaxFileMegabytes` — per-file upload limit (default 100 MB)
 - `Cors:AllowedOrigins` — `http://localhost:3000` by default
 - `Seed:*` — admin account seeding + auto-migrate toggle
 

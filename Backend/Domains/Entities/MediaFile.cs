@@ -2,8 +2,8 @@ namespace Domains.Entities;
 
 public class MediaFile : AuditableEntity
 {
-    public Guid PostId { get; set; }
-    public Post Post { get; set; } = null!;
+    public Guid OwnerId { get; set; }
+    public User Owner { get; set; } = null!;
 
     // Display only; storage paths use generated filenames.
     public required string OriginalFilename { get; set; }

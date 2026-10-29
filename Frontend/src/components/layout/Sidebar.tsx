@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { AnimateIcon } from "@animate-ui/react/icons";
+import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { Bookmark } from "@/components/animate-ui/icons/bookmark";
 import { Camera } from "@/components/animate-ui/icons/camera";
 import { ChevronDown } from "@/components/animate-ui/icons/chevron-down";
@@ -37,14 +37,16 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
   const location = useLocation();
   const isAdmin = user?.role?.toLowerCase() === "admin";
 
-  const isGalleryRoute = location.pathname.startsWith("/gallery") || location.pathname.startsWith("/saved");
+  const isGalleryRoute = location.pathname.startsWith("/gallery")
+    || location.pathname.startsWith("/albums")
+    || location.pathname.startsWith("/saved");
   const [syncOpen, setSyncOpen] = useState(true);
   const [galleryOpen, setGalleryOpen] = useState(true);
   const galleryLinks = [
     { to: "/gallery", label: "Pictures", icon: Camera, active: location.pathname === "/gallery" },
     { to: "/gallery/videos", label: "Videos", icon: Video, active: location.pathname === "/gallery/videos" },
     { to: "/gallery/favorites", label: "Favorites", icon: Heart, active: location.pathname === "/gallery/favorites" },
-    { to: "/saved", label: "Saved", icon: Bookmark, active: location.pathname.startsWith("/saved") },
+    { to: "/albums", label: "Album", icon: Bookmark, active: location.pathname.startsWith("/albums") || location.pathname.startsWith("/saved") },
     ...(isAdmin
       ? [{ to: "/gallery/trash", label: "Trash", icon: Trash2, active: location.pathname === "/gallery/trash" }]
       : []),
@@ -108,14 +110,14 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
             <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
               <NavLink
                 to="/"
-                className={`sidebar__link${location.pathname === "/" ? " sidebar__link--active" : ""}`}
+                className={`sidebar__link sidebar__home-link${location.pathname === "/" ? " sidebar__link--active" : ""}`}
                 end
                 data-sidebar="menu-button"
-                aria-label={t("Feed")}
-                title={t("Feed")}
+                aria-label={t("Home")}
+                title={t("Home")}
               >
-                <Home size={18} aria-hidden="true" />
-                <span>{t("Feed")}</span>
+                <span className="sidebar__home-icon"><Home size={18} aria-hidden="true" /></span>
+                <span>{t("Home")}</span>
               </NavLink>
             </AnimateIcon>
             <Collapsible.Root
@@ -147,7 +149,7 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
                     <AnimateIcon key={to} animateOnHover animateOnTap completeOnStop asChild>
                       <NavLink
                         to={to}
-                        end={to !== "/saved"}
+                        end={to !== "/albums"}
                         className={`sidebar__link sidebar__sub-link${active ? " sidebar__link--active" : ""}`}
                         data-sidebar="menu-sub-button"
                         aria-label={t(label)}

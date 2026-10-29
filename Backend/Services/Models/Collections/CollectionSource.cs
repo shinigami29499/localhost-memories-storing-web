@@ -6,7 +6,7 @@ namespace Services.Models.Collections;
 public sealed record CollectionSource(
     Collection Collection,
     User Owner,
-    int PostCount,
+    int MediaCount,
     Guid? CustomPreviewMediaId,
     Guid? DefaultPreviewMediaId,
-    bool ContainsPost);
+    bool ContainsMedia);

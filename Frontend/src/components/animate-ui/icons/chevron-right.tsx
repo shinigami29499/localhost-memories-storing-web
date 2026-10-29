@@ -8,7 +8,7 @@ import {
   useAnimateIconContext,
   IconWrapper,
   type IconProps,
-} from '@animate-ui/react/icons';
+} from './icon';
 
 type ChevronRightProps = IconProps<keyof typeof animations>;
 

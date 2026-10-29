@@ -65,8 +65,6 @@ const items: UploadItem[] = [
 
 const batch: UploadBatch = {
   id: "batch",
-  postId: "feed-post",
-  caption: "My feed post",
   status: "Uploading",
   username: null,
   canManage: true,
@@ -234,9 +232,6 @@ describe("UploadBatchCard", () => {
     expect(container.querySelector('[aria-label="Cancel success.jpg"]')).toBeNull();
     expect(container.textContent).toContain("45%");
     expect(container.textContent).toContain("100%");
-    expect(container.querySelector('[href="/posts/feed-post"]')?.textContent).toBe("View post");
-    expect(container.querySelector(".upload-batch__post-link")?.classList.contains("btn--secondary")).toBe(true);
-    expect(container.textContent).not.toContain(batch.caption);
     expect(container.textContent).not.toContain("Batch status");
     expect(container.textContent).not.toContain("Item status");
     expect(container.querySelectorAll(".upload-item__file-type")).toHaveLength(items.length);
@@ -256,12 +251,7 @@ describe("UploadBatchCard", () => {
   });
 
   it("places the expand control first in the summary without summary counters", () => {
-    const footer = container.querySelector(".upload-batch__footer")!;
-    expect(Array.from(footer.children, (child) => child.className)).toEqual([
-      "btn btn--secondary upload-batch__post-link",
-    ]);
     expect(container.querySelector(".upload-batch__summary")?.firstElementChild?.className).toBe("upload-batch__toggle");
-    expect(container.querySelector(".upload-batch__identity .upload-batch__post-link")).toBeNull();
     expect(container.querySelector(".upload-batch__counts")).toBeNull();
     expect(container.querySelector(".upload-batch__summary")?.textContent).not.toContain("Succeeded");
   });
@@ -304,7 +294,6 @@ describe("UploadBatchCard", () => {
     expect(container.querySelector(".upload-batch__id")).toBeNull();
     expect(container.textContent).not.toContain(id);
     expect(container.querySelector(".upload-batch__caption")).toBeNull();
-    expect(container.textContent).not.toContain(batch.caption);
   });
 
   it("collapses and expands active files without losing their progress", async () => {

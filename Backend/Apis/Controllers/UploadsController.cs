@@ -30,6 +30,18 @@ public sealed class UploadsController(
         => Ok(await _uploadService.GetBatchesAsync(
             _currentUser.RequireUserId(), false, request.Offset, request.Limit, cancellationToken));
 
+    [HttpPost("batches")]
+    public async Task<ActionResult<UploadBatchDto>> CreateBatchAsync(
+        CreateUploadBatchRequest request,
+        CancellationToken cancellationToken)
+    {
+        var batch = await _uploadService.CreateBatchAsync(
+            _currentUser.RequireUserId(), request, cancellationToken);
+        await notificationsHub.NotifyUploadsChangedAsync(
+            _currentUser.RequireUserId(), logger, cancellationToken);
+        return Created($"/api/uploads/batches/{batch.Id}", batch);
+    }
+
     [RequireAdmin]
     [HttpGet("admin/batches")]
     public async Task<ActionResult<PagedUploadBatchesResponse>> GetAllBatchesAsync(
@@ -116,20 +128,6 @@ public sealed class UploadsController(
         {
             // Storage failures can persist a failed item even when the request is aborted.
             await notificationsHub.NotifyUploadsChangedAsync(ownerId, logger, CancellationToken.None);
-        }
-        foreach (var delivery in result.Notifications)
-        {
-            try
-            {
-                await notificationsHub.Clients.User(delivery.RecipientId.ToString())
-                    .SendAsync("PostUploaded", delivery.Notification, cancellationToken);
-            }
-            catch (Exception exception) when (exception is not OperationCanceledException)
-            {
-                logger.LogWarning(exception,
-                    "Realtime notification {NotificationId} for recipient {RecipientId} could not be delivered",
-                    delivery.Notification.Id, delivery.RecipientId);
-            }
         }
         return Ok(result.Item);
     }

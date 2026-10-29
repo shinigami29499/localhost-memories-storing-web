@@ -1,83 +1,58 @@
-import { useQueryClient, type InfiniteData } from "@tanstack/react-query";
-import { NewPostForm, PostList, useFeed, type FeedPage, type Post } from "../../features/posts";
-import { CommunityIntro } from "../../components/layout/CommunityIntro";
-import { EmptyState, ErrorState } from "../../components/ui/Status";
+import { Link } from "react-router-dom";
+import { EmptyState, ErrorState, Spinner } from "../../components/ui";
 import { useLocale } from "../../context/LocaleContext";
+import { AlbumCard, useAlbums, type Album } from "../../features/albums";
+import { useAuthStore } from "../../store/authStore";
+import "../albums/albums.css";
 import "./home.css";
 
 export function HomePage() {
   const { t } = useLocale();
-  const feed = useFeed(5);
-  const queryClient = useQueryClient();
-
-  const posts = feed.data?.pages.flatMap((page) => page.items) ?? [];
-
-  const onChanged = (updated: Post) => {
-    queryClient.setQueryData<InfiniteData<FeedPage>>(
-      ["feed", 5],
-      (existing) => (existing
-        ? {
-          ...existing,
-          pages: existing.pages.map((page) => ({
-            ...page,
-            items: page.items.map((post) => (post.id === updated.id ? { ...post, ...updated } : post)),
-          })),
-        }
-        : undefined),
-    );
-  };
-
-  const onDeleted = (postId: string) => {
-    queryClient.setQueryData<InfiniteData<FeedPage>>(
-      ["feed", 5],
-      (existing) => (existing
-        ? {
-          ...existing,
-          pages: existing.pages.map((page) => ({
-            ...page,
-            items: page.items.filter((post) => post.id !== postId),
-          })),
-        }
-        : undefined),
-    );
-    void queryClient.invalidateQueries({ queryKey: ["feed", 5], exact: true });
-  };
-
-  const onSubmitted = () => {
-    void queryClient.invalidateQueries({ queryKey: ["feed", 5], exact: true });
-  };
+  const user = useAuthStore((state) => state.user);
+  const mine = useAlbums("mine");
+  const publicAlbums = useAlbums("public");
+  const albums: Album[] = Array.from(
+    new Map([...(mine.data ?? []), ...(publicAlbums.data ?? [])].map((album) => [album.id, album])).values(),
+  );
+  const isPending = mine.isPending || publicAlbums.isPending;
+  const isError = mine.isError || publicAlbums.isError;
 
   return (
-    <main className="community-page">
-      <CommunityIntro variant="feed" />
-      <div className="community-layout">
-        <section className="feed" id="feed" aria-labelledby="feed-title">
-          {feed.isError && posts.length === 0 ? (
-            <ErrorState message="Could not load the feed." onRetry={() => void feed.refetch()} />
-          ) : null}
-          {!feed.isError && !feed.isLoading && posts.length === 0 ? (
-            <EmptyState
-              title={t("Nothing here yet")}
-              hint={t("Be the first to share an image or video with the community.")}
-            />
-          ) : null}
+    <main className="home-page">
+      <header className="home-page__header">
+        <h1>{t("Home")}<span className="brand__dot">.</span></h1>
+        <p>{t("Browse albums you own and albums shared publicly.")}</p>
+        <Link to="/albums" className="btn btn--secondary">{t("Manage albums")}</Link>
+      </header>
 
-          <PostList
-            posts={posts}
-            isLoading={feed.isLoading}
-            isFetching={feed.isFetching}
-            hasNextPage={feed.hasNextPage}
-            isError={feed.isError}
-            onLoadMore={() => void feed.fetchNextPage()}
-            onRetry={() => void (feed.isFetchNextPageError ? feed.fetchNextPage() : feed.refetch())}
-            onChanged={onChanged}
-            onDeleted={onDeleted}
-          />
-        </section>
-        <aside className="community-rail" aria-label={t("Create a post")}>
-          <NewPostForm onSubmitted={onSubmitted} />
-        </aside>
-      </div>
+      {isPending ? <Spinner label={t("Loading albums…")} /> : isError ? (
+        <ErrorState
+          message={t("Could not load albums.")}
+          onRetry={() => {
+            void mine.refetch();
+            void publicAlbums.refetch();
+          }}
+        />
+      ) : albums.length === 0 ? (
+        <EmptyState
+          title={t("No viewable albums yet")}
+          hint={t("Create an album or browse public albums to get started.")}
+        />
+      ) : (
+        <div className="album-grid" aria-busy={mine.isFetching || publicAlbums.isFetching}>
+          {albums.map((album) => {
+            const isOwner = album.owner.id === user?.id;
+            return (
+              <AlbumCard
+                key={album.id}
+                album={album}
+                isOwner={isOwner}
+                showOwner={!isOwner}
+              />
+            );
+          })}
+        </div>
+      )}
     </main>
   );
 }

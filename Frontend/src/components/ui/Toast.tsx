@@ -1,5 +1,5 @@
 import { Toast as AnimateToast } from '@animate-ui/react/primitives/base-ui/toast';
-import { AnimateIcon } from '@animate-ui/react/icons';
+import { AnimateIcon } from '@/components/animate-ui/icons/icon';
 import { Check } from '@/components/animate-ui/icons/check';
 import { ShieldCheck } from '@/components/animate-ui/icons/shield-check';
 import { X } from '@/components/animate-ui/icons/x';

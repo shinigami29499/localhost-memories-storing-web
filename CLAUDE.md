@@ -76,7 +76,7 @@ Persistence and media operations have important cross-cutting invariants:
 
 - Entities are soft-deleted; `Remove()` is not a physical-delete mechanism. Global query filters hide deleted rows, and foreign keys use `DeleteBehavior.NoAction`.
 - `ApplicationDbContext` stamps audit fields from the authenticated actor and rejects synchronous `SaveChanges`; preserve async persistence.
-- Post/media deletion and restoration coordinate database state with filesystem moves and compensation/rollback. Keep both sides consistent when changing these workflows.
+- Media deletion and restoration coordinate database state with filesystem moves and compensation/rollback. Keep both sides consistent when changing these workflows.
 - Admin routes use the `AdminOnly` policy through `[RequireAdmin]`.
 - Registration creates pending users; approval activates them. Refresh-token rotation and reuse detection are part of the authentication flow.
 
@@ -85,8 +85,8 @@ Persistence and media operations have important cross-cutting invariants:
 - `Frontend/src/App.tsx` wires the query provider, routes, protected home, authentication pages, and admin pages.
 - `Frontend/src/services` contains the API client and feature resource calls. `api.ts` owns bearer-token injection, problem-details parsing, single-flight token refresh, and one retry after a 401.
 - `Frontend/src/store` contains shared Zustand state, including the persisted authentication session.
-- `Frontend/src/hooks` contains reusable query and behavior hooks. Feed paging is implemented through the feed query hooks and paged-feed components.
-- `Frontend/src/pages` owns routed screens; `components` contains reusable layout, UI, and feed feature components.
+- `Frontend/src/hooks` contains reusable query and behavior hooks. Album and media query hooks own resource paging.
+- `Frontend/src/pages` owns routed screens; `components` contains reusable layout and UI components.
 - `Frontend/src/types`, `utils`, and `styles` contain shared TypeScript contracts, helpers, and theme/global styling.
 
 For a feature, trace it from the routed page/component through its hook or service, then through `Frontend/src/services/api.ts` to the matching backend controller and service. Media URLs may use the authenticated query-token form because browser image/video elements cannot attach an Authorization header.

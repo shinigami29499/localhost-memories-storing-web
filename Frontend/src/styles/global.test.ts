@@ -6,6 +6,7 @@ import { resolve } from "node:path";
 const globalStyles = readFileSync(resolve("src", "styles", "global.css"), "utf8");
 const sidebarStyles = readFileSync(resolve("src", "styles", "sidebar.css"), "utf8");
 const adminStyles = readFileSync(resolve("src", "pages", "admin", "admin.css"), "utf8");
+const galleryStyles = readFileSync(resolve("src", "pages", "gallery", "gallery.css"), "utf8");
 const loginStyles = readFileSync(resolve("src", "pages", "login", "login.css"), "utf8");
 
 function contrastRatio(foreground: string, background: string) {
@@ -27,7 +28,7 @@ describe("Global styles", () => {
   beforeEach(() => {
     document.documentElement.classList.add("dark");
     style = document.createElement("style");
-    style.textContent = globalStyles.replace(/^@import .*;$/gm, "") + sidebarStyles + adminStyles;
+    style.textContent = globalStyles.replace(/^@import .*;$/gm, "") + sidebarStyles + adminStyles + galleryStyles;
     document.head.append(style);
     card = document.createElement("article");
     card.className = "post-card";
@@ -85,14 +86,10 @@ describe("Global styles", () => {
     expect(ruleFor(".app-shell__content")?.style.getPropertyValue("scroll-padding-block")).toBe("24px");
   });
 
-  it("keeps the admin posts footer transparent and separate from scrolling content", () => {
+  it("keeps the media gallery content independently scrollable", () => {
     const rules = Array.from(style.sheet!.cssRules)
       .filter((rule): rule is CSSStyleRule => rule instanceof CSSStyleRule);
-    const footerRule = rules.find((rule) => rule.selectorText === ".admin-posts__footer");
-
-    expect(footerRule?.style.background).toBe("transparent");
-    expect(footerRule?.style.position).toBe("relative");
-    const contentRule = rules.find((rule) => rule.selectorText === ".admin-posts__content");
+    const contentRule = rules.find((rule) => rule.selectorText === ".gallery-page__content");
     expect(contentRule?.style.overflow).toBe("auto");
     expect(contentRule?.style.minHeight).toBe("0px");
   });
@@ -128,9 +125,8 @@ describe("Global styles", () => {
     );
   });
 
-  it("matches the admin users empty-state width on admin posts", () => {
-    expect(globalStyles).toMatch(/\.empty-state,\s*\.error-state\s*\{[^}]*padding:\s*28px 16px;/);
-    expect(adminStyles).toMatch(/\.admin-page--posts\s+\.empty-state\s*\{[^}]*max-width:\s*1600px;[^}]*margin-inline:\s*auto;/);
+  it("centers gallery content within its maximum width", () => {
+    expect(galleryStyles).toMatch(/\.gallery-page__inner\s*\{[^}]*margin-inline:\s*auto;[^}]*max-width:\s*1600px;/);
   });
 
   it("uses the theme class for the palette while the saved theme is unchanged during a wipe", () => {

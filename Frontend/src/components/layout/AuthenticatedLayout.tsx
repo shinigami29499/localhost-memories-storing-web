@@ -1,11 +1,7 @@
 import { useEffect, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { Provider } from "@animate-ui/react/primitives/sidebar";
-import {
-  ScrollProgress,
-  ScrollProgressContainer,
-  ScrollProgressProvider,
-} from "@animate-ui/react/primitives/scroll-progress";
+import { ScrollProgressContainer, ScrollProgressProvider } from "@animate-ui/react/primitives/scroll-progress";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { Brand } from "./Brand";
 import { Sidebar } from "./Sidebar";
@@ -21,7 +17,6 @@ export function AuthenticatedLayout() {
   const isMobile = useMediaQuery(MOBILE_QUERY);
   const location = useLocation();
   const drawerOpen = isMobile && !sidebarCollapsed;
-  const isPostDetail = location.pathname.startsWith("/posts/");
 
   useEffect(() => {
     if (isMobile) setSidebarCollapsed(true);
@@ -64,9 +59,6 @@ export function AuthenticatedLayout() {
           <NotificationBell />
         </header>
         <ScrollProgressProvider>
-          {isPostDetail ? (
-            <ScrollProgress aria-hidden="true" className="post-detail__progress" />
-          ) : null}
           <ScrollProgressContainer className="app-shell__content">
             <Outlet />
           </ScrollProgressContainer>

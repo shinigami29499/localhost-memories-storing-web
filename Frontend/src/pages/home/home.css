@@ -1,217 +1,33 @@
-.community-page {
+.home-page {
   width: 100%;
   max-width: 1280px;
   margin: 0 auto;
-  padding: 48px 32px 80px;
+  padding: 40px 32px 72px;
 }
 
-.community-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
-  align-items: start;
-  gap: 28px;
-}
-
-.community-rail {
-  position: sticky;
-  top: 24px;
+.home-page__header {
   display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.feed {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 22px;
-  scroll-margin-top: 24px;
-}
-
-.feed__heading {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 12px 24px;
+  margin-bottom: 28px;
 }
 
-.feed__heading h2 {
-  font-size: 1.2rem;
-  letter-spacing: -0.03em;
-  margin: 0;
-}
-
-.feed__order {
-  color: var(--text-muted);
-  font-size: 0.8rem;
-}
-
-.feed__order::before {
-  content: "";
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  background: var(--accent-soft);
-  border-radius: 50%;
-  margin-right: 8px;
-}
-
-.post-viewer {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+.home-page__header h1 {
   width: 100%;
-  max-width: 780px;
-  margin: 0 auto;
+  margin: 0;
+  font-size: clamp(1.8rem, 3vw, 2.4rem);
+  letter-spacing: -0.045em;
 }
 
-.post-viewer__toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.post-viewer__eyebrow {
-  color: var(--accent-soft);
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-.post-viewer__position {
-  color: var(--text-strong);
-  font-weight: 600;
-  margin: 4px 0 0;
-}
-
-.post-viewer__navigation {
-  display: flex;
-  gap: 8px;
-}
-
-.post-viewer__hint {
+.home-page__header p {
+  margin: 0;
   color: var(--text-muted);
-  font-size: 0.78rem;
-  margin: 0 0 4px;
-}
-
-.post-viewer__stage {
-  min-width: 0;
-  overflow: hidden;
-  border-radius: var(--radius);
-}
-
-.post-viewer__stage:focus-visible {
-  outline: 2px solid var(--accent-soft);
-  outline-offset: 4px;
-}
-
-.community-intro--feed {
-  position: relative;
-  padding-top: 28px;
-  padding-bottom: 28px;
-  margin-bottom: 32px;
-  margin-left: -32px;
-  margin-right: -32px;
-  padding-left: 32px;
-  padding-right: 32px;
-  background:
-    radial-gradient(ellipse at 80% 50%, var(--accent-wash), transparent 60%),
-    var(--community-intro-bg);
-  background-attachment: local, fixed;
-}
-
-.community-intro--feed::after {
-  position: absolute;
-  right: 32px;
-  bottom: 0;
-  left: 32px;
-  height: 1px;
-  background: var(--border);
-  content: "";
-}
-
-@media (max-width: 1100px) {
-  .community-layout {
-    grid-template-columns: minmax(0, 1fr) 280px;
-    gap: 20px;
-  }
-}
-
-@media (max-width: 900px) {
-  .community-page {
-    max-width: 744px;
-    padding: 36px 20px 80px;
-  }
-
-  .community-layout {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .community-rail {
-    position: static;
-    order: -1;
-  }
-
-  .community-intro--feed {
-    margin-left: -20px;
-    margin-right: -20px;
-    padding-left: 20px;
-    padding-right: 20px;
-  }
-
-  .community-intro--feed::after {
-    right: 20px;
-    left: 20px;
-  }
 }
 
 @media (max-width: 560px) {
-  .community-page {
-    padding: 0 16px 48px;
-  }
-
-  .community-intro--feed {
-    margin-left: -16px;
-    margin-right: -16px;
-    padding-left: 16px;
-    padding-right: 16px;
-    padding-top: 24px;
-    margin-bottom: 20px;
-    background-attachment: scroll;
-  }
-
-  .community-intro--feed::after {
-    right: 16px;
-    left: 16px;
-  }
-
-  .community-layout {
-    gap: 16px;
-  }
-
-  .feed {
-    gap: 16px;
-  }
-
-  .post-viewer__toolbar {
-    gap: 12px;
-  }
-
-  .post-viewer__stage {
-    margin-inline: -16px;
-    border-radius: 0;
-  }
-
-  .post-viewer__stage .post-card {
-    border-radius: 0;
-    border-inline: 0;
-  }
-
-  .post-viewer__stage .post-card__footer,
-  .post-viewer__stage .reactions__chip,
-  .post-viewer__stage .post-card__comment-action {
-    border-radius: 0;
+  .home-page {
+    padding: 24px 16px 48px;
   }
 }

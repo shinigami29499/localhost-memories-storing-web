@@ -18,6 +18,11 @@ vi.mock("../animate-ui/icons/home", async () => {
   return { Home: () => <svg data-animated={String(useAnimateIconContext().active === true)} /> };
 });
 
+vi.mock("../animate-ui/icons/camera", async () => {
+  const { useAnimateIconContext } = await import("@animate-ui/react/icons");
+  return { Camera: () => <svg data-animated={String(useAnimateIconContext().active === true)} /> };
+});
+
 vi.mock("../animate-ui/icons/image", async () => {
   const { useAnimateIconContext } = await import("@animate-ui/react/icons");
   return { Image: () => <svg data-animated={String(useAnimateIconContext().active === true)} /> };
@@ -62,7 +67,7 @@ describe("Sidebar icon hover triggers", () => {
       disconnect() {}
     });
     vi.stubGlobal("matchMedia", vi.fn((query: string) => ({
-      matches: false,
+      matches: query === "(hover: hover) and (pointer: fine)",
       media: query,
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
@@ -126,9 +131,9 @@ describe("Sidebar icon hover triggers", () => {
     }));
     const galleryPages = container.querySelector<HTMLElement>('[aria-label="Gallery pages"]')!;
     expect(Array.from(galleryPages.querySelectorAll("a"), (link) => link.getAttribute("href")))
-      .toEqual(["/gallery", "/gallery/videos", "/gallery/favorites", "/saved"]);
+      .toEqual(["/gallery", "/gallery/videos", "/gallery/favorites", "/albums"]);
     expect(container.querySelector('[href="/gallery"]')?.textContent).toBe("Pictures");
-    expect(container.querySelector('[href="/saved"]')?.textContent).toBe("Saved");
+    expect(container.querySelector('[href="/albums"]')?.textContent).toBe("Album");
     expect(container.querySelector('[href="/users"]')?.textContent).toBe("Users");
     expect(container.querySelector('[href="/gallery/trash"]')).toBeNull();
     expect(container.querySelector('[href^="/admin"]')).toBeNull();

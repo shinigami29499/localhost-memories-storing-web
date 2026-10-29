@@ -5,6 +5,7 @@ namespace Infrastructures.Data.Interfaces;
 public interface IUploadRepository
 {
     void AddBatch(UploadBatch batch);
+    void AddMediaFile(MediaFile mediaFile);
     Task LockBatchAsync(Guid ownerId, Guid batchId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<UploadBatch>> GetBatchesAsync(
         Guid actorId, bool isAdmin, int offset, int limit, CancellationToken cancellationToken = default);

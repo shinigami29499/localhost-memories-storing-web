@@ -87,7 +87,7 @@ namespace Infrastructures.Data.Migrations
                     b.ToTable("collections", (string)null);
                 });
 
-            modelBuilder.Entity("Domains.Entities.CollectionPost", b =>
+            modelBuilder.Entity("Domains.Entities.CollectionMedia", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -115,9 +115,9 @@ namespace Infrastructures.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("deleted_by");
 
-                    b.Property<Guid>("PostId")
+                    b.Property<Guid>("MediaFileId")
                         .HasColumnType("uuid")
-                        .HasColumnName("post_id");
+                        .HasColumnName("media_file_id");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -128,35 +128,29 @@ namespace Infrastructures.Data.Migrations
                         .HasColumnName("updated_by");
 
                     b.HasKey("Id")
-                        .HasName("pk_collection_posts");
+                        .HasName("pk_collection_media");
 
-                    b.HasIndex("PostId")
-                        .HasDatabaseName("ix_collection_posts_post_id");
+                    b.HasIndex("MediaFileId")
+                        .HasDatabaseName("ix_collection_media_media_file_id");
 
                     b.HasIndex("CollectionId", "CreatedAt")
-                        .HasDatabaseName("ix_collection_posts_collection_id_created_at");
+                        .HasDatabaseName("ix_collection_media_collection_id_created_at");
 
-                    b.HasIndex("CollectionId", "PostId")
+                    b.HasIndex("CollectionId", "MediaFileId")
                         .IsUnique()
-                        .HasDatabaseName("ix_collection_posts_collection_id_post_id")
+                        .HasDatabaseName("ix_collection_media_collection_id_media_file_id")
                         .HasFilter("deleted_at IS NULL");
 
-                    b.ToTable("collection_posts", (string)null);
+                    b.ToTable("collection_media", (string)null);
                 });
 
-            modelBuilder.Entity("Domains.Entities.Comment", b =>
+            modelBuilder.Entity("Domains.Entities.MediaFavorite", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id")
                         .HasDefaultValueSql("gen_random_uuid()");
-
-                    b.Property<string>("Content")
-                        .IsRequired()
-                        .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)")
-                        .HasColumnName("content");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -174,9 +168,9 @@ namespace Infrastructures.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("deleted_by");
 
-                    b.Property<Guid>("PostId")
+                    b.Property<Guid>("MediaFileId")
                         .HasColumnType("uuid")
-                        .HasColumnName("post_id");
+                        .HasColumnName("media_file_id");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -191,15 +185,17 @@ namespace Infrastructures.Data.Migrations
                         .HasColumnName("user_id");
 
                     b.HasKey("Id")
-                        .HasName("pk_comments");
+                        .HasName("pk_media_favorites");
 
-                    b.HasIndex("UserId")
-                        .HasDatabaseName("ix_comments_user_id");
+                    b.HasIndex("MediaFileId", "UserId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_media_favorites_media_file_id_user_id")
+                        .HasFilter("deleted_at IS NULL");
 
-                    b.HasIndex("PostId", "CreatedAt")
-                        .HasDatabaseName("ix_comments_post_id_created_at");
+                    b.HasIndex("UserId", "CreatedAt")
+                        .HasDatabaseName("ix_media_favorites_user_id_created_at");
 
-                    b.ToTable("comments", (string)null);
+                    b.ToTable("media_favorites", (string)null);
                 });
 
             modelBuilder.Entity("Domains.Entities.MediaFile", b =>
@@ -258,9 +254,9 @@ namespace Infrastructures.Data.Migrations
                         .HasColumnType("character varying(260)")
                         .HasColumnName("original_filename");
 
-                    b.Property<Guid>("PostId")
+                    b.Property<Guid>("OwnerId")
                         .HasColumnType("uuid")
-                        .HasColumnName("post_id");
+                        .HasColumnName("owner_id");
 
                     b.Property<string>("RelativePath")
                         .IsRequired()
@@ -294,8 +290,8 @@ namespace Infrastructures.Data.Migrations
                     b.HasKey("Id")
                         .HasName("pk_media_files");
 
-                    b.HasIndex("PostId")
-                        .HasDatabaseName("ix_media_files_post_id");
+                    b.HasIndex("OwnerId")
+                        .HasDatabaseName("ix_media_files_owner_id");
 
                     b.HasIndex("RelativePath")
                         .IsUnique()
@@ -306,183 +302,6 @@ namespace Infrastructures.Data.Migrations
                         .HasDatabaseName("ix_media_files_deleted_at_created_at");
 
                     b.ToTable("media_files", (string)null);
-                });
-
-            modelBuilder.Entity("Domains.Entities.Post", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id")
-                        .HasDefaultValueSql("gen_random_uuid()");
-
-                    b.Property<string>("Caption")
-                        .IsRequired()
-                        .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)")
-                        .HasColumnName("caption");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<Guid?>("CreatedBy")
-                        .HasColumnType("uuid")
-                        .HasColumnName("created_by");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("deleted_at");
-
-                    b.Property<Guid?>("DeletedBy")
-                        .HasColumnType("uuid")
-                        .HasColumnName("deleted_by");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.Property<Guid?>("UpdatedBy")
-                        .HasColumnType("uuid")
-                        .HasColumnName("updated_by");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("user_id");
-
-                    b.HasKey("Id")
-                        .HasName("pk_posts");
-
-                    b.HasIndex("UserId")
-                        .HasDatabaseName("ix_posts_user_id");
-
-                    b.HasIndex("DeletedAt", "CreatedAt")
-                        .HasDatabaseName("ix_posts_deleted_at_created_at");
-
-                    b.ToTable("posts", (string)null);
-                });
-
-            modelBuilder.Entity("Domains.Entities.PostUploadNotification", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id")
-                        .HasDefaultValueSql("gen_random_uuid()");
-
-                    b.Property<Guid>("ActorId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("actor_id");
-
-                    b.Property<string>("ActorUsername")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
-                        .HasColumnName("actor_username");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<string>("NotificationType")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)")
-                        .HasDefaultValue("PostUploaded")
-                        .HasColumnName("notification_type");
-
-                    b.Property<string>("PostCaption")
-                        .IsRequired()
-                        .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)")
-                        .HasColumnName("post_caption");
-
-                    b.Property<Guid>("PostId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("post_id");
-
-                    b.Property<DateTime?>("ReadAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("read_at");
-
-                    b.Property<Guid>("RecipientId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("recipient_id");
-
-                    b.HasKey("Id")
-                        .HasName("pk_post_upload_notifications");
-
-                    b.HasIndex("RecipientId", "CreatedAt")
-                        .HasDatabaseName("ix_post_upload_notifications_recipient_id_created_at");
-
-                    b.HasIndex("RecipientId", "ReadAt")
-                        .HasDatabaseName("ix_post_upload_notifications_recipient_id_read_at");
-
-                    b.ToTable("post_upload_notifications", (string)null);
-                });
-
-            modelBuilder.Entity("Domains.Entities.Reaction", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id")
-                        .HasDefaultValueSql("gen_random_uuid()");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<Guid?>("CreatedBy")
-                        .HasColumnType("uuid")
-                        .HasColumnName("created_by");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("deleted_at");
-
-                    b.Property<Guid?>("DeletedBy")
-                        .HasColumnType("uuid")
-                        .HasColumnName("deleted_by");
-
-                    b.Property<Guid>("PostId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("post_id");
-
-                    b.Property<string>("ReactionType")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("reaction_type");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.Property<Guid?>("UpdatedBy")
-                        .HasColumnType("uuid")
-                        .HasColumnName("updated_by");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("user_id");
-
-                    b.HasKey("Id")
-                        .HasName("pk_reactions");
-
-                    b.HasIndex("UserId")
-                        .HasDatabaseName("ix_reactions_user_id");
-
-                    b.HasIndex("DeletedAt", "CreatedAt")
-                        .HasDatabaseName("ix_reactions_deleted_at_created_at");
-
-                    b.HasIndex("PostId", "UserId", "ReactionType")
-                        .IsUnique()
-                        .HasDatabaseName("ix_reactions_post_id_user_id_reaction_type")
-                        .HasFilter("deleted_at IS NULL");
-
-                    b.ToTable("reactions", (string)null);
                 });
 
             modelBuilder.Entity("Domains.Entities.RefreshToken", b =>
@@ -565,12 +384,6 @@ namespace Infrastructures.Data.Migrations
                         .HasColumnName("id")
                         .HasDefaultValueSql("gen_random_uuid()");
 
-                    b.Property<string>("Caption")
-                        .IsRequired()
-                        .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)")
-                        .HasColumnName("caption");
-
                     b.Property<DateTime?>("CompletedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("completed_at");
@@ -595,10 +408,6 @@ namespace Infrastructures.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("owner_id");
 
-                    b.Property<Guid?>("PostId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("post_id");
-
                     b.Property<DateTime?>("StartedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("started_at");
@@ -619,10 +428,6 @@ namespace Infrastructures.Data.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_upload_batches");
-
-                    b.HasIndex("PostId")
-                        .IsUnique()
-                        .HasDatabaseName("ix_upload_batches_post_id");
 
                     b.HasIndex("OwnerId", "CreatedAt")
                         .HasDatabaseName("ix_upload_batches_owner_id_created_at");
@@ -835,91 +640,58 @@ namespace Infrastructures.Data.Migrations
                     b.Navigation("PreviewMediaFile");
                 });
 
-            modelBuilder.Entity("Domains.Entities.CollectionPost", b =>
+            modelBuilder.Entity("Domains.Entities.CollectionMedia", b =>
                 {
                     b.HasOne("Domains.Entities.Collection", "Collection")
-                        .WithMany("Posts")
+                        .WithMany("MediaItems")
                         .HasForeignKey("CollectionId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired()
-                        .HasConstraintName("fk_collection_posts_collections_collection_id");
+                        .HasConstraintName("fk_collection_media_collections_collection_id");
 
-                    b.HasOne("Domains.Entities.Post", "Post")
+                    b.HasOne("Domains.Entities.MediaFile", "MediaFile")
                         .WithMany()
-                        .HasForeignKey("PostId")
+                        .HasForeignKey("MediaFileId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired()
-                        .HasConstraintName("fk_collection_posts_posts_post_id");
+                        .HasConstraintName("fk_collection_media_media_files_media_file_id");
 
                     b.Navigation("Collection");
 
-                    b.Navigation("Post");
+                    b.Navigation("MediaFile");
                 });
 
-            modelBuilder.Entity("Domains.Entities.Comment", b =>
+            modelBuilder.Entity("Domains.Entities.MediaFavorite", b =>
                 {
-                    b.HasOne("Domains.Entities.Post", "Post")
+                    b.HasOne("Domains.Entities.MediaFile", "MediaFile")
                         .WithMany()
-                        .HasForeignKey("PostId")
+                        .HasForeignKey("MediaFileId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired()
-                        .HasConstraintName("fk_comments_posts_post_id");
+                        .HasConstraintName("fk_media_favorites_media_files_media_file_id");
 
                     b.HasOne("Domains.Entities.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired()
-                        .HasConstraintName("fk_comments_users_user_id");
+                        .HasConstraintName("fk_media_favorites_users_user_id");
 
-                    b.Navigation("Post");
+                    b.Navigation("MediaFile");
 
                     b.Navigation("User");
                 });
 
             modelBuilder.Entity("Domains.Entities.MediaFile", b =>
                 {
-                    b.HasOne("Domains.Entities.Post", "Post")
-                        .WithMany("MediaFiles")
-                        .HasForeignKey("PostId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired()
-                        .HasConstraintName("fk_media_files_posts_post_id");
-
-                    b.Navigation("Post");
-                });
-
-            modelBuilder.Entity("Domains.Entities.Post", b =>
-                {
-                    b.HasOne("Domains.Entities.User", "User")
+                    b.HasOne("Domains.Entities.User", "Owner")
                         .WithMany()
-                        .HasForeignKey("UserId")
+                        .HasForeignKey("OwnerId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired()
-                        .HasConstraintName("fk_posts_users_user_id");
+                        .HasConstraintName("fk_media_files_users_owner_id");
 
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("Domains.Entities.Reaction", b =>
-                {
-                    b.HasOne("Domains.Entities.Post", "Post")
-                        .WithMany()
-                        .HasForeignKey("PostId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired()
-                        .HasConstraintName("fk_reactions_posts_post_id");
-
-                    b.HasOne("Domains.Entities.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired()
-                        .HasConstraintName("fk_reactions_users_user_id");
-
-                    b.Navigation("Post");
-
-                    b.Navigation("User");
+                    b.Navigation("Owner");
                 });
 
             modelBuilder.Entity("Domains.Entities.RefreshToken", b =>
@@ -943,15 +715,7 @@ namespace Infrastructures.Data.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_upload_batches_users_owner_id");
 
-                    b.HasOne("Domains.Entities.Post", "Post")
-                        .WithOne()
-                        .HasForeignKey("Domains.Entities.UploadBatch", "PostId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .HasConstraintName("fk_upload_batches_posts_post_id");
-
                     b.Navigation("Owner");
-
-                    b.Navigation("Post");
                 });
 
             modelBuilder.Entity("Domains.Entities.UploadItem", b =>
@@ -968,12 +732,7 @@ namespace Infrastructures.Data.Migrations
 
             modelBuilder.Entity("Domains.Entities.Collection", b =>
                 {
-                    b.Navigation("Posts");
-                });
-
-            modelBuilder.Entity("Domains.Entities.Post", b =>
-                {
-                    b.Navigation("MediaFiles");
+                    b.Navigation("MediaItems");
                 });
 
             modelBuilder.Entity("Domains.Entities.UploadBatch", b =>

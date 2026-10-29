@@ -1,4 +1,4 @@
-import { AnimateIcon } from "@animate-ui/react/icons";
+import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { Globe } from "@/components/animate-ui/icons/globe";
 import { useLocale } from "../../context/LocaleContext";
 

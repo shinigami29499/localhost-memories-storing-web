@@ -1,5 +1,5 @@
 import { Plus } from "@/components/animate-ui/icons/plus";
-import { AnimateIcon } from "@animate-ui/react/icons";
+import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { useLocale } from "../../context/LocaleContext";
 
 export function CommunityIntro({ variant }: { variant: "login" | "feed" }) {

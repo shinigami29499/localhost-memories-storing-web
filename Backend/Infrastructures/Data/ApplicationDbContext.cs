@@ -11,16 +11,13 @@ public class ApplicationDbContext(
     IAuditActorProvider? actorProvider = null) : DbContext(options)
 {
     public DbSet<User> Users => Set<User>();
-    public DbSet<Post> Posts => Set<Post>();
     public DbSet<MediaFile> MediaFiles => Set<MediaFile>();
-    public DbSet<Comment> Comments => Set<Comment>();
-    public DbSet<Reaction> Reactions => Set<Reaction>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
-    public DbSet<PostUploadNotification> PostUploadNotifications => Set<PostUploadNotification>();
     public DbSet<UploadBatch> UploadBatches => Set<UploadBatch>();
     public DbSet<UploadItem> UploadItems => Set<UploadItem>();
     public DbSet<Collection> Collections => Set<Collection>();
-    public DbSet<CollectionPost> CollectionPosts => Set<CollectionPost>();
+    public DbSet<CollectionMedia> CollectionMedia => Set<CollectionMedia>();
+    public DbSet<MediaFavorite> MediaFavorites => Set<MediaFavorite>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -42,21 +39,6 @@ public class ApplicationDbContext(
             entity.HasQueryFilter(u => u.DeletedAt == null);
         });
 
-        modelBuilder.Entity<Post>(entity =>
-        {
-            entity.Property(p => p.Caption).HasMaxLength(4000).IsRequired();
-
-            entity.HasOne(p => p.User)
-                .WithMany()
-                .HasForeignKey(p => p.UserId)
-                .OnDelete(DeleteBehavior.NoAction);
-
-            entity.HasIndex(p => p.UserId);
-            entity.HasIndex(p => new { p.DeletedAt, p.CreatedAt });
-
-            entity.HasQueryFilter(p => p.DeletedAt == null);
-        });
-
         modelBuilder.Entity<MediaFile>(entity =>
         {
             entity.Property(m => m.OriginalFilename).HasMaxLength(260).IsRequired();
@@ -68,60 +50,17 @@ public class ApplicationDbContext(
             entity.Property(m => m.MediaKind).HasMaxLength(20).IsRequired();
             entity.Property(m => m.Metadata).HasColumnType("jsonb");
 
-            entity.HasOne(m => m.Post)
-                .WithMany(p => p.MediaFiles)
-                .HasForeignKey(m => m.PostId)
+            entity.HasOne(m => m.Owner)
+                .WithMany()
+                .HasForeignKey(m => m.OwnerId)
                 .OnDelete(DeleteBehavior.NoAction);
 
-            entity.HasIndex(m => m.PostId);
+            entity.HasIndex(m => m.OwnerId);
             entity.HasIndex(m => new { m.DeletedAt, m.CreatedAt });
 
             entity.HasIndex(m => m.RelativePath).IsUnique().HasFilter("deleted_at IS NULL");
 
             entity.HasQueryFilter(m => m.DeletedAt == null);
-        });
-
-        modelBuilder.Entity<Comment>(entity =>
-        {
-            entity.Property(c => c.Content).HasMaxLength(4000).IsRequired();
-
-            entity.HasOne(c => c.Post)
-                .WithMany()
-                .HasForeignKey(c => c.PostId)
-                .OnDelete(DeleteBehavior.NoAction);
-
-            entity.HasOne(c => c.User)
-                .WithMany()
-                .HasForeignKey(c => c.UserId)
-                .OnDelete(DeleteBehavior.NoAction);
-
-            entity.HasIndex(c => new { c.PostId, c.CreatedAt });
-
-            entity.HasQueryFilter(c => c.DeletedAt == null);
-        });
-
-        modelBuilder.Entity<Reaction>(entity =>
-        {
-            entity.Property(r => r.ReactionType).HasMaxLength(50).IsRequired();
-
-            entity.HasOne(r => r.Post)
-                .WithMany()
-                .HasForeignKey(r => r.PostId)
-                .OnDelete(DeleteBehavior.NoAction);
-
-            entity.HasOne(r => r.User)
-                .WithMany()
-                .HasForeignKey(r => r.UserId)
-                .OnDelete(DeleteBehavior.NoAction);
-
-            // Deleted reactions free the unique slot.
-            entity.HasIndex(r => new { r.PostId, r.UserId, r.ReactionType })
-                .IsUnique()
-                .HasFilter("deleted_at IS NULL");
-
-            entity.HasIndex(r => new { r.DeletedAt, r.CreatedAt });
-
-            entity.HasQueryFilter(r => r.DeletedAt == null);
         });
 
         modelBuilder.Entity<RefreshToken>(entity =>
@@ -140,26 +79,8 @@ public class ApplicationDbContext(
             entity.HasQueryFilter(t => t.DeletedAt == null);
         });
 
-        modelBuilder.Entity<PostUploadNotification>(entity =>
-        {
-            entity.Property(notification => notification.NotificationType)
-                .HasMaxLength(32)
-                .HasDefaultValue(NotificationTypes.PostUploaded)
-                .IsRequired();
-            entity.Property(notification => notification.ActorUsername).HasMaxLength(64).IsRequired();
-            entity.Property(notification => notification.PostCaption).HasMaxLength(4000).IsRequired();
-            entity.Property(notification => notification.CreatedAt).IsRequired();
-            entity.HasIndex(notification => new { notification.RecipientId, notification.CreatedAt });
-            entity.HasIndex(notification => new { notification.RecipientId, notification.ReadAt });
-        });
-
         modelBuilder.Entity<UploadBatch>(entity =>
         {
-            entity.Property(batch => batch.Caption).HasMaxLength(4000).IsRequired();
-            entity.HasOne(batch => batch.Post)
-                .WithOne()
-                .HasForeignKey<UploadBatch>(batch => batch.PostId)
-                .OnDelete(DeleteBehavior.NoAction);
             entity.Property(batch => batch.Status)
                 .HasConversion(
                     status => status.ToString(),
@@ -222,26 +143,45 @@ public class ApplicationDbContext(
             entity.HasQueryFilter(c => c.DeletedAt == null);
         });
 
-        modelBuilder.Entity<CollectionPost>(entity =>
+        modelBuilder.Entity<CollectionMedia>(entity =>
         {
-            entity.HasOne(cp => cp.Collection)
-                .WithMany(c => c.Posts)
-                .HasForeignKey(cp => cp.CollectionId)
+            entity.HasOne(item => item.Collection)
+                .WithMany(collection => collection.MediaItems)
+                .HasForeignKey(item => item.CollectionId)
                 .OnDelete(DeleteBehavior.NoAction);
 
-            entity.HasOne(cp => cp.Post)
+            entity.HasOne(item => item.MediaFile)
                 .WithMany()
-                .HasForeignKey(cp => cp.PostId)
+                .HasForeignKey(item => item.MediaFileId)
                 .OnDelete(DeleteBehavior.NoAction);
 
-            // Removed entries free the unique slot so a post can be saved again.
-            entity.HasIndex(cp => new { cp.CollectionId, cp.PostId })
+            entity.HasIndex(item => new { item.CollectionId, item.MediaFileId })
                 .IsUnique()
                 .HasFilter("deleted_at IS NULL");
-            entity.HasIndex(cp => new { cp.CollectionId, cp.CreatedAt });
-            entity.HasIndex(cp => cp.PostId);
+            entity.HasIndex(item => new { item.CollectionId, item.CreatedAt });
+            entity.HasIndex(item => item.MediaFileId);
 
-            entity.HasQueryFilter(cp => cp.DeletedAt == null);
+            entity.HasQueryFilter(item => item.DeletedAt == null);
+        });
+
+        modelBuilder.Entity<MediaFavorite>(entity =>
+        {
+            entity.HasOne(favorite => favorite.MediaFile)
+                .WithMany()
+                .HasForeignKey(favorite => favorite.MediaFileId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(favorite => favorite.User)
+                .WithMany()
+                .HasForeignKey(favorite => favorite.UserId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasIndex(favorite => new { favorite.MediaFileId, favorite.UserId })
+                .IsUnique()
+                .HasFilter("deleted_at IS NULL");
+            entity.HasIndex(favorite => new { favorite.UserId, favorite.CreatedAt });
+
+            entity.HasQueryFilter(favorite => favorite.DeletedAt == null);
         });
     }
 
