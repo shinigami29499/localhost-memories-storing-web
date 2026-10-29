@@ -1,6 +1,5 @@
 import { AnimateIcon } from "@/components/animate-ui/icons/icon";
-import { Tabs } from "@animate-ui/react/primitives/base-ui/tabs";
-import { Highlight, HighlightItem } from "@animate-ui/react/primitives/effects/highlight";
+import { Tabs } from "@base-ui/react/tabs";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { userService } from "../../features/users";
@@ -15,6 +14,7 @@ import { Search } from "@/components/animate-ui/icons/search";
 import { ConfirmationDialog } from "../../components/ui/ConfirmationDialog";
 import { Pagination, DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS } from "../../components/ui/Pagination";
 import type { AuthUser } from "../../features/auth";
+import "../gallery/gallery.css";
 import "../admin/admin.css";
 import { useLocale } from "../../context/LocaleContext";
 
@@ -40,8 +40,6 @@ export function UsersPage() {
   const queryClient = useQueryClient();
   const [action, setAction] = useState<{ type: "approve" | "delete"; user: AuthUser } | null>(null);
   const [filter, setFilter] = useState<UserFilter>("all");
-  const [hoveredTab, setHoveredTab] = useState<UserFilter | null>(null);
-  const [focusedTab, setFocusedTab] = useState<UserFilter | null>(null);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState<number>(() => {
@@ -148,47 +146,25 @@ export function UsersPage() {
               }}
             >
               <div className="admin-users__toolbar">
-                <Highlight
-                  mode="parent"
-                  controlledItems
-                  value={hoveredTab ?? focusedTab}
-                  click={false}
-                  className="admin-tab-highlight"
-                  containerClassName="admin-tabs-highlight admin-users__filters"
-                  exitDelay={0}
+                <Tabs.List
+                  className="gallery-page__filters admin-users__filters"
+                  aria-label={t("Filter users by status")}
                 >
-                  <Tabs.List
-                    className="admin-tabs admin-users__tab-list"
-                    aria-label={t("Filter users by status")}
-                    onPointerLeave={() => setHoveredTab(null)}
-                  >
-                    {userFilters.map((option) => {
-                      const count = option.value === "all"
-                        ? allUsers.length
-                        : allUsers.filter((user) => user.status === option.value).length;
-                      return (
-                        <HighlightItem key={option.value} value={option.value} asChild>
-                          <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
-                            <Tabs.Tab
-                              value={option.value}
-                              className="admin-tab admin-users__tab"
-                              data-active={filter === option.value ? "true" : undefined}
-                              onPointerEnter={(event) => {
-                                if (event.pointerType !== "touch" && window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
-                                  setHoveredTab(option.value);
-                                }
-                              }}
-                              onFocus={() => setFocusedTab(option.value)}
-                              onBlur={() => setFocusedTab(null)}
-                            >
-                              {t(option.label)} <span>{count}</span>
-                            </Tabs.Tab>
-                          </AnimateIcon>
-                        </HighlightItem>
-                      );
-                    })}
-                  </Tabs.List>
-                </Highlight>
+                  {userFilters.map((option) => {
+                    const count = option.value === "all"
+                      ? allUsers.length
+                      : allUsers.filter((user) => user.status === option.value).length;
+                    return (
+                      <Tabs.Tab
+                        key={option.value}
+                        value={option.value}
+                        className="gallery-page__filter admin-users__tab"
+                      >
+                        {t(option.label)} <span>{count}</span>
+                      </Tabs.Tab>
+                    );
+                  })}
+                </Tabs.List>
                 <label className="admin-users__search">
                   <Search
                     size={24}

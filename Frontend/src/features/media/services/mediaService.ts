@@ -35,4 +35,8 @@ export const mediaService = {
   restore(mediaId: string): Promise<void> {
     return api(`/api/media/${mediaId}/restore`, { method: "POST" });
   },
+
+  permanentlyDelete(mediaId: string): Promise<void> {
+    return api(`/api/media/${mediaId}/permanent`, { method: "DELETE" });
+  },
 };

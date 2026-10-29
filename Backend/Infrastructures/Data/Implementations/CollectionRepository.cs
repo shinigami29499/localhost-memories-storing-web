@@ -37,10 +37,15 @@ public sealed class CollectionRepository(ApplicationDbContext db) : ICollectionR
         Guid collectionId, CancellationToken cancellationToken = default)
         => db.Collections.FirstOrDefaultAsync(collection => collection.Id == collectionId, cancellationToken);
 
-    public async Task<IReadOnlyList<Guid>> GetCollectionMediaIdsPageAsync(
+    public Task<IReadOnlyList<Guid>> GetCollectionMediaIdsPageAsync(
         Guid collectionId, int offset, int limit, CancellationToken cancellationToken = default)
+        => GetCollectionMediaIdsPageAsync(collectionId, offset, limit, null, cancellationToken);
+
+    public async Task<IReadOnlyList<Guid>> GetCollectionMediaIdsPageAsync(
+        Guid collectionId, int offset, int limit, string? mediaKind, CancellationToken cancellationToken = default)
         => await db.CollectionMedia.AsNoTracking()
-            .Where(item => item.CollectionId == collectionId && item.MediaFile.DeletedAt == null)
+            .Where(item => item.CollectionId == collectionId && item.MediaFile.DeletedAt == null
+                && (mediaKind == null || item.MediaFile.MediaKind == mediaKind))
             .OrderBy(item => item.CreatedAt)
             .ThenBy(item => item.Id)
             .Skip(offset)
@@ -50,8 +55,13 @@ public sealed class CollectionRepository(ApplicationDbContext db) : ICollectionR
 
     public Task<long> CountCollectionMediaAsync(
         Guid collectionId, CancellationToken cancellationToken = default)
+        => CountCollectionMediaAsync(collectionId, null, cancellationToken);
+
+    public Task<long> CountCollectionMediaAsync(
+        Guid collectionId, string? mediaKind, CancellationToken cancellationToken = default)
         => db.CollectionMedia
-            .Where(item => item.CollectionId == collectionId && item.MediaFile.DeletedAt == null)
+            .Where(item => item.CollectionId == collectionId && item.MediaFile.DeletedAt == null
+                && (mediaKind == null || item.MediaFile.MediaKind == mediaKind))
             .LongCountAsync(cancellationToken);
 
     public async Task<IReadOnlyList<MediaFile>> GetMediaFilesAsync(

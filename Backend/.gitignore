@@ -21,3 +21,4 @@ appsettings.*.UserSecrets.json
 .env.local
 
 **/storage/
+!Infrastructures/Adapters/Storage/

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { Provider } from "@animate-ui/react/primitives/sidebar";
 import { ScrollProgressContainer, ScrollProgressProvider } from "@animate-ui/react/primitives/scroll-progress";
@@ -7,10 +7,13 @@ import { Brand } from "./Brand";
 import { Sidebar } from "./Sidebar";
 import { NotificationBell } from "./NotificationBell";
 import { UploadRuntime } from "../../features/uploads/components/UploadRuntime";
+import { useLocale } from "../../context/LocaleContext";
 
 export const MOBILE_QUERY = "(max-width: 640px)";
 
 export function AuthenticatedLayout() {
+  const { t } = useLocale();
+  const mainRef = useRef<HTMLDivElement>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
     () => window.matchMedia("(max-width: 900px)").matches,
   );
@@ -24,15 +27,39 @@ export function AuthenticatedLayout() {
 
   useEffect(() => {
     if (!drawerOpen) return;
+    const shell = mainRef.current?.parentElement;
+    const sidebar = shell?.querySelector<HTMLElement>(".sidebar");
+    const toggle = shell?.querySelector<HTMLButtonElement>(".sidebar__toggle");
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setSidebarCollapsed(true);
+    sidebar?.querySelector<HTMLElement>("a[href]")?.focus();
+    const handleDrawerKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setSidebarCollapsed(true);
+      } else if (event.key === "Tab") {
+        const controls = Array.from(sidebar?.querySelectorAll<HTMLElement>(
+          'a[href], button:not(:disabled), [tabindex="0"]',
+        ) ?? []).filter((element) =>
+          element.getClientRects().length > 0 && getComputedStyle(element).visibility !== "hidden",
+        );
+        if (toggle) controls.push(toggle);
+        const first = controls[0];
+        const last = controls[controls.length - 1];
+        const active = document.activeElement;
+        if (event.shiftKey && (active === first || !controls.some((element) => element === active))) {
+          event.preventDefault();
+          last?.focus();
+        } else if (!event.shiftKey && (active === last || !controls.some((element) => element === active))) {
+          event.preventDefault();
+          first?.focus();
+        }
+      }
     };
-    document.addEventListener("keydown", closeOnEscape);
+    document.addEventListener("keydown", handleDrawerKey);
     return () => {
       document.body.style.overflow = previousOverflow;
-      document.removeEventListener("keydown", closeOnEscape);
+      document.removeEventListener("keydown", handleDrawerKey);
+      if (toggle?.isConnected) toggle.focus();
     };
   }, [drawerOpen]);
 
@@ -44,6 +71,7 @@ export function AuthenticatedLayout() {
       data-state={sidebarCollapsed ? "collapsed" : "expanded"}
       data-collapsible={sidebarCollapsed ? "icon" : ""}
     >
+      <a className="skip-link" href="#main-content" hidden={drawerOpen}>{t("Skip to content")}</a>
       <Sidebar
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed((value) => !value)}
@@ -52,14 +80,14 @@ export function AuthenticatedLayout() {
       {drawerOpen ? (
         <div className="sidebar-backdrop" aria-hidden="true" onClick={() => setSidebarCollapsed(true)} />
       ) : null}
-      <div className="app-shell__main">
+      <div ref={mainRef} className="app-shell__main" inert={drawerOpen}>
         <UploadRuntime />
         <header className="app-topbar">
           {isMobile ? <Brand /> : null}
           <NotificationBell />
         </header>
         <ScrollProgressProvider>
-          <ScrollProgressContainer className="app-shell__content">
+          <ScrollProgressContainer id="main-content" tabIndex={-1} className="app-shell__content">
             <Outlet />
           </ScrollProgressContainer>
         </ScrollProgressProvider>

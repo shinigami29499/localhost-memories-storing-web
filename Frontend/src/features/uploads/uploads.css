@@ -54,13 +54,59 @@
 .upload-page__header h1 {
   margin: 0;
   color: var(--text-strong);
-  font-size: clamp(1.35rem, 3vw, 1.8rem);
-  line-height: 1.25;
+  font-size: clamp(1.75rem, 3vw, 2.25rem);
+  line-height: 1.15;
+  letter-spacing: -0.04em;
 }
 
 .upload-page__header p {
   margin: 8px 0 0;
   color: var(--text-muted);
+}
+
+.upload-page__form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px 16px;
+  max-width: 1600px;
+  margin: 0 auto 24px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.upload-page__form > label {
+  grid-column: 1 / -1;
+  color: var(--text-strong);
+  font-weight: 600;
+}
+
+.upload-page__form input {
+  min-width: 0;
+  font-size: 1rem;
+}
+
+.upload-page__form input::file-selector-button {
+  margin-right: 12px;
+  padding: 6px 12px;
+  border: 1px solid var(--border-control);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text-strong);
+  font: inherit;
+  cursor: pointer;
+}
+
+.upload-page__form input:not(:disabled)::file-selector-button:hover {
+  background: var(--surface-hover);
+}
+
+.upload-page__content > .spinner,
+.upload-page__content > .error-state {
+  max-width: 1600px;
+  margin-inline: auto;
 }
 
 .upload-list {
@@ -358,6 +404,11 @@
   .upload-page__header {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .upload-page__form {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 16px;
   }
 
 }

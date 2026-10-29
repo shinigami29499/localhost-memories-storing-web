@@ -101,7 +101,7 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
   return (
     <>
       <Gap className="sidebar-gap" aria-hidden="true" />
-      <Container className={`sidebar${collapsed ? " sidebar--collapsed" : ""}`}>
+      <Container className={`sidebar${collapsed ? " sidebar--collapsed" : ""}`} inert={isMobile && collapsed}>
         <SidebarInner className="sidebar__inner">
           <div className="sidebar__brand">
             <Brand />
@@ -116,7 +116,7 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
                 aria-label={t("Home")}
                 title={t("Home")}
               >
-                <span className="sidebar__home-icon"><Home size={18} aria-hidden="true" /></span>
+                <Home size={18} className="sidebar__home-icon" aria-hidden="true" />
                 <span>{t("Home")}</span>
               </NavLink>
             </AnimateIcon>

@@ -10,6 +10,11 @@ import type { Album } from "../../features/albums/types";
 import { useAuthStore } from "../../store/authStore";
 import { HomePage } from "./HomePage";
 
+vi.mock("motion/react", async (importOriginal) => ({
+  ...await importOriginal<typeof import("motion/react")>(),
+  useInView: () => true,
+}));
+
 vi.mock("../../features/albums/services/albumService", () => ({
   albumService: { list: vi.fn() },
 }));
@@ -17,6 +22,7 @@ vi.mock("../../features/albums/services/albumService", () => ({
 const ownAlbum: Album = {
   id: "own-album",
   name: "My album",
+  caption: "",
   isPublic: false,
   owner: { id: "viewer", username: "viewer" },
   mediaCount: 3,

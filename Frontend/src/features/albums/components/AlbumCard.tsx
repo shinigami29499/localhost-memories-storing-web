@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { useInView } from "motion/react";
 import { Link } from "react-router-dom";
 import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { Bookmark } from "@/components/animate-ui/icons/bookmark";
 import { PencilLine } from "@/components/animate-ui/icons/pencil-line";
 import { useLocale } from "../../../context/LocaleContext";
-import { mediaUrl } from "../../../utils/media";
+import { mediaPreviewUrl } from "../../../utils/media";
 import type { Album } from "../types";
 
 interface Props {
@@ -17,6 +18,8 @@ interface Props {
 
 export function AlbumCard({ album, isOwner, showOwner = false, onEdit }: Props) {
   const { t } = useLocale();
+  const previewRef = useRef<HTMLSpanElement>(null);
+  const inView = useInView(previewRef, { margin: "200px 0px" });
   const [failedId, setFailedId] = useState<string | null>(null);
   const preview = album.previewMediaId;
   const showImage = preview && failedId !== preview;
@@ -25,9 +28,9 @@ export function AlbumCard({ album, isOwner, showOwner = false, onEdit }: Props) 
   return (
     <article className="album-card">
       <Link to={`/albums/${album.id}`} className="album-card__link" aria-label={t("Open album {name}", { name: album.name })}>
-        <span className="album-card__media">
+        <span ref={previewRef} className="album-card__media">
           {showImage ? (
-            <img src={mediaUrl(preview)} alt="" loading="lazy" onError={() => setFailedId(preview)} />
+            inView ? <img src={mediaPreviewUrl(preview)} alt="" loading="lazy" decoding="async" onError={() => setFailedId(preview)} /> : null
           ) : (
             <span className="album-card__placeholder" aria-hidden="true"><Bookmark size={32} /></span>
           )}
@@ -35,6 +38,7 @@ export function AlbumCard({ album, isOwner, showOwner = false, onEdit }: Props) 
         </span>
         <span className="album-card__body">
           <span className="album-card__name">{album.name}</span>
+          {album.caption ? <span className="album-card__caption">{album.caption}</span> : null}
           <span className="album-card__meta">
             {t("{count} media", { count: album.mediaCount })}
             {showOwner ? <> · <span className="album-card__owner">{t("by {owner}", { owner: ownerLabel })}</span></> : null}

@@ -3,6 +3,7 @@ namespace Domains.Entities;
 public class Collection : AuditableEntity
 {
     public required string Name { get; set; }
+    public string Caption { get; set; } = "";
     public Guid OwnerId { get; set; }
     public User Owner { get; set; } = null!;
     public bool IsPublic { get; set; }

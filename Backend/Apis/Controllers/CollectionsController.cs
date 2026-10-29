@@ -31,7 +31,7 @@ public class CollectionsController(
     public async Task<ActionResult<PagedMediaResponse<MediaFileDto>>> GetCollectionMediaAsync(
         Guid collectionId, [FromQuery] MediaPageRequest request, CancellationToken cancellationToken)
         => Ok(await collectionService.GetCollectionMediaAsync(
-            collectionId, currentUser.RequireUserId(), request.Offset, request.Limit, cancellationToken));
+            collectionId, currentUser.RequireUserId(), request, cancellationToken));
 
     [HttpPost]
     public async Task<ActionResult<CollectionDto>> CreateCollectionAsync(
@@ -46,6 +46,12 @@ public class CollectionsController(
     public async Task<ActionResult<CollectionDto>> UpdateCollectionAsync(
         Guid collectionId, UpdateCollectionRequest request, CancellationToken cancellationToken)
         => Ok(await collectionService.UpdateCollectionAsync(
+            collectionId, currentUser.RequireUserId(), request, cancellationToken));
+
+    [HttpPut("{collectionId:guid}/caption")]
+    public async Task<ActionResult<CollectionDto>> UpdateCollectionCaptionAsync(
+        Guid collectionId, UpdateCollectionCaptionRequest request, CancellationToken cancellationToken)
+        => Ok(await collectionService.UpdateCollectionCaptionAsync(
             collectionId, currentUser.RequireUserId(), request, cancellationToken));
 
     [HttpDelete("{collectionId:guid}")]

@@ -16,6 +16,30 @@ public sealed class MediaRepository(ApplicationDbContext db) : IMediaRepository
             .IgnoreQueryFilters()
             .FirstOrDefaultAsync(m => m.Id == mediaId, cancellationToken);
 
+    public async Task PermanentlyDeleteMediaAsync(
+        Guid mediaId, Guid actorId, CancellationToken cancellationToken = default)
+    {
+        var utcNow = DateTime.UtcNow;
+        // Only this explicit purge path bypasses the DbContext's physical-delete guard.
+        await db.Collections.IgnoreQueryFilters()
+            .Where(collection => collection.PreviewMediaFileId == mediaId)
+            .ExecuteUpdateAsync(
+                setters => setters
+                    .SetProperty(collection => collection.PreviewMediaFileId, (Guid?)null)
+                    .SetProperty(collection => collection.UpdatedAt, utcNow)
+                    .SetProperty(collection => collection.UpdatedBy, actorId),
+                cancellationToken);
+        await db.CollectionMedia.IgnoreQueryFilters()
+            .Where(item => item.MediaFileId == mediaId)
+            .ExecuteDeleteAsync(cancellationToken);
+        await db.MediaFavorites.IgnoreQueryFilters()
+            .Where(favorite => favorite.MediaFileId == mediaId)
+            .ExecuteDeleteAsync(cancellationToken);
+        await db.MediaFiles.IgnoreQueryFilters()
+            .Where(media => media.Id == mediaId)
+            .ExecuteDeleteAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<MediaFile>> GetMediaPageAsync(
         int offset,
         int limit,

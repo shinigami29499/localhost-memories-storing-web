@@ -54,10 +54,12 @@ describe("shared icon triggers", () => {
   let container: HTMLDivElement;
   let root: Root;
   let standalone: boolean;
+  let mobile: boolean;
   let fineHover: boolean;
 
   beforeEach(() => {
     standalone = false;
+    mobile = false;
     fineHover = true;
     animationStarts.length = 0;
     ViewObserver.instances.clear();
@@ -65,6 +67,7 @@ describe("shared icon triggers", () => {
     vi.stubGlobal("IntersectionObserver", ViewObserver);
     vi.stubGlobal("matchMedia", vi.fn((media: string) => ({
       matches: media === "(display-mode: standalone)" ? standalone
+        : media === "(max-width: 640px)" ? mobile
         : media === "(hover: hover) and (pointer: fine)" && fineHover,
       media,
       addEventListener: vi.fn(),
@@ -132,6 +135,22 @@ describe("shared icon triggers", () => {
     expect(animationStarts.filter((value) => value === "animate")).toHaveLength(2);
   });
 
+  it("animates mobile browser icons on view and re-entry", async () => {
+    mobile = true;
+    fineHover = false;
+    await render(<AnimateIcon asChild><button><ProbeIcon /></button></AnimateIcon>);
+    const button = container.querySelector("button")!;
+    await view(button, true);
+    expect(animationStarts.filter((value) => value === "animate")).toHaveLength(1);
+    await view(button, false);
+    await view(button, true);
+    expect(animationStarts.filter((value) => value === "animate")).toHaveLength(2);
+    await pointer(button, "pointerdown");
+    expect(container.querySelector("svg")?.dataset.active).toBe("true");
+    await pointer(button, "pointerup");
+    expect(container.querySelector("svg")?.dataset.active).toBe("false");
+  });
+
   it("replays press after the entry animation finishes", async () => {
     standalone = true;
     await render(<AnimateIcon asChild><button><ProbeIcon />Label</button></AnimateIcon>);
@@ -151,18 +170,25 @@ describe("shared icon triggers", () => {
     expect(animationStarts.filter((value) => value === "animate")).toHaveLength(4);
   });
 
-  it("animates bare icons on view and preserves explicit opt-outs", async () => {
-    standalone = true;
-    await render(<><IconWrapper icon={ProbeIcon} /><IconWrapper icon={ProbeIcon} animate={false} /></>);
-    const [icon, spinner] = Array.from(container.querySelectorAll("svg"));
+  it.each(["standalone", "mobile"])("animates bare %s icons on view and preserves explicit opt-outs", async (mode) => {
+    standalone = mode === "standalone";
+    mobile = mode === "mobile";
+    await render(<>
+      <IconWrapper icon={ProbeIcon} />
+      <IconWrapper icon={ProbeIcon} animate={false} />
+      <IconWrapper icon={ProbeIcon} animateOnView={false} />
+    </>);
+    const [icon, spinner, optedOut] = Array.from(container.querySelectorAll("svg"));
     await view(icon, true);
     await view(spinner, true);
+    await view(optedOut, true);
     expect(animationStarts.filter((value) => value === "animate")).toHaveLength(1);
     expect(spinner.dataset.active).toBe("false");
   });
 
-  it("keeps reduced-motion icons still on view and press", async () => {
-    standalone = true;
+  it.each(["standalone", "mobile"])("keeps reduced-motion %s icons still on view and press", async (mode) => {
+    standalone = mode === "standalone";
+    mobile = mode === "mobile";
     await render(<AnimateIcon asChild><button><ProbeIcon /></button></AnimateIcon>, "always");
     const button = container.querySelector("button")!;
     await view(button, true);

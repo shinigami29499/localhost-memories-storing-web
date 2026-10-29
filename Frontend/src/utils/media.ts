@@ -12,6 +12,10 @@ export function mediaUrl(mediaId: string, includeDeleted = false): string {
   return `${base}/api/media/${mediaId}/file?accessToken=${encodeURIComponent(token)}${includeDeleted ? "&includeDeleted=true" : ""}`;
 }
 
+export function mediaPreviewUrl(mediaId: string, includeDeleted = false): string {
+  return `${mediaUrl(mediaId, includeDeleted)}&preview=true`;
+}
+
 export function formatTimestamp(iso: string, language: "en" | "vi" = "en"): string {
   const date = new Date(iso);
   const diffMs = Date.now() - date.getTime();

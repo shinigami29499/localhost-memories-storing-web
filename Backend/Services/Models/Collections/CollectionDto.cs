@@ -5,6 +5,7 @@ namespace Services.Models.Collections;
 public record CollectionDto(
     Guid Id,
     string Name,
+    string Caption,
     bool IsPublic,
     UserSummaryDto Owner,
     int MediaCount,

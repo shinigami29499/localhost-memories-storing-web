@@ -11,6 +11,28 @@ its paged media; Pictures, Videos, and Favorites browse the user's media library
 Uploads are managed separately and create standalone media records. Administrators can
 restore deleted media from Trash.
 
+Pictures, Videos, and Favorites group square thumbnails by local upload date, with a
+2px gap and no captions or image icons. Each loaded date group uses 4 columns for
+1-4 items, 5 for 5-10, and 6 for 11 or more; columns update as more media loads.
+Videos have a small bottom-left clip icon. Click to open the full-screen viewer,
+hold for 500ms to select, or double-click to add to favorites (never remove).
+Keyboard users can open with Enter or Space, select with Shift+Space, and favorite
+with F. Selection mode makes tile clicks toggle selection. Album cards are unchanged.
+
+Album detail uses the same square thumbnails and viewer without date headings or date
+sorting. Images and Videos tabs filter the album before pagination and keep its saved
+order. Album owners can still remove individual items or edit, share, and delete albums.
+The collection media endpoint accepts optional `mediaKind=image` or `mediaKind=video`;
+its total reflects that filter. Omitting the filter retains the mixed-media response.
+
+Gallery tiles, album covers, and album pickers request JPEG previews rather than
+original files. Image and video previews fit within 640 x 640 pixels without
+upscaling; videos use their first frame. Only the active fullscreen item loads the
+original image or video. Neighboring carousel slides keep using small previews.
+Previews are generated on first request, including for existing uploads, and cached
+under `MediaStorage:Root/previews/v1`. Trash previews retain admin-only access.
+Permanent deletion removes the cached preview; originals are never modified.
+
 ## Technology Stack
 
 | Layer      | Technology                                                           |
@@ -70,6 +92,14 @@ The connection string lives in [Backend/Apis/appsettings.json](Backend/Apis/apps
 (host/port/user/password) — change it to match your machine.
 
 ### 2. Backend
+
+Install FFmpeg and add it to the API process's `PATH` before browsing media.
+Alternatively, set `MediaStorage:FFmpegPath` (environment variable
+`MediaStorage__FFmpegPath`) to the full path of `ffmpeg.exe` or the FFmpeg binary.
+Restart the API after changing its environment. A missing FFmpeg binary or failed
+decode returns an error and shows the existing preview retry state; it never
+falls back to downloading an original in the gallery. Generation runs one file at
+a time with a 30-second timeout per file.
 
 ```powershell
 cd Backend

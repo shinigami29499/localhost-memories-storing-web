@@ -2,7 +2,7 @@ import { AlertDialog } from "@animate-ui/react/primitives/base-ui/alert-dialog";
 import { Bookmark } from "@/components/animate-ui/icons/bookmark";
 import { X } from "@/components/animate-ui/icons/x";
 import { useLocale } from "../../../context/LocaleContext";
-import { mediaUrl } from "../../../utils/media";
+import { mediaPreviewUrl } from "../../../utils/media";
 import type { Album } from "../types";
 
 interface Props {
@@ -47,7 +47,7 @@ export function AlbumChooserDialog({ albums, onClose, onSelect }: Props) {
                     >
                       <span className="album-picker__thumb" aria-hidden="true">
                         {album.previewMediaId ? (
-                          <img src={mediaUrl(album.previewMediaId)} alt="" loading="lazy" />
+                          <img src={mediaPreviewUrl(album.previewMediaId)} alt="" loading="lazy" />
                         ) : (
                           <Bookmark size={18} />
                         )}

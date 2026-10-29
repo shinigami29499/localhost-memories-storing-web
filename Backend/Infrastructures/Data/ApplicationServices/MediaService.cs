@@ -23,7 +23,7 @@ public class MediaService(
     private readonly ILogger<MediaService> _logger = logger;
 
     public async Task<MediaFileContent> GetMediaFileAsync(
-        Guid mediaId, bool includeDeleted, CancellationToken cancellationToken = default)
+        Guid mediaId, bool includeDeleted, CancellationToken cancellationToken = default, bool preview = false)
     {
         var media = includeDeleted
             ? await _repository.FindMediaIncludingDeletedAsync(mediaId, cancellationToken)
@@ -39,6 +39,13 @@ public class MediaService(
 
         if (!await _storage.ExistsAsync(relativePath))
             throw new NotFoundException($"Media '{mediaId}' is present in the database but missing on disk.");
+
+        if (preview)
+        {
+            var previewStream = await _storage.OpenPreviewAsync(relativePath, cancellationToken);
+            return new MediaFileContent(
+                previewStream, "image/jpeg", $"{Path.GetFileNameWithoutExtension(media.OriginalFilename)}.preview.jpg");
+        }
 
         var stream = await _storage.OpenAsync(relativePath);
         return new MediaFileContent(stream, media.MimeType, media.OriginalFilename);
@@ -107,6 +114,51 @@ public class MediaService(
         }
 
         _logger.LogInformation("Media {MediaId} restored by {ActorId}", mediaId, actorId);
+    }
+
+    public async Task PermanentlyDeleteMediaAsync(
+        Guid mediaId, Guid actorId, bool isAdmin, CancellationToken cancellationToken = default)
+    {
+        if (!isAdmin)
+            throw new ForbiddenException("Only administrators may permanently delete media.");
+
+        var media = await _repository.FindMediaIncludingDeletedAsync(mediaId, cancellationToken);
+        if (media is null)
+        {
+            await _storage.DeleteAsync($"trash/purge/{mediaId:N}", cancellationToken);
+            return;
+        }
+
+        if (!media.IsDeleted)
+            throw new ConflictException("Media must be in trash before permanent deletion.");
+
+        var trashPath = media.TrashRelativePath
+            ?? throw new NotFoundException($"Media '{mediaId}' has no file in trash.");
+        var purgePath = await _storage.MoveToPurgeAsync(trashPath, mediaId, cancellationToken);
+
+        try
+        {
+            await using var tx = await _unitOfWork.BeginTransactionAsync(cancellationToken);
+            await _repository.PermanentlyDeleteMediaAsync(mediaId, actorId, cancellationToken);
+            await tx.CommitAsync(cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            if (purgePath is not null)
+            {
+                _logger.LogError(
+                    exception,
+                    "Media {MediaId} permanent deletion failed at database stage; restoring file to trash",
+                    mediaId);
+                await _storage.RestoreFromTrashAsync(purgePath, trashPath, cancellationToken);
+            }
+            throw;
+        }
+
+        if (purgePath is not null)
+            await _storage.DeleteAsync(purgePath, cancellationToken);
+
+        _logger.LogInformation("Media {MediaId} permanently deleted", mediaId);
     }
 
     private async Task<MediaFile> LoadOwnedMediaAsync(

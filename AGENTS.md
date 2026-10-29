@@ -31,11 +31,12 @@ See [CLAUDE.md](CLAUDE.md) for repository architecture and common commands.
 
 ## Permissions
 
-| Operation              | Policy               |
-| ---------------------- | -------------------- |
-| Read/search files      | Allowed              |
-| Edit/create files      | Allowed              |
+| Operation         | Policy  |
+| ----------------- | ------- |
+| Read/search files | Allowed |
+| Edit/create files | Allowed |
+
 <!--
 | Shell commands         | Ask for confirmation |
-| Destructive operations | Always confirm       | 
+| Destructive operations | Always confirm       |
 -->

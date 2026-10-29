@@ -53,11 +53,12 @@ public class MediaController(
             includeDeleted: true,
             cancellationToken));
 
-    /// <summary>Streams media; includeDeleted allows admins to preview files in trash without restoring them.</summary>
+    /// <summary>Streams originals or small JPEG previews; includeDeleted is restricted to admins.</summary>
     [HttpGet("{mediaId:guid}/file")]
     [AllowAnonymous]
     public async Task<IActionResult> GetFileAsync(
-        Guid mediaId, CancellationToken cancellationToken, [FromQuery] bool includeDeleted = false)
+        Guid mediaId, CancellationToken cancellationToken, [FromQuery] bool includeDeleted = false,
+        [FromQuery] bool preview = false)
     {
         var accessTokenQuery = (string?)Request.Query["accessToken"];
         if (_currentUser.UserId is null && !TryResolveAccessTokenUser(accessTokenQuery))
@@ -66,10 +67,10 @@ public class MediaController(
         if (includeDeleted && !_currentUser.IsAdmin)
             throw new ForbiddenException("Only administrators may preview deleted media.");
 
-        if (includeDeleted)
+        if (includeDeleted || preview)
             Response.Headers.CacheControl = "no-store";
 
-        var media = await _mediaService.GetMediaFileAsync(mediaId, includeDeleted, cancellationToken);
+        var media = await _mediaService.GetMediaFileAsync(mediaId, includeDeleted, cancellationToken, preview);
         return File(
             media.Content,
             media.MimeType,
@@ -91,6 +92,15 @@ public class MediaController(
     public async Task<IActionResult> RestoreMediaAsync(Guid mediaId, CancellationToken cancellationToken)
     {
         await _mediaService.RestoreMediaAsync(
+            mediaId, _currentUser.RequireUserId(), _currentUser.IsAdmin, cancellationToken);
+        return NoContent();
+    }
+
+    [RequireAdmin]
+    [HttpDelete("{mediaId:guid}/permanent")]
+    public async Task<IActionResult> PermanentlyDeleteMediaAsync(Guid mediaId, CancellationToken cancellationToken)
+    {
+        await _mediaService.PermanentlyDeleteMediaAsync(
             mediaId, _currentUser.RequireUserId(), _currentUser.IsAdmin, cancellationToken);
         return NoContent();
     }

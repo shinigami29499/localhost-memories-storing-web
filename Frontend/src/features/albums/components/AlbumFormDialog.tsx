@@ -7,10 +7,10 @@ import { showToast } from "../../../components/ui/Toast";
 import { ErrorState, Spinner } from "../../../components/ui/Status";
 import { useLocale } from "../../../context/LocaleContext";
 import { ApiError } from "../../../services/api";
-import { mediaUrl } from "../../../utils/media";
+import { mediaPreviewUrl } from "../../../utils/media";
 import { useAlbumMedia } from "../hooks/useAlbums";
 import type { Album, UpdateAlbumInput } from "../types";
-import { ALBUM_NAME_MAX_LENGTH } from "../types";
+import { ALBUM_CAPTION_MAX_LENGTH, ALBUM_NAME_MAX_LENGTH } from "../types";
 
 const PREVIEW_CANDIDATE_LIMIT = 100;
 
@@ -26,6 +26,7 @@ export function AlbumFormDialog({ album, onSubmit, onClose }: Props) {
   const { t } = useLocale();
   const editing = Boolean(album);
   const [name, setName] = useState(album?.name ?? "");
+  const [caption, setCaption] = useState(album?.caption ?? "");
   const [isPublic, setIsPublic] = useState(album?.isPublic ?? false);
   const [previewMediaId, setPreviewMediaId] = useState<string | null>(album?.customPreviewMediaId ?? null);
   const [busy, setBusy] = useState(false);
@@ -42,7 +43,7 @@ export function AlbumFormDialog({ album, onSubmit, onClose }: Props) {
     if (!trimmed || busy) return;
     setBusy(true);
     try {
-      await onSubmit({ name: trimmed, isPublic, previewMediaId });
+      await onSubmit({ name: trimmed, caption: caption.trim(), isPublic, previewMediaId });
     } catch (err) {
       showToast.error(err instanceof ApiError ? err.message : t("Could not complete this action. Please retry."));
       setBusy(false);
@@ -80,6 +81,15 @@ export function AlbumFormDialog({ album, onSubmit, onClose }: Props) {
                     autoFocus
                   />
                 </label>
+                <label className="album-form__field">
+                  <span>{t("Album caption")}</span>
+                  <textarea
+                    value={caption}
+                    onChange={(event) => setCaption(event.target.value)}
+                    maxLength={ALBUM_CAPTION_MAX_LENGTH}
+                    rows={3}
+                  />
+                </label>
                 <label className="album-form__toggle">
                   <input type="checkbox" checked={isPublic} onChange={(event) => setIsPublic(event.target.checked)} />
                   <span>
@@ -113,7 +123,7 @@ export function AlbumFormDialog({ album, onSubmit, onClose }: Props) {
                             className="preview-picker__option"
                             onClick={() => setPreviewMediaId(image.id)}
                           >
-                            <img src={mediaUrl(image.id)} alt="" loading="lazy" />
+                            <img src={mediaPreviewUrl(image.id)} alt="" loading="lazy" />
                           </button>
                         ))}
                       </div>

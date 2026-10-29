@@ -37,15 +37,25 @@ public sealed class CollectionService(
         Guid collectionId, Guid viewerId, CancellationToken cancellationToken = default)
         => mapper.Map(await GetViewableSourceAsync(collectionId, viewerId, cancellationToken));
 
-    public async Task<PagedMediaResponse<MediaFileDto>> GetCollectionMediaAsync(
+    public Task<PagedMediaResponse<MediaFileDto>> GetCollectionMediaAsync(
         Guid collectionId, Guid viewerId, int offset, int limit, CancellationToken cancellationToken = default)
+        => GetCollectionMediaAsync(
+            collectionId, viewerId, new MediaPageRequest { Offset = offset, Limit = limit }, cancellationToken);
+
+    public async Task<PagedMediaResponse<MediaFileDto>> GetCollectionMediaAsync(
+        Guid collectionId, Guid viewerId, MediaPageRequest request, CancellationToken cancellationToken = default)
     {
+        var (offset, limit) = (request.Offset, request.Limit);
         ValidatePage(offset, limit);
+        if (request.MediaKind is not null && request.MediaKind is not ("image" or "video"))
+            throw new ValidationException(
+                "Invalid media page.",
+                new Dictionary<string, string[]> { ["mediaKind"] = ["Must be 'image' or 'video'."] });
         await GetViewableSourceAsync(collectionId, viewerId, cancellationToken);
 
         var mediaIds = await repository.GetCollectionMediaIdsPageAsync(
-            collectionId, offset, limit, cancellationToken);
-        var total = await repository.CountCollectionMediaAsync(collectionId, cancellationToken);
+            collectionId, offset, limit, request.MediaKind, cancellationToken);
+        var total = await repository.CountCollectionMediaAsync(collectionId, request.MediaKind, cancellationToken);
         if (mediaIds.Count == 0)
             return new PagedMediaResponse<MediaFileDto>(offset, limit, total, []);
 
@@ -67,6 +77,7 @@ public sealed class CollectionService(
         var collection = new Collection
         {
             Name = NormalizeName(request.Name),
+            Caption = NormalizeCaption(request.Caption),
             OwnerId = ownerId,
             IsPublic = request.IsPublic,
         };
@@ -93,6 +104,22 @@ public sealed class CollectionService(
         collection.Name = name;
         collection.IsPublic = request.IsPublic;
         collection.PreviewMediaFileId = request.PreviewMediaId;
+        if (request.Caption is not null)
+            collection.Caption = NormalizeCaption(request.Caption);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+        return await GetOwnedDtoAsync(collectionId, cancellationToken);
+    }
+
+    public async Task<CollectionDto> UpdateCollectionCaptionAsync(
+        Guid collectionId, Guid editorId, UpdateCollectionCaptionRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var collection = await repository.FindCollectionAsync(collectionId, cancellationToken)
+            ?? throw new NotFoundException($"Collection '{collectionId}' was not found.");
+        if (collection.OwnerId != editorId && !collection.IsPublic)
+            throw new NotFoundException($"Collection '{collectionId}' was not found.");
+
+        collection.Caption = NormalizeCaption(request.Caption);
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return await GetOwnedDtoAsync(collectionId, cancellationToken);
     }
@@ -184,6 +211,19 @@ public sealed class CollectionService(
                 new Dictionary<string, string[]>
                 {
                     ["name"] = [$"Must be 1 to {CreateCollectionRequest.MaxNameLength} characters."]
+                });
+        return trimmed;
+    }
+
+    private static string NormalizeCaption(string? caption)
+    {
+        var trimmed = caption?.Trim() ?? "";
+        if (trimmed.Length > CreateCollectionRequest.MaxCaptionLength)
+            throw new ValidationException(
+                "Invalid collection caption.",
+                new Dictionary<string, string[]>
+                {
+                    ["caption"] = [$"Must be at most {CreateCollectionRequest.MaxCaptionLength} characters."]
                 });
         return trimmed;
     }

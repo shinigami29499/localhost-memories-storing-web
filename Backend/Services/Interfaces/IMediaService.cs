@@ -6,9 +6,11 @@ namespace Services.Interfaces;
 public interface IMediaService
 {
     Task<MediaFileContent> GetMediaFileAsync(
-        Guid mediaId, bool includeDeleted, CancellationToken cancellationToken = default);
+        Guid mediaId, bool includeDeleted, CancellationToken cancellationToken = default, bool preview = false);
     Task DeleteMediaAsync(Guid mediaId, Guid actorId, bool isAdmin, CancellationToken cancellationToken = default);
     Task RestoreMediaAsync(Guid mediaId, Guid actorId, bool isAdmin, CancellationToken cancellationToken = default);
+    Task PermanentlyDeleteMediaAsync(
+        Guid mediaId, Guid actorId, bool isAdmin, CancellationToken cancellationToken = default);
     Task<PagedMediaResponse<MediaFileDto>> GetMediaPageAsync(
         Guid viewerId, int offset, int limit, string? mediaKind, bool favoritesOnly, bool includeDeleted,
         CancellationToken cancellationToken = default);

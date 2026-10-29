@@ -7,7 +7,7 @@ using Services.Models.Media;
 namespace Infrastructures.Adapters.Implementations;
 
 /// <summary>Filesystem operations only; callers coordinate database changes.</summary>
-public sealed class MediaStorageService(
+public sealed partial class MediaStorageService(
     MediaStorageOptions options,
     ILogger<MediaStorageService> logger) : IMediaStorageService
 {
@@ -116,6 +116,43 @@ public sealed class MediaStorageService(
         _logger.LogInformation("Moved media file {RelativePath} to trash as {TrashRelativePath}",
             relativePath, trashRelative);
         return trashRelative;
+    }
+
+    public async Task<string?> MoveToPurgeAsync(
+        string trashRelativePath, Guid mediaId, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ValidateOwnedPath(trashRelativePath);
+        if (!trashRelativePath.StartsWith($"{TrashSubdirectory}/", StringComparison.Ordinal))
+            throw new InvalidMediaFileException(
+                $"Storage path '{trashRelativePath}' is not a trashed media file.");
+
+        await _previewGate.WaitAsync(cancellationToken);
+        try
+        {
+            File.Delete(ResolveAbsolute(PreviewRelativePath(trashRelativePath)));
+            var source = ResolveAbsolute(trashRelativePath);
+            if (!File.Exists(source))
+            {
+                _logger.LogWarning(
+                    "Trashed media file '{RelativePath}' is missing; permanently deleting its database record",
+                    trashRelativePath);
+                return null;
+            }
+
+            var purgeRelativePath = $"{TrashSubdirectory}/purge/{mediaId:N}";
+            var destination = ResolveAbsolute(purgeRelativePath);
+            Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+            File.Move(source, destination);
+            _logger.LogInformation(
+                "Staged trashed media file {RelativePath} for permanent deletion as {PurgePath}",
+                trashRelativePath, purgeRelativePath);
+            return purgeRelativePath;
+        }
+        finally
+        {
+            _previewGate.Release();
+        }
     }
 
     public async Task RestoreFromTrashAsync(

@@ -9,7 +9,7 @@ import { Spinner, ErrorState } from "../../../components/ui/Status";
 import { showToast } from "../../../components/ui/Toast";
 import { useLocale } from "../../../context/LocaleContext";
 import { ApiError } from "../../../services/api";
-import { mediaUrl } from "../../../utils/media";
+import { mediaPreviewUrl } from "../../../utils/media";
 import { albumKeys, useInvalidateAlbums } from "../hooks/useAlbums";
 import { albumService } from "../services/albumService";
 import type { Album } from "../types";
@@ -56,6 +56,8 @@ export function SaveToAlbumDialog({ mediaIds, onClose, portalContainer }: Props)
       const failed = results.filter((result) => result.status === "rejected").length;
       if (failed > 0) {
         showToast.error(t("{count} media items could not be updated.", { count: failed }));
+      } else if (savedMediaIds.length !== mediaIds.length) {
+        showToast.success(t("Successfully saved to album {name}", { name: album.name }));
       }
     } catch (err) {
       showToast.error(describe(err));
@@ -78,7 +80,7 @@ export function SaveToAlbumDialog({ mediaIds, onClose, portalContainer }: Props)
       if (failed > 0) {
         showToast.error(t("{count} media items could not be saved.", { count: failed }));
       } else {
-        showToast.success(t("Media saved successfully"));
+        showToast.success(t("Successfully saved to album {name}", { name: album.name }));
       }
     } catch (err) {
       showToast.error(describe(err));
@@ -133,7 +135,7 @@ export function SaveToAlbumDialog({ mediaIds, onClose, portalContainer }: Props)
                           onClick={() => void toggle(album)}
                         >
                           <span className="album-picker__thumb" aria-hidden="true">
-                            {album.previewMediaId ? <img src={mediaUrl(album.previewMediaId)} alt="" loading="lazy" /> : <Bookmark size={18} />}
+                            {album.previewMediaId ? <img src={mediaPreviewUrl(album.previewMediaId)} alt="" loading="lazy" /> : <Bookmark size={18} />}
                           </span>
                           <span className="album-picker__text">
                             <span className="album-picker__name">{album.name}</span>

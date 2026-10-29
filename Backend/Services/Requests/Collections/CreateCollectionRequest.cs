@@ -8,4 +8,8 @@ public record CreateCollectionRequest(
     bool IsPublic = false)
 {
     public const int MaxNameLength = 100;
+    public const int MaxCaptionLength = 4000;
+
+    [MaxLength(MaxCaptionLength)]
+    public string? Caption { get; init; }
 }

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pagination, DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS } from "../../components/ui/Pagination";
 import { EmptyState, ErrorState, Spinner } from "../../components/ui/Status";
-import { showToast } from "../../components/ui";
+import { Button, showToast } from "../../components/ui";
 import { useAuthStore } from "../../store/authStore";
 import { useLocale } from "../../context/LocaleContext";
 import { cancelRunningUpload, requestUploadRetry } from "../../features/uploads/services/uploadRuntime";
@@ -145,11 +145,6 @@ export function UploadManagementPage() {
     }
   };
 
-  if (query.isLoading) return <Spinner label="Loading uploads…" />;
-  if (query.isError) {
-    return <ErrorState message="Could not load uploads." onRetry={() => void query.refetch()} />;
-  }
-
   const data = query.data;
   const batches = data?.items ?? [];
 
@@ -158,7 +153,7 @@ export function UploadManagementPage() {
       <div className="upload-page__content">
         <input
           ref={retryInput}
-          className="sr-only"
+          hidden
           type="file"
           aria-label={t("Select replacement file")}
           onChange={(event) => {
@@ -184,12 +179,14 @@ export function UploadManagementPage() {
             disabled={submitting}
             onChange={(event) => setSelectedFiles(Array.from(event.currentTarget.files ?? []))}
           />
-          <button type="submit" className="btn btn--primary" disabled={selectedFiles.length === 0 || submitting}>
+          <Button type="submit" busy={submitting} disabled={selectedFiles.length === 0}>
             {submitting ? t("Starting upload…") : t("Upload media")}
-          </button>
+          </Button>
         </form>
 
-        {batches.length === 0 ? (
+        {query.isPending ? <Spinner label="Loading uploads…" /> : query.isError ? (
+          <ErrorState message="Could not load uploads." onRetry={() => void query.refetch()} />
+        ) : batches.length === 0 ? (
           <EmptyState
             title="No upload batches"
             hint="Select images or videos above to start an upload batch."
@@ -210,7 +207,7 @@ export function UploadManagementPage() {
           </div>
         )}
       </div>
-      {data ? (
+      {data && data.totalItems > 0 ? (
         <footer className="upload-page__footer">
           <Pagination
             page={page}

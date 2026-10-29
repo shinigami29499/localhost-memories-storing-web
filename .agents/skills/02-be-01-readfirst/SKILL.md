@@ -55,9 +55,14 @@ Keep the existing use-case/service pattern unless a change benefits from a diffe
 - Name infrastructure implementations for their role (for example, `UnitOfWork`, `PostRepository`, `MediaStorageService`); do not add technology prefixes such as `Ef`.
 - Use C# primary constructors for dependency assignment; do not add empty constructors.
 - Keep use-case ports owned by the application layer when application workflows depend on them; place those interfaces in `Services/Interfaces/`. Interfaces that define an infrastructure project's own API belong in that infrastructure project's `Interfaces/` folder.
-- Use the existing `IMapper` abstraction and definitions in `Service/Mappings` for entity/DTO/request/response mapping.
+- Use the existing `IMapper` abstraction and definitions in `Services/Mappings` for entity/DTO/request/response mapping.
 - Preserve the current short project and namespace naming; keep the solution filename `ShinigaCim.sln`.
 - Keep comments limited to necessary facts or non-obvious constraints.
+
+## Current API surface
+
+- Controllers expose authentication, collections, media and favorites, uploads, and user workflows. Keep HTTP concerns in `Apis/Controllers/` and delegate use cases through application-owned interfaces.
+- Collection workflows live in `Infrastructures/Data/ApplicationServices/`; persistence contracts and implementations belong to the Data area. Media storage remains an adapter behind application-owned contracts.
 
 ## Project-specific invariants
 
@@ -65,7 +70,7 @@ Keep the existing use-case/service pattern unless a change benefits from a diffe
 - Persistence must remain async. `ApplicationDbContext` rejects synchronous `SaveChanges` and centrally stamps audit fields from the authenticated actor.
 - Admin endpoints use `[RequireAdmin]` and the `AdminOnly` policy.
 - Registration creates pending users; approval activates them. Preserve refresh-token rotation and reuse detection.
-- Post/media deletion and restoration coordinate database state with filesystem moves; preserve compensation/rollback if either side fails.
+- Media deletion and restoration coordinate database state with filesystem moves; preserve compensation/rollback if either side fails. Collections and entries follow soft-delete behavior.
 - Do not read, edit, or move `Backend/Adapter/Security/` or `Backend/Scripts/`.
 - API startup applies migrations/seeding and creates storage directories; do not run it as a read-only check.
 

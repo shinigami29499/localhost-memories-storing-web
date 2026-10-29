@@ -8,6 +8,8 @@ public interface IMediaRepository
         Guid mediaId, CancellationToken cancellationToken = default);
     Task<MediaFile?> FindMediaIncludingDeletedAsync(
         Guid mediaId, CancellationToken cancellationToken = default);
+    Task PermanentlyDeleteMediaAsync(
+        Guid mediaId, Guid actorId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<MediaFile>> GetMediaPageAsync(
         int offset, int limit, string? mediaKind, Guid? favoriteUserId, bool includeDeleted,
         CancellationToken cancellationToken = default);

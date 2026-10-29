@@ -1,6 +1,125 @@
+.media-tile {
+  container-type: inline-size;
+  position: relative;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  aspect-ratio: 1;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--surface-raised);
+  cursor: pointer;
+  touch-action: pan-y pinch-zoom;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.media-tile,
+.media-tile:hover,
+.media-tile:active {
+  scale: 1;
+}
+
+.media-tile__motion {
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  transition: transform 160ms ease;
+}
+
+.media-tile:hover .media-tile__motion {
+  transform: scale(1.04);
+}
+
+.media-tile:active .media-tile__motion {
+  transform: scale(1.06);
+}
+
+.media-tile__retry {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--text-strong);
+  pointer-events: none;
+}
+
+.media-tile:hover:has(.media-tile__retry),
+.media-tile:focus-visible:has(.media-tile__retry) {
+  background: var(--surface-hover);
+}
+
+.media-tile__preview {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  transition: filter 160ms ease;
+}
+
+.media-tile:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: -3px;
+}
+
+.media-tile--selected::after {
+  position: absolute;
+  inset: 0;
+  border: 3px solid #fff;
+  background: rgba(0, 0, 0, 0.18);
+  content: "";
+  pointer-events: none;
+}
+
+.media-tile--selected .media-tile__preview {
+  filter: blur(3px);
+  transform: scale(1.04);
+}
+
+.media-tile__selection {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 1;
+  display: grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  border: 2px solid #fff;
+  border-radius: 4px;
+  background: #fff;
+  color: #17191d;
+  pointer-events: none;
+}
+
+.media-tile__selection-indicator {
+  display: grid;
+  place-items: center;
+}
+
+.media-tile__selection svg {
+  display: block;
+  zoom: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .media-tile__motion {
+    transition: none;
+  }
+
+  .media-tile__preview,
+  .media-preview-dialog__stage img {
+    transition: none;
+  }
+}
+
 .media-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr));
   gap: 16px;
 }
 
@@ -20,6 +139,131 @@
   background: var(--surface-raised);
 }
 
+.media-card__open {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: zoom-in;
+}
+
+.media-card__open:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: -3px;
+}
+
+.media-card__video {
+  position: relative;
+}
+
+.media-card__open-video {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 36px;
+  height: 36px;
+}
+
+.media-preview-dialog__content {
+  position: relative;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+}
+
+.media-preview-dialog__viewport {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  touch-action: pan-y pinch-zoom;
+}
+
+.media-preview-dialog__track {
+  display: flex;
+  height: 100%;
+  margin-left: -8px;
+}
+
+.media-preview-dialog__item {
+  position: relative;
+  flex: 0 0 38.46%;
+  min-width: 0;
+  height: 100%;
+  padding-left: 8px;
+}
+
+.media-preview-dialog__stage {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  place-items: center;
+  overflow: hidden;
+}
+
+.media-preview-dialog__stage img,
+.media-preview-dialog__stage video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.media-preview-dialog__stage img {
+  transition: filter 160ms ease;
+}
+
+.media-preview-dialog__stage:not([data-active="true"]) img {
+  filter: blur(6px);
+}
+
+.media-preview-dialog__controls {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding-top: 16px;
+  color: var(--text-strong);
+}
+
+.media-preview-dialog__dots {
+  max-width: 100%;
+  overflow-x: auto;
+  padding: 8px;
+}
+
+.media-preview-dialog__dots button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 4px;
+}
+
+.media-preview-dialog__counter {
+  font-size: 0.8125rem;
+}
+
+.media-preview-dialog .media-lightbox__close {
+  z-index: 201;
+}
+
+.media-preview-dialog__actions {
+  position: absolute;
+  top: 8px;
+  right: 64px;
+  z-index: 201;
+  display: flex;
+  gap: 8px;
+}
+
+.media-preview-dialog__action[aria-busy="true"] {
+  cursor: wait;
+}
+
 .media-card__footer {
   display: flex;
   align-items: center;
@@ -35,6 +279,51 @@
   font-size: 0.8rem;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.gallery-page--trash .media-card {
+  border-radius: 0;
+}
+
+.gallery-page--trash .media-card__footer {
+  justify-content: flex-end;
+  gap: 4px;
+  padding: 4px;
+}
+
+.media-card__action {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.media-card__action:hover:not(:disabled),
+.media-card__action:focus-visible {
+  background: var(--surface-hover);
+  color: var(--text-strong);
+}
+
+.media-card__action--danger:hover:not(:disabled),
+.media-card__action--danger:focus-visible {
+  color: var(--danger);
+}
+
+.media-card__action:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.media-card__action:disabled {
+  cursor: wait;
+  opacity: 0.55;
 }
 
 .media-card__favorite {
@@ -61,5 +350,23 @@
   .media-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
+  }
+}
+
+@media (max-width: 640px) {
+  .media-preview-dialog__item {
+    flex-basis: 100%;
+  }
+
+  .media-preview-dialog__actions {
+    top: auto;
+    right: auto;
+    bottom: calc(8px + env(safe-area-inset-bottom));
+    left: 50%;
+    translate: -50% 0;
+  }
+
+  .media-preview-dialog__content {
+    padding-bottom: 60px;
   }
 }

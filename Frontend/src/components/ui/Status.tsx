@@ -1,7 +1,5 @@
-import { useEffect } from "react";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import { useLocale } from "../../context/LocaleContext";
-import { showToast } from "./Toast";
 
 export function Spinner({ label = "Loading…" }: { label?: string }) {
   const { t } = useLocale();
@@ -25,17 +23,14 @@ export function EmptyState({ title, hint }: { title: string; hint?: string }) {
 
 export function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
   const { t } = useLocale();
-  useEffect(() => {
-    showToast.error(t(message));
-  }, [message, t]);
-
   return (
-    onRetry ? (
-      <div className="error-state__actions">
+    <div className="error-state">
+      <p className="error-state__message" role="alert">{t(message)}</p>
+      {onRetry ? (
         <button type="button" className="btn btn--secondary" onClick={onRetry}>
           {t("Try again")}
         </button>
-      </div>
-    ) : null
+      ) : null}
+    </div>
   );
 }

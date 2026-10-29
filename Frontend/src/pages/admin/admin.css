@@ -461,8 +461,8 @@
   padding: 0 0 12px;
 }
 
-.admin-users__filters.admin-tabs-highlight {
-  margin-bottom: 0;
+.admin-users__filters {
+  max-width: 100%;
 }
 
 .admin-users__tab {
@@ -710,10 +710,6 @@
   background: transparent;
 }
 
-.admin-page--users .admin-tab-highlight {
-  background: transparent;
-}
-
 .admin-tab {
   align-items: center;
   background: transparent;
@@ -744,8 +740,7 @@
   color: var(--text);
 }
 
-.admin-tab[aria-pressed="true"],
-.admin-users__tab[aria-selected="true"] {
+.admin-tab[aria-pressed="true"] {
   background: var(--surface-hover);
   box-shadow: inset 0 -2px var(--accent-soft);
   color: var(--text-strong);

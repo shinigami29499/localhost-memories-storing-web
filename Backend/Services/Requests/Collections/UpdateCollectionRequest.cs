@@ -7,4 +7,8 @@ public record UpdateCollectionRequest(
     [Required, MinLength(1), MaxLength(CreateCollectionRequest.MaxNameLength)]
     string Name,
     bool IsPublic,
-    Guid? PreviewMediaId);
+    Guid? PreviewMediaId)
+{
+    [MaxLength(CreateCollectionRequest.MaxCaptionLength)]
+    public string? Caption { get; init; }
+}

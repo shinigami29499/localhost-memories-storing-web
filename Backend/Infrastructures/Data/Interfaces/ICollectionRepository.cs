@@ -14,7 +14,11 @@ public interface ICollectionRepository
     Task<Collection?> FindCollectionAsync(Guid collectionId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Guid>> GetCollectionMediaIdsPageAsync(
         Guid collectionId, int offset, int limit, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Guid>> GetCollectionMediaIdsPageAsync(
+        Guid collectionId, int offset, int limit, string? mediaKind, CancellationToken cancellationToken = default);
     Task<long> CountCollectionMediaAsync(Guid collectionId, CancellationToken cancellationToken = default);
+    Task<long> CountCollectionMediaAsync(
+        Guid collectionId, string? mediaKind, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<MediaFile>> GetMediaFilesAsync(
         IReadOnlyCollection<Guid> mediaIds, CancellationToken cancellationToken = default);
     Task<bool> IsCollectionImageAsync(Guid collectionId, Guid mediaId, CancellationToken cancellationToken = default);

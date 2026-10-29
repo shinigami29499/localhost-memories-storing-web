@@ -25,6 +25,9 @@ vi.mock("../../features/uploads/components/UploadBatchCard", () => ({
   UploadBatchCard: () => null,
 }));
 vi.mock("../../components/ui", () => ({
+  Button: ({ busy, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { busy?: boolean }) => (
+    <button {...props} aria-busy={busy || undefined} disabled={props.disabled || busy} />
+  ),
   showToast: { success: vi.fn(), error: vi.fn() },
 }));
 vi.mock("../../components/ui/Status", () => ({
@@ -111,5 +114,34 @@ describe("UploadManagementPage", () => {
 
     await vi.waitFor(() => expect(uploadService.submit).toHaveBeenCalledWith([file]));
     expect(container.textContent).toContain("Upload images and videos");
+  });
+
+  it("keeps the page title and upload form visible while history loads", async () => {
+    vi.mocked(uploadService.list).mockReturnValue(new Promise(() => {}));
+    await act(async () => root.render(
+      <QueryClientProvider client={client}>
+        <LocaleProvider><UploadManagementPage /></LocaleProvider>
+      </QueryClientProvider>,
+    ));
+
+    expect(container.querySelector("h1")?.textContent).toBe("Upload management");
+    expect(container.querySelector("#upload-media-files")).not.toBeNull();
+    expect(container.textContent).toContain("Loading");
+    expect(container.querySelector('[aria-label="Select replacement file"]')?.hasAttribute("hidden")).toBe(true);
+  });
+
+  it("keeps the upload form available when history fails", async () => {
+    vi.mocked(uploadService.list).mockRejectedValue(new Error("History unavailable"));
+    await act(async () => root.render(
+      <QueryClientProvider client={client}>
+        <LocaleProvider><UploadManagementPage /></LocaleProvider>
+      </QueryClientProvider>,
+    ));
+
+    await act(async () => {
+      await vi.waitFor(() => expect(container.textContent).toContain("Error"));
+    });
+    expect(container.querySelector("h1")?.textContent).toBe("Upload management");
+    expect(container.querySelector("#upload-media-files")).not.toBeNull();
   });
 });

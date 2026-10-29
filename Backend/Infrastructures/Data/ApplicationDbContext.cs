@@ -125,6 +125,7 @@ public class ApplicationDbContext(
         modelBuilder.Entity<Collection>(entity =>
         {
             entity.Property(c => c.Name).HasMaxLength(100).IsRequired();
+            entity.Property(c => c.Caption).HasMaxLength(4000).IsRequired().HasDefaultValue("");
 
             entity.HasOne(c => c.Owner)
                 .WithMany()

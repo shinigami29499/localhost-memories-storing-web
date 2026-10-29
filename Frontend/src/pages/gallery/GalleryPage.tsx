@@ -1,16 +1,24 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useQueries, useQueryClient } from "@tanstack/react-query";
+import * as Tabs from "@radix-ui/react-tabs";
+import { ScrollProgress, ScrollProgressContainer, ScrollProgressProvider } from "@animate-ui/react/primitives/scroll-progress";
 import { Bookmark } from "@/components/animate-ui/icons/bookmark";
+import { Heart } from "@/components/animate-ui/icons/heart";
+import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
+import { X } from "@/components/animate-ui/icons/x";
 import { BulkSaveToAlbumDialog } from "../../features/albums/components/BulkSaveToAlbumDialog";
-import { ConfirmationDialog } from "../../components/ui/ConfirmationDialog";
-import { EmptyState, ErrorState, Spinner } from "../../components/ui";
+import { albumKeys } from "../../features/albums/hooks/useAlbums";
+import { albumService } from "../../features/albums/services/albumService";
+import { ConfirmationDialog, EmptyState, ErrorState, Spinner } from "../../components/ui";
 import { showToast } from "../../components/ui/Toast";
 import { useLocale } from "../../context/LocaleContext";
-import { MediaCard } from "../../features/media/components/MediaCard";
+import { MediaTile } from "../../features/media/components/MediaTile";
+import { MediaRetryProvider } from "../../features/media/components/MediaRetryProvider";
+import { MediaPreviewDialog } from "../../features/media/components/MediaPreviewDialog";
 import { mediaService } from "../../features/media/services/mediaService";
 import { useMedia } from "../../features/media/hooks/useMedia";
-import type { MediaKindFilter } from "../../features/media/types";
-import { useAuthStore } from "../../store/authStore";
+import type { MediaFile, MediaKindFilter } from "../../features/media/types";
 import "./gallery.css";
 import "../../features/media/components/media.css";
 
@@ -33,46 +41,104 @@ const viewCopy: Record<GalleryView, { title: string; description: string; emptyT
     title: "Favorites",
     description: "Images and videos you have favorited.",
     emptyTitle: "No favorites yet",
-    emptyHint: "Add media to favorites with the heart button.",
+    emptyHint: "Double-click an image or video to add it to favorites.",
   },
 };
 
-const filters: { value: MediaKindFilter | "all"; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "image", label: "Image" },
-  { value: "video", label: "Video" },
+const filters: { value: MediaKindFilter; label: string }[] = [
+  { value: "image", label: "Images" },
+  { value: "video", label: "Videos" },
 ];
 
 export function GalleryPage({ view = "pictures" }: { view?: GalleryView }) {
-  const { t } = useLocale();
-  const isAdmin = useAuthStore((state) => state.user?.role.toLowerCase() === "admin");
-  const [selectedFilter, setSelectedFilter] = useState<MediaKindFilter | "all">("all");
+  const { t, language } = useLocale();
+  const queryClient = useQueryClient();
+  const [selectedFilter, setSelectedFilter] = useState<MediaKindFilter>("image");
   const [selectionMode, setSelectionMode] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const [selectedItems, setSelectedItems] = useState<Map<string, MediaFile>>(() => new Map());
+  const selectedIds = [...selectedItems.keys()];
+  const albumQueries = useQueries({
+    queries: selectedIds.map((mediaId) => ({
+      queryKey: albumKeys.list("mine", mediaId),
+      queryFn: () => albumService.list("mine", mediaId),
+    })),
+  });
+  const inAlbum = albumQueries.some((query) => query.data?.some((album) => album.containsMedia));
+  const failedAlbumQueries = albumQueries.filter((query) => query.isError);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
-  const [deleteIds, setDeleteIds] = useState<string[] | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [favoriteBusyId, setFavoriteBusyId] = useState<string | null>(null);
+  const [bulkFavoriteBusy, setBulkFavoriteBusy] = useState(false);
+  const [previewMediaId, setPreviewMediaId] = useState<string | null>(null);
+  const galleryRef = useRef<HTMLElement>(null);
+  const returnToMediaId = useRef<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
-  const filter = view === "videos" ? "video" : view === "pictures" ? "image" : selectedFilter;
-  const query = useMedia(20, view === "favorites" ? "favorites" : "all", filter === "all" ? undefined : filter);
+  const filter: MediaKindFilter = view === "videos" ? "video" : view === "pictures" ? "image" : selectedFilter;
+  const query = useMedia(20, view === "favorites" ? "favorites" : "all", filter);
   const media = useMemo(
     () => (query.data?.pages ?? []).flatMap((page) => page.items),
     [query.data],
   );
   const total = query.data?.pages[0]?.total ?? 0;
+  const groups = useMemo(() => {
+    const byDate = new Map<string, { date: Date; items: MediaFile[] }>();
+    for (const item of media) {
+      const date = new Date(item.createdAt);
+      const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+      const group = byDate.get(key);
+      if (group) group.items.push(item);
+      else byDate.set(key, { date, items: [item] });
+    }
+    return [...byDate.entries()].sort(([, a], [, b]) => b.date.getTime() - a.date.getTime());
+  }, [media]);
+  const dateFormatter = useMemo(
+    () => new Intl.DateTimeFormat(language, { year: "numeric", month: "long", day: "numeric" }),
+    [language],
+  );
   const copy = viewCopy[view];
+  const selectedMedia = [...selectedItems.values()];
+  const allSelectedFavorited = selectedMedia.length > 0 && selectedMedia.every((item) => item.isFavorited);
+  const favoriteBusy = favoriteBusyId !== null || bulkFavoriteBusy;
+
+  const cancelSelection = () => {
+    setSelectedItems(new Map());
+    setSelectionMode(false);
+  };
 
   useEffect(() => {
-    setSelectedFilter("all");
+    setSelectedFilter("image");
     setSelectionMode(false);
-    setSelectedIds(new Set());
+    setSelectedItems(new Map());
     setSaveDialogOpen(false);
-    setDeleteIds(null);
+    setDeleteDialogOpen(false);
+    setPreviewMediaId(null);
   }, [view]);
 
   useEffect(() => {
+    if (!selectionMode || saveDialogOpen || deleteDialogOpen || bulkFavoriteBusy) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setSelectedItems(new Map());
+        setSelectionMode(false);
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [selectionMode, saveDialogOpen, deleteDialogOpen, bulkFavoriteBusy]);
+
+  useEffect(() => {
+    if (previewMediaId || !returnToMediaId.current) return;
+    const tile = Array.from(galleryRef.current?.querySelectorAll<HTMLButtonElement>("[data-media-id]") ?? [])
+      .find((element) => element.dataset.mediaId === returnToMediaId.current);
+    returnToMediaId.current = null;
+    tile?.focus({ preventScroll: true });
+    tile?.scrollIntoView({ block: "center", inline: "center", behavior: "auto" });
+  }, [previewMediaId]);
+
+  useEffect(() => {
     const sentinel = sentinelRef.current;
-    if (!sentinel || !query.hasNextPage || query.isFetching || query.isFetchNextPageError) return;
+    if (previewMediaId || !sentinel || !query.hasNextPage || query.isFetching || query.isFetchNextPageError) return;
 
     const observer = new IntersectionObserver((entries) => {
       if (entries.some((entry) => entry.isIntersecting)) {
@@ -82,10 +148,10 @@ export function GalleryPage({ view = "pictures" }: { view?: GalleryView }) {
     }, { rootMargin: "0px 0px 400px 0px" });
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [query.fetchNextPage, query.hasNextPage, query.isFetchNextPageError, query.isFetching]);
+  }, [previewMediaId, query.fetchNextPage, query.hasNextPage, query.isFetchNextPageError, query.isFetching]);
 
   const toggleFavorite = async (mediaId: string, isFavorited: boolean) => {
-    if (favoriteBusyId) return;
+    if (favoriteBusy) return;
     setFavoriteBusyId(mediaId);
     try {
       if (isFavorited) await mediaService.unfavorite(mediaId);
@@ -99,148 +165,277 @@ export function GalleryPage({ view = "pictures" }: { view?: GalleryView }) {
   };
 
   const toggleSelected = (mediaId: string) => {
+    if (bulkFavoriteBusy) return;
     setSelectionMode(true);
-    setSelectedIds((current) => {
-      const next = new Set(current);
+    setSelectedItems((current) => {
+      const next = new Map(current);
       if (next.has(mediaId)) next.delete(mediaId);
-      else next.add(mediaId);
+      else {
+        const item = media.find((item) => item.id === mediaId);
+        if (item) next.set(mediaId, item);
+      }
       return next;
     });
   };
 
-  const removeSelected = async () => {
-    if (!deleteIds?.length) return;
-    const results = await Promise.allSettled(deleteIds.map((mediaId) => mediaService.remove(mediaId)));
-    const failed = results.filter((result) => result.status === "rejected").length;
-    setSelectedIds(new Set());
-    setSelectionMode(false);
-    setDeleteIds(null);
-    await query.refetch();
-    if (failed > 0) showToast.error(t("{count} media items could not be moved to trash.", { count: failed }));
-    else showToast.success(t("Media moved to trash"));
+  const favoriteSelected = async () => {
+    if (favoriteBusy || selectedMedia.length === 0) return;
+    const items = allSelectedFavorited ? selectedMedia : selectedMedia.filter((item) => !item.isFavorited);
+    setBulkFavoriteBusy(true);
+    try {
+      const failedIds: string[] = [];
+      for (let offset = 0; offset < items.length; offset += 5) {
+        const batch = items.slice(offset, offset + 5);
+        const results = await Promise.allSettled(batch.map((item) =>
+          allSelectedFavorited ? mediaService.unfavorite(item.id) : mediaService.favorite(item.id),
+        ));
+        results.forEach((result, index) => {
+          if (result.status === "rejected") failedIds.push(batch[index].id);
+        });
+      }
+      setSelectedItems((current) => {
+        const next = new Map(current);
+        for (const item of items) {
+          if (!failedIds.includes(item.id) && next.has(item.id)) {
+            next.set(item.id, { ...item, isFavorited: !allSelectedFavorited });
+          }
+        }
+        return next;
+      });
+      if (failedIds.length > 0) showToast.error(t("Could not update favorites."));
+      await query.refetch();
+    } catch (error) {
+      showToast.error(t("Could not update favorites."), error instanceof Error ? error.message : undefined);
+    } finally {
+      setBulkFavoriteBusy(false);
+    }
   };
 
-  return (
-    <main className="gallery-page">
-      <div className="gallery-page__content">
-        <div className="gallery-page__inner">
-          <header className="gallery-page__header">
-            <p className="gallery-page__eyebrow">{t("Your library")}</p>
-            <h1>{t(copy.title)}<span className="brand__dot">.</span></h1>
-            <p>{t(copy.description)}</p>
-          </header>
+  const deleteSelected = async () => {
+    if (selectedIds.length === 0) return;
+    const deletedIds: string[] = [];
+    const failedIds: string[] = [];
+    let firstFailure: unknown;
+    for (let offset = 0; offset < selectedIds.length; offset += 5) {
+      const batch = selectedIds.slice(offset, offset + 5);
+      const results = await Promise.allSettled(batch.map((mediaId) => mediaService.remove(mediaId)));
+      results.forEach((result, index) => {
+        if (result.status === "fulfilled") deletedIds.push(batch[index]);
+        else {
+          if (failedIds.length === 0) firstFailure = result.reason;
+          failedIds.push(batch[index]);
+        }
+      });
+    }
 
-          <div className="gallery-page__toolbar">
+    if (deletedIds.length > 0) {
+      setSelectedItems((current) => {
+        const next = new Map(current);
+        deletedIds.forEach((mediaId) => next.delete(mediaId));
+        return next;
+      });
+      await queryClient.invalidateQueries({ queryKey: ["media"] });
+      showToast.success(t("Media moved to trash"));
+    }
+
+    if (failedIds.length > 0) throw firstFailure;
+
+    cancelSelection();
+  };
+
+  const galleryContent = (
+    <>
+      {query.isPending ? <Spinner label={t("Loading media…")} /> : null}
+      {query.isError && media.length === 0 ? (
+        <ErrorState message={t("Could not load media.")} onRetry={() => void query.refetch()} />
+      ) : null}
+      {!query.isPending && !query.isError && media.length === 0 ? (
+        <EmptyState title={t(copy.emptyTitle)} hint={t(copy.emptyHint)} />
+      ) : null}
+      {media.length > 0 ? (
+        <div className="gallery-groups" aria-busy={query.isFetching}>
+          <MediaRetryProvider key={`${view}-${filter}`} order={groups.flatMap(([, group]) => group.items.map((item) => item.id))}>
+            {groups.map(([key, group]) => (
+              <section key={key} aria-label={dateFormatter.format(group.date)}>
+                <h2 className="gallery-group__title">
+                  <time dateTime={`${group.date.getFullYear()}-${String(group.date.getMonth() + 1).padStart(2, "0")}-${String(group.date.getDate()).padStart(2, "0")}`}>
+                    {dateFormatter.format(group.date)}
+                  </time>
+                </h2>
+                <div
+                  className={`gallery-date-grid gallery-date-grid--${group.items.length <= 5 ? 5 : group.items.length <= 10 ? 10 : 15}`}
+                  data-mobile-columns={group.items.length <= 4 ? 4 : 6}
+                >
+                  {group.items.map((item) => (
+                    <MediaTile
+                      key={item.id}
+                      media={item}
+                      selectionMode={selectionMode}
+                      selected={selectedItems.has(item.id)}
+                      onSelect={toggleSelected}
+                      onFavorite={(mediaId) => void toggleFavorite(mediaId, false)}
+                      favoriteDisabled={favoriteBusy}
+                      onOpen={setPreviewMediaId}
+                    />
+                  ))}
+                </div>
+              </section>
+            ))}
+          </MediaRetryProvider>
+        </div>
+      ) : null}
+
+      {query.isFetchNextPageError && media.length > 0 && !previewMediaId ? (
+        <ErrorState message={t("Could not load more media.")} onRetry={() => void query.fetchNextPage()} />
+      ) : null}
+      {query.isFetchingNextPage ? <Spinner label={t("Loading more media…")} /> : null}
+      <div ref={sentinelRef} aria-hidden="true" />
+      {query.isError && !query.isFetchNextPageError && media.length > 0 ? (
+        <ErrorState message={t("Could not refresh media.")} onRetry={() => void query.refetch()} />
+      ) : null}
+      {failedAlbumQueries.length > 0 ? (
+        <ErrorState
+          message={t("Could not load albums.")}
+          onRetry={() => { for (const query of failedAlbumQueries) void query.refetch(); }}
+        />
+      ) : null}
+    </>
+  );
+
+  return (
+    <main ref={galleryRef} className="gallery-page">
+      <ScrollProgressProvider>
+        <div className="gallery-page__scroll-track" aria-hidden="true">
+          <ScrollProgress mode="scaleX" className="gallery-page__scroll-progress" />
+        </div>
+        <ScrollProgressContainer className="gallery-page__content">
+          <div className="gallery-page__inner">
+            <header className="gallery-page__header">
+              <p className="gallery-page__eyebrow">{t("Your library")}</p>
+              <h1>{t(copy.title)}<span className="brand__dot">.</span></h1>
+              <p>{t(copy.description)}</p>
+            </header>
+
             {view === "favorites" ? (
-              <div className="gallery-page__filters" role="group" aria-label={t("Filter media")}>
-                {filters.map(({ value, label }) => (
-                  <button
-                    key={value}
-                    type="button"
-                    className="gallery-page__filter"
-                    aria-pressed={selectedFilter === value}
-                    onClick={() => setSelectedFilter(value)}
-                  >
-                    {t(label)}
-                  </button>
-                ))}
-              </div>
-            ) : null}
-            {view !== "favorites" ? (
-              <button
-                type="button"
-                className="btn btn--secondary"
-                aria-pressed={selectionMode}
-                onClick={() => {
-                  setSelectionMode((active) => !active);
-                  setSelectedIds(new Set());
+              <Tabs.Root
+                value={selectedFilter}
+                onValueChange={(value) => {
+                  if (value !== "image" && value !== "video") return;
+                  setSelectedFilter(value);
+                  setPreviewMediaId(null);
+                  setSelectionMode(false);
+                  setSelectedItems(new Map());
                 }}
               >
-                {t(selectionMode ? "Cancel selection" : "Select media")}
-              </button>
-            ) : null}
-            {selectionMode && selectedIds.size > 0 ? (
-              <div className="gallery-page__selection-actions">
-                <span>{t("{count} selected", { count: selectedIds.size })}</span>
-                <button type="button" className="btn btn--secondary" onClick={() => setSaveDialogOpen(true)}>
-                  <Bookmark size={16} aria-hidden="true" />
-                  {t("Save to album")}
-                </button>
-                {isAdmin ? (
-                  <button type="button" className="btn btn--danger" onClick={() => setDeleteIds([...selectedIds])}>
-                    <Trash2 size={16} aria-hidden="true" />
-                    {t("Move to trash")}
-                  </button>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
-
-          {query.isPending ? <Spinner label={t("Loading media…")} /> : null}
-          {query.isError && media.length === 0 ? (
-            <ErrorState message={t("Could not load media.")} onRetry={() => void query.refetch()} />
-          ) : null}
-          {!query.isPending && !query.isError && media.length === 0 ? (
-            <EmptyState title={t(copy.emptyTitle)} hint={t(copy.emptyHint)} />
-          ) : null}
-          {media.length > 0 ? (
-            <div className="media-grid" aria-busy={query.isFetching}>
-              {media.map((item) => (
-                <div key={item.id} className="gallery-media">
-                  {selectionMode ? (
-                    <label className="gallery-media__select">
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.has(item.id)}
-                        onChange={() => toggleSelected(item.id)}
-                        aria-label={t("Select {filename}", { filename: item.originalFilename })}
-                      />
-                    </label>
-                  ) : null}
-                  <MediaCard
-                    media={item}
-                    onToggleFavorite={toggleFavorite}
-                    favoriteBusy={favoriteBusyId === item.id}
-                    favoriteDisabled={favoriteBusyId !== null}
-                  />
+                <div className="gallery-page__toolbar">
+                  <Tabs.List className="gallery-page__filters" aria-label={t("Filter by media type")}>
+                    {filters.map(({ value, label }) => (
+                      <Tabs.Trigger
+                        key={value}
+                        className="gallery-page__filter"
+                        value={value}
+                        disabled={bulkFavoriteBusy}
+                      >
+                        {t(label)}
+                      </Tabs.Trigger>
+                    ))}
+                  </Tabs.List>
                 </div>
-              ))}
-            </div>
-          ) : null}
+                <Tabs.Content value={selectedFilter} className="gallery-page__tab-panel">
+                  {galleryContent}
+                </Tabs.Content>
+              </Tabs.Root>
+            ) : galleryContent}
+          </div>
+        </ScrollProgressContainer>
+      </ScrollProgressProvider>
 
-          {query.isFetchNextPageError ? (
-            <ErrorState message={t("Could not load more media.")} onRetry={() => void query.fetchNextPage()} />
-          ) : null}
-          {query.isFetchingNextPage ? <Spinner label={t("Loading more media…")} /> : null}
-          <div ref={sentinelRef} aria-hidden="true" />
-          {!query.hasNextPage && total > 0 ? (
-            <p className="gallery-page__end" role="status">{t("All media loaded")}</p>
-          ) : null}
-          {query.isError && media.length > 0 ? (
-            <ErrorState message={t("Could not refresh media.")} onRetry={() => void query.refetch()} />
-          ) : null}
-        </div>
-      </div>
+      {selectionMode ? (
+        <footer className="gallery-page__footer">
+          <div className="gallery-selection-bar gallery-selection-bar--compact" role="group" aria-label={t("{count} selected", { count: selectedItems.size })} aria-busy={bulkFavoriteBusy}>
+            <span className="gallery-selection-bar__status" role="status">{t("{count} selected", { count: selectedItems.size })}</span>
+            <button
+              type="button"
+              className="gallery-selection-bar__action gallery-selection-bar__action--favorite"
+              aria-label={t(allSelectedFavorited ? "Remove from favorites" : "Add to favorites")}
+              title={t(allSelectedFavorited ? "Remove from favorites" : "Add to favorites")}
+              aria-pressed={allSelectedFavorited}
+              disabled={favoriteBusy || selectedMedia.length === 0}
+              onClick={() => void favoriteSelected()}
+            >
+              {bulkFavoriteBusy
+                ? <LoaderCircle size={20} className="spinner__wheel" aria-hidden="true" />
+                : <Heart size={20} fill={allSelectedFavorited ? "currentColor" : "none"} aria-hidden="true" />}
+            </button>
+            <button
+              type="button"
+              className="gallery-selection-bar__action gallery-selection-bar__action--save"
+              aria-label={t("Save to album")}
+              title={t("Save to album")}
+              aria-pressed={inAlbum}
+              aria-busy={albumQueries.some((query) => query.isPending) || undefined}
+              disabled={favoriteBusy || selectedMedia.length === 0}
+              onClick={() => setSaveDialogOpen(true)}
+            >
+              <Bookmark size={20} fill={inAlbum ? "currentColor" : "none"} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              className="gallery-selection-bar__action gallery-selection-bar__action--danger"
+              aria-label={t("Move to trash")}
+              title={t("Move to trash")}
+              disabled={favoriteBusy || selectedMedia.length === 0}
+              onClick={() => setDeleteDialogOpen(true)}
+            >
+              <Trash2 size={20} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              className="gallery-selection-bar__cancel"
+              aria-label={t("Cancel selection")}
+              title={t("Cancel selection")}
+              disabled={bulkFavoriteBusy}
+              onClick={cancelSelection}
+            >
+              <X size={20} aria-hidden="true" />
+              <span className="gallery-selection-bar__cancel-text">{t("Cancel")}</span>
+            </button>
+          </div>
+        </footer>
+      ) : null}
 
       {saveDialogOpen ? (
         <BulkSaveToAlbumDialog
-          mediaIds={[...selectedIds]}
-          onSaved={() => {
-            setSelectedIds(new Set());
-            setSelectionMode(false);
-          }}
+          mediaIds={selectedIds}
           onClose={() => setSaveDialogOpen(false)}
         />
       ) : null}
-      {deleteIds ? (
+      {deleteDialogOpen ? (
         <ConfirmationDialog
-          title="Move media to trash?"
+          title="Move selected media to trash?"
           danger
-          onClose={() => setDeleteIds(null)}
-          onConfirm={removeSelected}
+          onClose={() => setDeleteDialogOpen(false)}
+          onConfirm={deleteSelected}
         >
-          {t("Selected media will move to trash.")}
+          {t("Selected media will move to trash and can be restored later.")}
         </ConfirmationDialog>
+      ) : null}
+      {previewMediaId ? (
+        <MediaPreviewDialog
+          key={previewMediaId}
+          media={media}
+          initialMediaId={previewMediaId}
+          total={total}
+          loadingMore={query.isFetching}
+          loadMoreError={query.isFetchNextPageError}
+          onLoadMore={query.hasNextPage ? () => { void query.fetchNextPage({ cancelRefetch: false }); } : undefined}
+          favoriteBusy={favoriteBusy}
+          onToggleFavorite={(mediaId, isFavorited) => void toggleFavorite(mediaId, isFavorited)}
+          onClose={(mediaId) => {
+            returnToMediaId.current = mediaId;
+            setPreviewMediaId(null);
+          }}
+        />
       ) : null}
     </main>
   );

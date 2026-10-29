@@ -12,7 +12,7 @@
   display: flex;
   flex-direction: column;
   background: var(--sidebar-bg);
-  border: 1px solid var(--border);
+  border: 0;
   border-radius: var(--radius);
   z-index: 20;
 }
@@ -127,19 +127,11 @@
 }
 
 .sidebar__home-icon {
-  display: grid;
-  width: 28px;
-  height: 28px;
-  flex-shrink: 0;
-  place-items: center;
-  border: 1px solid currentColor;
-  border-radius: 8px;
+  color: var(--text-strong);
 }
 
-.sidebar__home-link.sidebar__link--active .sidebar__home-icon {
-  border-color: #3b82f6;
-  background: rgba(59, 130, 246, 0.1);
-  color: #3b82f6;
+.sidebar__home-link.sidebar__link--active {
+  box-shadow: none;
 }
 
 .notification-bar {
@@ -797,13 +789,13 @@
   .app-topbar .brand > span:last-child {
     display: none;
   }
+}
 
-  @media (pointer: coarse) and (min-width: 641px) {
-    .notification-bar__trigger,
-    .notification-bar .theme-toggler,
-    .notification-bar .language-toggler {
-      width: 44px;
-      height: 44px;
-    }
+@media (pointer: coarse) and (min-width: 641px) {
+  .notification-bar__trigger,
+  .notification-bar .theme-toggler,
+  .notification-bar .language-toggler {
+    width: 44px;
+    height: 44px;
   }
 }

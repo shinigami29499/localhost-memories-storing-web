@@ -1,7 +1,8 @@
 import { AnimateIcon } from "@/components/animate-ui/icons/icon";
+import { Eye } from "@/components/animate-ui/icons/eye";
 import { Heart } from "@/components/animate-ui/icons/heart";
 import { useLocale } from "../../../context/LocaleContext";
-import { mediaUrl } from "../../../utils/media";
+import { mediaPreviewUrl } from "../../../utils/media";
 import type { MediaFile } from "../types";
 
 interface Props {
@@ -9,6 +10,7 @@ interface Props {
   favoriteBusy?: boolean;
   favoriteDisabled?: boolean;
   onToggleFavorite?: (mediaId: string, isFavorited: boolean) => void;
+  onOpen?: (mediaId: string) => void;
 }
 
 export function MediaCard({
@@ -16,26 +18,53 @@ export function MediaCard({
   favoriteBusy = false,
   favoriteDisabled = false,
   onToggleFavorite,
+  onOpen,
 }: Props) {
   const { t } = useLocale();
 
   return (
     <article className="media-card">
       {media.mediaKind === "video" ? (
-        <video
-          className="media-card__preview"
-          src={mediaUrl(media.id)}
-          controls
-          preload="metadata"
-          aria-label={media.originalFilename}
-        />
+        <div className="media-card__video">
+          <img
+            className="media-card__preview"
+            src={mediaPreviewUrl(media.id)}
+            alt={media.originalFilename}
+            loading="lazy"
+            decoding="async"
+          />
+          {onOpen ? (
+            <button
+              type="button"
+              className="viewer-icon-btn media-card__open-video"
+              aria-label={t("Open media preview")}
+              title={t("Open media preview")}
+              onClick={() => onOpen(media.id)}
+            >
+              <Eye size={18} aria-hidden="true" />
+            </button>
+          ) : null}
+        </div>
       ) : (
-        <img
-          className="media-card__preview"
-          src={mediaUrl(media.id)}
-          alt={media.originalFilename}
-          loading="lazy"
-        />
+        onOpen ? (
+          <button
+            type="button"
+            className="media-card__open"
+            aria-label={t("Open media preview")}
+            title={t("Open media preview")}
+            onClick={() => onOpen(media.id)}
+          >
+            <img className="media-card__preview" src={mediaPreviewUrl(media.id)} alt={media.originalFilename} loading="lazy" decoding="async" />
+          </button>
+        ) : (
+          <img
+            className="media-card__preview"
+            src={mediaPreviewUrl(media.id)}
+            alt={media.originalFilename}
+            loading="lazy"
+            decoding="async"
+          />
+        )
       )}
       <footer className="media-card__footer">
         <span className="media-card__name" title={media.originalFilename}>{media.originalFilename}</span>

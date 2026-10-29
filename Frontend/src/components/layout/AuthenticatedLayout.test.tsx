@@ -129,19 +129,59 @@ describe("AuthenticatedLayout sidebar", () => {
     expect(container.querySelector(".app-topbar .brand")).not.toBeNull();
     expect(shell.getAttribute("data-state")).toBe("collapsed");
     expect(container.querySelector(".sidebar-backdrop")).toBeNull();
+    expect(container.querySelector(".sidebar")?.hasAttribute("inert")).toBe(true);
 
     await act(async () => container.querySelector<HTMLButtonElement>(".sidebar__toggle")!.click());
     expect(shell.getAttribute("data-state")).toBe("expanded");
     expect(document.body.style.overflow).toBe("hidden");
+    expect(container.querySelector(".sidebar")?.hasAttribute("inert")).toBe(false);
+    expect(container.querySelector(".app-shell__main")?.hasAttribute("inert")).toBe(true);
+    expect(document.activeElement).toBe(container.querySelector(".sidebar a"));
 
     await act(async () => container.querySelector<HTMLDivElement>(".sidebar-backdrop")!.click());
     expect(shell.getAttribute("data-state")).toBe("collapsed");
     expect(container.querySelector(".sidebar-backdrop")).toBeNull();
     expect(document.body.style.overflow).toBe("");
+    expect(container.querySelector(".app-shell__main")?.hasAttribute("inert")).toBe(false);
+    expect(document.activeElement).toBe(container.querySelector(".sidebar__toggle"));
 
     await act(async () => container.querySelector<HTMLButtonElement>(".sidebar__toggle")!.click());
     await act(async () => document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })));
     expect(shell.getAttribute("data-state")).toBe("collapsed");
+  });
+
+  it("provides a localized keyboard shortcut to the routed content", async () => {
+    await renderLayout();
+    const skip = container.querySelector<HTMLAnchorElement>(".skip-link")!;
+    expect(skip.textContent).toBe("Skip to content");
+    expect(skip.getAttribute("href")).toBe("#main-content");
+    expect(container.querySelector("#main-content")?.getAttribute("tabindex")).toBe("-1");
+    await act(async () => container.querySelector<HTMLButtonElement>(".language-toggler")!.click());
+    expect(skip.textContent).toBe("Chuyển đến nội dung");
+  });
+
+  it("wraps keyboard focus inside the open mobile navigation", async () => {
+    narrowScreen = true;
+    mobileScreen = true;
+    const rect = new DOMRect(0, 0, 44, 44);
+    vi.spyOn(HTMLElement.prototype, "getClientRects").mockReturnValue(
+      Object.assign([rect], { item: (index: number) => index === 0 ? rect : null }),
+    );
+    await renderLayout();
+    const toggle = container.querySelector<HTMLButtonElement>(".sidebar__toggle")!;
+    const first = container.querySelector<HTMLAnchorElement>(".sidebar a")!;
+    await act(async () => toggle.click());
+    toggle.focus();
+
+    await act(async () => document.dispatchEvent(new KeyboardEvent("keydown", {
+      key: "Tab", cancelable: true,
+    })));
+    expect(document.activeElement).toBe(first);
+
+    await act(async () => document.dispatchEvent(new KeyboardEvent("keydown", {
+      key: "Tab", shiftKey: true, cancelable: true,
+    })));
+    expect(document.activeElement).toBe(toggle);
   });
 
   it("reserves a shared header above page content on wider screens", async () => {

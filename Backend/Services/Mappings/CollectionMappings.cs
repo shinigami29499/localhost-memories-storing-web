@@ -8,6 +8,7 @@ internal static class CollectionMappings
     internal static CollectionDto ToDto(CollectionSource source) => new(
         source.Collection.Id,
         source.Collection.Name,
+        source.Collection.Caption,
         source.Collection.IsPublic,
         new UserSummaryDto(source.Owner.Id, source.Owner.Username),
         source.MediaCount,

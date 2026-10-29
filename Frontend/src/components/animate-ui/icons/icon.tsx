@@ -32,6 +32,7 @@ type IconTriggers<T extends string> = Pick<IconProps<T>,
 
 function useIconTriggers<T extends string>(props: IconTriggers<T>) {
   const standalone = useMediaQuery("(display-mode: standalone)");
+  const mobile = useMediaQuery("(max-width: 640px)");
   const hover = useMediaQuery("(hover: hover) and (pointer: fine)");
   const installed = standalone || (typeof navigator !== "undefined" && "standalone" in navigator && navigator.standalone === true);
   const enabled = props.animate !== false;
@@ -39,7 +40,7 @@ function useIconTriggers<T extends string>(props: IconTriggers<T>) {
   return {
     animateOnHover: enabled && !installed && hover ? (props.animateOnHover ?? true) : false,
     animateOnTap: enabled ? (props.animateOnTap ?? true) : false,
-    animateOnView: enabled && installed ? (props.animateOnView ?? true) : false,
+    animateOnView: enabled && (installed || mobile) ? (props.animateOnView ?? true) : false,
     animateOnViewOnce: props.animateOnViewOnce ?? false,
     completeOnStop: props.completeOnStop ?? true,
   };

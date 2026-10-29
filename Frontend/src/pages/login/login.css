@@ -113,9 +113,15 @@
   font-size: 0.78rem;
 }
 
-.login__swap {
+.login__swap:not(.btn) {
   color: var(--accent-soft);
   font-weight: 600;
+}
+
+.login__footnote .login__swap {
+  display: inline-block;
+  padding-block: 8px;
+  text-underline-offset: 3px;
 }
 
 .login__footer {
@@ -174,6 +180,11 @@
     display: none;
   }
 
+  .login .community-intro h1 {
+    margin: 12px 0 0;
+    font-size: 2rem;
+  }
+
   .login__card {
     padding: 22px 18px;
     border-radius: 18px;
@@ -181,5 +192,17 @@
 
   .login__subtitle {
     margin-bottom: 20px;
+  }
+}
+
+@media (pointer: coarse) {
+  .login__header-actions .theme-toggler,
+  .login__header-actions .language-toggler {
+    width: 44px;
+    height: 44px;
+  }
+
+  .login__card input {
+    font-size: 1rem;
   }
 }
