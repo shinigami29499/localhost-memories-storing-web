@@ -15,6 +15,7 @@ interface Props {
   media: MediaFile;
   selectionMode: boolean;
   selectionEnabled?: boolean;
+  selectionDragEnabled?: boolean;
   selected: boolean;
   favoriteDisabled?: boolean;
   includeDeleted?: boolean;
@@ -24,7 +25,7 @@ interface Props {
 }
 
 export function MediaTile({
-  media, selectionMode, selectionEnabled = true, selected, favoriteDisabled, includeDeleted = false, onSelect, onOpen, onFavorite,
+  media, selectionMode, selectionEnabled = true, selectionDragEnabled = false, selected, favoriteDisabled, includeDeleted = false, onSelect, onOpen, onFavorite,
 }: Props) {
   const { t } = useLocale();
   const retryGroup = useMediaRetry();
@@ -129,7 +130,7 @@ export function MediaTile({
           if (!event.isPrimary || event.button !== 0) return;
           clearClick();
           suppressClick.current = false;
-          if (!selectionEnabled) return;
+          if (!selectionEnabled || selectionDragEnabled || isSelecting) return;
           origin.current = { x: event.clientX, y: event.clientY };
           holdTimer.current = setTimeout(() => {
             suppressClick.current = true;

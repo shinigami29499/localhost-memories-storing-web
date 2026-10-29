@@ -10,6 +10,7 @@ import { useLocale } from "../../context/LocaleContext";
 import { MediaTile } from "../../features/media/components/MediaTile";
 import { MediaRetryProvider } from "../../features/media/components/MediaRetryProvider";
 import { MediaPreviewDialog } from "../../features/media/components/MediaPreviewDialog";
+import { useMediaSelectionDrag } from "../../features/media/hooks/useMediaSelectionDrag";
 import { mediaService } from "../../features/media/services/mediaService";
 import type { MediaKindFilter } from "../../features/media/types";
 import "./gallery.css";
@@ -61,6 +62,17 @@ export function TrashPage() {
       return next;
     });
   };
+
+  const selectForDrag = (mediaId: string) => {
+    setSelectionMode(true);
+    setSelectedIds((current) => {
+      if (current.has(mediaId)) return current;
+      const next = new Set(current);
+      next.add(mediaId);
+      return next;
+    });
+  };
+  const selectionDragHandlers = useMediaSelectionDrag(!action, selectionMode, selectForDrag);
 
   const requestAction = (kind: "restore" | "delete", ids: string[]) => {
     if (ids.length === 0) return;
@@ -128,7 +140,7 @@ export function TrashPage() {
 
   return (
     <>
-      <main ref={galleryRef} className="gallery-page gallery-page--trash">
+      <main ref={galleryRef} className="gallery-page gallery-page--trash" {...selectionDragHandlers}>
         <div className="gallery-page__content">
           <div className="gallery-page__inner">
             <header className="gallery-page__header">
@@ -173,6 +185,7 @@ export function TrashPage() {
                       media={item}
                       includeDeleted
                       selectionMode={selectionMode}
+                      selectionDragEnabled
                       selected={selectedIds.has(item.id)}
                       onSelect={toggleSelected}
                       onOpen={setPreviewMediaId}

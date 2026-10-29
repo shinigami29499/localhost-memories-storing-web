@@ -226,6 +226,32 @@ describe("GalleryPage", () => {
     expect(container.textContent).not.toContain("1 selected");
   });
 
+  it("starts selection after a long press and adds tiles dragged across", async () => {
+    vi.mocked(mediaService.list).mockResolvedValue(page([image, video]));
+    await renderPage();
+    await vi.waitFor(() => expect(container.querySelectorAll(".media-tile")).toHaveLength(2));
+    const [first, second] = Array.from(container.querySelectorAll<HTMLButtonElement>(".media-tile"));
+    const pointer = (tile: HTMLButtonElement, type: string, clientX = 0) => {
+      tile.dispatchEvent(Object.assign(new MouseEvent(type, { bubbles: true, clientX }), {
+        pointerId: 1,
+        isPrimary: true,
+      }));
+    };
+
+    vi.useFakeTimers();
+    pointer(first, "pointerdown");
+    await act(async () => vi.advanceTimersByTime(500));
+    expect(first.getAttribute("aria-pressed")).toBe("true");
+    pointer(second, "pointermove", 20);
+    pointer(second, "pointerup", 20);
+    pointer(first, "click");
+
+    expect(first.getAttribute("aria-pressed")).toBe("true");
+    expect(second.getAttribute("aria-pressed")).toBe("true");
+    expect(container.textContent).toContain("2 selected");
+    vi.useRealTimers();
+  });
+
   it("moves long-pressed selections to trash after confirmation", async () => {
     await renderPage();
     await vi.waitFor(() => expect(container.querySelector(".media-tile")).not.toBeNull());

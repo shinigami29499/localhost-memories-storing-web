@@ -16,6 +16,7 @@ import { useLocale } from "../../context/LocaleContext";
 import { MediaTile } from "../../features/media/components/MediaTile";
 import { MediaRetryProvider } from "../../features/media/components/MediaRetryProvider";
 import { MediaPreviewDialog } from "../../features/media/components/MediaPreviewDialog";
+import { useMediaSelectionDrag } from "../../features/media/hooks/useMediaSelectionDrag";
 import { mediaService } from "../../features/media/services/mediaService";
 import { useMedia } from "../../features/media/hooks/useMedia";
 import type { MediaFile, MediaKindFilter } from "../../features/media/types";
@@ -178,6 +179,20 @@ export function GalleryPage({ view = "pictures" }: { view?: GalleryView }) {
     });
   };
 
+  const selectForDrag = (mediaId: string) => {
+    if (bulkFavoriteBusy) return;
+    const item = media.find((candidate) => candidate.id === mediaId);
+    if (!item) return;
+    setSelectionMode(true);
+    setSelectedItems((current) => {
+      if (current.has(mediaId)) return current;
+      const next = new Map(current);
+      next.set(mediaId, item);
+      return next;
+    });
+  };
+  const selectionDragHandlers = useMediaSelectionDrag(!bulkFavoriteBusy, selectionMode, selectForDrag);
+
   const favoriteSelected = async () => {
     if (favoriteBusy || selectedMedia.length === 0) return;
     const items = allSelectedFavorited ? selectedMedia : selectedMedia.filter((item) => !item.isFavorited);
@@ -271,6 +286,7 @@ export function GalleryPage({ view = "pictures" }: { view?: GalleryView }) {
                       key={item.id}
                       media={item}
                       selectionMode={selectionMode}
+                      selectionDragEnabled
                       selected={selectedItems.has(item.id)}
                       onSelect={toggleSelected}
                       onFavorite={(mediaId) => void toggleFavorite(mediaId, false)}
@@ -303,7 +319,7 @@ export function GalleryPage({ view = "pictures" }: { view?: GalleryView }) {
   );
 
   return (
-    <main ref={galleryRef} className="gallery-page">
+    <main ref={galleryRef} className="gallery-page" {...selectionDragHandlers}>
       <ScrollProgressProvider>
         <div className="gallery-page__scroll-track" aria-hidden="true">
           <ScrollProgress mode="scaleX" className="gallery-page__scroll-progress" />

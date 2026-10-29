@@ -32,7 +32,8 @@ architecture, conventions, and validation guidance. This page maps the current c
   A top-edge progress bar in Pictures, Videos, and Favorites tracks scrolling
   through the currently loaded gallery content and respects reduced-motion settings.
   Hold a tile (or press Shift+Space) to select media in Pictures, Videos, and
-  Favorites. Selection shows a compact bottom bar with heart, save-to-album,
+  Favorites. Long-press a tile to start selection, then drag across tiles to add
+  media. Selection shows a compact bottom bar with heart, save-to-album,
   move-to-trash, and cancel actions; Cancel text is visible on desktop only.
   Moving selected media to trash requires confirmation; failed items stay
   selected for retry. The heart removes
@@ -48,7 +49,8 @@ architecture, conventions, and validation guidance. This page maps the current c
   without restoring them (`includeDeleted=true`), and restore or permanently delete
   items. Clicking a tile opens the fullscreen carousel with restore and delete
   icons instead of heart and save. Hold a tile (or press Shift+Space) to select
-  multiple items, then confirm restore or permanent deletion from the bottom bar.
+  multiple items; long-press a tile to start selection, then drag across tiles
+  to add more. Confirm restore or permanent deletion from the bottom bar.
   Confirming or canceling the decision exits selection mode; failed requests keep
   the remaining items available for retry without repeating successful requests.
   Trash uses the gallery's 2px tile gaps and count-based columns: 5, 10, or 15 on
