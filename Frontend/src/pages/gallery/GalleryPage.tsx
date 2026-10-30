@@ -83,6 +83,7 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
   const pageTransition = readPageTransitionEffect();
   const queryClient = useQueryClient();
   const [selectedFilter, setSelectedFilter] = useState<MediaKindFilter>(() => initialFilter ?? "image");
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedItems, setSelectedItems] = useState<Map<string, MediaFile>>(() => new Map());
   const selectedIds = [...selectedItems.keys()];
@@ -104,7 +105,8 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
   const galleryRef = useRef<HTMLElement>(null);
   const returnToMediaId = useRef<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
-  const query = useMedia(20, view === "favorites" ? "favorites" : "all", selectedFilter);
+  const showingFavorites = view === "favorites" || favoritesOnly;
+  const query = useMedia(20, showingFavorites ? "favorites" : "all", selectedFilter);
   const media = useMemo(
     () => (query.data?.pages ?? []).flatMap((page) => page.items),
     [query.data],
@@ -326,6 +328,14 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
     setTimelineDay((current) => current === key ? null : key);
   };
 
+  const toggleFavoritesOnly = () => {
+    setFavoritesOnly((current) => !current);
+    setPreviewMediaId(null);
+    setTimelineDay(null);
+    setSelectionMode(false);
+    setSelectedItems(new Map());
+  };
+
   const galleryContent = (
     <>
       {query.isPending ? <Spinner label={t("Loading media…")} /> : null}
@@ -475,6 +485,19 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
                     </Tabs.Trigger>
                   ))}
                 </Tabs.List>
+                {view === "pictures" ? (
+                  <button
+                    type="button"
+                    className="gallery-page__filter"
+                    aria-label={t(showingFavorites ? "Show all media" : "Show favorites only")}
+                    title={t(showingFavorites ? "Show all media" : "Show favorites only")}
+                    aria-pressed={showingFavorites}
+                    disabled={bulkFavoriteBusy}
+                    onClick={toggleFavoritesOnly}
+                  >
+                    <Heart size={20} fill={showingFavorites ? "currentColor" : "none"} aria-hidden="true" />
+                  </button>
+                ) : null}
               </div>
               <Tabs.Content value={selectedFilter} className="gallery-page__tab-panel">
                 <PageTransition effect={pageTransition} transitionKey={selectedFilter}>

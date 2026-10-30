@@ -363,6 +363,39 @@
 }
 
 @media (max-width: 640px) {
+  .album-page .gallery-page__toolbar {
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 4px;
+  }
+
+  .album-page .gallery-page__toolbar > .btn {
+    flex: 0 0 44px;
+    height: 44px;
+    justify-content: center;
+    padding: 0;
+    width: 44px;
+  }
+
+  .album-page .gallery-page__filters {
+    flex-wrap: nowrap;
+  }
+
+  .album-page .gallery-page__filters .gallery-page__filter {
+    padding-inline: 10px;
+  }
+
+  .album-page .album-page__create-button {
+    height: 44px;
+    justify-content: center;
+    padding: 0;
+    width: 44px;
+  }
+
+  .album-page__create-label {
+    display: none;
+  }
+
   .album-grid {
     gap: 12px;
     grid-template-columns: repeat(2, minmax(0, 1fr));

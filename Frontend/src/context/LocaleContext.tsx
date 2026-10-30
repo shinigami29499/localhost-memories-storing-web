@@ -806,6 +806,8 @@ const vietnamese: Record<string, string> = {
   "Every video shared by the community.": "Tất cả video được cộng đồng chia sẻ.",
   "Images and videos you have favorited.": "Ảnh và video bạn đã yêu thích.",
   "Filter by media type": "Lọc theo loại nội dung",
+  "Show favorites only": "Chỉ hiển thị mục yêu thích",
+  "Show all media": "Hiển thị tất cả ảnh và video",
   Today: "Hôm nay",
   Yesterday: "Hôm qua",
   "View media by {username}": "Xem ảnh và video của {username}",

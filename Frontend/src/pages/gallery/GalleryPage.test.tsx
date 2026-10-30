@@ -154,6 +154,21 @@ describe("GalleryPage", () => {
     expect(container.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe("Images");
   });
 
+  it("toggles the gallery to show only favorites", async () => {
+    vi.mocked(mediaService.favorites).mockResolvedValue(page([{ ...image, isFavorited: true }]));
+    await renderPage();
+    await vi.waitFor(() => expect(container.querySelectorAll(".media-tile")).toHaveLength(1));
+    const favoritesToggle = container.querySelector<HTMLButtonElement>('[aria-label="Show favorites only"]')!;
+
+    await act(async () => favoritesToggle.click());
+    await vi.waitFor(() => expect(mediaService.favorites).toHaveBeenCalledWith(0, 20, "image"));
+    expect(container.querySelector('[aria-label="Show all media"]')?.getAttribute("aria-pressed")).toBe("true");
+
+    await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Show all media"]')!.click());
+    await vi.waitFor(() => expect(mediaService.list).toHaveBeenLastCalledWith(0, 20, "image"));
+    expect(container.querySelector('[aria-label="Show favorites only"]')?.getAttribute("aria-pressed")).toBe("false");
+  });
+
   it("shows only the pagination retry after loading more fails", async () => {
     let intersect = () => {};
     vi.stubGlobal("IntersectionObserver", class {

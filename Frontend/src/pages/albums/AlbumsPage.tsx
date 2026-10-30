@@ -56,9 +56,16 @@ export function AlbumsPage() {
                 </button>
               ))}
             </div>
-            <Button type="button" variant="secondary" onClick={() => setCreating(true)}>
+            <Button
+              type="button"
+              variant="secondary"
+              className="album-page__create-button"
+              aria-label={t("New album")}
+              title={t("New album")}
+              onClick={() => setCreating(true)}
+            >
               <Plus size={16} aria-hidden="true" />
-              {t("New album")}
+              <span className="album-page__create-label">{t("New album")}</span>
             </Button>
           </div>
 

@@ -258,6 +258,7 @@ function MapContent({
   const [scene, setScene] = useState<MapScene>("3d");
   const [showMarkers, setShowMarkers] = useState(true);
   const mapAppearance = useMapAppearance();
+  const [appearanceOpen, setAppearanceOpen] = useState(false);
   const [homeRequest, setHomeRequest] = useState(0);
   const [focusRequest, setFocusRequest] = useState(0);
   const resolveInitialLocation = useCallback((hasCenter: boolean) => {
@@ -504,7 +505,12 @@ function MapContent({
           </AnimateIcon>
         </div>
       </details>
-      <details ref={appearanceRef} className="food__scenes map-appearance-control" aria-label={t("Map appearance")}>
+      <details
+        ref={appearanceRef}
+        className="food__scenes map-appearance-control"
+        aria-label={t("Map appearance")}
+        onToggle={(event) => setAppearanceOpen(event.currentTarget.open)}
+      >
         <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
           <summary
             className="food__scenes-title"
@@ -520,7 +526,7 @@ function MapContent({
             </span>
           </summary>
         </AnimateIcon>
-        <MapAppearanceSettings {...mapAppearance} />
+        <MapAppearanceSettings {...mapAppearance} isOpen={appearanceOpen} />
       </details>
     </div>
   );

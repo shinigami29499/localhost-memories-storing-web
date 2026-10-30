@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
 import { useMap } from "react-map-gl/mapbox";
+import { motion } from "motion/react";
+import {
+  motionTokens,
+  useShouldReduceMotion,
+  useTempoTransition,
+} from "@animate-ui/react/utils/motion";
 import { AnimateIcon } from "../../../components/animate-ui/icons/icon";
 import { Moon } from "../../../components/animate-ui/icons/moon";
 import { Sun } from "../../../components/animate-ui/icons/sun";
@@ -177,15 +183,24 @@ function LightingIcon({ value }: { value: MapLighting }) {
 }
 
 export function MapAppearanceSettings({
+  isOpen,
   lighting,
   colorTheme,
   selectLighting,
   selectColorTheme,
-}: ReturnType<typeof useMapAppearance>) {
+}: ReturnType<typeof useMapAppearance> & { isOpen: boolean }) {
   const { t } = useLocale();
+  const shouldReduceMotion = useShouldReduceMotion();
+  const transition = useTempoTransition(motionTokens.transition.reveal);
 
   return (
-    <div className="map-appearance">
+    <motion.div
+      className="map-appearance"
+      initial={shouldReduceMotion ? false : { opacity: 0, y: -6 }}
+      animate={isOpen ? { opacity: 1, y: 0 } : { opacity: 0, y: -6 }}
+      transition={shouldReduceMotion ? { duration: 0 } : transition}
+      aria-hidden={!isOpen}
+    >
       <section className="map-appearance__section" aria-labelledby="map-appearance-lighting">
         <h3 id="map-appearance-lighting" className="map-appearance__heading">{t("LIGHTING")}</h3>
         <div className="map-appearance__grid" role="group" aria-label={t("LIGHTING")}>
@@ -198,6 +213,15 @@ export function MapAppearanceSettings({
                 aria-pressed={lighting === value}
                 onClick={() => selectLighting(value)}
               >
+                {lighting === value && (
+                  <motion.span
+                    className="map-appearance__selection-indicator"
+                    aria-hidden="true"
+                    initial={shouldReduceMotion ? false : { opacity: 0, scale: 0.88 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={shouldReduceMotion ? { duration: 0 } : transition}
+                  />
+                )}
                 <LightingIcon value={value} />
                 <span>{t(label)}</span>
               </button>
@@ -219,6 +243,15 @@ export function MapAppearanceSettings({
                 aria-pressed={colorTheme === value}
                 onClick={() => selectColorTheme(value)}
               >
+                {colorTheme === value && (
+                  <motion.span
+                    className="map-appearance__selection-indicator"
+                    aria-hidden="true"
+                    initial={shouldReduceMotion ? false : { opacity: 0, scale: 0.88 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={shouldReduceMotion ? { duration: 0 } : transition}
+                  />
+                )}
                 <span className="map-appearance__swatches" aria-hidden="true">
                   <span />
                   <span />
@@ -230,6 +263,6 @@ export function MapAppearanceSettings({
           ))}
         </div>
       </section>
-    </div>
+    </motion.div>
   );
 }
