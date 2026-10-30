@@ -13,6 +13,67 @@
   justify-content: space-between;
 }
 
+.food__view-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-block: 16px;
+}
+
+.food__history {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+}
+
+.food__history-item {
+  align-items: center;
+  background: var(--surface-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  gap: 12px;
+  min-width: 0;
+  padding: 12px;
+}
+
+.food__history-icon {
+  align-items: center;
+  background: var(--surface-raised);
+  border-radius: var(--radius);
+  display: inline-flex;
+  flex: 0 0 40px;
+  font-size: 1.25rem;
+  height: 40px;
+  justify-content: center;
+}
+
+.food__history-details {
+  display: grid;
+  flex: 1;
+  gap: 4px;
+  min-width: 0;
+}
+
+.food__history-details strong,
+.food__history-details small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.food__history-details small,
+.food__history-item time {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.food__history-item time {
+  flex: 0 0 auto;
+  text-align: right;
+}
+
 .food h1,
 .food h2 {
   color: var(--text-strong);

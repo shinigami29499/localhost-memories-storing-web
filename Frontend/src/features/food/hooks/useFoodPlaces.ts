@@ -1,16 +1,34 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { foodPlaceService } from "../services/foodPlaceService";
-import type { FoodPlace, SaveFoodPlaceInput } from "../types";
+import type { FoodPlace, FoodPlaceVisit, SaveFoodPlaceInput } from "../types";
 
 export const foodPlaceKeys = {
   all: ["food-places"] as const,
   list: () => ["food-places", "list"] as const,
+  visitHistory: () => ["food-places", "visit-history"] as const,
 };
 
 export function useFoodPlaces() {
   return useQuery<FoodPlace[]>({
     queryKey: foodPlaceKeys.list(),
     queryFn: () => foodPlaceService.list(),
+  });
+}
+
+export function useFoodPlaceVisitHistory(enabled = true) {
+  return useQuery<FoodPlaceVisit[]>({
+    queryKey: foodPlaceKeys.visitHistory(),
+    queryFn: () => foodPlaceService.visitHistory(),
+    enabled,
+  });
+}
+
+export function useCheckInFoodPlace() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationKey: ["food-place-check-in"],
+    mutationFn: (foodPlaceId: string) => foodPlaceService.checkIn(foodPlaceId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: foodPlaceKeys.visitHistory() }),
   });
 }
 

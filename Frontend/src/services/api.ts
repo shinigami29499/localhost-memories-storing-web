@@ -31,6 +31,38 @@ interface RequestOptions extends Omit<RequestInit, "body"> {
  *  - Clears the session when the refresh token itself is invalid/expired/revoked.
  */
 export async function api<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  return (await unwrap(await requestResponse(path, options))) as T;
+}
+
+export async function downloadBlob(
+  path: string,
+  signal: AbortSignal,
+  onProgress: (loaded: number, total?: number) => void,
+): Promise<Blob> {
+  const response = await requestResponse(path, { signal, cache: "no-store" });
+  if (!response.body) throw new Error("The download response has no content.");
+  const length = Number(response.headers.get("Content-Length"));
+  const total = Number.isFinite(length) && length > 0 ? length : undefined;
+  const reader = response.body.getReader();
+  const chunks: BlobPart[] = [];
+  let loaded = 0;
+  try {
+    while (true) {
+      signal.throwIfAborted();
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      loaded += value.byteLength;
+      onProgress(loaded, total);
+    }
+    signal.throwIfAborted();
+    return new Blob(chunks, { type: response.headers.get("Content-Type") ?? "application/octet-stream" });
+  } finally {
+    reader.releaseLock();
+  }
+}
+
+async function requestResponse(path: string, options: RequestOptions): Promise<Response> {
   const { skipAuthRefresh, headers: extraHeaders, body, ...rest } = options;
 
   let response = await performRequest(path, extraHeaders, rest, body);
@@ -49,7 +81,7 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
     throw await toError(response);
   }
 
-  return (await unwrap(response)) as T;
+  return response;
 }
 
 export function uploadWithProgress<T>(

@@ -5,7 +5,7 @@ import { XIcon } from "../../../components/animate-ui/icons/x";
 import { useLocale } from "../../../context/LocaleContext";
 import { useMediaQuery } from "../../../hooks/useMediaQuery";
 import { useNavigation } from "../hooks/useNavigation";
-import type { NavigationDestination } from "../services/directionsService";
+import type { Coordinate, NavigationDestination } from "../services/directionsService";
 import { GoogleMapsLink, NavigationModeSelect } from "./NavigationOptions";
 import { distanceBetween, routeProgress } from "../utils/routeProgress";
 import "./mapNavigation.css";
@@ -13,23 +13,25 @@ import "./mapNavigation.css";
 interface Props {
   destination: NavigationDestination;
   accessToken: string;
+  homeLocation?: Coordinate | null;
   onOpenChange: (open: boolean) => void;
 }
 
-export function MapNavigation({ destination, accessToken, onOpenChange }: Props) {
+export function MapNavigation({ destination, accessToken, homeLocation, onOpenChange }: Props) {
   const { t, language } = useLocale();
   // Changing the destination or language must cancel requests and release the GPS watch.
   return <NavigationSession
     key={`${destination.latitude}:${destination.longitude}:${language}:${accessToken}`}
-    destination={destination} accessToken={accessToken} onOpenChange={onOpenChange} name={t("Navigation")}
+    destination={destination} accessToken={accessToken} homeLocation={homeLocation}
+    onOpenChange={onOpenChange} name={t("Navigation")}
   />;
 }
 
-function NavigationSession({ destination, accessToken, onOpenChange, name }: Props & { name: string }) {
+function NavigationSession({ destination, accessToken, homeLocation, onOpenChange, name }: Props & { name: string }) {
   const { t, language } = useLocale();
   const { current: map } = useMap();
   const mobile = useMediaQuery("(max-width: 640px)");
-  const navigation = useNavigation(destination, accessToken, language);
+  const navigation = useNavigation(destination, accessToken, language, homeLocation);
   const { route, position, tracking, loading, locating, arrived, error } = navigation;
   const [expanded, setExpanded] = useState(false);
   const panelRef = useRef<HTMLElement>(null);
@@ -152,10 +154,14 @@ function NavigationSession({ destination, accessToken, onOpenChange, name }: Pro
             </header>
             <NavigationModeSelect mode={navigation.mode} disabled={tracking || busy} onChange={navigation.setMode} />
             <p className="map-navigation__hint">
-              {t("Routes start at your current location. The selected provider receives your location and destination.")}
+              {t(navigation.usingHomeOrigin
+                ? "Could not determine your current location. This route starts at your saved home location. The selected provider receives it and your destination."
+                : "Routes start at your current location. The selected provider receives your location and destination.")}
             </p>
             <div className="map-navigation__actions">
-              <GoogleMapsLink destination={destination} mode={navigation.mode} onOpen={navigation.stop} />
+              <GoogleMapsLink destination={destination} mode={navigation.mode}
+                origin={navigation.usingHomeOrigin ? homeLocation ?? undefined : undefined}
+                onOpen={navigation.stop} />
               {!tracking && (
                 <Button type="button" variant="secondary" busy={busy} onClick={navigation.preview}>
                   {t(locating ? "Finding your location…" : loading ? "Loading route…" : "Preview with Mapbox")}
@@ -189,7 +195,7 @@ function NavigationSession({ destination, accessToken, onOpenChange, name }: Pro
                 {!arrived && (
                   tracking ? (
                     <Button type="button" variant="secondary" onClick={navigation.stop}>{t("Stop navigation")}</Button>
-                  ) : !error && (
+                  ) : !error && !navigation.usingHomeOrigin && (
                     <Button type="button" disabled={busy} onClick={navigation.start}>{t("Start navigation")}</Button>
                   )
                 )}

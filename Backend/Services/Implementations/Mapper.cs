@@ -44,4 +44,6 @@ public sealed class Mapper : IMapper
     public CollectionDto Map(CollectionSource source) => CollectionMappings.ToDto(source);
 
     public FoodPlaceDto Map(FoodPlaceSource source) => FoodPlaceMappings.ToDto(source);
+
+    public FoodPlaceVisitDto Map(FoodPlaceVisitSource source) => FoodPlaceMappings.ToDto(source);
 }

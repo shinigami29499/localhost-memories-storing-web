@@ -1,5 +1,5 @@
 import { api } from "../../../services/api";
-import type { FoodPlace, SaveFoodPlaceInput } from "../types";
+import type { FoodPlace, FoodPlaceVisit, SaveFoodPlaceInput } from "../types";
 
 const LEGACY_PURPLE_MARKER = "#7048E8";
 const REPLACEMENT_MARKER_COLOR = "#0EA5E9";
@@ -26,6 +26,14 @@ export const foodPlaceService = {
         ? REPLACEMENT_MARKER_COLOR
         : place.markerColor,
     })));
+  },
+
+  visitHistory(): Promise<FoodPlaceVisit[]> {
+    return api<FoodPlaceVisit[]>("/api/location/food/visits");
+  },
+
+  checkIn(foodPlaceId: string): Promise<void> {
+    return api(`/api/location/food/${foodPlaceId}/visits`, { method: "POST" });
   },
 
   create(input: SaveFoodPlaceInput): Promise<FoodPlace> {

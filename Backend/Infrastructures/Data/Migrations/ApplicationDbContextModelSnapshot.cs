@@ -311,6 +311,58 @@ namespace Infrastructures.Data.Migrations
                     b.ToTable("food_place_media", (string)null);
                 });
 
+            modelBuilder.Entity("Domains.Entities.FoodPlaceVisit", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("deleted_by");
+
+                    b.Property<Guid>("FoodPlaceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("food_place_id");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_food_place_visits");
+
+                    b.HasIndex("FoodPlaceId")
+                        .HasDatabaseName("ix_food_place_visits_food_place_id");
+
+                    b.HasIndex("UserId", "CreatedAt")
+                        .HasDatabaseName("ix_food_place_visits_user_id_created_at");
+
+                    b.ToTable("food_place_visits", (string)null);
+                });
+
             modelBuilder.Entity("Domains.Entities.MediaFavorite", b =>
                 {
                     b.Property<Guid>("Id")
@@ -872,6 +924,27 @@ namespace Infrastructures.Data.Migrations
                     b.Navigation("FoodPlace");
 
                     b.Navigation("MediaFile");
+                });
+
+            modelBuilder.Entity("Domains.Entities.FoodPlaceVisit", b =>
+                {
+                    b.HasOne("Domains.Entities.FoodPlace", "FoodPlace")
+                        .WithMany()
+                        .HasForeignKey("FoodPlaceId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired()
+                        .HasConstraintName("fk_food_place_visits_food_places_food_place_id");
+
+                    b.HasOne("Domains.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired()
+                        .HasConstraintName("fk_food_place_visits_users_user_id");
+
+                    b.Navigation("FoodPlace");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Domains.Entities.MediaFavorite", b =>

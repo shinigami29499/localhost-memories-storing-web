@@ -23,6 +23,7 @@ import { MediaPreviewDialog } from "../../features/media/components/MediaPreview
 import { useMediaSelectionDrag } from "../../features/media/hooks/useMediaSelectionDrag";
 import { mediaService } from "../../features/media/services/mediaService";
 import { useMedia } from "../../features/media/hooks/useMedia";
+import { DownloadButton } from "../../features/downloads/components/DownloadButton";
 import type { MediaFile, MediaKindFilter } from "../../features/media/types";
 import "./gallery.css";
 import "../../features/media/components/media.css";
@@ -225,19 +226,24 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
     });
   };
 
-  const selectForDrag = (mediaId: string) => {
+  const setDragSelection = (mediaId: string, selected: boolean) => {
     if (bulkFavoriteBusy) return;
     const item = media.find((candidate) => candidate.id === mediaId);
-    if (!item) return;
+    if (!item && selected) return;
     setSelectionMode(true);
     setSelectedItems((current) => {
-      if (current.has(mediaId)) return current;
       const next = new Map(current);
-      next.set(mediaId, item);
+      if (selected && item) next.set(mediaId, item);
+      else next.delete(mediaId);
       return next;
     });
   };
-  const selectionDragHandlers = useMediaSelectionDrag(!bulkFavoriteBusy, selectionMode, selectForDrag);
+  const selectionDragHandlers = useMediaSelectionDrag(
+    !bulkFavoriteBusy,
+    selectionMode,
+    (mediaId) => selectedItems.has(mediaId),
+    setDragSelection,
+  );
 
   const favoriteSelected = async () => {
     if (favoriteBusy || selectedMedia.length === 0) return;
@@ -484,6 +490,11 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
         <footer className="gallery-page__footer">
           <div className="gallery-selection-bar gallery-selection-bar--compact" role="group" aria-label={t("{count} selected", { count: selectedItems.size })} aria-busy={bulkFavoriteBusy}>
             <span className="gallery-selection-bar__status" role="status">{t("{count} selected", { count: selectedItems.size })}</span>
+            <DownloadButton
+              media={selectedMedia}
+              className="gallery-selection-bar__action gallery-selection-bar__action--download"
+              disabled={favoriteBusy}
+            />
             <button
               type="button"
               className="gallery-selection-bar__action gallery-selection-bar__action--favorite"

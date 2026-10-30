@@ -15,6 +15,7 @@ import { MediaRetryProvider } from "../../features/media/components/MediaRetryPr
 import { MediaPreviewDialog } from "../../features/media/components/MediaPreviewDialog";
 import { useMediaSelectionDrag } from "../../features/media/hooks/useMediaSelectionDrag";
 import { mediaService } from "../../features/media/services/mediaService";
+import { DownloadButton } from "../../features/downloads/components/DownloadButton";
 import type { MediaKindFilter } from "../../features/media/types";
 import "./gallery.css";
 import "../../features/media/components/media.css";
@@ -67,16 +68,22 @@ export function TrashPage() {
     });
   };
 
-  const selectForDrag = (mediaId: string) => {
+  const setDragSelection = (mediaId: string, selected: boolean) => {
     setSelectionMode(true);
     setSelectedIds((current) => {
-      if (current.has(mediaId)) return current;
+      if (current.has(mediaId) === selected) return current;
       const next = new Set(current);
-      next.add(mediaId);
+      if (selected) next.add(mediaId);
+      else next.delete(mediaId);
       return next;
     });
   };
-  const selectionDragHandlers = useMediaSelectionDrag(!action, selectionMode, selectForDrag);
+  const selectionDragHandlers = useMediaSelectionDrag(
+    !action,
+    selectionMode,
+    (mediaId) => selectedIds.has(mediaId),
+    setDragSelection,
+  );
 
   const requestAction = (kind: "restore" | "delete", ids: string[]) => {
     if (ids.length === 0) return;
@@ -230,6 +237,11 @@ export function TrashPage() {
           <footer className="gallery-page__footer">
             <div className="gallery-selection-bar gallery-selection-bar--compact" role="group" aria-label={t("{count} selected", { count: selectedIds.size })}>
               <span className="gallery-selection-bar__count" role="status">{t("{count} selected", { count: selectedIds.size })}</span>
+              <DownloadButton
+                media={media.filter((item) => selectedIds.has(item.id))}
+                includeDeleted
+                className="gallery-selection-bar__action gallery-selection-bar__action--download"
+              />
               <button
                 type="button"
                 className="gallery-selection-bar__action"

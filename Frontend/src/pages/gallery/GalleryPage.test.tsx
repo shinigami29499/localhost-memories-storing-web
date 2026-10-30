@@ -10,6 +10,12 @@ import { mediaService } from "../../features/media/services/mediaService";
 import type { MediaFile, PagedMedia } from "../../features/media/types";
 import { useAuthStore } from "../../store/authStore";
 import { GalleryPage, type GalleryView } from "./GalleryPage";
+import { enqueueDownloads } from "../../features/downloads/services/downloadQueue";
+
+vi.mock("../../features/downloads/services/downloadQueue", async (importOriginal) => ({
+  ...await importOriginal<typeof import("../../features/downloads/services/downloadQueue")>(),
+  enqueueDownloads: vi.fn(),
+}));
 
 vi.mock("../../features/media/services/mediaService", () => ({
   mediaService: {
@@ -68,6 +74,7 @@ describe("GalleryPage", () => {
   let client: QueryClient;
 
   beforeEach(() => {
+    vi.mocked(enqueueDownloads).mockClear();
     vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
     vi.stubGlobal("SVGGeometryElement", class extends SVGElement {});
     vi.stubGlobal("matchMedia", vi.fn((query: string) => ({
@@ -261,6 +268,23 @@ describe("GalleryPage", () => {
 
     await act(async () => toggles()[0].click());
     expect(container.querySelectorAll(".gallery-date-grid")).toHaveLength(2);
+  });
+
+  it("queues selected originals as a download batch without clearing selection", async () => {
+    vi.mocked(mediaService.list).mockResolvedValue(page([image, video]));
+    await renderPage();
+    await vi.waitFor(() => expect(container.querySelectorAll(".media-tile")).toHaveLength(2));
+    const [first, second] = Array.from(container.querySelectorAll<HTMLButtonElement>(".media-tile"));
+    await act(async () => first.dispatchEvent(new KeyboardEvent("keydown", {
+      key: " ", shiftKey: true, bubbles: true,
+    })));
+    await act(async () => second.click());
+    const download = container.querySelector<HTMLButtonElement>('[aria-label="Download selected"]')!;
+    expect(download.disabled).toBe(false);
+    await act(async () => download.click());
+    expect(enqueueDownloads).toHaveBeenCalledWith([image, video], false);
+    expect(first.getAttribute("aria-pressed")).toBe("true");
+    expect(second.getAttribute("aria-pressed")).toBe("true");
   });
 
   it("supports selection and cancellation in Favorites", async () => {

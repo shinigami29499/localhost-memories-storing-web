@@ -29,6 +29,25 @@ public sealed partial class FoodPlaceService(
         => mapper.Map(await repository.GetFoodPlaceSourceAsync(foodPlaceId, cancellationToken)
             ?? throw new NotFoundException($"Food place '{foodPlaceId}' was not found."));
 
+    public async Task<IReadOnlyList<FoodPlaceVisitDto>> GetFoodPlaceVisitHistoryAsync(
+        Guid userId, CancellationToken cancellationToken = default)
+        => (await repository.GetFoodPlaceVisitHistoryAsync(userId, cancellationToken))
+            .Select(mapper.Map)
+            .ToList();
+
+    public async Task CheckInFoodPlaceAsync(
+        Guid foodPlaceId, Guid userId, CancellationToken cancellationToken = default)
+    {
+        _ = await repository.FindFoodPlaceAsync(foodPlaceId, cancellationToken)
+            ?? throw new NotFoundException($"Food place '{foodPlaceId}' was not found.");
+        repository.AddFoodPlaceVisit(new FoodPlaceVisit
+        {
+            FoodPlaceId = foodPlaceId,
+            UserId = userId,
+        });
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task<FoodPlaceDto> CreateFoodPlaceAsync(
         Guid ownerId, SaveFoodPlaceRequest request, CancellationToken cancellationToken = default)
     {

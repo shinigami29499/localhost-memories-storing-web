@@ -7,8 +7,11 @@ public interface IFoodPlaceRepository
 {
     Task<IReadOnlyList<FoodPlaceSource>> GetFoodPlacesAsync(CancellationToken cancellationToken = default);
     Task<FoodPlaceSource?> GetFoodPlaceSourceAsync(Guid foodPlaceId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<FoodPlaceVisitSource>> GetFoodPlaceVisitHistoryAsync(
+        Guid userId, CancellationToken cancellationToken = default);
     Task<FoodPlace?> FindFoodPlaceAsync(Guid foodPlaceId, CancellationToken cancellationToken = default);
     void AddFoodPlace(FoodPlace foodPlace);
+    void AddFoodPlaceVisit(FoodPlaceVisit visit);
 
     /// <summary>Returns the ids among <paramref name="mediaIds"/> that are active images.</summary>
     Task<IReadOnlySet<Guid>> GetActiveImageIdsAsync(

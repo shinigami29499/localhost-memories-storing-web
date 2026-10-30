@@ -20,10 +20,33 @@ public sealed class FoodPlaceRepository(ApplicationDbContext db) : IFoodPlaceRep
         => Project(db.FoodPlaces.AsNoTracking().Where(place => place.Id == foodPlaceId))
             .FirstOrDefaultAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<FoodPlaceVisitSource>> GetFoodPlaceVisitHistoryAsync(
+        Guid userId, CancellationToken cancellationToken = default)
+    {
+        var visits = db.FoodPlaceVisits.IgnoreQueryFilters()
+            .Where(visit => visit.UserId == userId && visit.DeletedAt == null);
+        var places = db.FoodPlaces.IgnoreQueryFilters();
+
+        return await (
+            from visit in visits
+            join place in places on visit.FoodPlaceId equals place.Id
+            orderby visit.CreatedAt descending, visit.Id descending
+            select new FoodPlaceVisitSource(
+                visit.Id,
+                visit.FoodPlaceId,
+                place.Name,
+                place.Address,
+                place.MarkerIcon,
+                visit.CreatedAt))
+            .ToListAsync(cancellationToken);
+    }
+
     public Task<FoodPlace?> FindFoodPlaceAsync(Guid foodPlaceId, CancellationToken cancellationToken = default)
         => db.FoodPlaces.FirstOrDefaultAsync(place => place.Id == foodPlaceId, cancellationToken);
 
     public void AddFoodPlace(FoodPlace foodPlace) => db.FoodPlaces.Add(foodPlace);
+
+    public void AddFoodPlaceVisit(FoodPlaceVisit visit) => db.FoodPlaceVisits.Add(visit);
 
     public async Task<IReadOnlySet<Guid>> GetActiveImageIdsAsync(
         IReadOnlyCollection<Guid> mediaIds, CancellationToken cancellationToken = default)

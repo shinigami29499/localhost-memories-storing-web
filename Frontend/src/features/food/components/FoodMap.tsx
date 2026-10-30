@@ -381,7 +381,7 @@ function MapContent({
         <MapResizer />
         {loaded && selected && !picking && !homePicking && (
           <MapNavigation destination={{ latitude: selected.latitude, longitude: selected.longitude, name: selected.name }}
-            accessToken={token} onOpenChange={setNavigationOpen} />
+            accessToken={token} homeLocation={homeLocation} onOpenChange={setNavigationOpen} />
         )}
         {homeLocation && (
           <HomeLocationMarker location={homeLocation} variant="food" onClick={() => {

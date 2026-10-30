@@ -9,6 +9,12 @@ import { LocaleProvider } from "../../context/LocaleContext";
 import { mediaService } from "../../features/media/services/mediaService";
 import type { MediaFile } from "../../features/media/types";
 import { TrashPage } from "./TrashPage";
+import { enqueueDownloads } from "../../features/downloads/services/downloadQueue";
+
+vi.mock("../../features/downloads/services/downloadQueue", async (importOriginal) => ({
+  ...await importOriginal<typeof import("../../features/downloads/services/downloadQueue")>(),
+  enqueueDownloads: vi.fn(),
+}));
 
 vi.mock("motion/react", async (importOriginal) => ({
   ...await importOriginal<typeof import("motion/react")>(),
@@ -135,6 +141,14 @@ describe("TrashPage", () => {
       new KeyboardEvent("keydown", { key: " ", shiftKey: true, bubbles: true }),
     ));
   }
+
+  it("downloads selected trashed originals with administrator trash access", async () => {
+    await renderPage();
+    await select();
+    await click("Download");
+    expect(enqueueDownloads).toHaveBeenCalledWith([trashedMedia], true);
+    expect(container.querySelector(".media-tile")?.getAttribute("aria-pressed")).toBe("true");
+  });
 
   it("shows only one retry action when loading more deleted media fails", async () => {
     let intersect = () => {};

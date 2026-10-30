@@ -46,14 +46,15 @@ Paths in this page are relative to the repository root.
 | Photo location updates and backfill | `Backend/Infrastructures/Data/ApplicationServices/MediaService.Location.cs`, `Backend/Services/Models/Media/MediaLocationMetadata.cs` |
 | Upload tracking and file completion | `Backend/Infrastructures/Data/ApplicationServices/UploadService.cs`, `Backend/Infrastructures/Data/Implementations/UploadRepository.cs` |
 | Albums, captions, membership, preview uploads | `Backend/Infrastructures/Data/ApplicationServices/CollectionService.cs`, `Backend/Infrastructures/Data/Implementations/CollectionRepository.cs` |
-| Food places, ratings, notes, custom markers | `Backend/Infrastructures/Data/ApplicationServices/FoodPlaceService.cs`, `Backend/Infrastructures/Data/Implementations/FoodPlaceRepository.cs` |
+| Food places, visits, history, ratings, notes, custom markers | `Backend/Infrastructures/Data/ApplicationServices/FoodPlaceService.cs`, `Backend/Infrastructures/Data/Implementations/FoodPlaceRepository.cs` |
 | File storage and trash moves | `Backend/Infrastructures/Adapters/Implementations/MediaStorageService.cs` |
 | JPEG previews | `Backend/Infrastructures/Adapters/Implementations/MediaStorageService.Preview.cs` |
 | EXIF GPS extraction | `Backend/Infrastructures/Adapters/Implementations/MediaStorageService.Location.cs` |
 | Upload realtime groups and delivery | `Backend/Apis/Realtime/NotificationsHub.cs`, `Backend/Apis/Realtime/UploadNotifications.cs` |
 
 Current domain entities are `User`, `RefreshToken`, `MediaFile`, `MediaFavorite`,
-`Collection`, `CollectionMedia`, `UploadBatch`, `UploadItem`, and `FoodPlace`, alongside
+`Collection`, `CollectionMedia`, `UploadBatch`, `UploadItem`, `FoodPlace`, and
+`FoodPlaceVisit`, alongside
 the shared entity bases. Media belongs directly to its uploader through
 `MediaFile.OwnerId`; album membership and favorites reference media, not posts.
 
@@ -90,7 +91,7 @@ The Infrastructures project's Data area hosts workflow orchestration that coordi
 | Media lists, files, trash, restore, purge | `MediaController.cs` | `IMediaService`, `MediaService`; `/api/library/gallery` |
 | Media favorites | `MediaFavoritesController.cs` | `IMediaService`; `GET /api/library/gallery/favorites`, `POST`/`DELETE /api/library/gallery/{mediaId}/favorite` |
 | Photo locations | `MediaController.cs` | `IMediaService`; `PUT /api/location/travel/{mediaId}`, `POST /api/location/travel/scan` |
-| Food places, ratings, notes, custom markers | `FoodPlacesController.cs` | `IFoodPlaceService`, `FoodPlaceService`; `/api/location/food` |
+| Food places and current-user visit history | `FoodPlacesController.cs` | `IFoodPlaceService`, `FoodPlaceService`; `/api/location/food` |
 | Upload batches, queue, progress, file completion | `UploadsController.cs` | `IUploadService`, `UploadService`; `/api/sync/upload` |
 | User listing, admin approval/deletion, account home location | `UsersController.cs` | `IUserService`, `UserService`; `/api/users`, `/api/location/food/home-location` |
 | Mention candidate lookup | `UserDirectoryController.cs` | `IUserService`; `GET /api/users/directory/mentions` |
@@ -157,6 +158,11 @@ the given order (duplicates are ignored), or keeps them unchanged when omitted.
 `FoodPlaceDto.MediaIds` lists only active images, so trashed or deleted media drop out.
 Deleting a food place soft-deletes its links.
 
+Every signed-in user can record repeat visits through
+`POST /api/location/food/{foodPlaceId}/visits`. `GET /api/location/food/visits` returns
+only that user's visits, newest first. The visit timestamp comes from the audit
+`CreatedAt` value. History retains place details after a food place is soft-deleted.
+
 Each account stores one optional home coordinate on `User`. Authenticated users read
 and update only their own location through `GET` and `PUT /api/location/food/home-location`;
 `DELETE` clears it.
@@ -188,6 +194,7 @@ table for map-based food places with rating, note, and marker columns.
 migrations remain historical steps, not active API documentation.
 `AddUserHomeLocation` adds nullable home coordinates to `users`. The model snapshot is
 `Backend/Infrastructures/Data/Migrations/ApplicationDbContextModelSnapshot.cs`.
+`AddFoodPlaceVisits` adds per-user visit records for food places.
 
 ## Runtime configuration
 

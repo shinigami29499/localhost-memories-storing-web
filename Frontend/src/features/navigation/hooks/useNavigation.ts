@@ -39,6 +39,7 @@ export function useNavigation(
   destination: NavigationDestination,
   token: string,
   language: "en" | "vi",
+  homeLocation?: Coordinate | null,
 ) {
   const [mode, setMode] = useState<TravelMode>("driving");
   const [route, setRoute] = useState<NavigationRoute | null>(null);
@@ -49,6 +50,7 @@ export function useNavigation(
   const [error, setError] = useState<string | null>(null);
   const [locating, setLocating] = useState(false);
   const [gpsUnreliable, setGpsUnreliable] = useState(false);
+  const [usingHomeOrigin, setUsingHomeOrigin] = useState(false);
   const request = useRef(0);
   const controller = useRef<AbortController | null>(null);
   const lastReroute = useRef(0);
@@ -76,7 +78,7 @@ export function useNavigation(
     setLocating(false);
   };
 
-  const loadRoute = async (origin: LocationFix, id: number, rerouting: boolean) => {
+  const loadRoute = async (origin: Coordinate, id: number, rerouting: boolean) => {
     const abort = new AbortController();
     controller.current = abort;
     let timedOut = false;
@@ -112,18 +114,28 @@ export function useNavigation(
     setArrived(false);
     setError(null);
     setGpsUnreliable(false);
+    setUsingHomeOrigin(false);
+    const id = request.current;
+    const useHomeLocation = (message: string) => {
+      if (!homeLocation) {
+        setError(message);
+        return;
+      }
+      setUsingHomeOrigin(true);
+      setError(null);
+      void loadRoute(homeLocation, id, false);
+    };
     if (!navigator.geolocation) {
-      setError(LOCATION_ERROR);
+      useHomeLocation(LOCATION_ERROR);
       return;
     }
-    const id = request.current;
     setLocating(true);
     navigator.geolocation.getCurrentPosition((current) => {
       if (!mounted.current || request.current !== id) return;
       setLocating(false);
       const fix = toFix(current);
       if (!isReliableFix(fix)) {
-        setError("GPS accuracy is too low. Move to an open area and try again.");
+        useHomeLocation("GPS accuracy is too low. Move to an open area and try again.");
         return;
       }
       setPosition(fix);
@@ -131,7 +143,7 @@ export function useNavigation(
     }, () => {
       if (!mounted.current || request.current !== id) return;
       setLocating(false);
-      setError(LOCATION_ERROR);
+      useHomeLocation(LOCATION_ERROR);
     }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
   };
 
@@ -143,7 +155,10 @@ export function useNavigation(
       const fix = toFix(current);
       const reliable = isReliableFix(fix);
       setGpsUnreliable(!reliable);
-      if (reliable) setPosition(fix);
+      if (reliable) {
+        setPosition(fix);
+        setUsingHomeOrigin(false);
+      }
     }, () => {
       if (!active) return;
       cancelRequest();
@@ -194,6 +209,7 @@ export function useNavigation(
     tracking,
     arrived,
     gpsUnreliable,
+    usingHomeOrigin,
     error,
     preview,
     start: () => {

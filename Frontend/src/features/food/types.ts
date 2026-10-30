@@ -22,6 +22,15 @@ export interface FoodPlace {
   mediaIds: string[];
 }
 
+export interface FoodPlaceVisit {
+  id: string;
+  foodPlaceId: string;
+  foodPlaceName: string;
+  foodPlaceAddress: string;
+  markerIcon: string;
+  visitedAt: string;
+}
+
 export interface SaveFoodPlaceInput {
   name: string;
   address: string;

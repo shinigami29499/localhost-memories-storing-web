@@ -15,12 +15,22 @@ function mediaIdAt(target: EventTarget | null): string | null {
   return target.closest<HTMLElement>("[data-media-id]")?.dataset.mediaId ?? null;
 }
 
-export function useMediaSelectionDrag(enabled: boolean, selectionMode: boolean, onSelect: (mediaId: string) => void) {
+export function useMediaSelectionDrag(
+  enabled: boolean,
+  selectionMode: boolean,
+  isSelected: (mediaId: string) => boolean,
+  onSelectionChange: (mediaId: string, selected: boolean) => void,
+) {
   const drag = useRef<SelectionDrag | null>(null);
   const suppressClick = useRef(false);
   const suppressClickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const selectRef = useRef(onSelect);
-  selectRef.current = onSelect;
+  const isSelectedRef = useRef(isSelected);
+  const selectionChangeRef = useRef(onSelectionChange);
+  isSelectedRef.current = isSelected;
+  selectionChangeRef.current = onSelectionChange;
+  const toggleForDrag = useCallback((current: SelectionDrag, mediaId: string) => {
+    selectionChangeRef.current(mediaId, !isSelectedRef.current(mediaId));
+  }, []);
 
   const clearSuppressClick = useCallback(() => {
     suppressClick.current = false;
@@ -69,7 +79,7 @@ export function useMediaSelectionDrag(enabled: boolean, selectionMode: boolean, 
         current.holdTimer = null;
         current.active = true;
         suppressClick.current = true;
-        selectRef.current(mediaId);
+        selectionChangeRef.current(mediaId, true);
       }, 500);
     }
   }, [enabled, selectionMode, clearSuppressClick]);
@@ -82,13 +92,15 @@ export function useMediaSelectionDrag(enabled: boolean, selectionMode: boolean, 
       if (current.holdTimer !== null) {
         clearTimeout(current.holdTimer);
         current.holdTimer = null;
-        suppressClick.current = true;
-        suppressClickTimer.current = setTimeout(clearSuppressClick, 0);
-        drag.current = null;
-        return;
+        if (event.pointerType === "touch") {
+          suppressClick.current = true;
+          suppressClickTimer.current = setTimeout(clearSuppressClick, 0);
+          drag.current = null;
+          return;
+        }
       }
       current.active = true;
-      selectRef.current(current.startMediaId);
+      toggleForDrag(current, current.startMediaId);
     }
 
     const target = event.currentTarget.ownerDocument.elementFromPoint?.(event.clientX, event.clientY) ?? event.target;
@@ -98,10 +110,10 @@ export function useMediaSelectionDrag(enabled: boolean, selectionMode: boolean, 
       return;
     }
     if (mediaId !== current.lastMediaId) {
-      selectRef.current(mediaId);
+      toggleForDrag(current, mediaId);
       current.lastMediaId = mediaId;
     }
-  }, [enabled]);
+  }, [enabled, toggleForDrag]);
 
   const onClickCapture = useCallback((event: MouseEvent<HTMLElement>) => {
     if (!suppressClick.current) return;

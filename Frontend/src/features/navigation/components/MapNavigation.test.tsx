@@ -55,10 +55,10 @@ describe("MapNavigation", () => {
   const getCurrentPosition = vi.fn();
   const button = (text: string) => [...container.querySelectorAll("button")].find((item) => item.textContent === text)!;
   const click = async (text: string) => { await act(async () => { button(text).click(); }); };
-  const render = async (point = destination) => {
+  const render = async (point = destination, homeLocation?: { latitude: number; longitude: number }) => {
     await act(async () => root.render(
       <QueryClientProvider client={client}>
-        <MapNavigation destination={point} accessToken="pk.test" onOpenChange={onOpenChange} />
+        <MapNavigation destination={point} accessToken="pk.test" homeLocation={homeLocation} onOpenChange={onOpenChange} />
       </QueryClientProvider>,
     ));
   };
@@ -142,13 +142,18 @@ describe("MapNavigation", () => {
     expect(getDirections).toHaveBeenLastCalledWith(expect.anything(), destination, "cycling", "pk.test", "en", expect.any(AbortSignal));
   });
 
-  it("reports denied location permission and leaves Google Maps available", async () => {
+  it("routes from saved home when location permission is denied", async () => {
+    const homeLocation = { latitude: 10, longitude: 106 };
+    await render(destination, homeLocation);
     await click("Navigate");
     await click("Preview with Mapbox");
     await act(async () => { locationError({ code: 1 } as GeolocationPositionError); });
-    expect(container.querySelector('[role="alert"]')?.textContent).toContain("Check location permission");
-    expect(container.querySelector("a")).not.toBeNull();
-    expect(getDirections).not.toHaveBeenCalled();
+    expect(getDirections).toHaveBeenCalledWith(
+      homeLocation, destination, "driving", "pk.test", "en", expect.any(AbortSignal),
+    );
+    expect(container.textContent).toContain("starts at your saved home location");
+    expect(button("Start navigation")).toBeUndefined();
+    expect(new URL(container.querySelector("a")!.href).searchParams.get("origin")).toBe("10,106");
   });
 
   it("shows a clear error when geolocation is unavailable", async () => {

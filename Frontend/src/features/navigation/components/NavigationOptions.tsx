@@ -1,6 +1,6 @@
 import { useId, useState } from "react";
 import { useLocale } from "../../../context/LocaleContext";
-import { googleDirectionsUrl, type NavigationDestination, type TravelMode } from "../services/directionsService";
+import { googleDirectionsUrl, type Coordinate, type NavigationDestination, type TravelMode } from "../services/directionsService";
 import "./mapNavigation.css";
 
 const modes: { value: TravelMode; label: string }[] = [
@@ -29,14 +29,15 @@ export function NavigationModeSelect({ mode, disabled, onChange }: {
   );
 }
 
-export function GoogleMapsLink({ destination, mode, onOpen }: {
+export function GoogleMapsLink({ destination, mode, origin, onOpen }: {
   destination: NavigationDestination;
   mode: TravelMode;
+  origin?: Coordinate;
   onOpen?: () => void;
 }) {
   const { t } = useLocale();
   return (
-    <a className="btn btn--secondary" href={googleDirectionsUrl(destination, mode)}
+    <a className="btn btn--secondary" href={googleDirectionsUrl(destination, mode, origin)}
       target="_blank" rel="noopener noreferrer" onClick={onOpen}>
       {t("Open Google Maps")}
     </a>

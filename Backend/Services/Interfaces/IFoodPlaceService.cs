@@ -7,6 +7,10 @@ public interface IFoodPlaceService
 {
     Task<IReadOnlyList<FoodPlaceDto>> GetFoodPlacesAsync(CancellationToken cancellationToken = default);
     Task<FoodPlaceDto> GetFoodPlaceAsync(Guid foodPlaceId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<FoodPlaceVisitDto>> GetFoodPlaceVisitHistoryAsync(
+        Guid userId, CancellationToken cancellationToken = default);
+    Task CheckInFoodPlaceAsync(
+        Guid foodPlaceId, Guid userId, CancellationToken cancellationToken = default);
     Task<FoodPlaceDto> CreateFoodPlaceAsync(
         Guid ownerId, SaveFoodPlaceRequest request, CancellationToken cancellationToken = default);
     Task<FoodPlaceDto> UpdateFoodPlaceAsync(

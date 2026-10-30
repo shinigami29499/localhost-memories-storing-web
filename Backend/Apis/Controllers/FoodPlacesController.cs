@@ -25,6 +25,21 @@ public class FoodPlacesController(
         Guid foodPlaceId, CancellationToken cancellationToken)
         => Ok(await foodPlaceService.GetFoodPlaceAsync(foodPlaceId, cancellationToken));
 
+    [HttpGet("visits")]
+    public async Task<ActionResult<IReadOnlyList<FoodPlaceVisitDto>>> GetFoodPlaceVisitHistoryAsync(
+        CancellationToken cancellationToken)
+        => Ok(await foodPlaceService.GetFoodPlaceVisitHistoryAsync(
+            currentUser.RequireUserId(), cancellationToken));
+
+    [HttpPost("{foodPlaceId:guid}/visits")]
+    public async Task<IActionResult> CheckInFoodPlaceAsync(
+        Guid foodPlaceId, CancellationToken cancellationToken)
+    {
+        await foodPlaceService.CheckInFoodPlaceAsync(
+            foodPlaceId, currentUser.RequireUserId(), cancellationToken);
+        return NoContent();
+    }
+
     [HttpPost]
     public async Task<ActionResult<FoodPlaceDto>> CreateFoodPlaceAsync(
         SaveFoodPlaceRequest request, CancellationToken cancellationToken)

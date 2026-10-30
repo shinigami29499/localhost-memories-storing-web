@@ -15,4 +15,5 @@ public interface IMapper
     MediaFileDto Map(MediaFile mediaFile, bool isFavorited = false);
     CollectionDto Map(CollectionSource source);
     FoodPlaceDto Map(FoodPlaceSource source);
+    FoodPlaceVisitDto Map(FoodPlaceVisitSource source);
 }

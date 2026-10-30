@@ -14,13 +14,16 @@ import { useHomeLocation } from "../../features/locations/hooks/useHomeLocation"
 import { mediaPreviewUrl } from "../../utils/media";
 import { FoodMap } from "../../features/food/components/FoodMap";
 import { FoodPlaceDialog } from "../../features/food/components/FoodPlaceDialog";
+import { FoodVisitHistory } from "../../features/food/components/FoodVisitHistory";
 import {
   FoodPlaceEditor,
   type FoodPlaceFormValues,
 } from "../../features/food/components/FoodPlaceEditor";
 import { StarRating } from "../../features/food/components/StarRating";
 import {
+  useCheckInFoodPlace,
   useDeleteFoodPlace,
+  useFoodPlaceVisitHistory,
   useFoodPlaces,
   useSaveFoodPlace,
 } from "../../features/food/hooks/useFoodPlaces";
@@ -73,8 +76,11 @@ export function FoodPage() {
   const query = useFoodPlaces();
   const save = useSaveFoodPlace();
   const remove = useDeleteFoodPlace();
+  const checkInMutation = useCheckInFoodPlace();
   const [editor, setEditor] = useState<EditorState | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [view, setView] = useState<"map" | "history">("map");
+  const visitHistory = useFoodPlaceVisitHistory(view === "history");
   const [formError, setFormError] = useState<string | null>(null);
   const [placeToDelete, setPlaceToDelete] = useState<FoodPlace | null>(null);
   const [manualHomePick, setManualHomePick] = useState(false);
@@ -135,6 +141,15 @@ export function FoodPage() {
   const removeHomeLocation = async () => {
     await home.clear.mutateAsync();
     showToast.success(t("Home location removed."));
+  };
+
+  const checkIn = async (place: FoodPlace) => {
+    try {
+      await checkInMutation.mutateAsync(place.id);
+      showToast.success(t("Visit saved."));
+    } catch (error) {
+      showToast.error(error instanceof ApiError ? error.message : t("Could not check in at this food place."));
+    }
   };
 
   const startEdit = (place: FoodPlace) => {
@@ -222,7 +237,27 @@ export function FoodPage() {
           <p>{t("Save the places you ate at, rate them, and keep your notes on the map.")}</p>
         </div>
       </header>
-      <p className="food__hint">{t("Mapbox requires internet access and receives map coordinates. Your notes stay on this server.")}</p>
+      <div className="food__view-switch" role="group" aria-label={t("Food place view")}>
+        <Button
+          type="button"
+          variant={view === "map" ? "primary" : "secondary"}
+          aria-pressed={view === "map"}
+          onClick={() => setView("map")}
+        >
+          {t("Map")}
+        </Button>
+        <Button
+          type="button"
+          variant={view === "history" ? "primary" : "secondary"}
+          aria-pressed={view === "history"}
+          onClick={() => setView("history")}
+        >
+          {t("History")}
+        </Button>
+      </div>
+      {view === "map" && (
+        <p className="food__hint">{t("Mapbox requires internet access and receives map coordinates. Your notes stay on this server.")}</p>
+      )}
       {editor && !editor.coordinate && (
         <div className="food__notice" role="status">
           <span>{t("Click the map, use your current location, or select a place label to set the marker.")}</span>
@@ -240,7 +275,18 @@ export function FoodPage() {
         </div>
       )}
 
-      {query.isLoading ? <Spinner /> : query.isError && !places.length ? (
+      {view === "history" ? (
+        visitHistory.isError ? (
+          <ErrorState
+            message={t("Could not load visit history.")}
+            onRetry={() => void visitHistory.refetch()}
+          />
+        ) : visitHistory.isLoading ? <Spinner /> : visitHistory.data?.length ? (
+          <FoodVisitHistory visits={visitHistory.data} />
+        ) : (
+          <EmptyState title={t("No visits yet")} hint={t("Check in at a food place to start your history.")} />
+        )
+      ) : query.isLoading ? <Spinner /> : query.isError && !places.length ? (
         <ErrorState message="Could not load food places." onRetry={() => void query.refetch()} />
       ) : (
         <>
@@ -371,15 +417,26 @@ export function FoodPage() {
               {selected.latitude.toFixed(6)}, {selected.longitude.toFixed(6)}
             </p>
             <p className="food__hint">{t("Added by {username}", { username: selected.owner.username })}</p>
-            {canEdit(selected) ? (
-              <div className="food__form-actions">
-                <Button variant="secondary" onClick={() => startEdit(selected)}>{t("Edit")}</Button>
-                <Button variant="danger" onClick={() => {
-                  setPlaceToDelete(selected);
-                  setSelectedId(null);
-                }}>{t("Delete")}</Button>
-              </div>
-            ) : (
+            <div className="food__form-actions">
+              <Button
+                type="button"
+                variant="secondary"
+                busy={checkInMutation.isPending}
+                onClick={() => void checkIn(selected)}
+              >
+                {t("Check in")}
+              </Button>
+              {canEdit(selected) && (
+                <>
+                  <Button variant="secondary" onClick={() => startEdit(selected)}>{t("Edit")}</Button>
+                  <Button variant="danger" onClick={() => {
+                    setPlaceToDelete(selected);
+                    setSelectedId(null);
+                  }}>{t("Delete")}</Button>
+                </>
+              )}
+            </div>
+            {!canEdit(selected) && (
               <p className="food__hint">{t("Only the owner or an administrator can change this food place.")}</p>
             )}
           </div>

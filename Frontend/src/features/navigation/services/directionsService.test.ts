@@ -31,6 +31,11 @@ describe("directions providers", () => {
     expect(url.searchParams.has("origin")).toBe(false);
   });
 
+  it("uses a supplied home origin for Google Maps handoff", () => {
+    const url = new URL(googleDirectionsUrl(destination, "driving", origin));
+    expect(url.searchParams.get("origin")).toBe("10,106");
+  });
+
   it.each(["driving", "walking", "cycling"] as TravelMode[])("requests a full %s route in longitude/latitude order", async (mode) => {
     const fetcher = vi.fn().mockResolvedValue({ ok: true, json: async () => payload() });
     vi.stubGlobal("fetch", fetcher);
@@ -77,6 +82,7 @@ describe("directions providers", () => {
     const fetcher = vi.fn();
     vi.stubGlobal("fetch", fetcher);
     expect(() => googleDirectionsUrl({ latitude: NaN, longitude: 1 }, "driving")).toThrow("Invalid navigation coordinates");
+    expect(() => googleDirectionsUrl(destination, "driving", { latitude: 91, longitude: 0 })).toThrow("Invalid navigation coordinates");
     await expect(getDirections(origin, { latitude: 91, longitude: 0 }, "driving", "pk.test", "en", new AbortController().signal))
       .rejects.toThrow("Invalid navigation coordinates");
     await expect(getDirections(origin, destination, "driving", "sk.secret", "en", new AbortController().signal))

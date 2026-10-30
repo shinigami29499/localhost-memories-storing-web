@@ -20,6 +20,7 @@ public class ApplicationDbContext(
     public DbSet<MediaFavorite> MediaFavorites => Set<MediaFavorite>();
     public DbSet<FoodPlace> FoodPlaces => Set<FoodPlace>();
     public DbSet<FoodPlaceMedia> FoodPlaceMedia => Set<FoodPlaceMedia>();
+    public DbSet<FoodPlaceVisit> FoodPlaceVisits => Set<FoodPlaceVisit>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -226,6 +227,24 @@ public class ApplicationDbContext(
             entity.HasIndex(item => item.MediaFileId);
 
             entity.HasQueryFilter(item => item.DeletedAt == null);
+        });
+
+        modelBuilder.Entity<FoodPlaceVisit>(entity =>
+        {
+            entity.HasOne(visit => visit.FoodPlace)
+                .WithMany()
+                .HasForeignKey(visit => visit.FoodPlaceId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(visit => visit.User)
+                .WithMany()
+                .HasForeignKey(visit => visit.UserId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasIndex(visit => new { visit.UserId, visit.CreatedAt });
+            entity.HasIndex(visit => visit.FoodPlaceId);
+
+            entity.HasQueryFilter(visit => visit.DeletedAt == null);
         });
     }
 

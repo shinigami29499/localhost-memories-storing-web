@@ -204,9 +204,10 @@ describe("Sidebar icon hover behavior", () => {
     expect(items.map((item) => item.textContent?.trim())).toEqual(["Upload", "Download"]);
     expect(items.every((item) => item.classList.contains("sidebar__link"))).toBe(true);
     expect(items[0].classList.contains("sidebar__link--static")).toBe(false);
-    expect(items[1].classList.contains("sidebar__link--static")).toBe(true);
+    expect(items[1].classList.contains("sidebar__link--static")).toBe(false);
     expect(items.map((item) => item.querySelector("svg")?.getAttribute("data-animated"))).toEqual(["false", "false"]);
-    expect(container.querySelector('[href="/sync/download"]')).toBeNull();
+    const downloadLink = syncActions.querySelector<HTMLAnchorElement>('[href="/sync/download"]')!;
+    expect(downloadLink).not.toBeNull();
     const uploadLink = syncActions.querySelector<HTMLAnchorElement>('[href="/sync/upload"]')!;
     expect(uploadLink.textContent?.trim()).toBe("Upload");
     expect(container.querySelector('[href="/uploads/activity"]')).toBeNull();
@@ -225,6 +226,11 @@ describe("Sidebar icon hover behavior", () => {
     await act(async () => uploadLink.click());
     expect(uploadLink.classList.contains("sidebar__link--active")).toBe(true);
     expect(items[1].classList.contains("sidebar__link--active")).toBe(false);
+
+    await act(async () => downloadLink.click());
+    expect(downloadLink.classList.contains("sidebar__link--active")).toBe(true);
+    expect(uploadLink.classList.contains("sidebar__link--active")).toBe(false);
+    expect(sync.closest(".sidebar__group")?.classList.contains("sidebar__group--active")).toBe(true);
 
     await act(async () => sync.dispatchEvent(new MouseEvent("pointerover", { bubbles: true })));
     expect(sync.querySelector("svg")?.getAttribute("data-animated")).toBe("true");

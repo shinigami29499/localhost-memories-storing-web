@@ -653,6 +653,7 @@
 }
 
 .gallery-selection-bar--compact .gallery-selection-bar__action[aria-pressed="false"],
+.gallery-selection-bar--compact .gallery-selection-bar__action--download,
 .gallery-selection-bar--compact .gallery-selection-bar__cancel,
 .gallery-selection-bar--compact .gallery-selection-bar__cancel:hover {
   color: #fff;
@@ -734,7 +735,12 @@
 
 @media (max-width: 640px) {
   .gallery-date-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .gallery-date-grid .media-tile {
+    border-radius: 6px;
   }
 
   .media-lightbox.gallery-lightbox[open] {

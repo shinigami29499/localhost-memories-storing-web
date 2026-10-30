@@ -27,14 +27,15 @@ export function isCoordinate(value: Coordinate): boolean {
     && Number.isFinite(value.longitude) && Math.abs(value.longitude) <= 180;
 }
 
-export function googleDirectionsUrl(destination: Coordinate, mode: TravelMode): string {
+export function googleDirectionsUrl(destination: Coordinate, mode: TravelMode, origin?: Coordinate): string {
   if (!isCoordinate(destination)) throw new Error("Invalid navigation coordinates.");
+  if (origin && !isCoordinate(origin)) throw new Error("Invalid navigation coordinates.");
   const url = new URL("https://www.google.com/maps/dir/");
   url.searchParams.set("api", "1");
   url.searchParams.set("destination", `${destination.latitude},${destination.longitude}`);
+  if (origin) url.searchParams.set("origin", `${origin.latitude},${origin.longitude}`);
   url.searchParams.set("travelmode", mode === "cycling" ? "bicycling" : mode);
   url.searchParams.set("dir_action", "navigate");
-  // Omitting origin lets Google Maps resolve the current location on the receiving device.
   return url.toString();
 }
 

@@ -102,6 +102,27 @@ Previews are generated on first request, including for existing uploads, and cac
 under `MediaStorage:Root/previews/v1`. Trash previews retain admin-only access.
 Permanent deletion removes the cached preview; originals are never modified.
 
+### Downloads
+
+Use the download icon in the full-screen viewer to download the current original
+image or video. In Gallery, Favorites, or administrator Trash, select several items and use the download
+icon in the selection bar to queue a batch of separate original files (not a ZIP).
+The shared viewer also supports downloads from albums and administrator trash.
+
+**Sync > Download** shows session-only batches, per-file progress, errors, cancel,
+and retry/download-again controls, using the same layout as upload management.
+Files are fetched sequentially through the authenticated API with token refresh.
+Downloads continue across app routes, but keep the tab open: reloading, closing
+the app, or signing out clears the queue and history. No protected files or download
+history are persisted by the app.
+
+Browsers may require permission for multiple downloads or confirmation per file.
+On iPhone, Safari downloads files to Downloads; it does not automatically add them
+to Photos. **Sent to browser** confirms browser handoff, not a successful disk save.
+If the browser blocks a file, use its individual download-again control.
+Each original is buffered in browser memory before handoff, so very large videos
+remain subject to device memory limits.
+
 ## Technology Stack
 
 | Layer      | Technology                                                           |
@@ -293,6 +314,8 @@ npm test -- --run
 | `/location/travel/scan`                          | POST           | scan photo GPS coordinates                                    |
 | `/location/food`                                  | GET/POST       | list or create food places                                     |
 | `/location/food/{id}`                            | PUT/DELETE     | update or delete food places                                   |
+| `/location/food/visits`                          | GET            | current user's food-place visit history, newest first          |
+| `/location/food/{id}/visits`                     | POST           | record a food-place visit for the current user                 |
 | `/sync/upload/batches`                           | GET/POST       | list batches or submit standalone media metadata               |
 | `/sync/upload/batches/{id}`                      | GET            | authorized — owner only (admins may view any batch)            |
 | `/sync/upload/admin/batches`                     | GET            | admin — all batches, including owner usernames                 |

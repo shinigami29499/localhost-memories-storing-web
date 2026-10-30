@@ -6,6 +6,7 @@ import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { Sidebar } from "./Sidebar";
 import { NotificationBell } from "./NotificationBell";
 import { UploadRuntime } from "../../features/uploads/components/UploadRuntime";
+import { DownloadRuntime } from "../../features/downloads/components/DownloadRuntime";
 import { Spinner } from "../ui/Status";
 import { useLocale } from "../../context/LocaleContext";
 import { PageTransition } from "./PageTransition";
@@ -85,6 +86,7 @@ export function AuthenticatedLayout() {
       ) : null}
       <div ref={mainRef} className="app-shell__main" inert={drawerOpen}>
         <UploadRuntime />
+        <DownloadRuntime />
         <header className="app-topbar">
           <NotificationBell />
         </header>

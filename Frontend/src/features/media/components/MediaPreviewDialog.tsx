@@ -13,18 +13,42 @@ import { RotateCcw } from "@/components/animate-ui/icons/rotate-ccw";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
 import { X } from "@/components/animate-ui/icons/x";
 import { useNavigate } from "react-router-dom";
-import { ErrorState, Spinner } from "../../../components/ui";
+import { ErrorState, showToast, Spinner } from "../../../components/ui";
 import { useLocale } from "../../../context/LocaleContext";
 import { useMediaQuery } from "../../../hooks/useMediaQuery";
 import { useAlbums } from "../../albums/hooks/useAlbums";
 import { mediaPreviewUrl, mediaUrl } from "../../../utils/media";
 import type { MediaFile } from "../types";
+import { DownloadButton } from "../../downloads/components/DownloadButton";
 
 const SaveToAlbumDialog = lazy(() =>
   import("../../albums/components/SaveToAlbumDialog").then((module) => ({ default: module.SaveToAlbumDialog })),
 );
 
 const MAX_DOTS = 10;
+
+async function loadImageAsPng(url: string): Promise<Blob> {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`Image request failed with status ${response.status}.`);
+  const bitmap = await createImageBitmap(await response.blob());
+
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Could not create image canvas.");
+    context.drawImage(bitmap, 0, 0);
+    return await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob((blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error("Could not encode image."));
+      }, "image/png");
+    });
+  } finally {
+    bitmap.close();
+  }
+}
 
 interface CommonProps {
   media: MediaFile[];
@@ -112,6 +136,7 @@ export function MediaPreviewDialog({
   const [selectedIndex, setSelectedIndex] = useState(initialIndex);
   const selectedSnap = useRef(initialIndex);
   const [albumDialogOpen, setAlbumDialogOpen] = useState(false);
+  const [copyingImage, setCopyingImage] = useState(false);
   const isMobile = useMediaQuery("(max-width: 640px)");
   const hasMore = Boolean(onLoadMore) && media.length < total;
   const slideCount = media.length + (hasMore ? 1 : 0);
@@ -170,6 +195,22 @@ export function MediaPreviewDialog({
   const addFavorite = () => {
     if (current && !favoriteBusy && !current.isFavorited) onToggleFavorite?.(current.id, false);
   };
+  const copyImage = async () => {
+    if (!current || current.mediaKind !== "image" || copyingImage) return;
+    setCopyingImage(true);
+    try {
+      const image = loadImageAsPng(mediaUrl(current.id));
+      await navigator.clipboard.write([new ClipboardItem({ "image/png": image })]);
+      showToast.success(t("Image copied"));
+    } catch (error) {
+      showToast.error(
+        t("Could not copy the image."),
+        error instanceof Error ? error.message : undefined,
+      );
+    } finally {
+      setCopyingImage(false);
+    }
+  };
 
   return (
     <dialog
@@ -206,6 +247,11 @@ export function MediaPreviewDialog({
         <X size={20} aria-hidden="true" />
       </button>
       {current ? <div className="media-preview-dialog__actions">
+        <DownloadButton
+          media={[current]}
+          includeDeleted={Boolean(trashActions)}
+          className="viewer-icon-btn media-preview-dialog__action"
+        />
         {trashActions ? <>
           <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
             <button
@@ -230,6 +276,39 @@ export function MediaPreviewDialog({
             </button>
           </AnimateIcon>
         </> : <>
+        {current.mediaKind === "image" ? (
+          <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
+            <button
+              type="button"
+              className="viewer-icon-btn media-preview-dialog__action"
+              aria-label={t("Copy image")}
+              title={t("Copy image")}
+              aria-busy={copyingImage || undefined}
+              disabled={copyingImage}
+              onClick={() => void copyImage()}
+            >
+              {copyingImage ? (
+                <LoaderCircle size={20} className="spinner__wheel" aria-hidden="true" />
+              ) : (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <rect x="8" y="8" width="13" height="13" rx="2" />
+                  <path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" />
+                </svg>
+              )}
+            </button>
+          </AnimateIcon>
+        ) : null}
         <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
           <button
             type="button"

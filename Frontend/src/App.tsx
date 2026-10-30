@@ -27,6 +27,7 @@ const UsersPage = lazy(() => import("./pages/users/UsersPage").then((module) => 
 const LocationsPage = lazy(() => import("./pages/locations/LocationsPage").then((module) => ({ default: module.LocationsPage })));
 const FoodPage = lazy(() => import("./pages/food/FoodPage").then((module) => ({ default: module.FoodPage })));
 const UploadManagementPage = lazy(() => import("./pages/uploads/UploadManagementPage").then((module) => ({ default: module.UploadManagementPage })));
+const DownloadManagementPage = lazy(() => import("./pages/downloads/DownloadManagementPage").then((module) => ({ default: module.DownloadManagementPage })));
 const SettingsPage = lazy(() => import("./pages/settings/SettingsPage").then((module) => ({ default: module.SettingsPage })));
 const ProfilePage = lazy(() => import("./pages/profile/ProfilePage").then((module) => ({ default: module.ProfilePage })));
 
@@ -71,6 +72,7 @@ const router = createBrowserRouter([
           { path: "/saved", element: <LegacyAlbumRedirect /> },
           { path: "/saved/:albumId", element: <LegacyAlbumRedirect /> },
           { path: "/sync/upload", element: <UploadManagementPage /> },
+          { path: "/sync/download", element: <DownloadManagementPage /> },
           { path: "/location/travel", element: <LocationsPage /> },
           { path: "/location/food", element: <FoodPage /> },
           { path: "/profile", element: <ProfilePage /> },

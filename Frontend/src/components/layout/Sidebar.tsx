@@ -232,14 +232,14 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
               </NavLink>
             </AnimateIcon>
             <Collapsible.Root
-              className={`sidebar__group${location.pathname.startsWith("/sync/upload") ? " sidebar__group--active" : ""}`}
+              className={`sidebar__group${location.pathname.startsWith("/sync/") ? " sidebar__group--active" : ""}`}
               open={syncOpen && !compact}
               onOpenChange={(open) => setSyncOpen(open)}
             >
               <AnimateIcon animateOnTap completeOnStop asChild>
                 <Collapsible.Trigger
                   type="button"
-                  className={`sidebar__link sidebar__group-toggle${location.pathname.startsWith("/sync/upload") && compact ? " sidebar__link--active" : ""}`}
+                  className={`sidebar__link sidebar__group-toggle${location.pathname.startsWith("/sync/") && compact ? " sidebar__link--active" : ""}`}
                   onClick={() => { if (compact) onToggle(); }}
                   aria-label={t("Sync")}
                   title={t("Sync")}
@@ -269,10 +269,16 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
                     </NavLink>
                   </AnimateIcon>
                   <AnimateIcon animateOnTap completeOnStop asChild>
-                    <div className="sidebar__link sidebar__sub-link sidebar__link--static" aria-disabled="true">
+                    <NavLink
+                      to="/sync/download"
+                      className={`sidebar__link sidebar__sub-link${location.pathname.startsWith("/sync/download") ? " sidebar__link--active" : ""}`}
+                      data-sidebar="menu-sub-button"
+                      aria-label={t("Download")}
+                      title={t("Download")}
+                    >
                       <Download size={16} aria-hidden="true" />
                       <span>{t("Download")}</span>
-                    </div>
+                    </NavLink>
                   </AnimateIcon>
                 </div>
               </Collapsible.Panel>

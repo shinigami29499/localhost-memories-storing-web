@@ -508,6 +508,7 @@ function MapContent({
         <MapResizer />
         {loaded && selected?.location && !homePicking && (
           <MapNavigation destination={{ ...selected.location, name: selected.originalFilename }} accessToken={token}
+            homeLocation={homeLocation}
             onOpenChange={setNavigationOpen} />
         )}
         {homeLocation && (

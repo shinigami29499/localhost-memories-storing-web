@@ -19,4 +19,12 @@ internal static class FoodPlaceMappings
         source.Place.CreatedAt,
         source.Place.UpdatedAt,
         source.MediaIds);
+
+    internal static FoodPlaceVisitDto ToDto(FoodPlaceVisitSource source) => new(
+        source.Id,
+        source.FoodPlaceId,
+        source.FoodPlaceName,
+        source.FoodPlaceAddress,
+        source.MarkerIcon,
+        source.VisitedAt);
 }
