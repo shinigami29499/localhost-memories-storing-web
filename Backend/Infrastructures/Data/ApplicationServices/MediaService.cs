@@ -9,7 +9,7 @@ using Domains.Entities;
 
 namespace Infrastructures.Data.ApplicationServices;
 
-public class MediaService(
+public partial class MediaService(
     IMediaRepository repository,
     IUnitOfWork unitOfWork,
     IMediaStorage storage,

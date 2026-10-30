@@ -94,7 +94,7 @@ describe("ThemeTogglerButton", () => {
     }
   });
 
-  it("skips the page wipe under reduced motion", async () => {
+  it("skips the page transition under reduced motion", async () => {
     const startTransition = vi.fn();
     Object.defineProperty(document, "startViewTransition", { configurable: true, value: startTransition });
     const button = await renderToggle("always");
@@ -106,10 +106,10 @@ describe("ThemeTogglerButton", () => {
     expect(localStorage.getItem("shinigacim.theme")).toBe("light");
   });
 
-  it.each(["dark", "light"])("keeps the palette and saved theme consistent during a wipe from %s", async (theme) => {
+  it.each(["dark", "light"])("keeps the palette and saved theme consistent during a fade from %s", async (theme) => {
     localStorage.setItem("shinigacim.theme", theme);
-    let finishWipe!: () => void;
-    const finished = new Promise<void>((resolve) => { finishWipe = resolve; });
+    let finishTransition!: () => void;
+    const finished = new Promise<void>((resolve) => { finishTransition = resolve; });
     const animate = vi.fn(() => ({ finished }));
     Object.defineProperty(document.documentElement, "animate", { configurable: true, value: animate });
     const startTransition = vi.fn((update: () => void) => {
@@ -127,14 +127,20 @@ describe("ThemeTogglerButton", () => {
       expect(document.documentElement.classList.contains("dark")).toBe(nextTheme === "dark");
       expect(localStorage.getItem("shinigacim.theme")).toBe(nextTheme);
       expect(button.disabled).toBe(true);
-      expect(animate).toHaveBeenCalledWith(
-        { clipPath: ["inset(0 100% 0 0)", "inset(0 0 0 0)"] },
+      expect(animate).toHaveBeenNthCalledWith(
+        1,
+        { opacity: [1, 0], filter: ["blur(0px)", "blur(10px)"] },
+        expect.objectContaining({ duration: 280, pseudoElement: "::view-transition-old(root)" }),
+      );
+      expect(animate).toHaveBeenNthCalledWith(
+        2,
+        { opacity: [0, 1], filter: ["blur(10px)", "blur(0px)"] },
         expect.objectContaining({ duration: 280, pseudoElement: "::view-transition-new(root)" }),
       );
 
       await act(async () => button.click());
       expect(startTransition).toHaveBeenCalledOnce();
-      await act(async () => { finishWipe(); await finished; });
+      await act(async () => { finishTransition(); await finished; });
       expect(button.disabled).toBe(false);
       expect(document.documentElement.hasAttribute("data-theme-transition")).toBe(false);
       expect(localStorage.getItem("shinigacim.theme")).toBe(nextTheme);

@@ -21,11 +21,10 @@ public sealed class UploadRepository(ApplicationDbContext db) : IUploadRepositor
     }
 
     public async Task<IReadOnlyList<UploadBatch>> GetBatchesAsync(
-        Guid actorId, bool isAdmin, int offset, int limit, CancellationToken cancellationToken = default)
+        Guid actorId, bool isAdmin, int offset, int limit, CancellationToken cancellationToken = default,
+        DateTime? createdFrom = null, DateTime? createdBefore = null)
     {
-        var query = db.UploadBatches.AsQueryable();
-        if (!isAdmin)
-            query = query.Where(batch => batch.OwnerId == actorId);
+        var query = QueryBatches(actorId, isAdmin, createdFrom, createdBefore);
 
         return await query
             .Include(batch => batch.Owner)
@@ -37,12 +36,21 @@ public sealed class UploadRepository(ApplicationDbContext db) : IUploadRepositor
     }
 
     public Task<int> CountBatchesAsync(
-        Guid actorId, bool isAdmin, CancellationToken cancellationToken = default)
+        Guid actorId, bool isAdmin, CancellationToken cancellationToken = default,
+        DateTime? createdFrom = null, DateTime? createdBefore = null)
+        => QueryBatches(actorId, isAdmin, createdFrom, createdBefore).CountAsync(cancellationToken);
+
+    private IQueryable<UploadBatch> QueryBatches(
+        Guid actorId, bool isAdmin, DateTime? createdFrom, DateTime? createdBefore)
     {
         var query = db.UploadBatches.AsQueryable();
         if (!isAdmin)
             query = query.Where(batch => batch.OwnerId == actorId);
-        return query.CountAsync(cancellationToken);
+        if (createdFrom.HasValue)
+            query = query.Where(batch => batch.CreatedAt >= createdFrom.Value);
+        if (createdBefore.HasValue)
+            query = query.Where(batch => batch.CreatedAt < createdBefore.Value);
+        return query;
     }
 
     public Task<UploadBatch?> FindBatchAsync(Guid batchId, CancellationToken cancellationToken = default)

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MediaPreviewDialog } from "./MediaPreviewDialog";
 import type { MediaFile } from "../types";
@@ -48,6 +49,11 @@ const media: MediaFile[] = [
   { ...image, id: "other-image" },
 ];
 
+function RouteProbe() {
+  const location = useLocation();
+  return <output data-path={location.pathname} data-search={location.search} />;
+}
+
 describe("MediaPreviewDialog resolution loading", () => {
   let container: HTMLDivElement;
   let root: Root;
@@ -85,7 +91,9 @@ describe("MediaPreviewDialog resolution loading", () => {
       ? { trashActions: { onRestore: vi.fn(), onDelete: vi.fn() } }
       : { onToggleFavorite: vi.fn() };
     act(() => root.render(
-      <MediaPreviewDialog media={media} initialMediaId="image" onClose={vi.fn()} {...actions} />,
+      <MemoryRouter>
+        <MediaPreviewDialog media={media} initialMediaId="image" onClose={vi.fn()} {...actions} />
+      </MemoryRouter>,
     ));
   }
 
@@ -125,5 +133,26 @@ describe("MediaPreviewDialog resolution loading", () => {
     navigate("ArrowRight");
     expect(container.querySelector("video")).not.toBeNull();
     expect(sources().filter((url) => !url.searchParams.has("preview"))).toHaveLength(1);
+  });
+
+  it("navigates to the selected photo location", () => {
+    const onClose = vi.fn();
+    act(() => root.render(
+      <MemoryRouter>
+        <MediaPreviewDialog
+          media={[{ ...image, location: { latitude: 10, longitude: 20 } }]}
+          initialMediaId="image"
+          onClose={onClose}
+          onToggleFavorite={vi.fn()}
+        />
+        <RouteProbe />
+      </MemoryRouter>,
+    ));
+
+    act(() => container.querySelector<HTMLButtonElement>('[aria-label="View photo location"]')!.click());
+
+    expect(onClose).toHaveBeenCalledWith("image");
+    expect(container.querySelector("output")?.getAttribute("data-path")).toBe("/locations");
+    expect(container.querySelector("output")?.getAttribute("data-search")).toBe("?mediaId=image");
   });
 });

@@ -24,6 +24,11 @@
   min-height: 0;
 }
 
+:root:not(.dark) .sidebar__inner {
+  background: #fff;
+  border-radius: inherit;
+}
+
 .sidebar__brand {
   display: flex;
   align-items: center;
@@ -399,11 +404,7 @@
 
 .sidebar__sub-link[href="/gallery/videos"] > svg > g > path,
 .sidebar__sub-link[href="/gallery/videos"] > svg > g > rect {
-  fill: #fff !important;
-}
-
-.sidebar__sub-link[href="/gallery"] > svg > g > path {
-  fill: #000 !important;
+  fill: currentColor !important;
 }
 
 .sidebar__sub-link:hover {
@@ -583,10 +584,42 @@
 }
 
 @media (min-width: 641px) {
+  .sidebar--collapsed .sidebar__brand {
+    justify-content: center;
+    padding-inline: 0;
+  }
+
+  .sidebar--collapsed .sidebar__brand .brand {
+    justify-content: center;
+    gap: 0;
+  }
+
   .sidebar--collapsed .sidebar__brand .brand > span:last-child,
   .sidebar--collapsed .sidebar__nav .sidebar__link > span,
-  .sidebar--collapsed .sidebar__nav .sidebar__chevron {
-    visibility: hidden;
+  .sidebar--collapsed .sidebar__nav .sidebar__chevron,
+  .sidebar--collapsed .sidebar__account-trigger .sidebar__account-details,
+  .sidebar--collapsed .sidebar__account-chevron {
+    display: none;
+  }
+
+  .sidebar--collapsed .sidebar__nav .sidebar__link {
+    justify-content: center;
+    gap: 0;
+    padding-inline: 0;
+  }
+
+  .sidebar--collapsed .sidebar__footer {
+    align-items: center;
+    padding-inline: 0;
+  }
+
+  .sidebar--collapsed .sidebar__account {
+    width: 100%;
+  }
+
+  .sidebar--collapsed .sidebar__account-trigger {
+    justify-content: center;
+    padding-inline: 0;
   }
 
   .sidebar__nav .sidebar__link > svg {
@@ -737,6 +770,10 @@
     justify-content: space-between;
     gap: 8px;
     padding: calc(8px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) 8px calc(64px + env(safe-area-inset-left));
+  }
+
+  .app-topbar .notification-bar {
+    margin-left: auto;
   }
 
   .app-topbar .brand {

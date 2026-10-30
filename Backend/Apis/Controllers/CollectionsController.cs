@@ -57,7 +57,8 @@ public class CollectionsController(
     [HttpDelete("{collectionId:guid}")]
     public async Task<IActionResult> DeleteCollectionAsync(Guid collectionId, CancellationToken cancellationToken)
     {
-        await collectionService.DeleteCollectionAsync(collectionId, currentUser.RequireUserId(), cancellationToken);
+        await collectionService.DeleteCollectionAsync(
+            collectionId, currentUser.RequireUserId(), currentUser.IsAdmin, cancellationToken);
         return NoContent();
     }
 
@@ -66,6 +67,21 @@ public class CollectionsController(
         Guid collectionId, AddCollectionMediaRequest request, CancellationToken cancellationToken)
         => Ok(await collectionService.AddMediaAsync(
             collectionId, currentUser.RequireUserId(), request.MediaId, cancellationToken));
+
+    [HttpPost("{collectionId:guid}/preview")]
+    [Consumes("multipart/form-data")]
+    public async Task<ActionResult<CollectionDto>> UploadPreviewImageAsync(
+        Guid collectionId, [FromForm] IFormFile file, CancellationToken cancellationToken)
+    {
+        await using var content = file.OpenReadStream();
+        return Ok(await collectionService.UploadPreviewImageAsync(
+            collectionId,
+            currentUser.RequireUserId(),
+            content,
+            file.FileName,
+            file.Length,
+            cancellationToken));
+    }
 
     [HttpDelete("{collectionId:guid}/media/{mediaId:guid}")]
     public async Task<ActionResult<CollectionDto>> RemoveMediaAsync(

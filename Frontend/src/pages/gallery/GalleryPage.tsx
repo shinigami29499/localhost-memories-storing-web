@@ -2,7 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
 import * as Tabs from "@radix-ui/react-tabs";
 import { ScrollProgress, ScrollProgressContainer, ScrollProgressProvider } from "@animate-ui/react/primitives/scroll-progress";
+import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { Bookmark } from "@/components/animate-ui/icons/bookmark";
+import { Clock } from "@/components/animate-ui/icons/clock";
 import { Heart } from "@/components/animate-ui/icons/heart";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
@@ -25,6 +27,9 @@ import "../../features/media/components/media.css";
 
 export type GalleryView = "pictures" | "videos" | "favorites";
 
+/** Favorites mixes both media kinds, so "all" means no kind filter. */
+type FavoritesFilter = MediaKindFilter | "all";
+
 const viewCopy: Record<GalleryView, { title: string; description: string; emptyTitle: string; emptyHint: string }> = {
   pictures: {
     title: "Pictures",
@@ -46,15 +51,44 @@ const viewCopy: Record<GalleryView, { title: string; description: string; emptyT
   },
 };
 
-const filters: { value: MediaKindFilter; label: string }[] = [
+const filters: { value: FavoritesFilter; label: string }[] = [
+  { value: "all", label: "All" },
   { value: "image", label: "Images" },
   { value: "video", label: "Videos" },
 ];
 
+function groupMediaByMinute(items: MediaFile[]) {
+  const grouped = new Map<string, { time: Date; items: MediaFile[] }>();
+  for (const item of items) {
+    const time = new Date(item.createdAt);
+    time.setSeconds(0, 0);
+    const key = String(time.getTime());
+    const group = grouped.get(key);
+    if (group) group.items.push(item);
+    else grouped.set(key, { time, items: [item] });
+  }
+  return [...grouped.entries()].sort(([, a], [, b]) => a.time.getTime() - b.time.getTime());
+}
+
+/** Applies favorite state in small batches and returns the media ids that failed. */
+async function applyFavorites(mediaIds: string[], favorite: boolean) {
+  const failedIds: string[] = [];
+  for (let offset = 0; offset < mediaIds.length; offset += 5) {
+    const batch = mediaIds.slice(offset, offset + 5);
+    const results = await Promise.allSettled(batch.map((mediaId) =>
+      favorite ? mediaService.favorite(mediaId) : mediaService.unfavorite(mediaId),
+    ));
+    results.forEach((result, index) => {
+      if (result.status === "rejected") failedIds.push(batch[index]);
+    });
+  }
+  return failedIds;
+}
+
 export function GalleryPage({ view = "pictures" }: { view?: GalleryView }) {
   const { t, language } = useLocale();
   const queryClient = useQueryClient();
-  const [selectedFilter, setSelectedFilter] = useState<MediaKindFilter>("image");
+  const [selectedFilter, setSelectedFilter] = useState<FavoritesFilter>("all");
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedItems, setSelectedItems] = useState<Map<string, MediaFile>>(() => new Map());
   const selectedIds = [...selectedItems.keys()];
@@ -71,10 +105,12 @@ export function GalleryPage({ view = "pictures" }: { view?: GalleryView }) {
   const [favoriteBusyId, setFavoriteBusyId] = useState<string | null>(null);
   const [bulkFavoriteBusy, setBulkFavoriteBusy] = useState(false);
   const [previewMediaId, setPreviewMediaId] = useState<string | null>(null);
+  const [timelineDays, setTimelineDays] = useState<ReadonlySet<string>>(() => new Set());
   const galleryRef = useRef<HTMLElement>(null);
   const returnToMediaId = useRef<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
-  const filter: MediaKindFilter = view === "videos" ? "video" : view === "pictures" ? "image" : selectedFilter;
+  const filter: MediaKindFilter | undefined = view === "videos" ? "video" : view === "pictures" ? "image"
+    : selectedFilter === "all" ? undefined : selectedFilter;
   const query = useMedia(20, view === "favorites" ? "favorites" : "all", filter);
   const media = useMemo(
     () => (query.data?.pages ?? []).flatMap((page) => page.items),
@@ -96,6 +132,10 @@ export function GalleryPage({ view = "pictures" }: { view?: GalleryView }) {
     () => new Intl.DateTimeFormat(language, { year: "numeric", month: "long", day: "numeric" }),
     [language],
   );
+  const timeFormatter = useMemo(
+    () => new Intl.DateTimeFormat(language, { hour: "numeric", minute: "2-digit" }),
+    [language],
+  );
   const copy = viewCopy[view];
   const selectedMedia = [...selectedItems.values()];
   const allSelectedFavorited = selectedMedia.length > 0 && selectedMedia.every((item) => item.isFavorited);
@@ -107,12 +147,13 @@ export function GalleryPage({ view = "pictures" }: { view?: GalleryView }) {
   };
 
   useEffect(() => {
-    setSelectedFilter("image");
+    setSelectedFilter("all");
     setSelectionMode(false);
     setSelectedItems(new Map());
     setSaveDialogOpen(false);
     setDeleteDialogOpen(false);
     setPreviewMediaId(null);
+    setTimelineDays(new Set());
   }, [view]);
 
   useEffect(() => {
@@ -158,6 +199,13 @@ export function GalleryPage({ view = "pictures" }: { view?: GalleryView }) {
       if (isFavorited) await mediaService.unfavorite(mediaId);
       else await mediaService.favorite(mediaId);
       await query.refetch();
+      showToast.success(t(isFavorited ? "Favorites removed" : "Media added to favorites"), {
+        undo: async () => {
+          if (isFavorited) await mediaService.favorite(mediaId);
+          else await mediaService.unfavorite(mediaId);
+          await query.refetch();
+        },
+      });
     } catch (error) {
       showToast.error(t("Could not update favorites."), error instanceof Error ? error.message : undefined);
     } finally {
@@ -196,28 +244,35 @@ export function GalleryPage({ view = "pictures" }: { view?: GalleryView }) {
   const favoriteSelected = async () => {
     if (favoriteBusy || selectedMedia.length === 0) return;
     const items = allSelectedFavorited ? selectedMedia : selectedMedia.filter((item) => !item.isFavorited);
+    const favorite = !allSelectedFavorited;
     setBulkFavoriteBusy(true);
     try {
-      const failedIds: string[] = [];
-      for (let offset = 0; offset < items.length; offset += 5) {
-        const batch = items.slice(offset, offset + 5);
-        const results = await Promise.allSettled(batch.map((item) =>
-          allSelectedFavorited ? mediaService.unfavorite(item.id) : mediaService.favorite(item.id),
-        ));
-        results.forEach((result, index) => {
-          if (result.status === "rejected") failedIds.push(batch[index].id);
-        });
-      }
+      const failedIds = await applyFavorites(items.map((item) => item.id), favorite);
+      const changedItems = items.filter((item) => !failedIds.includes(item.id));
       setSelectedItems((current) => {
         const next = new Map(current);
-        for (const item of items) {
-          if (!failedIds.includes(item.id) && next.has(item.id)) {
-            next.set(item.id, { ...item, isFavorited: !allSelectedFavorited });
-          }
+        for (const item of changedItems) {
+          if (next.has(item.id)) next.set(item.id, { ...item, isFavorited: favorite });
         }
         return next;
       });
       if (failedIds.length > 0) showToast.error(t("Could not update favorites."));
+      else if (changedItems.length > 0) {
+        showToast.success(t(favorite ? "Media added to favorites" : "Favorites removed"), {
+          undo: async () => {
+            const undoFailedIds = await applyFavorites(changedItems.map((item) => item.id), !favorite);
+            if (undoFailedIds.length > 0) throw new Error(t("Could not update favorites."));
+            setSelectedItems((current) => {
+              const next = new Map(current);
+              for (const item of changedItems) {
+                if (next.has(item.id)) next.set(item.id, { ...item, isFavorited: !favorite });
+              }
+              return next;
+            });
+            await query.refetch();
+          },
+        });
+      }
       await query.refetch();
     } catch (error) {
       showToast.error(t("Could not update favorites."), error instanceof Error ? error.message : undefined);
@@ -250,12 +305,26 @@ export function GalleryPage({ view = "pictures" }: { view?: GalleryView }) {
         return next;
       });
       await queryClient.invalidateQueries({ queryKey: ["media"] });
-      showToast.success(t("Media moved to trash"));
+      showToast.success(t("Media moved to trash"), {
+        undo: async () => {
+          for (const mediaId of deletedIds) await mediaService.restore(mediaId);
+          await queryClient.invalidateQueries({ queryKey: ["media"] });
+        },
+      });
     }
 
     if (failedIds.length > 0) throw firstFailure;
 
     cancelSelection();
+  };
+
+  const toggleTimelineDay = (key: string) => {
+    setTimelineDays((current) => {
+      const next = new Set(current);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
   };
 
   const galleryContent = (
@@ -269,34 +338,86 @@ export function GalleryPage({ view = "pictures" }: { view?: GalleryView }) {
       ) : null}
       {media.length > 0 ? (
         <div className="gallery-groups" aria-busy={query.isFetching}>
-          <MediaRetryProvider key={`${view}-${filter}`} order={groups.flatMap(([, group]) => group.items.map((item) => item.id))}>
-            {groups.map(([key, group]) => (
-              <section key={key} aria-label={dateFormatter.format(group.date)}>
-                <h2 className="gallery-group__title">
-                  <time dateTime={`${group.date.getFullYear()}-${String(group.date.getMonth() + 1).padStart(2, "0")}-${String(group.date.getDate()).padStart(2, "0")}`}>
-                    {dateFormatter.format(group.date)}
-                  </time>
-                </h2>
-                <div
-                  className={`gallery-date-grid gallery-date-grid--${group.items.length <= 5 ? 5 : group.items.length <= 10 ? 10 : 15}`}
-                  data-mobile-columns={group.items.length <= 4 ? 4 : 6}
-                >
-                  {group.items.map((item) => (
-                    <MediaTile
-                      key={item.id}
-                      media={item}
-                      selectionMode={selectionMode}
-                      selectionDragEnabled
-                      selected={selectedItems.has(item.id)}
-                      onSelect={toggleSelected}
-                      onFavorite={(mediaId) => void toggleFavorite(mediaId, false)}
-                      favoriteDisabled={favoriteBusy}
-                      onOpen={setPreviewMediaId}
-                    />
-                  ))}
+          <MediaRetryProvider key={`${view}-${selectedFilter}`} order={groups.flatMap(([, group]) => group.items.map((item) => item.id))}>
+            {groups.map(([key, group]) => {
+              const dateLabel = dateFormatter.format(group.date);
+              const timelineOpen = timelineDays.has(key);
+              const toggleLabel = t(timelineOpen ? "Hide timeline for {date}" : "Show timeline for {date}", { date: dateLabel });
+              return (
+              <section key={key} aria-label={dateLabel}>
+                <div className="gallery-group__header">
+                  <h2 className="gallery-group__title">
+                    <time dateTime={`${group.date.getFullYear()}-${String(group.date.getMonth() + 1).padStart(2, "0")}-${String(group.date.getDate()).padStart(2, "0")}`}>
+                      {dateLabel}
+                    </time>
+                  </h2>
+                  <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
+                    <button
+                      type="button"
+                      className="gallery-group__timeline-toggle"
+                      aria-pressed={timelineOpen}
+                      aria-controls={timelineOpen ? `gallery-timeline-${key}` : undefined}
+                      aria-label={toggleLabel}
+                      title={toggleLabel}
+                      onClick={() => toggleTimelineDay(key)}
+                    >
+                      <Clock size={18} aria-hidden="true" />
+                    </button>
+                  </AnimateIcon>
                 </div>
+                {timelineOpen ? (
+                  <ol id={`gallery-timeline-${key}`} className="gallery-timeline" tabIndex={0} aria-label={t("Media timeline for {date}", { date: dateLabel })}>
+                    {groupMediaByMinute(group.items).map(([minute, minuteGroup], index) => (
+                      <li
+                        key={minute}
+                        className={`gallery-timeline__event${index % 2 === 0 ? " gallery-timeline__event--above" : " gallery-timeline__event--below"}`}
+                      >
+                        <span className="gallery-timeline__stem" aria-hidden="true" />
+                        <span className="gallery-timeline__node" aria-hidden="true" />
+                        <time className="gallery-timeline__time" dateTime={minuteGroup.time.toISOString()}>
+                          {timeFormatter.format(minuteGroup.time)}
+                        </time>
+                        <div className="gallery-timeline__media">
+                          {minuteGroup.items.map((item) => (
+                            <MediaTile
+                              key={item.id}
+                              media={item}
+                              selectionMode={selectionMode}
+                              selectionDragEnabled
+                              selected={selectedItems.has(item.id)}
+                              onSelect={toggleSelected}
+                              onFavorite={(mediaId) => void toggleFavorite(mediaId, false)}
+                              favoriteDisabled={favoriteBusy}
+                              onOpen={setPreviewMediaId}
+                            />
+                          ))}
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                ) : (
+                  <div
+                    className={`gallery-date-grid gallery-date-grid--${group.items.length <= 5 ? 5 : group.items.length <= 10 ? 10 : 15}`}
+                    data-mobile-columns={group.items.length <= 4 ? 4 : 6}
+                  >
+                    {group.items.map((item) => (
+                      <MediaTile
+                        key={item.id}
+                        media={item}
+                        selectionMode={selectionMode}
+                        selectionDragEnabled
+                        selected={selectedItems.has(item.id)}
+                        onSelect={toggleSelected}
+                        onFavorite={(mediaId) => void toggleFavorite(mediaId, false)}
+                        favoriteDisabled={favoriteBusy}
+                        onOpen={setPreviewMediaId}
+                      />
+                    ))}
+                  </div>
+                )}
               </section>
-            ))}
+              );
+            })}
           </MediaRetryProvider>
         </div>
       ) : null}
@@ -336,7 +457,7 @@ export function GalleryPage({ view = "pictures" }: { view?: GalleryView }) {
               <Tabs.Root
                 value={selectedFilter}
                 onValueChange={(value) => {
-                  if (value !== "image" && value !== "video") return;
+                  if (value !== "all" && value !== "image" && value !== "video") return;
                   setSelectedFilter(value);
                   setPreviewMediaId(null);
                   setSelectionMode(false);
@@ -361,7 +482,9 @@ export function GalleryPage({ view = "pictures" }: { view?: GalleryView }) {
                   {galleryContent}
                 </Tabs.Content>
               </Tabs.Root>
-            ) : galleryContent}
+            ) : (
+              galleryContent
+            )}
           </div>
         </ScrollProgressContainer>
       </ScrollProgressProvider>

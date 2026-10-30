@@ -24,8 +24,17 @@ public interface ICollectionService
         Guid collectionId, Guid editorId, UpdateCollectionCaptionRequest request,
         CancellationToken cancellationToken = default);
     Task DeleteCollectionAsync(Guid collectionId, Guid ownerId, CancellationToken cancellationToken = default);
+    Task DeleteCollectionAsync(
+        Guid collectionId, Guid actorId, bool isAdmin, CancellationToken cancellationToken = default);
     Task<CollectionDto> AddMediaAsync(
         Guid collectionId, Guid ownerId, Guid mediaId, CancellationToken cancellationToken = default);
+    Task<CollectionDto> UploadPreviewImageAsync(
+        Guid collectionId,
+        Guid ownerId,
+        Stream content,
+        string originalFilename,
+        long sizeHint,
+        CancellationToken cancellationToken = default);
     Task<CollectionDto> RemoveMediaAsync(
         Guid collectionId, Guid ownerId, Guid mediaId, CancellationToken cancellationToken = default);
 }

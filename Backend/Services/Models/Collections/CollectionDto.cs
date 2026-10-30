@@ -13,4 +13,7 @@ public record CollectionDto(
     Guid? CustomPreviewMediaId,
     bool ContainsMedia,
     DateTime CreatedAt,
-    DateTime? UpdatedAt);
+    DateTime? UpdatedAt)
+{
+    public bool PreviewIsFavorited { get; init; }
+}

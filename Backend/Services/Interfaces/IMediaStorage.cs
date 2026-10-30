@@ -15,4 +15,5 @@ public interface IMediaStorage
     Task<bool> ExistsAsync(string relativePath);
     Task<FileStream> OpenAsync(string relativePath);
     Task<FileStream> OpenPreviewAsync(string relativePath, CancellationToken cancellationToken = default);
+    Task<MediaLocationDto?> ReadLocationAsync(string relativePath, CancellationToken cancellationToken = default);
 }

@@ -1,0 +1,211 @@
+.album-feed-post {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.album-feed-post__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+}
+
+.album-feed-post__avatar {
+  display: grid;
+  place-items: center;
+  flex: 0 0 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--surface-raised);
+  color: var(--text-strong);
+  font-weight: 600;
+}
+
+.album-feed-post__identity {
+  min-width: 0;
+}
+
+.album-feed-post__owner {
+  display: block;
+  overflow-wrap: anywhere;
+  color: var(--text-strong);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.album-feed-post__meta {
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+}
+
+.album-feed-post__preview {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 3;
+  margin: 0 12px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--bg);
+  touch-action: manipulation;
+}
+
+.album-feed-post__count {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text-strong);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+}
+
+.album-feed-post__preview img {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  object-fit: contain;
+  transition: transform 300ms ease-out;
+}
+
+@media (display-mode: browser) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .album-feed-post__preview:hover img {
+    transform: scale(1.02);
+  }
+}
+
+.album-feed-post__placeholder {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  padding: 24px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.album-feed-post__actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px 0;
+}
+
+.album-feed-post__retry {
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.album-feed-post__retry:hover {
+  background: var(--surface-hover);
+  color: var(--text-strong);
+}
+
+.album-feed-post__retry:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.album-feed-post__action {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  padding: 0;
+  border: 0;  border-radius: 8px;
+  background: transparent;
+  color: var(--text-strong);
+  cursor: pointer;
+}
+
+.album-feed-post__action:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+
+.album-feed-post__action:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.album-feed-post__delete:hover {
+  color: var(--danger);
+}
+
+.album-feed-post__delete {
+  margin-left: auto;
+  border-radius: 50%;
+}
+
+.album-feed-post a:focus-visible,
+.album-feed-post__action:focus-visible,
+.album-feed-post__caption-toggle:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+.album-feed-post__body {
+  padding: 0 16px 16px;
+  overflow-wrap: anywhere;
+}
+
+.album-feed-post__body h2 {
+  margin: 4px 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.album-feed-post__body a {
+  color: var(--text-strong);
+  text-decoration: none;
+}
+
+.album-feed-post__body a:hover {
+  text-decoration: underline;
+}
+
+.album-feed-post__caption {
+  margin: 4px 0 8px;
+  overflow: hidden;
+}
+
+.album-feed-post__caption p {
+  margin: 0;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.album-feed-post__caption-toggle {
+  min-height: 44px;
+  margin: -4px 0 4px;
+  padding: 8px 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.album-feed-post__caption-toggle:hover {
+  color: var(--text-strong);
+  text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+  .album-feed-post__preview {
+    margin: 0 8px;
+  }
+}

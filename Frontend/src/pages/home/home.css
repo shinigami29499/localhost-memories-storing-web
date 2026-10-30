@@ -1,8 +1,46 @@
+.app-shell__content:has(.home-page) {
+  overflow: hidden;
+  padding-bottom: 0;
+}
+
 .home-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  position: relative;
   width: 100%;
-  max-width: 1648px;
-  margin: 0 auto;
+}
+
+.home-page__scroll-track {
+  background: var(--border);
+  height: 3px;
+  inset: 0 0 auto;
+  overflow: hidden;
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
+}
+
+.home-page__scroll-progress {
+  background: var(--accent-strong);
+  height: 100%;
+  transform-origin: left;
+  width: 100%;
+}
+
+.home-page__content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
   padding: 40px 24px 72px;
+  scroll-padding-block: 24px;
+}
+
+.home-page__inner {
+  margin: 0 auto;
+  max-width: 728px;
+  width: 100%;
 }
 
 .home-page__header {
@@ -28,8 +66,14 @@
   color: var(--text-muted);
 }
 
+.home-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
 @media (max-width: 640px) {
-  .home-page {
+  .home-page__content {
     padding: 16px 12px 24px;
   }
 }

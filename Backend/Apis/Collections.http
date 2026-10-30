@@ -1,0 +1,15 @@
+@baseUrl = http://localhost:8000
+@accessToken = replace-with-local-access-token
+@collectionId = 00000000-0000-0000-0000-000000000001
+
+### Upload an image, add it to the collection, and set it as the preview
+POST {{baseUrl}}/api/collections/{{collectionId}}/preview
+Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data; boundary=PreviewBoundary
+
+--PreviewBoundary
+Content-Disposition: form-data; name="file"; filename="preview.jpg"
+Content-Type: image/jpeg
+
+< ./preview.jpg
+--PreviewBoundary--

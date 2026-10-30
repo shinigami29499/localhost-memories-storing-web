@@ -104,14 +104,24 @@ public sealed class UploadService(
         return MapBatch(batch, ownerId, includeUsername: false);
     }
 
-    public async Task<PagedUploadBatchesResponse> GetBatchesAsync(
+    public Task<PagedUploadBatchesResponse> GetBatchesAsync(
         Guid actorId, bool isAdmin, int offset, int limit, CancellationToken cancellationToken = default)
+        => GetBatchesAsync(actorId, isAdmin, offset, limit, null, null, cancellationToken);
+
+    public async Task<PagedUploadBatchesResponse> GetBatchesAsync(
+        Guid actorId, bool isAdmin, int offset, int limit,
+        DateTimeOffset? createdFrom, DateTimeOffset? createdBefore, CancellationToken cancellationToken = default)
     {
         if (offset < 0 || limit < 1 || limit > 100)
             throw InvalidRequest("Invalid upload page.", "limit", "Offset must be non-negative and limit must be between 1 and 100.");
 
-        var batches = await _repository.GetBatchesAsync(actorId, isAdmin, offset, limit, cancellationToken);
-        var total = await _repository.CountBatchesAsync(actorId, isAdmin, cancellationToken);
+        if (createdFrom.HasValue && createdBefore.HasValue && createdFrom >= createdBefore)
+            throw InvalidRequest("Invalid upload date range.", "createdBefore", "The end must be after the start.");
+
+        var batches = await _repository.GetBatchesAsync(
+            actorId, isAdmin, offset, limit, cancellationToken, createdFrom?.UtcDateTime, createdBefore?.UtcDateTime);
+        var total = await _repository.CountBatchesAsync(
+            actorId, isAdmin, cancellationToken, createdFrom?.UtcDateTime, createdBefore?.UtcDateTime);
         return new PagedUploadBatchesResponse(
             offset,
             limit,

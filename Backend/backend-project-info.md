@@ -1,6 +1,6 @@
 # Backend Project Reference
 
-Use the [`be-a-overview` skill](../.agents/skills/be-a-overview/SKILL.md) for backend architecture, conventions, invariants, restricted areas, and validation policy. This page is a current-location and implementation reference.
+Use the [backend overview skill](../.agents/skills/02-be-01-readfirst/SKILL.md) for backend architecture, conventions, invariants, restricted areas, and validation policy. This page maps the current source, including local changes.
 
 ## Current file locations
 
@@ -29,6 +29,33 @@ Use the [`be-a-overview` skill](../.agents/skills/be-a-overview/SKILL.md) for ba
 | Media storage implementation   | `Backend/Infrastructures/Adapters/Implementations/`                               |
 | Persistence implementations    | `Backend/Infrastructures/Data/Implementations/`                                   |
 
+Paths in this page are relative to the repository root.
+
+## Source entry points
+
+| Concern | Source |
+| --- | --- |
+| Composition, JWT, CORS, storage options, hub routing | `Backend/Apis/Program.cs` |
+| Startup migrations and seeding | `Backend/Apis/Core/DataSeeder.cs` |
+| HTTP exception translation | `Backend/Apis/Middleware/ExceptionHandlingMiddleware.cs` |
+| Persistence and workflow registration | `Backend/Infrastructures/Data/DependencyInjection/ServiceCollectionExtensions.cs` |
+| Application utility registration | `Backend/Services/DependencyInjection/ServiceCollectionExtensions.cs` |
+| Mapping implementation and definitions | `Backend/Services/Implementations/Mapper.cs`, `Backend/Services/Mappings/AuthMappings.cs`, `Backend/Services/Mappings/CollectionMappings.cs`, `Backend/Services/Mappings/FoodPlaceMappings.cs` |
+| Media access, paging, favorites, trash, restore, purge | `Backend/Infrastructures/Data/ApplicationServices/MediaService.cs`, `Backend/Infrastructures/Data/Implementations/MediaRepository.cs` |
+| Photo location updates and backfill | `Backend/Infrastructures/Data/ApplicationServices/MediaService.Location.cs`, `Backend/Services/Models/Media/MediaLocationMetadata.cs` |
+| Upload tracking and file completion | `Backend/Infrastructures/Data/ApplicationServices/UploadService.cs`, `Backend/Infrastructures/Data/Implementations/UploadRepository.cs` |
+| Albums, captions, membership, preview uploads | `Backend/Infrastructures/Data/ApplicationServices/CollectionService.cs`, `Backend/Infrastructures/Data/Implementations/CollectionRepository.cs` |
+| Food places, ratings, notes, custom markers | `Backend/Infrastructures/Data/ApplicationServices/FoodPlaceService.cs`, `Backend/Infrastructures/Data/Implementations/FoodPlaceRepository.cs` |
+| File storage and trash moves | `Backend/Infrastructures/Adapters/Implementations/MediaStorageService.cs` |
+| JPEG previews | `Backend/Infrastructures/Adapters/Implementations/MediaStorageService.Preview.cs` |
+| EXIF GPS extraction | `Backend/Infrastructures/Adapters/Implementations/MediaStorageService.Location.cs` |
+| Upload realtime groups and delivery | `Backend/Apis/Realtime/NotificationsHub.cs`, `Backend/Apis/Realtime/UploadNotifications.cs` |
+
+Current domain entities are `User`, `RefreshToken`, `MediaFile`, `MediaFavorite`,
+`Collection`, `CollectionMedia`, `UploadBatch`, `UploadItem`, and `FoodPlace`, alongside
+the shared entity bases. Media belongs directly to its uploader through
+`MediaFile.OwnerId`; album membership and favorites reference media, not posts.
+
 ## Architecture and project references
 
 The backend keeps public use-case contracts in `Services/Interfaces/`; persistence and transaction interfaces are owned by the Infrastructures project's Data area. Workflow implementations that consume those Data-owned interfaces live in `Infrastructures/Data/ApplicationServices/`. Data and Adapters are source areas within one `Infrastructures.csproj`, not separate projects. `Apis/Program.cs` composes the projects:
@@ -49,56 +76,111 @@ Domains ──> (no project references)
 
 `Services/` must not reference infrastructure or API projects and must not expose EF Core query types. Persistence repositories, `IUnitOfWork`, `IDataTransaction`, and `IAuditActorProvider` are owned by `Infrastructures/Data/Interfaces/`; the workflow implementations that consume them are in `Infrastructures/Data/ApplicationServices/` and registered by Data. `Services/` owns public use-case interfaces and shared application contracts. `Infrastructures/Adapters/` owns its `IMediaStorageService` interface in `Interfaces/` (extending the shared media storage contract) and implements it with `MediaStorageService`; the API registers both interfaces against the same singleton. `ICurrentUserContext` is owned by `Apis/Interfaces/` because it defines an API authentication context consumed by controllers. The API's `CurrentUserContext` supplies the authenticated actor through the Data-owned audit interface.
 
-Each interface lives under an `Interfaces/` folder in its owning project or source area: API-specific contracts under `Apis/Interfaces/`, public use-case and shared application contracts under `Services/Interfaces/`, persistence and transaction contracts under `Infrastructures/Data/Interfaces/`, and adapter-specific contracts under `Infrastructures/Adapters/Interfaces/`. Workflow implementations that use Data-owned contracts are hosted by the Data area; their public interfaces remain in Services. Infrastructure implementation classes use role-based names such as `PostRepository` and `UnitOfWork`, without an `Ef` prefix. `Backend/Adapter/Security/` remains at its legacy location because it is restricted; the Infrastructures project links its sources in place rather than moving or editing them. Nested `bin/` and `obj/` directories are excluded from project items so previous per-area build outputs cannot be compiled into the merged project.
+Each interface lives under an `Interfaces/` folder in its owning project or source area: API-specific contracts under `Apis/Interfaces/`, public use-case and shared application contracts under `Services/Interfaces/`, persistence and transaction contracts under `Infrastructures/Data/Interfaces/`, and adapter-specific contracts under `Infrastructures/Adapters/Interfaces/`. Workflow implementations that use Data-owned contracts are hosted by the Data area; their public interfaces remain in Services. Infrastructure implementation classes use role-based names such as `MediaRepository` and `UnitOfWork`, without an `Ef` prefix. `Backend/Adapter/Security/` remains at its legacy location because it is restricted; the Infrastructures project links its sources in place rather than moving or editing them. Nested `bin/` and `obj/` directories are excluded from project items so previous per-area build outputs cannot be compiled into the merged project.
 
-The Infrastructures project's Data area hosts workflow orchestration that coordinates its repositories and unit of work, alongside EF queries, query filters, projections, bulk interaction updates, and post-purge transactions. The API controllers normally call public service contracts; `MediaController` retains HTTP/JWT responsibilities but delegates media lookup, storage access, and streaming content acquisition to `IMediaService`.
+The Infrastructures project's Data area hosts workflow orchestration that coordinates its repositories and unit of work, alongside EF queries, query filters, projections, bulk updates, and media-purge transactions. The API controllers call public service contracts; `MediaController` retains HTTP/JWT responsibilities but delegates media lookup, storage access, and streaming content acquisition to `IMediaService`.
 
 ## Feature request flow
 
-| Feature                                        | Controller                   | Application service / infrastructure boundary                                                                                                                   |
-| ---------------------------------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Authentication (register/login/refresh/logout) | `AuthController.cs`          | `Data/ApplicationServices/AuthService.cs`, `Services/Implementations/TokenService.cs`, and Data-owned persistence interfaces                                    |
-| Posts (feed, CRUD)                             | `PostsController.cs`         | `Data/ApplicationServices/PostService.cs` → Data repositories and media storage port                                                                            |
-| Notifications                                  | `NotificationsController.cs` | `Data/ApplicationServices/NotificationService.cs` → notification repository; `NotificationsHub` delivers post, comment, and reaction notifications over SignalR |
-| Comments                                       | `CommentsController.cs`      | `Data/ApplicationServices/CommentService.cs` → Data repository and transaction interfaces                                                                       |
-| Reactions                                      | `ReactionsController.cs`     | `Data/ApplicationServices/ReactionService.cs` → Data repository and transaction interfaces                                                                      |
-| Saved collections                              | `CollectionsController.cs`   | `Data/ApplicationServices/CollectionService.cs` → `ICollectionRepository`, post repository, and unit of work                                                    |
-| Media (file access, delete, restore)           | `MediaController.cs`         | `Data/ApplicationServices/MediaService.cs` → Data repository, transaction, and media storage port                                                               |
-| Users (list for members; approve/delete admin) | `UsersController.cs`         | `Data/ApplicationServices/UserService.cs` → Data repository and transaction interfaces                                                                          |
+| Feature | Controller in `Backend/Apis/Controllers/` | Application boundary / API |
+| --- | --- | --- |
+| Register, login, refresh, logout, current user | `AuthController.cs` | `IAuthService`, `AuthService`, `TokenService`; `/api/auth` |
+| Album lists, details, media, captions, previews | `CollectionsController.cs` | `ICollectionService`, `CollectionService`; `/api/collections` |
+| Media lists, files, trash, restore, purge | `MediaController.cs` | `IMediaService`, `MediaService`; `/api/media` |
+| Media favorites | `MediaFavoritesController.cs` | `IMediaService`; `GET /api/media/favorites`, `POST`/`DELETE /api/media/{mediaId}/favorite` |
+| Photo locations | `MediaController.cs` | `IMediaService`; `PUT /api/media/{mediaId}/location`, `POST /api/media/locations/scan` |
+| Food places, ratings, notes, custom markers | `FoodPlacesController.cs` | `IFoodPlaceService`, `FoodPlaceService`; `/api/food-places` |
+| Upload batches, queue, progress, file completion | `UploadsController.cs` | `IUploadService`, `UploadService`; `/api/uploads` |
+| User listing, admin approval/deletion | `UsersController.cs` | `IUserService`, `UserService`; `/api/users` |
+| Mention candidate lookup | `UserDirectoryController.cs` | `IUserService`; `GET /api/user-directory/mentions` |
 
-Post deletion (`DELETE /api/posts/{id}`), restore, purge, and media delete/restore are `[RequireAdmin]`. `GET /api/posts` and `GET /api/posts/favorites` accept an optional `mediaKind` (`image`/`video`); favorites are posts the caller reacted to with `heart`.
+`GET /api/media` lists active standalone media across uploaders for signed-in users;
+`GET /api/media/favorites` filters that library to the caller's favorites. Both accept
+`offset`, `limit`, and optional `mediaKind` (`image`/`video`), and sort by media creation
+time descending. Favorite state is viewer-specific. Deleted-media listing, deletion,
+restoration, and permanent deletion are `[RequireAdmin]`.
 
 Repositories return domain entities or query results; workflows do not compose EF queries. `IUnitOfWork` provides asynchronous save and transaction operations without exposing EF Core transaction types.
 
-Feed composer submissions use `POST /api/posts/uploads` to register a caption and one
-upload batch containing all selected file metadata. `UploadService` processes each item
-through its own upload request and delegates successful file attachment to `PostService`
-and the existing `IMapper`. The first success creates one real post; later successes,
-including retries, add media to the same post. Item success, post/media metadata, and the
-batch's post association commit together. The existing post-upload notifications are
-created once and delivered through SignalR. Batch row locks serialize state changes;
-revisions reject stale or duplicate file completions. Post deletion cancels outstanding
-items under the same lock, preserving the existing trash/restore workflow.
+### Uploads and realtime
 
-`UploadsController` exposes owner-scoped tracking and item actions, plus an admin-only
-all-batches list with usernames. Tracking is not a standalone media creation feature.
-The `LinkUploadBatchesToPosts` migration adds caption and an optional unique post foreign
-key to upload batches. Permanent post deletion clears that link while keeping history;
-failed items cannot recreate a permanently deleted post.
+`POST /api/uploads/batches` registers file metadata. Each item is started, receives
+progress updates, and accepts its bytes through
+`POST /api/uploads/batches/{batchId}/items/{itemId}/file`. Successful completion creates
+one standalone `MediaFile` through `IMapper` and commits media metadata with item state.
+Batch row locks and item revisions reject conflicting completions; storage cleanup
+compensates failed persistence.
 
-Post creation persists one notification for each other active user in the same database save as the post and uploaded media metadata. Comments and new reactions persist a notification only for the post owner, excluding activity by the owner themselves; each notification is saved in the same database save as its comment or reaction. Authenticated clients receive notifications through `/hubs/notifications`; `GET /api/notifications` returns recent notifications and the unread count, and `POST /api/notifications/{id}/read` marks an item as read. Apply the EF Core migrations for the notification table and notification type before deploying these changes.
+Tracking and item actions are owner-scoped. `GET /api/uploads/admin/batches` is
+admin-only and includes owner names. Both list endpoints accept `createdFrom`
+(inclusive) and `createdBefore` (exclusive), normalized to UTC before pagination and
+counting. Queue, active-batch, and recovery endpoints support the client upload runtime.
 
-Saved collections (`/api/collections`) are owned by one user and private by default;
-public collections are readable by any signed-in user (`scope=public` lists other users'
-public collections; the viewer's own appear only under `scope=mine`), while only the owner can edit,
-add or remove posts, or delete them. Non-owners receive 404 for private collections and
-403 for edits to public ones. `PreviewMediaId` is the owner-selected preview
-(`CustomPreviewMediaId`, which must be an image from a post in the collection) or else
-the first image of the earliest saved active post. Entries and collections are
-soft-deleted; soft-deleted posts drop out of collections and reappear on restore.
-Removing a post clears a custom preview taken from it, and permanent post deletion
-removes collection entries and preview references. Apply the `AddCollections`
-migration before deploying.
+`/hubs/notifications` remains the authenticated SignalR endpoint, but currently
+delivers `UploadsChanged` to the owner's group and the admin group. There is no current
+post/comment/reaction notification API; browser upload notifications are client-local.
+
+### Albums
+
+Collections are albums in the client. They are owned by one user and private by default.
+`scope=mine` lists owned albums; `scope=public` lists other users' public albums.
+Signed-in viewers can read public albums and update their captions through
+`PUT /api/collections/{collectionId}/caption` (maximum 4,000 characters).
+Only owners can change other album details, upload previews, or add/remove media.
+Owners and administrators can delete albums without deleting their media files.
+Private albums return 404 to other viewers; owner-only edits reject non-owners.
+
+`CollectionMedia` stores album membership. `PreviewMediaId` uses the selected
+`Collection.PreviewMediaFileId` when valid, otherwise the first active image in saved
+order. `PreviewIsFavorited` is viewer-specific and fetched in one batch for album lists.
+Preview uploads create standalone media, add it to the album, and select it as preview
+in one transaction. Removing selected preview media clears the preview reference.
+Soft-deleted media disappears from album results and returns after restoration;
+permanent deletion removes membership, favorites, and preview references.
+
+### Food places
+
+`FoodPlace` records a map-based food location with a name (maximum 120 characters),
+an optional address (maximum 300 characters), a note (maximum 2,000 characters),
+latitude/longitude, a rating, and marker styling.
+`Rating` is 1 to 5 stars, or 0 when the place is unrated. `MarkerIcon` is a short emoji
+or glyph (maximum 16 characters) and `MarkerColor` is a `#RGB` or `#RRGGBB` hex color;
+both fall back to defaults when omitted. Every signed-in user can read all food places
+through `GET /api/food-places`; only the owner or an administrator can update or delete
+one. Deletion is a soft delete, like every other entity.
+
+`FoodPlaceMedia` links a food place to up to 12 active library images in display order;
+the lowest `Position` is the cover. `SaveFoodPlaceRequest.MediaIds` replaces the links in
+the given order (duplicates are ignored), or keeps them unchanged when omitted.
+`FoodPlaceDto.MediaIds` lists only active images, so trashed or deleted media drop out.
+Deleting a food place soft-deletes its links.
+
+### Locations and previews
+
+`MediaStorageService.Location.cs` reads image EXIF GPS using MetadataExtractor during
+uploads and backfill scans. `MediaLocationMetadata` stores `location` and
+`locationScanned` in the existing media metadata JSON; no location-specific migration
+is required. Owners or admins can set valid latitude/longitude pairs or clear both.
+Scans process up to 25 unscanned active photos per request (own photos for members,
+all photos for admins), returning counts, failed IDs, and a continuation offset.
+Manual location changes mark photos scanned so concurrent backfill cannot overwrite them.
+
+`GET /api/media/{mediaId}/file` accepts a bearer token or `accessToken` query parameter.
+`preview=true` requests a JPEG bounded by 640 x 640 pixels; preview generation uses
+FFmpeg. `includeDeleted=true` requires an admin token and serves trash without restoring
+it. Both previews and deleted-file responses use `Cache-Control: no-store`.
+
+### Schema history
+
+`AddMediaLevelAlbumFavorites` introduced media album membership and favorites.
+`RemovePostFeatures` then removed posts, comments, reactions, persisted post
+notifications, and upload-to-post links, transferring media ownership to users.
+`AddCollectionCaption` adds album captions. `AddFoodPlaces` adds the `food_places`
+table for map-based food places with rating, note, and marker columns.
+`AddFoodPlaceMedia` adds the ordered `food_place_media` image links.
+`AddFoodPlaceAddress` adds an optional address to `food_places`. Earlier post-related
+migrations remain historical steps, not active API documentation. The model snapshot is
+`Backend/Infrastructures/Data/Migrations/ApplicationDbContextModelSnapshot.cs`.
 
 ## Runtime configuration
 

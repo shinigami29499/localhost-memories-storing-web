@@ -5,7 +5,7 @@ import { resolve } from "node:path";
 
 const globalStyles = readFileSync(resolve("src", "styles", "global.css"), "utf8");
 const sidebarStyles = readFileSync(resolve("src", "styles", "sidebar.css"), "utf8");
-const adminStyles = readFileSync(resolve("src", "pages", "admin", "admin.css"), "utf8");
+const usersStyles = readFileSync(resolve("src", "pages", "users", "users.css"), "utf8");
 const galleryStyles = readFileSync(resolve("src", "pages", "gallery", "gallery.css"), "utf8");
 const loginStyles = readFileSync(resolve("src", "pages", "login", "login.css"), "utf8");
 
@@ -28,7 +28,7 @@ describe("Global styles", () => {
   beforeEach(() => {
     document.documentElement.classList.add("dark");
     style = document.createElement("style");
-    style.textContent = globalStyles.replace(/^@import .*;$/gm, "") + sidebarStyles + adminStyles + galleryStyles;
+    style.textContent = globalStyles.replace(/^@import .*;$/gm, "") + sidebarStyles + usersStyles + galleryStyles;
     document.head.append(style);
     card = document.createElement("article");
     card.className = "post-card";

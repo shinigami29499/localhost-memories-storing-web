@@ -11,6 +11,9 @@ public interface IUploadService
         Guid ownerId, CreateUploadBatchRequest request, CancellationToken cancellationToken = default);
     Task<PagedUploadBatchesResponse> GetBatchesAsync(
         Guid actorId, bool isAdmin, int offset, int limit, CancellationToken cancellationToken = default);
+    Task<PagedUploadBatchesResponse> GetBatchesAsync(
+        Guid actorId, bool isAdmin, int offset, int limit,
+        DateTimeOffset? createdFrom, DateTimeOffset? createdBefore, CancellationToken cancellationToken = default);
     Task<UploadBatchDto> GetBatchAsync(
         Guid actorId, bool isAdmin, Guid batchId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<UploadItemDto>> GetPendingItemsAsync(

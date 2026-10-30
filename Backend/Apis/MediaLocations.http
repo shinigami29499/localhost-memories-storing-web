@@ -1,0 +1,41 @@
+@baseUrl = http://localhost:8000
+@accessToken = replace-with-local-access-token
+@mediaId = 00000000-0000-0000-0000-000000000001
+
+### Read photo locations using the existing paged media API
+GET {{baseUrl}}/api/media?mediaKind=image&offset=0&limit=100
+Authorization: Bearer {{accessToken}}
+
+### Set a photo location (owner or admin)
+PUT {{baseUrl}}/api/media/{{mediaId}}/location
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "latitude": 10.7769,
+  "longitude": 106.7009
+}
+
+### Remove a photo location without modifying the original file
+PUT {{baseUrl}}/api/media/{{mediaId}}/location
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "latitude": null,
+  "longitude": null
+}
+
+### Invalid coordinates return a validation problem
+PUT {{baseUrl}}/api/media/{{mediaId}}/location
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "latitude": 91,
+  "longitude": 0
+}
+
+### Scan one batch; use nextOffset from the response while hasMore is true
+POST {{baseUrl}}/api/media/locations/scan?offset=0
+Authorization: Bearer {{accessToken}}

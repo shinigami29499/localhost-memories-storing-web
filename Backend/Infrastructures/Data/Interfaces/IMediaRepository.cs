@@ -4,6 +4,10 @@ namespace Infrastructures.Data.Interfaces;
 
 public interface IMediaRepository
 {
+    Task<IReadOnlyList<MediaFile>> GetLocationScanBatchAsync(
+        Guid actorId, bool isAdmin, int offset, int limit, CancellationToken cancellationToken);
+    Task<bool> TrySetExtractedLocationAsync(
+        Guid mediaId, Guid actorId, string metadata, CancellationToken cancellationToken);
     Task<MediaFile?> FindOwnedMediaAsync(
         Guid mediaId, CancellationToken cancellationToken = default);
     Task<MediaFile?> FindMediaIncludingDeletedAsync(
@@ -21,5 +25,6 @@ public interface IMediaRepository
         Guid userId, IReadOnlyCollection<Guid> mediaIds, CancellationToken cancellationToken = default);
     Task<MediaFavorite?> FindMediaFavoriteAsync(
         Guid userId, Guid mediaId, bool includeDeleted, CancellationToken cancellationToken = default);
+    void AddMediaFile(MediaFile mediaFile);
     void AddMediaFavorite(MediaFavorite favorite);
 }

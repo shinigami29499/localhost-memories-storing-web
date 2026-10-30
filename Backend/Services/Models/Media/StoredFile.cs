@@ -6,4 +6,5 @@ public sealed record StoredFile(
     string MimeType,
     string FileExtension,
     string MediaKind,
-    long SizeBytes);
+    long SizeBytes,
+    MediaLocationDto? Location = null);

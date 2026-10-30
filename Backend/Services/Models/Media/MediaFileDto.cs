@@ -7,4 +7,6 @@ public sealed record MediaFileDto(
     string OriginalFilename,
     long FileSizeBytes,
     DateTime CreatedAt,
-    bool IsFavorited);
+    bool IsFavorited,
+    Guid OwnerId = default,
+    MediaLocationDto? Location = null);

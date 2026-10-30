@@ -15,7 +15,7 @@ import { ConfirmationDialog } from "../../components/ui/ConfirmationDialog";
 import { Pagination, DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS } from "../../components/ui/Pagination";
 import type { AuthUser } from "../../features/auth";
 import "../gallery/gallery.css";
-import "../admin/admin.css";
+import "./users.css";
 import { useLocale } from "../../context/LocaleContext";
 
 const statusLabels: Record<string, string> = {

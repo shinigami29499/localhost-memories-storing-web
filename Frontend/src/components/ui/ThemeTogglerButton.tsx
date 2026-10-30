@@ -19,7 +19,7 @@ export function ThemeTogglerButton({ className = "" }: { className?: string }) {
   const shouldReduceMotion = useShouldReduceMotion();
   const changing = useRef(false);
   const [busy, setBusy] = useState(false);
-  const slideTiming = toCssTiming(useTempoTransition(motionTokens.transition.collapse));
+  const fadeTiming = toCssTiming(useTempoTransition(motionTokens.transition.collapse));
   const pressTransition = useTempoTransition({
     type: "spring",
     stiffness: 550,
@@ -44,14 +44,19 @@ export function ThemeTogglerButton({ className = "" }: { className?: string }) {
         flushSync(() => setTheme(nextTheme));
       });
       await viewTransition.ready;
-      await root.animate(
-        { clipPath: ["inset(0 100% 0 0)", "inset(0 0 0 0)"] },
-        {
-          duration: slideTiming.duration,
-          easing: slideTiming.easing,
-          pseudoElement: "::view-transition-new(root)",
-        },
-      ).finished;
+      const animationOptions = {
+        duration: fadeTiming.duration,
+        easing: fadeTiming.easing,
+      };
+      const oldScreen = root.animate(
+        { opacity: [1, 0], filter: ["blur(0px)", "blur(10px)"] },
+        { ...animationOptions, pseudoElement: "::view-transition-old(root)" },
+      );
+      const newScreen = root.animate(
+        { opacity: [0, 1], filter: ["blur(10px)", "blur(0px)"] },
+        { ...animationOptions, pseudoElement: "::view-transition-new(root)" },
+      );
+      await Promise.all([oldScreen.finished, newScreen.finished]);
     } catch (error) {
       console.warn("Theme transition interrupted; applying the selected theme.", error);
       setTheme(nextTheme);
@@ -68,7 +73,7 @@ export function ThemeTogglerButton({ className = "" }: { className?: string }) {
         type="button"
         className={`theme-toggler${className ? ` ${className}` : ""}`}
         data-theme={theme}
-        aria-label={t("Switch to {theme} theme", { theme: t(theme === "dark" ? "light" : "dark") })}
+        aria-label={t("Toggle theme")}
         aria-pressed={theme === "dark"}
         aria-busy={busy}
         disabled={busy}

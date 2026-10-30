@@ -28,7 +28,8 @@ public sealed class UploadsController(
         [FromQuery] UploadListRequest request,
         CancellationToken cancellationToken)
         => Ok(await _uploadService.GetBatchesAsync(
-            _currentUser.RequireUserId(), false, request.Offset, request.Limit, cancellationToken));
+            _currentUser.RequireUserId(), false, request.Offset, request.Limit,
+            request.CreatedFrom, request.CreatedBefore, cancellationToken));
 
     [HttpPost("batches")]
     public async Task<ActionResult<UploadBatchDto>> CreateBatchAsync(
@@ -48,7 +49,8 @@ public sealed class UploadsController(
         [FromQuery] UploadListRequest request,
         CancellationToken cancellationToken)
         => Ok(await _uploadService.GetBatchesAsync(
-            _currentUser.RequireUserId(), true, request.Offset, request.Limit, cancellationToken));
+            _currentUser.RequireUserId(), true, request.Offset, request.Limit,
+            request.CreatedFrom, request.CreatedBefore, cancellationToken));
 
     [HttpGet("batches/{batchId:guid}")]
     public async Task<ActionResult<UploadBatchDto>> GetBatchAsync(

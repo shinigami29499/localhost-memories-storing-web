@@ -8,8 +8,11 @@ public interface IUploadRepository
     void AddMediaFile(MediaFile mediaFile);
     Task LockBatchAsync(Guid ownerId, Guid batchId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<UploadBatch>> GetBatchesAsync(
-        Guid actorId, bool isAdmin, int offset, int limit, CancellationToken cancellationToken = default);
-    Task<int> CountBatchesAsync(Guid actorId, bool isAdmin, CancellationToken cancellationToken = default);
+        Guid actorId, bool isAdmin, int offset, int limit, CancellationToken cancellationToken = default,
+        DateTime? createdFrom = null, DateTime? createdBefore = null);
+    Task<int> CountBatchesAsync(
+        Guid actorId, bool isAdmin, CancellationToken cancellationToken = default,
+        DateTime? createdFrom = null, DateTime? createdBefore = null);
     Task<UploadBatch?> FindBatchAsync(Guid batchId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<UploadBatch>> GetActiveBatchesAsync(
         Guid ownerId, CancellationToken cancellationToken = default);

@@ -63,14 +63,14 @@ describe("AuthenticatedLayout sidebar", () => {
     vi.unstubAllGlobals();
   });
 
-  async function renderLayout() {
+  async function renderLayout(initialPath = "/") {
     await act(async () => {
       root.render(
         <ThemeProvider>
           <LocaleProvider>
             <QueryClientProvider client={new QueryClient()}>
               <AnimateUIProvider reducedMotion="always">
-                <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+                <MemoryRouter initialEntries={[initialPath]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
                   <AuthenticatedLayout />
                 </MemoryRouter>
               </AnimateUIProvider>
@@ -126,7 +126,7 @@ describe("AuthenticatedLayout sidebar", () => {
     mobileScreen = true;
     await renderLayout();
     const shell = container.querySelector(".app-shell")!;
-    expect(container.querySelector(".app-topbar .brand")).not.toBeNull();
+    expect(container.querySelector(".app-topbar .brand")).toBeNull();
     expect(shell.getAttribute("data-state")).toBe("collapsed");
     expect(container.querySelector(".sidebar-backdrop")).toBeNull();
     expect(container.querySelector(".sidebar")?.hasAttribute("inert")).toBe(true);
@@ -206,12 +206,24 @@ describe("AuthenticatedLayout sidebar", () => {
     expect(sync.getAttribute("aria-expanded")).toBe("true");
   });
 
-  it("keeps theme, language, and notification controls inside the mobile header", async () => {
+  it("shows the brand on non-home pages and keeps controls inside the mobile header", async () => {
+    narrowScreen = true;
+    mobileScreen = true;
+    await renderLayout("/albums");
+    const header = container.querySelector(".app-topbar");
+    expect(header?.querySelector(".brand")).not.toBeNull();
+    expect(header?.querySelector(".notification-bar")).not.toBeNull();
+    expect(header?.querySelector(".notification-bar .theme-toggler")).not.toBeNull();
+    expect(container.querySelector(".sidebar .theme-toggler")).toBeNull();
+    expect(header?.nextElementSibling).toBe(container.querySelector(".app-shell__content"));
+  });
+
+  it("keeps theme, language, and notification controls inside the mobile header on home", async () => {
     narrowScreen = true;
     mobileScreen = true;
     await renderLayout();
     const header = container.querySelector(".app-topbar");
-    expect(header?.querySelector(".brand")).not.toBeNull();
+    expect(header?.querySelector(".brand")).toBeNull();
     expect(header?.querySelector(".notification-bar")).not.toBeNull();
     expect(header?.querySelector(".notification-bar .theme-toggler")).not.toBeNull();
     expect(container.querySelector(".sidebar .theme-toggler")).toBeNull();

@@ -28,6 +28,12 @@ export const albumService = {
     return api<Album>(`/api/collections/${albumId}`, { method: "PUT", body: { ...input } });
   },
 
+  uploadPreviewImage(albumId: string, file: File): Promise<Album> {
+    const body = new FormData();
+    body.append("file", file, file.name);
+    return api<Album>(`/api/collections/${albumId}/preview`, { method: "POST", body });
+  },
+
   updateCaption(albumId: string, caption: string): Promise<Album> {
     return api<Album>(`/api/collections/${albumId}/caption`, { method: "PUT", body: { caption } });
   },

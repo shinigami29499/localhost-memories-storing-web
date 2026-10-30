@@ -87,6 +87,39 @@
   margin: 0;
 }
 
+.toast-action {
+  align-self: flex-start;
+  margin-top: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid var(--border, #777777);
+  border-radius: 8px;
+  color: var(--text-strong, #fafaff);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  transition: color 0.2s, background 0.2s, border-color 0.2s;
+}
+
+.toast-action:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+
+.toast-action:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+@media (pointer: coarse) {
+  .toast-action {
+    min-height: 44px;
+  }
+}
+
 .toast-close {
   background: transparent;
   border: none;

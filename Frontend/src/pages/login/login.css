@@ -1,5 +1,8 @@
 .login-shell {
   min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
   background:
     radial-gradient(ellipse at 12% 80%, var(--accent-wash), transparent 48%),
     radial-gradient(ellipse at 92% 18%, var(--accent-wash), transparent 35%);
@@ -31,6 +34,8 @@
 .login {
   max-width: 1280px;
   min-height: calc(100vh - 192px);
+  min-height: calc(100dvh - 192px);
+  flex: 1;
   margin: 0 auto;
   padding: 64px 48px;
   display: grid;
@@ -204,5 +209,48 @@
 
   .login__card input {
     font-size: 1rem;
+  }
+}
+
+@media (max-width: 720px) and (max-height: 900px) {
+  .login__header,
+  .login__footer {
+    padding-block: 12px;
+  }
+
+  .login {
+    padding-block: 12px 16px;
+    gap: 16px;
+  }
+
+  .login .community-intro h1 {
+    margin: 8px 0;
+    font-size: clamp(1.7rem, 8vw, 2rem);
+  }
+
+  .login__card {
+    padding: 20px 18px;
+  }
+
+  .login__badge {
+    margin-bottom: 10px;
+  }
+
+  .login__subtitle {
+    margin: 8px 0 16px;
+  }
+
+  .login__card input,
+  .login__card .password-input {
+    margin-bottom: 12px;
+  }
+
+  .login__card > .btn {
+    padding-block: 12px;
+    margin-top: 4px;
+  }
+
+  .login__footnote {
+    margin-top: 12px;
   }
 }

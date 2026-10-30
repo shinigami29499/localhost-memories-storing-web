@@ -5,7 +5,7 @@ import {
   createBrowserRouter,
   useParams,
 } from "react-router-dom";
-import { useEffect, type ReactNode } from "react";
+import { Suspense, lazy, useEffect, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AnimateUIProvider } from "@animate-ui/react/provider";
 import { useAuthStore } from "./store/authStore";
@@ -13,18 +13,21 @@ import { AuthenticatedLayout } from "./components/layout/AuthenticatedLayout";
 import { LoginPage } from "./pages/login/LoginPage";
 import { RegisterPage } from "./pages/register/RegisterPage";
 import { HomePage } from "./pages/home/HomePage";
-import { GalleryPage } from "./pages/gallery/GalleryPage";
-import { TrashPage } from "./pages/gallery/TrashPage";
-import { AlbumsPage } from "./pages/albums/AlbumsPage";
-import { AlbumPage } from "./pages/albums/AlbumPage";
-import { UsersPage } from "./pages/users/UsersPage";
-import { UploadManagementPage } from "./pages/uploads/UploadManagementPage";
 import { ErrorPage } from "./pages/ErrorPage";
-import { LoadingOverlay } from "./components/ui/LoadingOverlay";
+import { Spinner } from "./components/ui/Status";
 import { TopographyBackground } from "./components/animate-ui/backgrounds/topography";
 import { ThemeProvider } from "./context/ThemeContext";
 import { LocaleProvider } from "./context/LocaleContext";
 import { ToastProvider } from "./components/ui";
+
+const GalleryPage = lazy(() => import("./pages/gallery/GalleryPage").then((module) => ({ default: module.GalleryPage })));
+const TrashPage = lazy(() => import("./pages/gallery/TrashPage").then((module) => ({ default: module.TrashPage })));
+const AlbumsPage = lazy(() => import("./pages/albums/AlbumsPage").then((module) => ({ default: module.AlbumsPage })));
+const AlbumPage = lazy(() => import("./pages/albums/AlbumPage").then((module) => ({ default: module.AlbumPage })));
+const UsersPage = lazy(() => import("./pages/users/UsersPage").then((module) => ({ default: module.UsersPage })));
+const LocationsPage = lazy(() => import("./pages/locations/LocationsPage").then((module) => ({ default: module.LocationsPage })));
+const FoodPage = lazy(() => import("./pages/food/FoodPage").then((module) => ({ default: module.FoodPage })));
+const UploadManagementPage = lazy(() => import("./pages/uploads/UploadManagementPage").then((module) => ({ default: module.UploadManagementPage })));
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 15_000, refetchOnWindowFocus: false } },
@@ -61,6 +64,8 @@ const router = createBrowserRouter([
           { path: "/saved", element: <LegacyAlbumRedirect /> },
           { path: "/saved/:albumId", element: <LegacyAlbumRedirect /> },
           { path: "/uploads", element: <UploadManagementPage /> },
+          { path: "/locations", element: <LocationsPage /> },
+          { path: "/food", element: <FoodPage /> },
           { path: "/uploads/new", element: <Navigate replace to="/uploads" /> },
           { path: "/users", element: <UsersPage /> },
           { path: "/admin/users", element: <Navigate replace to="/users" /> },
@@ -76,7 +81,9 @@ const router = createBrowserRouter([
       { path: "*", element: <Navigate replace to="/" /> },
     ],
   },
-]);
+], {
+  future: { v7_relativeSplatPath: true },
+});
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const token = useAuthStore((s) => s.accessToken);
@@ -95,8 +102,6 @@ function LegacyAlbumRedirect() {
 }
 
 export function App() {
-  const routerState = false; // Placeholder for future route state management
-
   useEffect(() => {
     const preventTouchContextMenu = (event: MouseEvent) => {
       if (window.matchMedia("(hover: none) and (pointer: coarse)").matches) {
@@ -114,10 +119,8 @@ export function App() {
         <QueryClientProvider client={queryClient}>
           <AnimateUIProvider tempo={1}>
             <ToastProvider>
-              <LoadingOverlay isLoading={routerState}>
-                <TopographyBackground className="fixed inset-0 pointer-events-none -z-10" />
-                <RouterProvider router={router} />
-              </LoadingOverlay>
+              <TopographyBackground className="fixed inset-0 pointer-events-none -z-10" />
+              <RouterProvider router={router} future={{ v7_startTransition: true }} />
             </ToastProvider>
           </AnimateUIProvider>
         </QueryClientProvider>

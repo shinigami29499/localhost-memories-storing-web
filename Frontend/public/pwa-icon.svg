@@ -5,7 +5,6 @@
       <stop offset="1" stop-color="#8d54ff"/>
     </linearGradient>
   </defs>
-  <rect width="512" height="512" fill="#060606"/>
-  <rect x="52" y="52" width="408" height="408" rx="100" fill="url(#brand)"/>
+  <circle cx="256" cy="256" r="204" fill="url(#brand)"/>
   <text x="256" y="354" fill="#fff" font-family="system-ui, sans-serif" font-size="300" font-style="italic" font-weight="750" text-anchor="middle">S</text>
 </svg>

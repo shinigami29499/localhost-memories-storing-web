@@ -44,20 +44,31 @@ export function SaveToAlbumDialog({ mediaIds, onClose, portalContainer }: Props)
       const savedMediaIds = mediaIds.filter((_, index) =>
         albumQueries[index]?.data?.find((item) => item.id === album.id)?.containsMedia,
       );
-      const mediaIdsToChange = savedMediaIds.length === mediaIds.length
+      const removing = savedMediaIds.length === mediaIds.length;
+      const mediaIdsToChange = removing
         ? savedMediaIds
         : mediaIds.filter((mediaId) => !savedMediaIds.includes(mediaId));
       const results = await Promise.allSettled(mediaIdsToChange.map((mediaId) =>
-        savedMediaIds.length === mediaIds.length
+        removing
           ? albumService.removeMedia(album.id, mediaId)
           : albumService.addMedia(album.id, mediaId),
       ));
       await invalidate();
       const failed = results.filter((result) => result.status === "rejected").length;
+      const undo = async () => {
+        await Promise.all(mediaIdsToChange.map((mediaId) =>
+          removing
+            ? albumService.addMedia(album.id, mediaId)
+            : albumService.removeMedia(album.id, mediaId),
+        ));
+        await invalidate();
+      };
       if (failed > 0) {
         showToast.error(t("{count} media items could not be updated.", { count: failed }));
-      } else if (savedMediaIds.length !== mediaIds.length) {
-        showToast.success(t("Successfully saved to album {name}", { name: album.name }));
+      } else if (removing) {
+        showToast.success(t("Removed from album"), { undo });
+      } else {
+        showToast.success(t("Successfully saved to album {name}", { name: album.name }), { undo });
       }
     } catch (err) {
       showToast.error(describe(err));
@@ -80,7 +91,12 @@ export function SaveToAlbumDialog({ mediaIds, onClose, portalContainer }: Props)
       if (failed > 0) {
         showToast.error(t("{count} media items could not be saved.", { count: failed }));
       } else {
-        showToast.success(t("Successfully saved to album {name}", { name: album.name }));
+        showToast.success(t("Successfully saved to album {name}", { name: album.name }), {
+          undo: async () => {
+            await albumService.remove(album.id);
+            await invalidate();
+          },
+        });
       }
     } catch (err) {
       showToast.error(describe(err));

@@ -15,7 +15,7 @@ export default defineConfig(({ command }) => ({
   },
   server: {
     port: 3000,
-    allowedHosts: ["fling-yummy-sled.ngrok-free.dev"],
+    allowedHosts: ["redeem-typing-valium-peace.trycloudflare.com"],
     watch: {
       ignored: ["**/dist/**"],
     },
@@ -25,10 +25,22 @@ export default defineConfig(({ command }) => ({
       "/hubs": { target: "http://localhost:8000", changeOrigin: true, ws: true },
     },
   },
-  build: { outDir: "dist" },
+  build: {
+    outDir: "dist",
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          react: ["react", "react-dom", "react-router-dom"],
+          motion: ["motion"],
+          query: ["@tanstack/react-query"],
+        },
+      },
+    },
+  },
   test: {
     environment: "node",
     globals: true,
     include: ["src/**/*.test.{ts,tsx}"],
+    setupFiles: ["./src/test/setup.ts"],
   },
 }));

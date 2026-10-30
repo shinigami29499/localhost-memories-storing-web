@@ -22,8 +22,6 @@ describe("UsersPage", () => {
   let container: HTMLDivElement;
   let root: Root;
   let queryClient: QueryClient;
-  const originalAnimate = Object.getOwnPropertyDescriptor(Element.prototype, "animate");
-  const originalGetAnimations = Object.getOwnPropertyDescriptor(Element.prototype, "getAnimations");
 
   beforeEach(() => {
     vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
@@ -45,14 +43,6 @@ describe("UsersPage", () => {
       addListener: vi.fn(),
       removeListener: vi.fn(),
     })));
-    Object.defineProperty(Element.prototype, "animate", {
-      configurable: true,
-      value: vi.fn(() => ({ finished: Promise.resolve(), cancel: vi.fn() })),
-    });
-    Object.defineProperty(Element.prototype, "getAnimations", {
-      configurable: true,
-      value: vi.fn(() => []),
-    });
     window.localStorage.clear();
     container = document.createElement("div");
     document.body.append(container);
@@ -68,10 +58,6 @@ describe("UsersPage", () => {
     queryClient.clear();
     container.remove();
     window.localStorage.clear();
-    if (originalAnimate) Object.defineProperty(Element.prototype, "animate", originalAnimate);
-    else Reflect.deleteProperty(Element.prototype, "animate");
-    if (originalGetAnimations) Object.defineProperty(Element.prototype, "getAnimations", originalGetAnimations);
-    else Reflect.deleteProperty(Element.prototype, "getAnimations");
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });

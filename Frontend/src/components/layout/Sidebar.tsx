@@ -4,16 +4,18 @@ import { Bookmark } from "@/components/animate-ui/icons/bookmark";
 import { Camera } from "@/components/animate-ui/icons/camera";
 import { ChevronDown } from "@/components/animate-ui/icons/chevron-down";
 import { Download } from "@/components/animate-ui/icons/download";
+import { RefreshCw } from "@/components/animate-ui/icons/refresh-cw";
 import { Heart } from "@/components/animate-ui/icons/heart";
 import { Home } from "@/components/animate-ui/icons/home";
 import { Image } from "@/components/animate-ui/icons/image";
 import { LogOut } from "@/components/animate-ui/icons/log-out";
+import { MapPin } from "@/components/animate-ui/icons/map-pin";
 import { PanelLeftClose } from "@/components/animate-ui/icons/panel-left-close";
 import { PanelLeftOpen } from "@/components/animate-ui/icons/panel-left-open";
-import { RefreshCw } from "@/components/animate-ui/icons/refresh-cw";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
 import { Upload } from "@/components/animate-ui/icons/upload";
 import { Users } from "@/components/animate-ui/icons/users";
+import { Utensils } from "@/components/animate-ui/icons/utensils";
 import { Video } from "@/components/animate-ui/icons/video";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
@@ -107,7 +109,7 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
             <Brand />
           </div>
           <nav id="sidebar-navigation" className="sidebar__nav" aria-label={t("Main navigation")}>
-            <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
+            <AnimateIcon animateOnHover={false} animateOnTap completeOnStop asChild>
               <NavLink
                 to="/"
                 className={`sidebar__link sidebar__home-link${location.pathname === "/" ? " sidebar__link--active" : ""}`}
@@ -125,7 +127,7 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
               open={galleryOpen && !compact}
               onOpenChange={(open) => setGalleryOpen(compact || open)}
             >
-              <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
+              <AnimateIcon animateOnHover={false} animateOnTap completeOnStop asChild>
                 <Collapsible.Trigger
                   type="button"
                   className={`sidebar__link sidebar__group-toggle${isGalleryRoute && compact ? " sidebar__link--active" : ""}`}
@@ -146,7 +148,7 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
               <Collapsible.Panel className="sidebar__sub-panel" role="group" aria-label={t("Gallery pages")}>
                 <div className="sidebar__sub-nav">
                   {galleryLinks.map(({ to, label, icon: Icon, active }) => (
-                    <AnimateIcon key={to} animateOnHover animateOnTap completeOnStop asChild>
+                    <AnimateIcon key={to} animateOnHover={false} animateOnTap completeOnStop asChild>
                       <NavLink
                         to={to}
                         end={to !== "/albums"}
@@ -163,7 +165,31 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
                 </div>
               </Collapsible.Panel>
             </Collapsible.Root>
-            <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
+            <AnimateIcon animateOnHover={false} animateOnTap completeOnStop asChild>
+              <NavLink
+                to="/locations"
+                className={`sidebar__link${location.pathname === "/locations" ? " sidebar__link--active" : ""}`}
+                data-sidebar="menu-button"
+                aria-label={t("Locations")}
+                title={t("Locations")}
+              >
+                <MapPin size={18} aria-hidden="true" />
+                <span>{t("Locations")}</span>
+              </NavLink>
+            </AnimateIcon>
+            <AnimateIcon animateOnHover={false} animateOnTap completeOnStop asChild>
+              <NavLink
+                to="/food"
+                className={`sidebar__link${location.pathname === "/food" ? " sidebar__link--active" : ""}`}
+                data-sidebar="menu-button"
+                aria-label={t("Food")}
+                title={t("Food")}
+              >
+                <Utensils size={18} aria-hidden="true" />
+                <span>{t("Food")}</span>
+              </NavLink>
+            </AnimateIcon>
+            <AnimateIcon animateOnHover={false} animateOnTap completeOnStop asChild>
               <NavLink
                 to="/users"
                 className={`sidebar__link${location.pathname === "/users" ? " sidebar__link--active" : ""}`}
@@ -180,7 +206,7 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
               open={syncOpen && !compact}
               onOpenChange={(open) => setSyncOpen(open)}
             >
-              <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
+              <AnimateIcon animateOnHover={false} animateOnTap completeOnStop asChild>
                 <Collapsible.Trigger
                   type="button"
                   className={`sidebar__link sidebar__group-toggle${location.pathname.startsWith("/uploads") && compact ? " sidebar__link--active" : ""}`}
@@ -200,10 +226,10 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
               </AnimateIcon>
               <Collapsible.Panel className="sidebar__sub-panel" role="group" aria-label={t("Sync actions")}>
                 <div className="sidebar__sub-nav">
-                  <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
+                  <AnimateIcon animateOnHover={false} animateOnTap completeOnStop asChild>
                     <NavLink
                       to="/uploads"
-                      className={`sidebar__link sidebar__sub-link${location.pathname.startsWith("/uploads") ? " sidebar__link--active" : ""}`}
+                      className={`sidebar__link sidebar__sub-link${location.pathname === "/uploads" ? " sidebar__link--active" : ""}`}
                       data-sidebar="menu-sub-button"
                       aria-label={t("Upload")}
                       title={t("Upload")}
@@ -212,7 +238,7 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
                       <span>{t("Upload")}</span>
                     </NavLink>
                   </AnimateIcon>
-                  <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
+                  <AnimateIcon animateOnHover={false} animateOnTap completeOnStop asChild>
                     <div className="sidebar__link sidebar__sub-link sidebar__link--static" aria-disabled="true">
                       <Download size={16} aria-hidden="true" />
                       <span>{t("Download")}</span>
@@ -276,7 +302,7 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
                       <span className="sidebar__account-role">{t(roleName)}</span>
                     </span>
                   </div>
-                  <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
+                  <AnimateIcon animateOnHover={false} animateOnTap completeOnStop asChild>
                     <button
                       type="button"
                       className="sidebar__link sidebar__link--danger"
@@ -295,7 +321,7 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
           </div>
         </SidebarInner>
       </Container>
-      <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
+      <AnimateIcon animateOnHover={false} animateOnTap completeOnStop asChild>
         <button
           type="button"
           className="sidebar__toggle"

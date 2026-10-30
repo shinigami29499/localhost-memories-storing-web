@@ -6,13 +6,25 @@ import type { UploadItemMetadata } from "../types";
 
 const BASE_PATH = "/api/uploads";
 
+function uploadListQuery(offset: number, limit: number, date?: string): string {
+  const query = new URLSearchParams({ offset: String(offset), limit: String(limit) });
+  if (date) {
+    const start = new Date(`${date}T00:00:00`);
+    const end = new Date(start);
+    end.setDate(end.getDate() + 1);
+    query.set("createdFrom", start.toISOString());
+    query.set("createdBefore", end.toISOString());
+  }
+  return query.toString();
+}
+
 export const uploadService = {
-  list(offset = 0, limit = 20): Promise<PagedUploadBatches> {
-    return api(`${BASE_PATH}/batches?offset=${offset}&limit=${limit}`);
+  list(offset = 0, limit = 20, date?: string): Promise<PagedUploadBatches> {
+    return api(`${BASE_PATH}/batches?${uploadListQuery(offset, limit, date)}`);
   },
 
-  listAll(offset = 0, limit = 20): Promise<PagedUploadBatches> {
-    return api(`${BASE_PATH}/admin/batches?offset=${offset}&limit=${limit}`);
+  listAll(offset = 0, limit = 20, date?: string): Promise<PagedUploadBatches> {
+    return api(`${BASE_PATH}/admin/batches?${uploadListQuery(offset, limit, date)}`);
   },
 
   get(batchId: string): Promise<UploadBatch> {

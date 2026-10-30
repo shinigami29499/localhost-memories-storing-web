@@ -8,9 +8,11 @@ import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { Bookmark } from "@/components/animate-ui/icons/bookmark";
 import { Heart } from "@/components/animate-ui/icons/heart";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
+import { MapPin } from "@/components/animate-ui/icons/map-pin";
 import { RotateCcw } from "@/components/animate-ui/icons/rotate-ccw";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
 import { X } from "@/components/animate-ui/icons/x";
+import { useNavigate } from "react-router-dom";
 import { ErrorState, Spinner } from "../../../components/ui";
 import { useLocale } from "../../../context/LocaleContext";
 import { useMediaQuery } from "../../../hooks/useMediaQuery";
@@ -98,6 +100,7 @@ export function MediaPreviewDialog({
   onLoadMore, favoriteBusy = false, onToggleFavorite, onClose, trashActions,
 }: Props) {
   const { t } = useLocale();
+  const navigate = useNavigate();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const albumButtonRef = useRef<HTMLButtonElement>(null);
@@ -243,7 +246,7 @@ export function MediaPreviewDialog({
             ) : (
               <Heart
                 size={20}
-                stroke={current.isFavorited ? "var(--danger)" : "#fff"}
+                stroke={current.isFavorited ? "var(--danger)" : "currentColor"}
                 fill={current.isFavorited ? "var(--danger)" : "none"}
                 aria-hidden="true"
               />
@@ -263,13 +266,29 @@ export function MediaPreviewDialog({
           >
             <Bookmark
               size={20}
-              stroke={inAlbum ? "var(--notification-icon)" : "#fff"}
+              stroke={inAlbum ? "var(--notification-icon)" : "currentColor"}
               fill={inAlbum ? "var(--notification-icon)" : "none"}
               aria-hidden="true"
             />
           </button>
         </AnimateIcon>
         </>}
+        {!trashActions && current.mediaKind === "image" && current.location ? (
+          <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
+            <button
+              type="button"
+              className="viewer-icon-btn media-preview-dialog__action"
+              aria-label={t("View photo location")}
+              title={t("View photo location")}
+              onClick={() => {
+                onClose(current.id);
+                navigate(`/locations?mediaId=${encodeURIComponent(current.id)}`);
+              }}
+            >
+              <MapPin size={20} aria-hidden="true" />
+            </button>
+          </AnimateIcon>
+        ) : null}
       </div> : null}
       <div
         className="media-preview-dialog__content"

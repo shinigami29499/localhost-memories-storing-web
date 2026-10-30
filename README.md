@@ -6,6 +6,46 @@ an ASP.NET Core 8 Web API backed by PostgreSQL; the frontend is React 18 + Vite 
 
 Everything runs on one machine — no cloud services are required.
 
+The optional Locations view uses [Mapbox](https://www.mapbox.com/), which requires
+internet access, a WebGL-capable browser, and a Mapbox account with a public access token.
+
+### Photo locations
+
+New photo uploads extract embedded EXIF GPS coordinates when available. Photos
+without GPS keep a null location; no location is inferred from filenames, IP
+addresses, or the uploading device. Originals are never modified.
+
+Open **Locations** in the sidebar to see one numbered map pin per located photo.
+Photos at identical coordinates overlap; select them individually from the photo
+list. Select a photo to view its location. Its uploader or an administrator can
+click the map, drag the draft pin, or enter latitude/longitude and save. Removing
+a location clears the app's pin, not GPS embedded in the original file.
+Locations have the same read access as photos; only owners/admins can change them.
+
+Use **Scan existing photos** to extract GPS from previously uploaded photos
+(your own photos, or all active photos for administrators). Scans process 25
+photos per request and report missing/unreadable files for retry. Already scanned
+photos and manual pins/removals are not overwritten. Metadata is stored in the
+existing `media_files.metadata` JSONB column; no schema migration is required.
+
+Create a public token (`pk.`) in your [Mapbox account](https://account.mapbox.com/access-tokens/)
+with the default public scopes needed to load styles, fonts, and tiles.
+Set `VITE_MAPBOX_ACCESS_TOKEN` in `Frontend/.env.local`, then restart Vite or rebuild.
+Restrict the token to your website URLs, including `http://localhost:3000` for
+development, and check your account's billing requirements and usage limits.
+Vite embeds this public token in the browser bundle; never use a secret (`sk.`)
+token or commit local tokens. Missing/invalid tokens show a map configuration error;
+manual coordinate entry still works. Mapbox receives map requests and coordinates,
+but the app does not send Mapbox photo files or media authentication tokens.
+Existing photo coordinates and saved locations are unchanged by the provider switch.
+
+The authenticated media API adds `ownerId` and nullable
+`location: { latitude, longitude }` to media responses. Owners/admins can
+`PUT /api/media/{mediaId}/location` with both decimal coordinates, or both null
+to remove the pin. `POST /api/media/locations/scan?offset=0` returns `scanned`,
+`located`, `failedMediaIds`, `nextOffset`, and `hasMore`; repeat using `nextOffset`
+until `hasMore` is false. Start a later retry at offset zero.
+
 Home lists owned and public albums using their preview images. Opening an album loads
 its paged media; Pictures, Videos, and Favorites browse the user's media library.
 Uploads are managed separately and create standalone media records. Administrators can

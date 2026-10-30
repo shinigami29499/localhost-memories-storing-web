@@ -18,6 +18,8 @@ public class ApplicationDbContext(
     public DbSet<Collection> Collections => Set<Collection>();
     public DbSet<CollectionMedia> CollectionMedia => Set<CollectionMedia>();
     public DbSet<MediaFavorite> MediaFavorites => Set<MediaFavorite>();
+    public DbSet<FoodPlace> FoodPlaces => Set<FoodPlace>();
+    public DbSet<FoodPlaceMedia> FoodPlaceMedia => Set<FoodPlaceMedia>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -183,6 +185,46 @@ public class ApplicationDbContext(
             entity.HasIndex(favorite => new { favorite.UserId, favorite.CreatedAt });
 
             entity.HasQueryFilter(favorite => favorite.DeletedAt == null);
+        });
+
+        modelBuilder.Entity<FoodPlace>(entity =>
+        {
+            entity.Property(place => place.Name).HasMaxLength(120).IsRequired();
+            entity.Property(place => place.Address).HasMaxLength(300).IsRequired().HasDefaultValue("");
+            entity.Property(place => place.Note).HasMaxLength(2000).IsRequired().HasDefaultValue("");
+            entity.Property(place => place.MarkerIcon).HasMaxLength(16).IsRequired().HasDefaultValue("");
+            entity.Property(place => place.MarkerColor).HasMaxLength(9).IsRequired().HasDefaultValue("");
+
+            entity.HasOne(place => place.Owner)
+                .WithMany()
+                .HasForeignKey(place => place.OwnerId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasIndex(place => new { place.OwnerId, place.CreatedAt });
+            entity.HasIndex(place => place.CreatedAt);
+
+            entity.HasQueryFilter(place => place.DeletedAt == null);
+        });
+
+        modelBuilder.Entity<FoodPlaceMedia>(entity =>
+        {
+            entity.HasOne(item => item.FoodPlace)
+                .WithMany(place => place.MediaItems)
+                .HasForeignKey(item => item.FoodPlaceId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(item => item.MediaFile)
+                .WithMany()
+                .HasForeignKey(item => item.MediaFileId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasIndex(item => new { item.FoodPlaceId, item.MediaFileId })
+                .IsUnique()
+                .HasFilter("deleted_at IS NULL");
+            entity.HasIndex(item => new { item.FoodPlaceId, item.Position });
+            entity.HasIndex(item => item.MediaFileId);
+
+            entity.HasQueryFilter(item => item.DeletedAt == null);
         });
     }
 

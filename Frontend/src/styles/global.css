@@ -131,8 +131,17 @@ textarea {
 }
 
 :focus-visible {
+  --focus-icon-inner: var(--focus-ring);
   outline: 2px solid var(--focus-ring);
   outline-offset: 4px;
+}
+
+button:focus-visible {
+  border-color: var(--focus-ring);
+}
+
+:focus-visible svg {
+  color: var(--focus-icon-inner);
 }
 
 ::selection {
@@ -404,6 +413,10 @@ textarea {
   color: var(--text-on-accent);
 }
 
+.btn--primary:focus-visible {
+  --focus-icon-inner: var(--text-on-accent);
+}
+
 .btn--primary:hover:not(:disabled) {
   filter: brightness(1.15);
 }
@@ -431,6 +444,10 @@ textarea {
 .btn--danger {
   background: var(--danger);
   color: var(--text-on-danger);
+}
+
+.btn--danger:focus-visible {
+  --focus-icon-inner: var(--text-on-danger);
 }
 
 .new-post__row > .btn--primary:disabled,
@@ -989,6 +1006,10 @@ textarea::placeholder {
   padding: 2px;
 }
 
+.preview-picker__upload {
+  align-self: flex-start;
+}
+
 .preview-picker__option {
   aspect-ratio: 1;
   overflow: hidden;
@@ -1245,7 +1266,8 @@ textarea::placeholder {
 }
 
 .viewer-icon-btn:focus-visible {
-  outline: 2px solid var(--accent-soft);
+  border-color: var(--focus-ring);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 3px;
 }
 
@@ -1295,6 +1317,8 @@ textarea::placeholder {
 }
 
 .media-gallery__navigation .viewer-icon-btn:focus-visible {
+  --focus-icon-inner: #f4f5f7;
+  border-color: var(--focus-ring);
   outline-color: var(--focus-ring);
 }
 
@@ -1589,8 +1613,12 @@ textarea::placeholder {
 
 .reactions__chip:focus-visible,
 .post-card__comment-action:focus-visible {
-  outline: 2px solid var(--text-strong);
+  outline: 2px solid var(--focus-ring);
   outline-offset: -3px;
+}
+
+.reactions__chip:focus-visible {
+  --focus-icon-inner: var(--danger);
 }
 
 .reactions__chip {

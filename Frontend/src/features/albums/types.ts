@@ -12,6 +12,7 @@ export interface Album {
   mediaCount: number;
   /** Custom preview when set, otherwise the first image in the album. */
   previewMediaId: string | null;
+  previewIsFavorited: boolean;
   customPreviewMediaId: string | null;
   containsMedia: boolean;
   createdAt: string;
@@ -28,5 +29,5 @@ export interface UpdateAlbumInput {
   name: string;
   isPublic: boolean;
   previewMediaId: string | null;
-  caption: string;
+  caption?: string;
 }

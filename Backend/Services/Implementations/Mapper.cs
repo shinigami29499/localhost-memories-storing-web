@@ -1,5 +1,6 @@
 using Domains.Entities;
 using Services.Models.Collections;
+using Services.Models.Food;
 using Services.Models.Media;
 using Services.Interfaces;
 using Services.Mappings;
@@ -25,6 +26,7 @@ public sealed class Mapper : IMapper
             FileExtension = stored.FileExtension,
             FileSizeBytes = stored.SizeBytes,
             MediaKind = stored.MediaKind,
+            Metadata = stored.MediaKind == "image" ? MediaLocationMetadata.Write(null, stored.Location) : null,
         };
 
     public MediaFileDto Map(MediaFile mediaFile, bool isFavorited = false)
@@ -35,7 +37,11 @@ public sealed class Mapper : IMapper
             mediaFile.OriginalFilename,
             mediaFile.FileSizeBytes,
             mediaFile.CreatedAt,
-            isFavorited);
+            isFavorited,
+            mediaFile.OwnerId,
+            MediaLocationMetadata.Read(mediaFile.Metadata));
 
     public CollectionDto Map(CollectionSource source) => CollectionMappings.ToDto(source);
+
+    public FoodPlaceDto Map(FoodPlaceSource source) => FoodPlaceMappings.ToDto(source);
 }

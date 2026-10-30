@@ -84,10 +84,13 @@ export function TrashPage() {
 
   const confirmAction = async () => {
     if (!action) return;
+    const kind = action.kind;
+    const affectedIds: string[] = [];
     try {
       for (const id of action.ids) {
-        if (action.kind === "restore") await mediaService.restore(id);
+        if (kind === "restore") await mediaService.restore(id);
         else await mediaService.permanentlyDelete(id);
+        affectedIds.push(id);
         // A retry must not repeat successful requests after a partial failure.
         setAction((current) => current ? { ...current, ids: current.ids.filter((item) => item !== id) } : null);
         setSelectedIds((current) => {
@@ -96,7 +99,17 @@ export function TrashPage() {
           return next;
         });
       }
-      showToast.success(t(action.kind === "restore" ? "Media restored successfully" : "Media permanently deleted"));
+      showToast.success(
+        t(kind === "restore" ? "Media restored successfully" : "Media permanently deleted"),
+        kind === "restore"
+          ? {
+            undo: async () => {
+              for (const id of affectedIds) await mediaService.remove(id);
+              await queryClient.invalidateQueries({ queryKey: ["media"] });
+            },
+          }
+          : undefined,
+      );
       cancelSelection();
     } finally {
       await queryClient.invalidateQueries({ queryKey: ["media"] });

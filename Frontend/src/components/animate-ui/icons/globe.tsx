@@ -20,6 +20,15 @@ const animations = {
       },
     },
   } satisfies Record<string, Variants>,
+  spin: {
+    group: {
+      initial: { rotate: 0 },
+      animate: {
+        rotate: 360,
+        transition: { duration: 0.6, ease: 'easeInOut' },
+      },
+    },
+  } satisfies Record<string, Variants>,
 } as const;
 
 function IconComponent({ size, ...props }: GlobeProps) {

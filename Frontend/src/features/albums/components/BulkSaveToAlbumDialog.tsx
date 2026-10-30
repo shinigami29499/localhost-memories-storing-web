@@ -51,14 +51,14 @@ export function BulkSaveToAlbumDialog({ mediaIds, onSaved, onClose }: Props) {
     albumQueries[index]?.data?.find((item) => item.id === album.id)?.containsMedia,
   );
 
-  const reportSaveResults = async (results: PromiseSettledResult<unknown>[], albumName: string) => {
+  const reportSaveResults = async (results: PromiseSettledResult<unknown>[], albumName: string, undo: () => Promise<void>) => {
     await invalidate();
     const failed = results.filter((result) => result.status === "rejected").length;
     if (failed > 0) {
       showToast.error(t("{failed} of {total} media items could not be saved.", { failed, total: selectedMediaIds.length }));
       return false;
     }
-    showToast.success(t("Successfully saved to album {name}", { name: albumName }));
+    showToast.success(t("Successfully saved to album {name}", { name: albumName }), { undo });
     onSaved?.();
     return true;
   };
@@ -75,10 +75,16 @@ export function BulkSaveToAlbumDialog({ mediaIds, onSaved, onClose }: Props) {
       const results = await updateAlbumMedia(album.id, mediaIdsToUpdate, remove ? "remove" : "add");
       await invalidate();
       const failed = results.filter((result) => result.status === "rejected").length;
+      const undo = async () => {
+        await updateAlbumMedia(album.id, mediaIdsToUpdate, remove ? "add" : "remove");
+        await invalidate();
+      };
       if (failed > 0) {
         showToast.error(t("{count} media items could not be updated.", { count: failed }));
-      } else if (!remove) {
-        showToast.success(t("Successfully saved to album {name}", { name: album.name }));
+      } else if (remove) {
+        showToast.success(t("Removed from album"), { undo });
+      } else {
+        showToast.success(t("Successfully saved to album {name}", { name: album.name }), { undo });
         onSaved?.();
       }
     } catch (error) {
@@ -96,7 +102,14 @@ export function BulkSaveToAlbumDialog({ mediaIds, onSaved, onClose }: Props) {
     try {
       const album = await albumService.create({ name: trimmed });
       setName("");
-      await reportSaveResults(await updateAlbumMedia(album.id, selectedMediaIds, "add"), album.name);
+      await reportSaveResults(
+        await updateAlbumMedia(album.id, selectedMediaIds, "add"),
+        album.name,
+        async () => {
+          await albumService.remove(album.id);
+          await invalidate();
+        },
+      );
     } catch (error) {
       showToast.error(error instanceof ApiError ? error.message : t("Could not complete this action. Please retry."));
     } finally {

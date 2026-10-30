@@ -6,6 +6,29 @@ namespace Infrastructures.Data.Implementations;
 
 public sealed class MediaRepository(ApplicationDbContext db) : IMediaRepository
 {
+    public async Task<IReadOnlyList<MediaFile>> GetLocationScanBatchAsync(
+        Guid actorId, bool isAdmin, int offset, int limit, CancellationToken cancellationToken)
+        => await db.MediaFiles.AsNoTracking()
+            .Where(media => media.MediaKind == "image" && (isAdmin || media.OwnerId == actorId))
+            .Where(media => media.Metadata == null || !EF.Functions.JsonExists(media.Metadata, "locationScanned"))
+            .OrderBy(media => media.Id)
+            .Skip(offset).Take(limit)
+            .ToListAsync(cancellationToken);
+
+    public async Task<bool> TrySetExtractedLocationAsync(
+        Guid mediaId, Guid actorId, string metadata, CancellationToken cancellationToken)
+    {
+        // A manual pin/removal marks metadata scanned, so a concurrent scan cannot overwrite it.
+        var changed = await db.MediaFiles
+            .Where(media => media.Id == mediaId)
+            .Where(media => media.Metadata == null || !EF.Functions.JsonExists(media.Metadata, "locationScanned"))
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(media => media.Metadata, metadata)
+                .SetProperty(media => media.UpdatedAt, DateTime.UtcNow)
+                .SetProperty(media => media.UpdatedBy, actorId), cancellationToken);
+        return changed > 0;
+    }
+
     public Task<MediaFile?> FindOwnedMediaAsync(
         Guid mediaId, CancellationToken cancellationToken = default)
         => db.MediaFiles.FirstOrDefaultAsync(m => m.Id == mediaId, cancellationToken);
@@ -84,6 +107,8 @@ public sealed class MediaRepository(ApplicationDbContext db) : IMediaRepository
             favorite => favorite.UserId == userId && favorite.MediaFileId == mediaId,
             cancellationToken);
     }
+
+    public void AddMediaFile(MediaFile mediaFile) => db.MediaFiles.Add(mediaFile);
 
     public void AddMediaFavorite(MediaFavorite favorite) => db.MediaFavorites.Add(favorite);
 

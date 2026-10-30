@@ -28,6 +28,23 @@ public class MediaController(
     private readonly ICurrentUserContext _currentUser = currentUser;
     private readonly JwtOptions _jwtOptions = jwtOptions.Value;
 
+    /// <summary>Changes or clears a photo location; restricted to its owner or an administrator.</summary>
+    [HttpPut("{mediaId:guid}/location")]
+    public async Task<IActionResult> SetLocationAsync(
+        Guid mediaId, SetMediaLocationRequest request, CancellationToken cancellationToken)
+    {
+        await _mediaService.SetLocationAsync(
+            mediaId, _currentUser.RequireUserId(), _currentUser.IsAdmin, request, cancellationToken);
+        return NoContent();
+    }
+
+    /// <summary>Extracts GPS from up to 25 unscanned photos owned by the caller (all photos for admins).</summary>
+    [HttpPost("locations/scan")]
+    public async Task<ActionResult<ScanMediaLocationsResponse>> ScanLocationsAsync(
+        CancellationToken cancellationToken, [FromQuery] int offset = 0)
+        => Ok(await _mediaService.ScanLocationsAsync(
+            _currentUser.RequireUserId(), _currentUser.IsAdmin, offset, cancellationToken));
+
     [HttpGet]
     public async Task<ActionResult<PagedMediaResponse<MediaFileDto>>> GetMediaAsync(
         [FromQuery] MediaPageRequest request, CancellationToken cancellationToken)

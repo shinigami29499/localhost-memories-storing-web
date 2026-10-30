@@ -152,6 +152,165 @@ namespace Infrastructures.Data.Migrations
                     b.ToTable("collection_media", (string)null);
                 });
 
+            modelBuilder.Entity("Domains.Entities.FoodPlace", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasDefaultValue("")
+                        .HasColumnName("address");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("deleted_by");
+
+                    b.Property<double>("Latitude")
+                        .HasColumnType("double precision")
+                        .HasColumnName("latitude");
+
+                    b.Property<double>("Longitude")
+                        .HasColumnType("double precision")
+                        .HasColumnName("longitude");
+
+                    b.Property<string>("MarkerColor")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(9)
+                        .HasColumnType("character varying(9)")
+                        .HasDefaultValue("")
+                        .HasColumnName("marker_color");
+
+                    b.Property<string>("MarkerIcon")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasDefaultValue("")
+                        .HasColumnName("marker_icon");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("Note")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasDefaultValue("")
+                        .HasColumnName("note");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("owner_id");
+
+                    b.Property<int>("Rating")
+                        .HasColumnType("integer")
+                        .HasColumnName("rating");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_food_places");
+
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("ix_food_places_created_at");
+
+                    b.HasIndex("OwnerId", "CreatedAt")
+                        .HasDatabaseName("ix_food_places_owner_id_created_at");
+
+                    b.ToTable("food_places", (string)null);
+                });
+
+            modelBuilder.Entity("Domains.Entities.FoodPlaceMedia", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("deleted_by");
+
+                    b.Property<Guid>("FoodPlaceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("food_place_id");
+
+                    b.Property<Guid>("MediaFileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("media_file_id");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer")
+                        .HasColumnName("position");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_food_place_media");
+
+                    b.HasIndex("MediaFileId")
+                        .HasDatabaseName("ix_food_place_media_media_file_id");
+
+                    b.HasIndex("FoodPlaceId", "MediaFileId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_food_place_media_food_place_id_media_file_id")
+                        .HasFilter("deleted_at IS NULL");
+
+                    b.HasIndex("FoodPlaceId", "Position")
+                        .HasDatabaseName("ix_food_place_media_food_place_id_position");
+
+                    b.ToTable("food_place_media", (string)null);
+                });
+
             modelBuilder.Entity("Domains.Entities.MediaFavorite", b =>
                 {
                     b.Property<Guid>("Id")
@@ -669,6 +828,39 @@ namespace Infrastructures.Data.Migrations
                     b.Navigation("MediaFile");
                 });
 
+            modelBuilder.Entity("Domains.Entities.FoodPlace", b =>
+                {
+                    b.HasOne("Domains.Entities.User", "Owner")
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired()
+                        .HasConstraintName("fk_food_places_users_owner_id");
+
+                    b.Navigation("Owner");
+                });
+
+            modelBuilder.Entity("Domains.Entities.FoodPlaceMedia", b =>
+                {
+                    b.HasOne("Domains.Entities.FoodPlace", "FoodPlace")
+                        .WithMany("MediaItems")
+                        .HasForeignKey("FoodPlaceId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired()
+                        .HasConstraintName("fk_food_place_media_food_places_food_place_id");
+
+                    b.HasOne("Domains.Entities.MediaFile", "MediaFile")
+                        .WithMany()
+                        .HasForeignKey("MediaFileId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired()
+                        .HasConstraintName("fk_food_place_media_media_files_media_file_id");
+
+                    b.Navigation("FoodPlace");
+
+                    b.Navigation("MediaFile");
+                });
+
             modelBuilder.Entity("Domains.Entities.MediaFavorite", b =>
                 {
                     b.HasOne("Domains.Entities.MediaFile", "MediaFile")
@@ -739,6 +931,11 @@ namespace Infrastructures.Data.Migrations
                 });
 
             modelBuilder.Entity("Domains.Entities.Collection", b =>
+                {
+                    b.Navigation("MediaItems");
+                });
+
+            modelBuilder.Entity("Domains.Entities.FoodPlace", b =>
                 {
                     b.Navigation("MediaItems");
                 });

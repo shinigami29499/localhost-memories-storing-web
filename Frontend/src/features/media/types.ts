@@ -6,6 +6,18 @@ export interface MediaFile {
   fileSizeBytes: number;
   createdAt: string;
   isFavorited: boolean;
+  ownerId?: string;
+  location?: PhotoLocation | null;
+}
+
+export interface PhotoLocation {
+  latitude: number;
+  longitude: number;
+}
+
+/** A map pick; `placeName` is set when the pick snapped to a basemap place and is not persisted. */
+export interface PickedLocation extends PhotoLocation {
+  placeName?: string;
 }
 
 export interface PagedMedia {

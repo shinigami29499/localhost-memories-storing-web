@@ -161,13 +161,16 @@ describe("GalleryPage", () => {
 
   it("filters favorites by media kind", async () => {
     await renderPage("favorites");
-    await vi.waitFor(() => expect(container.querySelectorAll(".media-tile")).toHaveLength(1));
+    await vi.waitFor(() => expect(container.querySelectorAll(".media-tile")).toHaveLength(2));
     expect(Array.from(container.querySelectorAll(".gallery-page__filter")).map((button) => button.textContent))
-      .toEqual(["Images", "Videos"]);
-    expect(container.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe("Images");
-    expect(mediaService.favorites).toHaveBeenCalledWith(0, 20, "image");
+      .toEqual(["All", "Images", "Videos"]);
+    expect(container.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe("All");
+    expect(mediaService.favorites).toHaveBeenCalledWith(0, 20, undefined);
     const videoFilter = Array.from(container.querySelectorAll("button")).find((button) => button.textContent === "Videos");
-    await act(async () => videoFilter?.click());
+    await act(async () => {
+      videoFilter?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
+      videoFilter?.click();
+    });
 
     await vi.waitFor(() => expect(container.querySelector(".media-tile")?.getAttribute("aria-label")).toBe("Open clip.mp4"));
     expect(mediaService.favorites).toHaveBeenCalledWith(0, 20, "video");
@@ -209,6 +212,32 @@ describe("GalleryPage", () => {
     expect(container.querySelector(".gallery-date-grid")?.children).toHaveLength(2);
   });
 
+  it("switches one day group to its timeline and leaves other days as grids", async () => {
+    vi.mocked(mediaService.list).mockResolvedValue(page([
+      { ...image, id: "older", createdAt: new Date(2026, 9, 27, 23, 59).toISOString() },
+      { ...image, id: "newer", createdAt: new Date(2026, 9, 28, 0, 1).toISOString() },
+    ]));
+    await renderPage();
+    await vi.waitFor(() => expect(container.querySelectorAll(".gallery-date-grid")).toHaveLength(2));
+    expect(container.querySelectorAll(".gallery-timeline")).toHaveLength(0);
+
+    const toggles = () => container.querySelectorAll<HTMLButtonElement>(".gallery-group__timeline-toggle");
+    const sections = () => container.querySelectorAll(".gallery-groups > section");
+    expect(toggles()).toHaveLength(2);
+
+    await act(async () => toggles()[0].click());
+    expect(container.querySelectorAll(".gallery-timeline")).toHaveLength(1);
+    expect(sections()[0].querySelector(".gallery-timeline")).not.toBeNull();
+    expect(sections()[0].querySelector(".gallery-date-grid")).toBeNull();
+    expect(sections()[1].querySelector(".gallery-date-grid")).not.toBeNull();
+    expect(toggles()[0].getAttribute("aria-pressed")).toBe("true");
+    expect(toggles()[1].getAttribute("aria-pressed")).toBe("false");
+
+    await act(async () => toggles()[0].click());
+    expect(container.querySelectorAll(".gallery-timeline")).toHaveLength(0);
+    expect(container.querySelectorAll(".gallery-date-grid")).toHaveLength(2);
+  });
+
   it("supports selection and cancellation in Favorites", async () => {
     await renderPage("favorites");
     await vi.waitFor(() => expect(container.querySelectorAll(".media-tile")).toHaveLength(2));
@@ -242,9 +271,11 @@ describe("GalleryPage", () => {
     pointer(first, "pointerdown");
     await act(async () => vi.advanceTimersByTime(500));
     expect(first.getAttribute("aria-pressed")).toBe("true");
-    pointer(second, "pointermove", 20);
-    pointer(second, "pointerup", 20);
-    pointer(first, "click");
+    await act(async () => {
+      pointer(second, "pointermove", 20);
+      pointer(second, "pointerup", 20);
+      pointer(first, "click");
+    });
 
     expect(first.getAttribute("aria-pressed")).toBe("true");
     expect(second.getAttribute("aria-pressed")).toBe("true");
@@ -317,7 +348,7 @@ describe("GalleryPage", () => {
     vi.mocked(albumService.list).mockResolvedValue([{
       id: "album", name: "Saved", caption: "", isPublic: false,
       owner: { id: "viewer", username: "viewer" }, mediaCount: 1,
-      previewMediaId: null, customPreviewMediaId: null, containsMedia: true,
+      previewMediaId: null, previewIsFavorited: false, customPreviewMediaId: null, containsMedia: true,
       createdAt: "", updatedAt: null,
     }]);
     await renderPage();

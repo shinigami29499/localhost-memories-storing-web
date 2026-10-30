@@ -18,6 +18,11 @@ vi.mock("../animate-ui/icons/home", async () => {
   return { Home: () => <svg data-animated={String(useAnimateIconContext().active === true)} /> };
 });
 
+vi.mock("../animate-ui/icons/map-pin", async () => {
+  const { useAnimateIconContext } = await import("@animate-ui/react/icons");
+  return { MapPin: () => <svg data-animated={String(useAnimateIconContext().active === true)} /> };
+});
+
 vi.mock("../animate-ui/icons/camera", async () => {
   const { useAnimateIconContext } = await import("@animate-ui/react/icons");
   return { Camera: () => <svg data-animated={String(useAnimateIconContext().active === true)} /> };
@@ -43,6 +48,11 @@ vi.mock("../animate-ui/icons/upload", async () => {
   return { Upload: () => <svg data-animated={String(useAnimateIconContext().active === true)} /> };
 });
 
+vi.mock("../animate-ui/icons/file-text", async () => {
+  const { useAnimateIconContext } = await import("@animate-ui/react/icons");
+  return { FileText: () => <svg data-animated={String(useAnimateIconContext().active === true)} /> };
+});
+
 vi.mock("../animate-ui/icons/users", async () => {
   const { useAnimateIconContext } = await import("@animate-ui/react/icons");
   return { Users: () => <svg data-animated={String(useAnimateIconContext().active === true)} /> };
@@ -53,7 +63,7 @@ vi.mock("../animate-ui/icons/trash-2", async () => {
   return { Trash2: () => <svg data-animated={String(useAnimateIconContext().active === true)} /> };
 });
 
-describe("Sidebar icon hover triggers", () => {
+describe("Sidebar icon hover behavior", () => {
   let container: HTMLDivElement;
   let root: Root;
   const originalAnimate = Object.getOwnPropertyDescriptor(Element.prototype, "animate");
@@ -109,7 +119,7 @@ describe("Sidebar icon hover triggers", () => {
     vi.unstubAllGlobals();
   });
 
-  it.each(["/", "/gallery", "/gallery/trash", "/users"])("animates the icon when hovering the %s link text", async (href) => {
+  it.each(["/", "/gallery", "/gallery/trash", "/locations", "/users"])("does not animate the icon when hovering the %s link text", async (href) => {
     const link = container.querySelector<HTMLAnchorElement>(`.sidebar__nav a[href="${href}"]`)!;
     const label = link.querySelector("span")!;
     expect(link.classList.contains("sidebar__link")).toBe(true);
@@ -119,7 +129,7 @@ describe("Sidebar icon hover triggers", () => {
     expect(link.querySelector("svg")?.getAttribute("data-animated")).toBe("false");
 
     await act(async () => label.dispatchEvent(new MouseEvent("pointerover", { bubbles: true })));
-    expect(link.querySelector("svg")?.getAttribute("data-animated")).toBe("true");
+    expect(link.querySelector("svg")?.getAttribute("data-animated")).toBe("false");
 
     await act(async () => label.dispatchEvent(new MouseEvent("pointerout", { bubbles: true, relatedTarget: document.body })));
     expect(link.querySelector("svg")?.getAttribute("data-animated")).toBe("false");
@@ -135,11 +145,12 @@ describe("Sidebar icon hover triggers", () => {
     expect(container.querySelector('[href="/gallery"]')?.textContent).toBe("Pictures");
     expect(container.querySelector('[href="/albums"]')?.textContent).toBe("Album");
     expect(container.querySelector('[href="/users"]')?.textContent).toBe("Users");
+    expect(container.querySelector('[href="/locations"]')?.textContent).toBe("Locations");
     expect(container.querySelector('[href="/gallery/trash"]')).toBeNull();
     expect(container.querySelector('[href^="/admin"]')).toBeNull();
   });
 
-  it("keeps the upload watcher inside Sync beside the static Download action", async () => {
+  it("shows upload actions under Sync beside Download", async () => {
     const navigation = container.querySelector<HTMLElement>(".sidebar__nav")!;
     const groups = Array.from(navigation.children)
       .filter((child) => child.classList.contains("sidebar__group"))
@@ -157,21 +168,27 @@ describe("Sidebar icon hover triggers", () => {
     expect(items[1].classList.contains("sidebar__link--static")).toBe(true);
     expect(items.map((item) => item.querySelector("svg")?.getAttribute("data-animated"))).toEqual(["false", "false"]);
     expect(container.querySelector('[href="/sync/download"]')).toBeNull();
-    expect(syncActions.querySelector('[href="/uploads"]')?.textContent?.trim()).toBe("Upload");
+    const uploadLink = syncActions.querySelector<HTMLAnchorElement>('[href="/uploads"]')!;
+    expect(uploadLink.textContent?.trim()).toBe("Upload");
+    expect(container.querySelector('[href="/uploads/activity"]')).toBeNull();
     expect(container.querySelector('[href="/uploads/new"]')).toBeNull();
     expect(navigation.querySelector(':scope > a[href="/uploads"]')).toBeNull();
 
     for (const item of items) {
       const label = item.querySelector("span")!;
       await act(async () => label.dispatchEvent(new MouseEvent("pointerover", { bubbles: true })));
-      expect(item.querySelector("svg")?.getAttribute("data-animated")).toBe("true");
+      expect(item.querySelector("svg")?.getAttribute("data-animated")).toBe("false");
 
       await act(async () => label.dispatchEvent(new MouseEvent("pointerout", { bubbles: true, relatedTarget: document.body })));
       expect(item.querySelector("svg")?.getAttribute("data-animated")).toBe("false");
     }
 
+    await act(async () => uploadLink.click());
+    expect(uploadLink.classList.contains("sidebar__link--active")).toBe(true);
+    expect(items[1].classList.contains("sidebar__link--active")).toBe(false);
+
     await act(async () => sync.dispatchEvent(new MouseEvent("pointerover", { bubbles: true })));
-    expect(sync.querySelector("svg")?.getAttribute("data-animated")).toBe("true");
+    expect(sync.querySelector("svg")?.getAttribute("data-animated")).toBe("false");
 
     await act(async () => sync.dispatchEvent(new MouseEvent("pointerout", { bubbles: true, relatedTarget: document.body })));
     expect(sync.querySelector("svg")?.getAttribute("data-animated")).toBe("false");

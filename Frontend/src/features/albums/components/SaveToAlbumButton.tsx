@@ -10,9 +10,10 @@ import { albumService } from "../services/albumService";
 interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
   mediaIds: string[];
   size?: number;
+  unsavedStroke?: string;
 }
 
-export function SaveToAlbumButton({ mediaIds, size = 18, children, ...props }: Props) {
+export function SaveToAlbumButton({ mediaIds, size = 18, unsavedStroke = "currentColor", children, ...props }: Props) {
   const { t } = useLocale();
   const albums = useQueries({
     queries: mediaIds.map((mediaId) => ({
@@ -39,7 +40,7 @@ export function SaveToAlbumButton({ mediaIds, size = 18, children, ...props }: P
       ) : (
         <Bookmark
           size={size}
-          stroke={saved ? "var(--notification-icon)" : "#fff"}
+          stroke={saved ? "var(--notification-icon)" : unsavedStroke}
           fill="none"
           aria-hidden="true"
         />

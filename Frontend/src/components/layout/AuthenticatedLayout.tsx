@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { Provider } from "@animate-ui/react/primitives/sidebar";
 import { ScrollProgressContainer, ScrollProgressProvider } from "@animate-ui/react/primitives/scroll-progress";
@@ -7,6 +7,7 @@ import { Brand } from "./Brand";
 import { Sidebar } from "./Sidebar";
 import { NotificationBell } from "./NotificationBell";
 import { UploadRuntime } from "../../features/uploads/components/UploadRuntime";
+import { Spinner } from "../ui/Status";
 import { useLocale } from "../../context/LocaleContext";
 
 export const MOBILE_QUERY = "(max-width: 640px)";
@@ -83,12 +84,14 @@ export function AuthenticatedLayout() {
       <div ref={mainRef} className="app-shell__main" inert={drawerOpen}>
         <UploadRuntime />
         <header className="app-topbar">
-          {isMobile ? <Brand /> : null}
+          {isMobile && location.pathname !== "/" ? <Brand /> : null}
           <NotificationBell />
         </header>
         <ScrollProgressProvider>
           <ScrollProgressContainer id="main-content" tabIndex={-1} className="app-shell__content">
-            <Outlet />
+            <Suspense fallback={<Spinner label="Loading page…" />}>
+              <Outlet />
+            </Suspense>
           </ScrollProgressContainer>
         </ScrollProgressProvider>
       </div>

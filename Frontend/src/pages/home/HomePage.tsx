@@ -1,7 +1,8 @@
-import { Link } from "react-router-dom";
 import { EmptyState, ErrorState, Spinner } from "../../components/ui";
 import { useLocale } from "../../context/LocaleContext";
-import { AlbumCard, useAlbums, type Album } from "../../features/albums";
+import { ScrollProgress, ScrollProgressContainer, ScrollProgressProvider } from "@animate-ui/react/primitives/scroll-progress";
+import { useAlbums, type Album } from "../../features/albums";
+import { AlbumFeedPost } from "../../features/albums/components/AlbumFeedPost";
 import { useAuthStore } from "../../store/authStore";
 import "../albums/albums.css";
 import "./home.css";
@@ -19,40 +20,47 @@ export function HomePage() {
 
   return (
     <main className="home-page">
-      <header className="home-page__header">
-        <h1>{t("Home")}<span className="brand__dot">.</span></h1>
-        <p>{t("Browse albums you own and albums shared publicly.")}</p>
-        <Link to="/albums" className="btn btn--secondary">{t("Manage albums")}</Link>
-      </header>
-
-      {isPending ? <Spinner label={t("Loading albums…")} /> : isError ? (
-        <ErrorState
-          message={t("Could not load albums.")}
-          onRetry={() => {
-            void mine.refetch();
-            void publicAlbums.refetch();
-          }}
-        />
-      ) : albums.length === 0 ? (
-        <EmptyState
-          title={t("No viewable albums yet")}
-          hint={t("Create an album or browse public albums to get started.")}
-        />
-      ) : (
-        <div className="album-grid" aria-busy={mine.isFetching || publicAlbums.isFetching}>
-          {albums.map((album) => {
-            const isOwner = album.owner.id === user?.id;
-            return (
-              <AlbumCard
-                key={album.id}
-                album={album}
-                isOwner={isOwner}
-                showOwner={!isOwner}
-              />
-            );
-          })}
+      <ScrollProgressProvider>
+        <div className="home-page__scroll-track" aria-hidden="true">
+          <ScrollProgress mode="scaleX" className="home-page__scroll-progress" />
         </div>
-      )}
+        <ScrollProgressContainer className="home-page__content">
+          <div className="home-page__inner">
+            <header className="home-page__header">
+              <h1>{t("Home")}<span className="brand__dot">.</span></h1>
+              <p>{t("Browse albums you own and albums shared publicly.")}</p>
+            </header>
+
+            {isPending ? <Spinner label={t("Loading albums…")} /> : isError ? (
+              <ErrorState
+                message={t("Could not load albums.")}
+                onRetry={() => {
+                  void mine.refetch();
+                  void publicAlbums.refetch();
+                }}
+              />
+            ) : albums.length === 0 ? (
+              <EmptyState
+                title={t("No viewable albums yet")}
+                hint={t("Create an album or browse public albums to get started.")}
+              />
+            ) : (
+              <div className="home-feed" aria-busy={mine.isFetching || publicAlbums.isFetching}>
+                {albums.map((album) => {
+                  const isOwner = album.owner.id === user?.id;
+                  return (
+                    <AlbumFeedPost
+                      key={album.id}
+                      album={album}
+                      canDelete={isOwner || user?.role.toLowerCase() === "admin"}
+                    />
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </ScrollProgressContainer>
+      </ScrollProgressProvider>
     </main>
   );
 }

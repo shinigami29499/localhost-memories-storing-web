@@ -54,27 +54,29 @@ public sealed partial class MediaStorageService(
 
         try
         {
-            await using var target = new FileStream(
-                destination, FileMode.CreateNew, FileAccess.Write, FileShare.None, bufferSize: 1 << 16);
-
             long written = 0;
-            var buffer = new byte[1 << 16];
-            int read;
-            while ((read = await content.ReadAsync(buffer, cancellationToken)) > 0)
+            await using (var target = new FileStream(
+                destination, FileMode.CreateNew, FileAccess.Write, FileShare.None, bufferSize: 1 << 16))
             {
-                written += read;
-                if (written > maxBytes)
-                    throw new InvalidMediaFileException(
-                        $"File exceeds the {_options.MaxFileMegabytes} MB upload limit.");
-                await target.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
+                var buffer = new byte[1 << 16];
+                int read;
+                while ((read = await content.ReadAsync(buffer, cancellationToken)) > 0)
+                {
+                    written += read;
+                    if (written > maxBytes)
+                        throw new InvalidMediaFileException(
+                            $"File exceeds the {_options.MaxFileMegabytes} MB upload limit.");
+                    await target.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
+                }
             }
 
+            var location = kind == "image" ? await ReadLocationAsync(relativePath, cancellationToken) : null;
             _logger.LogInformation(
                 "Stored media file {StoredFilename} ({Bytes} bytes, kind {Kind})",
                 storedFilename, written, kind);
 
             return new StoredFile(
-                storedFilename, relativePath, MimeTypeFor(kind, extension), extension, kind, written);
+                storedFilename, relativePath, MimeTypeFor(kind, extension), extension, kind, written, location);
         }
         catch
         {

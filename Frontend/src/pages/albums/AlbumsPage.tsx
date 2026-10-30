@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Highlight } from "@animate-ui/react/primitives/effects/highlight";
 import { Plus } from "@/components/animate-ui/icons/plus";
 import { Button, EmptyState, ErrorState, Spinner } from "../../components/ui";
 import { useLocale } from "../../context/LocaleContext";
@@ -43,18 +44,30 @@ export function AlbumsPage() {
           </header>
 
           <div className="gallery-page__toolbar">
-            <div className="gallery-page__filters" role="group" aria-label={t("Album scope")}>
-              {scopes.map(({ value, label }) => (
-                <button
-                  key={value}
-                  type="button"
-                  className="gallery-page__filter"
-                  aria-pressed={scope === value}
-                  onClick={() => setScope(value)}
-                >
-                  {t(label)}
-                </button>
-              ))}
+            <div
+              className="gallery-page__filters album-page__scope-switcher"
+              role="group"
+              aria-label={t("Album scope")}
+            >
+              <Highlight
+                value={scope}
+                onValueChange={(value) => {
+                  if (value === "mine" || value === "public") setScope(value);
+                }}
+                className="album-page__scope-highlight"
+              >
+                {scopes.map(({ value, label }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className="gallery-page__filter album-page__scope-tab"
+                    data-value={value}
+                    aria-pressed={scope === value}
+                  >
+                    {t(label)}
+                  </button>
+                ))}
+              </Highlight>
             </div>
             <Button type="button" variant="secondary" onClick={() => setCreating(true)}>
               <Plus size={16} aria-hidden="true" />
@@ -88,9 +101,16 @@ export function AlbumsPage() {
         <AlbumFormDialog
           album={editing}
           onClose={() => setEditing(null)}
-          onSubmit={async (input) => {
-            await albumService.update(editing.id, input);
-            await invalidate();
+          onSubmit={async (input, previewFile) => {
+            await albumService.update(editing.id, {
+              ...input,
+              previewMediaId: previewFile ? editing.customPreviewMediaId : input.previewMediaId,
+            });
+            try {
+              if (previewFile) await albumService.uploadPreviewImage(editing.id, previewFile);
+            } finally {
+              await invalidate();
+            }
           }}
         />
       ) : null}
