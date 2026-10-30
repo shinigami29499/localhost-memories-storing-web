@@ -334,12 +334,6 @@ button:focus-visible {
   transition: scale 140ms ease-out;
 }
 
-@media (display-mode: browser) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
-  :where(button:not(:disabled), a[href], [role="button"]):hover {
-    scale: 1.02;
-  }
-}
-
 @media (prefers-reduced-motion: no-preference) {
   :where(button:not(:disabled), a[href], [role="button"]):active {
     scale: 0.97;

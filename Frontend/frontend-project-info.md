@@ -43,7 +43,7 @@ shared `Suspense` fallback for them.
 | `/gallery/trash` | `src/pages/gallery/TrashPage.tsx` | `features/media/services/mediaService.ts` |
 | `/uploads` | `src/pages/uploads/UploadManagementPage.tsx` | `features/uploads/components/UploadBatchCard.tsx`, `features/uploads/components/UploadActivityDialog.tsx`, `features/uploads/services/uploadService.ts` |
 | `/locations` | `src/pages/locations/LocationsPage.tsx` | `features/locations/hooks/useLocations.ts`, `features/locations/components/LocationMap.tsx`, `features/locations/components/LocationEditor.tsx` |
-| `/food` | `src/pages/food/FoodPage.tsx` | `features/food/hooks/useFoodPlaces.ts`, `features/food/components/FoodMap.tsx`, `features/food/components/FoodPlaceDialog.tsx`, `features/food/components/FoodPlaceEditor.tsx`, `features/food/components/FoodImagePicker.tsx`, `features/food/components/StarRating.tsx` |
+| `/food` | `src/pages/food/FoodPage.tsx` | `features/food/hooks/useFoodPlaces.ts`, `features/locations/hooks/useHomeLocation.ts`, `features/food/components/FoodMap.tsx`, `features/food/components/FoodPlaceDialog.tsx`, `features/food/components/FoodPlaceEditor.tsx`, `features/food/components/FoodImagePicker.tsx`, `features/food/components/StarRating.tsx` |
 | `/users` | `src/pages/users/UsersPage.tsx` | `features/users/services/userService.ts` |
 | `/login`, `/register` | `src/pages/login/LoginPage.tsx`, `src/pages/register/RegisterPage.tsx` | `features/auth/services/authService.ts`, `components/ui/PasswordInput.tsx` |
 
@@ -61,6 +61,7 @@ and `/admin/users` redirects to `/users`.
 | Media tiles, preview retries, fullscreen carousel | `src/features/media/components/MediaTile.tsx`, `MediaRetryProvider.tsx`, `MediaPreviewDialog.tsx` in the same folder |
 | Album pickers and bulk saving | `src/features/albums/components/SaveToAlbumButton.tsx`, `SaveToAlbumDialog.tsx`, `BulkSaveToAlbumDialog.tsx` in the same folder |
 | Location edits and GPS backfill | `src/features/locations/services/locationService.ts`; `PUT /api/media/{mediaId}/location`, `POST /api/media/locations/scan` |
+| Food map location search and account home location | `src/features/locations/components/LocationSearch.tsx`, `locationSearchService.ts`, `src/features/locations/hooks/useHomeLocation.ts`, `homeLocationService.ts`; Mapbox Geocoding API and `GET`/`PUT`/`DELETE /api/users/me/home-location`. Click the home marker to change or remove it. |
 | Food place list, optional addresses, rating, notes, custom markers, linked library photos | `src/features/food/services/foodPlaceService.ts`, `src/features/food/hooks/useFoodPlaces.ts`; `/api/food-places` |
 | Upload submission, progress, recovery | `src/features/uploads/services/uploadService.ts`, `uploadRuntime.ts`, `uploadFileStore.ts` in the same folder; `/api/uploads` |
 | Mounted upload runtime and query invalidation | `src/features/uploads/components/UploadRuntime.tsx`, `src/features/uploads/hooks/useUploadRuntime.ts`; invalidates media, albums, and uploads |
@@ -97,19 +98,19 @@ client has no SignalR subscription. The upload runtime refreshes local query sta
   Owners and viewers of public albums can edit captions inline, up to 4,000
   characters. Save persists the caption; Cancel or Escape discards the draft.
   Failed saves retain the draft for retry.
-- Pictures and Videos query the shared standalone media library for signed-in users;
-  Favorites filters it to the current viewer's favorites. Favorites opens on an All
-  tab that mixes both media kinds and offers Images and Videos filters. Results use
+- Gallery queries the shared standalone media library for signed-in users, with All,
+  Images, and Videos tabs. Favorites and Trash offer the same filters; All mixes both
+  media kinds. Favorites filters to the current viewer's favorites. Results use
   media creation
   time descending, not favorite time. Gallery pages load more as the user
   scrolls and support bulk saving selected media to an album.
-  A top-edge progress bar in Pictures, Videos, and Favorites tracks scrolling
+  A top-edge progress bar in Gallery and Favorites tracks scrolling
   through the currently loaded gallery content and respects reduced-motion settings.
   Gallery-wide Grid and Timeline view modes are available for each gallery;
   Timeline groups media created during the same minute on one event and shows time
   labels beside the center axis.
-  Hold a tile (or press Shift+Space) to select media in Pictures, Videos, and
-  Favorites. Long-press a tile to start selection, then drag across tiles to add
+  Hold a tile (or press Shift+Space) to select media in Gallery and Favorites.
+  Long-press a tile to start selection, then drag across tiles to add
   media. Selection shows a compact bottom bar with heart, save-to-album,
   move-to-trash, and cancel actions; Cancel text is visible on desktop only.
   Moving selected media to trash requires confirmation; failed items stay
@@ -130,8 +131,8 @@ client has no SignalR subscription. The upload runtime refreshes local query sta
   to add more. Confirm restore or permanent deletion from the bottom bar.
   Confirming or canceling the decision exits selection mode; failed requests keep
   the remaining items available for retry without repeating successful requests.
-  Trash uses the gallery's 2px tile gaps and count-based columns: 5, 10, or 15 on
-  desktop; 4 or 6 on phones, based on the number of loaded items.
+  Gallery, album-detail, and trash grids use five columns with 8px gaps and
+  rounded tiles on desktop, and three columns on phones.
 - Uploads are submitted from `/uploads` as standalone media batches. The Select
   files button on the left opens the file picker; the adjacent Upload media button
   submits selected files, with a removable selected-file count chip beside it; the
@@ -231,11 +232,11 @@ Failed gallery, album, and trash previews show a centered retry icon. Activating
 failed tile retries it first, then other failed tiles in display order from the start,
 one request at a time. Successful previews are not reloaded. Selection gestures remain
 available on failed tiles.
-Upload history loading and errors retain the page heading and upload form. Mobile
-gallery and album-detail tile grids use three columns. Coarse-pointer album actions
-use 44px targets.
+Upload history loading and errors retain the page heading and upload form. Mobile gallery and album-detail tile grids use three columns. Coarse-pointer album
+actions use 44px targets.
 
-Gallery and album-detail media tiles keep fixed square bounds on hover and press.
+Gallery, album-detail, and trash grids use portrait tiles with a 4:5 aspect ratio.
+Selection borders follow the tiles' rounded corners. Tiles keep fixed bounds on hover and press.
 Only their clipped image/video previews zoom smoothly without overshoot; selection markers
 and video badges stay fixed. Reduced-motion settings disable this interaction animation.
 Gallery, album-detail, and trash tiles unmount image/video previews outside a 200px
@@ -257,7 +258,7 @@ bookmark button opens the save-to-album dialog inside the viewer. Each icon is f
 in its color when active and drawn as a white outline otherwise. The actions sit beside
 the close button on desktop and at the bottom center on phones.
 
-Pictures, Videos, and Favorites previews use the API's filtered total for their
+Gallery, Favorites, and Trash previews use the API's filtered total for their
 counter and slide labels. Swiping beyond loaded items fetches the next gallery
 page, with an in-view loading state and retry action on failure. Looping and dots
 remain disabled until all matching items are loaded. Closing the preview focuses

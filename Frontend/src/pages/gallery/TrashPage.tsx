@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import * as Tabs from "@radix-ui/react-tabs";
 import { RotateCcw } from "@/components/animate-ui/icons/rotate-ccw";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
 import { X } from "@/components/animate-ui/icons/x";
@@ -18,15 +19,18 @@ import "../../features/media/components/media.css";
 
 const TRASH_PAGE_SIZE = 20;
 
-const filters: { value: MediaKindFilter; label: string }[] = [
-  { value: "image", label: "Image" },
-  { value: "video", label: "Video" },
+type TrashFilter = MediaKindFilter | "all";
+
+const filters: { value: TrashFilter; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "image", label: "Images" },
+  { value: "video", label: "Videos" },
 ];
 
 export function TrashPage() {
   const { t } = useLocale();
   const queryClient = useQueryClient();
-  const [filter, setFilter] = useState<MediaKindFilter>("image");
+  const [filter, setFilter] = useState<TrashFilter>("all");
   const [previewMediaId, setPreviewMediaId] = useState<string | null>(null);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
@@ -37,7 +41,7 @@ export function TrashPage() {
   const query = useInfiniteQuery({
     queryKey: ["media", "deleted", filter, TRASH_PAGE_SIZE],
     initialPageParam: 0,
-    queryFn: ({ pageParam }) => mediaService.deleted(pageParam, TRASH_PAGE_SIZE, filter),
+    queryFn: ({ pageParam }) => mediaService.deleted(pageParam, TRASH_PAGE_SIZE, filter === "all" ? undefined : filter),
     getNextPageParam: (lastPage) => {
       const nextOffset = lastPage.offset + lastPage.items.length;
       return nextOffset < lastPage.total ? nextOffset : undefined;
@@ -161,60 +165,65 @@ export function TrashPage() {
               <h1>{t("Trash")}<span className="brand__dot">.</span></h1>
               <p>{t("Restore deleted media to your library.")}</p>
             </header>
-            <div className="gallery-page__toolbar">
-              <div className="gallery-page__filters" role="group" aria-label={t("Filter media")}>
-                {filters.map(({ value, label }) => (
-                  <button
-                    key={value}
-                    type="button"
-                    className="gallery-page__filter"
-                    aria-pressed={filter === value}
-                    onClick={() => {
-                      cancelSelection();
-                      setFilter(value);
-                    }}
-                  >
-                    {t(label)}
-                  </button>
-                ))}
-              </div>
-            </div>
-            {query.isLoading ? <Spinner label={t("Loading media…")} /> : null}
-            {query.isError && media.length === 0 ? (
-              <ErrorState message={t("Could not load media.")} onRetry={() => void query.refetch()} />
-            ) : null}
-            {!query.isLoading && !query.isError && media.length === 0 ? (
-              <EmptyState title="Trash is empty" hint="Deleted media will appear here." />
-            ) : null}
-            {media.length > 0 ? (
-              <MediaRetryProvider key={filter} order={media.map((item) => item.id)}>
-                <div
-                  className={`gallery-date-grid gallery-date-grid--${media.length <= 5 ? 5 : media.length <= 10 ? 10 : 15}`}
-                  data-mobile-columns={media.length <= 4 ? 4 : 6}
-                >
-                  {media.map((item) => (
-                    <MediaTile
-                      key={item.id}
-                      media={item}
-                      includeDeleted
-                      selectionMode={selectionMode}
-                      selectionDragEnabled
-                      selected={selectedIds.has(item.id)}
-                      onSelect={toggleSelected}
-                      onOpen={setPreviewMediaId}
-                    />
+            <Tabs.Root
+              value={filter}
+              onValueChange={(value) => {
+                if (value !== "all" && value !== "image" && value !== "video") return;
+                cancelSelection();
+                setFilter(value);
+              }}
+            >
+              <div className="gallery-page__toolbar">
+                <Tabs.List className="gallery-page__filters" aria-label={t("Filter by media type")}>
+                  {filters.map(({ value, label }) => (
+                    <Tabs.Trigger
+                      key={value}
+                      className="gallery-page__filter"
+                      value={value}
+                    >
+                      {t(label)}
+                    </Tabs.Trigger>
                   ))}
-                </div>
-              </MediaRetryProvider>
-            ) : null}
-            {query.isFetchNextPageError && media.length > 0 && !previewMediaId ? (
-              <ErrorState message={t("Could not load more media.")} onRetry={() => void query.fetchNextPage()} />
-            ) : null}
-            {query.isFetchingNextPage ? <Spinner label={t("Loading more media…")} /> : null}
-            {query.isError && !query.isFetchNextPageError && media.length > 0 ? (
-              <ErrorState message={t("Could not refresh media.")} onRetry={() => void query.refetch()} />
-            ) : null}
-            <div ref={sentinelRef} aria-hidden="true" />
+                </Tabs.List>
+              </div>
+              <Tabs.Content value={filter} className="gallery-page__tab-panel">
+                {query.isLoading ? <Spinner label={t("Loading media…")} /> : null}
+                {query.isError && media.length === 0 ? (
+                  <ErrorState message={t("Could not load media.")} onRetry={() => void query.refetch()} />
+                ) : null}
+                {!query.isLoading && !query.isError && media.length === 0 ? (
+                  <EmptyState title="Trash is empty" hint="Deleted media will appear here." />
+                ) : null}
+                {media.length > 0 ? (
+                  <MediaRetryProvider key={filter} order={media.map((item) => item.id)}>
+                    <div
+                      className="gallery-date-grid"
+                    >
+                      {media.map((item) => (
+                        <MediaTile
+                          key={item.id}
+                          media={item}
+                          includeDeleted
+                          selectionMode={selectionMode}
+                          selectionDragEnabled
+                          selected={selectedIds.has(item.id)}
+                          onSelect={toggleSelected}
+                          onOpen={setPreviewMediaId}
+                        />
+                      ))}
+                    </div>
+                  </MediaRetryProvider>
+                ) : null}
+                {query.isFetchNextPageError && media.length > 0 && !previewMediaId ? (
+                  <ErrorState message={t("Could not load more media.")} onRetry={() => void query.fetchNextPage()} />
+                ) : null}
+                {query.isFetchingNextPage ? <Spinner label={t("Loading more media…")} /> : null}
+                {query.isError && !query.isFetchNextPageError && media.length > 0 ? (
+                  <ErrorState message={t("Could not refresh media.")} onRetry={() => void query.refetch()} />
+                ) : null}
+                <div ref={sentinelRef} aria-hidden="true" />
+              </Tabs.Content>
+            </Tabs.Root>
           </div>
         </div>
         {selectionMode ? (

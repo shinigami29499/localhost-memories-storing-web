@@ -30,10 +30,6 @@
   transition: transform 160ms ease;
 }
 
-.media-tile:hover .media-tile__motion {
-  transform: scale(1.04);
-}
-
 .media-tile:active .media-tile__motion {
   transform: scale(1.06);
 }
@@ -58,7 +54,13 @@
   height: 100%;
   object-fit: cover;
   pointer-events: none;
-  transition: filter 160ms ease;
+  transition: filter 160ms ease, transform 160ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .media-tile:not(.media-tile--selected):hover .media-tile__preview {
+    transform: scale(1.04);
+  }
 }
 
 .media-tile:focus-visible {
@@ -70,6 +72,7 @@
   position: absolute;
   inset: 0;
   border: 3px solid #fff;
+  border-radius: inherit;
   background: rgba(0, 0, 0, 0.18);
   content: "";
   pointer-events: none;

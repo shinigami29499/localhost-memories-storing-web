@@ -87,27 +87,13 @@
 
 .gallery-date-grid {
   display: grid;
-  gap: 2px;
-}
-
-.gallery-date-grid--4 {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.gallery-date-grid--5 {
+  gap: 8px;
   grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
-.gallery-date-grid--6 {
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-}
-
-.gallery-date-grid--10 {
-  grid-template-columns: repeat(10, minmax(0, 1fr));
-}
-
-.gallery-date-grid--15 {
-  grid-template-columns: repeat(15, minmax(0, 1fr));
+.gallery-date-grid .media-tile {
+  aspect-ratio: 4 / 5;
+  border-radius: var(--radius);
 }
 
 .gallery-page__filters {
@@ -213,10 +199,10 @@
   cursor: pointer;
   display: inline-flex;
   flex-shrink: 0;
-  height: 32px;
+  height: 44px;
   justify-content: center;
   padding: 0;
-  width: 32px;
+  width: 44px;
   transition-property: background-color, color;
   transition-duration: var(--animate-ui-sidebar-color-duration);
   transition-timing-function: var(--animate-ui-sidebar-color-easing);
@@ -246,7 +232,8 @@
 .gallery-timeline {
   display: flex;
   list-style: none;
-  margin: 0;
+  margin: 0 auto;
+  max-width: 100%;
   min-height: 456px;
   overflow-x: auto;
   overscroll-behavior-x: contain;
@@ -255,6 +242,7 @@
   scroll-snap-type: x proximity;
   scrollbar-color: var(--border-control) transparent;
   scrollbar-width: thin;
+  width: max-content;
 }
 
 .gallery-timeline__event::before {
@@ -494,13 +482,6 @@
   object-fit: cover;
   transition: filter 160ms ease, transform 300ms ease-out;
   width: 100%;
-}
-
-@media (display-mode: browser) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
-  .gallery-card:not(.gallery-card--selected) .gallery-card__media:hover img,
-  .gallery-card:not(.gallery-card--selected) .gallery-card__media:hover video {
-    transform: scale(1.02);
-  }
 }
 
 .gallery-card--selected .gallery-card__media img,
@@ -745,14 +726,6 @@
 @media (max-width: 640px) {
   .gallery-date-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .gallery-page .gallery-date-grid[data-mobile-columns="4"] {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  .gallery-page .gallery-date-grid[data-mobile-columns="6"] {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
   }
 
   .media-lightbox.gallery-lightbox[open] {

@@ -6,6 +6,7 @@ using Services.Responses.Auth;
 using Domains.Entities;
 using Domains.Enums;
 using Services.Models.Users;
+using Services.Requests.Users;
 
 namespace Infrastructures.Data.ApplicationServices;
 
@@ -64,6 +65,49 @@ public class UserService(IUserRepository repository, IUnitOfWork unitOfWork, IMa
             token.RevokedBy = deletedBy;
         }
 
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<HomeLocationDto?> GetHomeLocationAsync(
+        Guid userId, CancellationToken cancellationToken = default)
+    {
+        var user = await _repository.FindUserAsync(userId, cancellationToken);
+        if (user is null || user.DeletedAt is not null)
+            throw new NotFoundException("User not found.");
+
+        return user.HomeLatitude is { } latitude && user.HomeLongitude is { } longitude
+            ? new HomeLocationDto(latitude, longitude)
+            : null;
+    }
+
+    public async Task<HomeLocationDto> SetHomeLocationAsync(
+        Guid userId, SetHomeLocationRequest request, CancellationToken cancellationToken = default)
+    {
+        if (!double.IsFinite(request.Latitude) || request.Latitude is < -90 or > 90
+            || !double.IsFinite(request.Longitude) || request.Longitude is < -180 or > 180)
+            throw new ValidationException("Invalid home location.", new Dictionary<string, string[]>
+            {
+                ["location"] = ["Provide latitude (-90 to 90) and longitude (-180 to 180)."],
+            });
+
+        var user = await _repository.FindUserAsync(userId, cancellationToken);
+        if (user is null || user.DeletedAt is not null)
+            throw new NotFoundException("User not found.");
+
+        user.HomeLatitude = request.Latitude;
+        user.HomeLongitude = request.Longitude;
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        return new HomeLocationDto(request.Latitude, request.Longitude);
+    }
+
+    public async Task ClearHomeLocationAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var user = await _repository.FindUserAsync(userId, cancellationToken);
+        if (user is null || user.DeletedAt is not null)
+            throw new NotFoundException("User not found.");
+
+        user.HomeLatitude = null;
+        user.HomeLongitude = null;
         await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 }

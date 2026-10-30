@@ -74,12 +74,6 @@
   transition: transform 300ms ease-out;
 }
 
-@media (display-mode: browser) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
-  .album-feed-post__preview:hover img {
-    transform: scale(1.02);
-  }
-}
-
 .album-feed-post__placeholder {
   display: grid;
   justify-items: center;

@@ -112,13 +112,38 @@ describe("GalleryPage", () => {
     ));
   }
 
-  it("loads the picture library as media records", async () => {
+  it("loads all library media by default", async () => {
     await renderPage();
     await vi.waitFor(() => expect(container.querySelectorAll(".media-tile")).toHaveLength(1));
 
     expect(container.querySelector(".media-tile")?.getAttribute("aria-label")).toBe("Open photo.png");
-    expect(mediaService.list).toHaveBeenCalledWith(0, 20, "image");
+    expect(container.querySelector("h1")?.textContent).toBe("Gallery.");
+    expect(Array.from(container.querySelectorAll(".gallery-page__filter")).map((button) => button.textContent))
+      .toEqual(["All", "Images", "Videos"]);
+    expect(mediaService.list).toHaveBeenCalledWith(0, 20, undefined);
     expect(mediaService.favorites).not.toHaveBeenCalled();
+  });
+
+  it("filters gallery media by kind and returns to All", async () => {
+    vi.mocked(mediaService.list).mockResolvedValue(page([image, video]));
+    await renderPage();
+    await vi.waitFor(() => expect(container.querySelectorAll(".media-tile")).toHaveLength(2));
+
+    const filter = (label: string) => Array.from(container.querySelectorAll<HTMLButtonElement>(".gallery-page__filter"))
+      .find((button) => button.textContent === label)!;
+    await act(async () => {
+      filter("Videos").dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
+      filter("Videos").click();
+    });
+    await vi.waitFor(() => expect(mediaService.list).toHaveBeenLastCalledWith(0, 20, "video"));
+    expect(container.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe("Videos");
+
+    await act(async () => {
+      filter("All").dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
+      filter("All").click();
+    });
+    await vi.waitFor(() => expect(mediaService.list).toHaveBeenLastCalledWith(0, 20, undefined));
+    expect(container.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe("All");
   });
 
   it("shows only the pagination retry after loading more fails", async () => {
@@ -146,7 +171,7 @@ describe("GalleryPage", () => {
     await act(async () => container.querySelector<HTMLButtonElement>(".error-state button")!.click());
     await vi.waitFor(() => expect(container.querySelectorAll(".media-tile")).toHaveLength(2));
     expect(container.querySelector(".error-state")).toBeNull();
-    expect(mediaService.list).toHaveBeenLastCalledWith(1, 20, "image");
+    expect(mediaService.list).toHaveBeenLastCalledWith(1, 20, undefined);
   });
 
   it("shows only the refresh retry when existing media cannot refresh", async () => {
@@ -177,25 +202,16 @@ describe("GalleryPage", () => {
     expect(container.querySelectorAll(".media-tile")).toHaveLength(1);
   });
 
-  it.each([
-    [1, 5, 4],
-    [4, 5, 4],
-    [5, 5, 6],
-    [6, 10, 6],
-    [10, 10, 6],
-    [11, 15, 6],
-    [12, 15, 6],
-  ])(
-    "uses %i items to choose %i desktop and %i mobile columns without hiding tiles",
-    async (count, desktopColumns, mobileColumns) => {
+  it.each([1, 4, 5, 6, 10, 11, 12])(
+    "keeps %i items in the fixed gallery grid",
+    async (count) => {
       vi.mocked(mediaService.list).mockResolvedValue(page(
         Array.from({ length: count }, (_, index) => ({ ...image, id: `image-${index}` })),
       ));
       await renderPage();
       await vi.waitFor(() => expect(container.querySelectorAll(".media-tile")).toHaveLength(count));
       const grid = container.querySelector(".gallery-date-grid");
-      expect(grid?.classList.contains(`gallery-date-grid--${desktopColumns}`)).toBe(true);
-      expect(grid?.getAttribute("data-mobile-columns")).toBe(String(mobileColumns));
+      expect(grid?.className).toBe("gallery-date-grid");
     },
   );
 
@@ -212,7 +228,7 @@ describe("GalleryPage", () => {
     expect(container.querySelector(".gallery-date-grid")?.children).toHaveLength(2);
   });
 
-  it("switches one day group to its timeline and leaves other days as grids", async () => {
+  it("focuses one day timeline and hides other dates until closed", async () => {
     vi.mocked(mediaService.list).mockResolvedValue(page([
       { ...image, id: "older", createdAt: new Date(2026, 9, 27, 23, 59).toISOString() },
       { ...image, id: "newer", createdAt: new Date(2026, 9, 28, 0, 1).toISOString() },
@@ -226,15 +242,23 @@ describe("GalleryPage", () => {
     expect(toggles()).toHaveLength(2);
 
     await act(async () => toggles()[0].click());
+    expect(sections()).toHaveLength(1);
+    expect(sections()[0].getAttribute("aria-label")).toBe("October 28, 2026");
     expect(container.querySelectorAll(".gallery-timeline")).toHaveLength(1);
     expect(sections()[0].querySelector(".gallery-timeline")).not.toBeNull();
     expect(sections()[0].querySelector(".gallery-date-grid")).toBeNull();
-    expect(sections()[1].querySelector(".gallery-date-grid")).not.toBeNull();
     expect(toggles()[0].getAttribute("aria-pressed")).toBe("true");
-    expect(toggles()[1].getAttribute("aria-pressed")).toBe("false");
 
     await act(async () => toggles()[0].click());
     expect(container.querySelectorAll(".gallery-timeline")).toHaveLength(0);
+    expect(container.querySelectorAll(".gallery-date-grid")).toHaveLength(2);
+
+    await act(async () => toggles()[1].click());
+    expect(sections()).toHaveLength(1);
+    expect(sections()[0].getAttribute("aria-label")).toBe("October 27, 2026");
+    expect(container.querySelectorAll(".gallery-timeline")).toHaveLength(1);
+
+    await act(async () => toggles()[0].click());
     expect(container.querySelectorAll(".gallery-date-grid")).toHaveLength(2);
   });
 

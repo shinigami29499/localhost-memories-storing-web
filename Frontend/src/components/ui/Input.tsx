@@ -1,6 +1,6 @@
-import type { ChangeEvent, HTMLAttributes } from "react";
+import type { ChangeEvent, InputHTMLAttributes } from "react";
 
-interface InputProps extends Omit<HTMLAttributes<HTMLInputElement>, "onChange"> {
+interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "onChange"> {
   value: string;
   onChange: (value: string) => void;
   type?: string;

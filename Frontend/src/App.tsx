@@ -15,7 +15,6 @@ import { RegisterPage } from "./pages/register/RegisterPage";
 import { HomePage } from "./pages/home/HomePage";
 import { ErrorPage } from "./pages/ErrorPage";
 import { Spinner } from "./components/ui/Status";
-import { TopographyBackground } from "./components/animate-ui/backgrounds/topography";
 import { ThemeProvider } from "./context/ThemeContext";
 import { LocaleProvider } from "./context/LocaleContext";
 import { ToastProvider } from "./components/ui";
@@ -49,7 +48,7 @@ const router = createBrowserRouter([
         children: [
           { path: "/", element: <HomePage /> },
           { path: "/gallery", element: <GalleryPage key="pictures" view="pictures" /> },
-          { path: "/gallery/videos", element: <GalleryPage key="videos" view="videos" /> },
+          { path: "/gallery/videos", element: <GalleryPage key="videos" view="pictures" initialFilter="video" /> },
           { path: "/gallery/favorites", element: <GalleryPage key="favorites" view="favorites" /> },
           {
             path: "/gallery/trash",
@@ -119,7 +118,6 @@ export function App() {
         <QueryClientProvider client={queryClient}>
           <AnimateUIProvider tempo={1}>
             <ToastProvider>
-              <TopographyBackground className="fixed inset-0 pointer-events-none -z-10" />
               <RouterProvider router={router} future={{ v7_startTransition: true }} />
             </ToastProvider>
           </AnimateUIProvider>

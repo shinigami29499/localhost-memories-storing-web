@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useIsMutating } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
-import { Button, EmptyState, ErrorState, Spinner } from "../../components/ui";
+import { Button, ErrorState, Spinner } from "../../components/ui";
 import { useLocale } from "../../context/LocaleContext";
 import { useAuthStore } from "../../store/authStore";
 import { mediaPreviewUrl } from "../../utils/media";
@@ -72,62 +72,62 @@ export function LocationsPage() {
         <ErrorState message="Could not load photos." onRetry={() => void query.refetch()} />
       ) : (
         <>
-          <div className="locations__workspace">
+          <div className={`locations__workspace${selected ? "" : " locations__workspace--map-only"}`}>
             <div className="locations__map-panel">
               <LocationMap media={media} selected={selected} draft={draft} editable={canEdit && !saving}
                 onSelect={select} onPick={(location) => { if (selected) updateDraft(selected.id, location); }} />
             </div>
-            <aside className="locations__details" aria-label={t("Selected photo")}>
-              {selected ? (
-                <>
-                  <div className="locations__details-head">
-                    <h2>{selected.originalFilename}</h2>
-                    <span className={`locations__status${selected.location ? " locations__status--located" : ""}`}>
-                      <span className="locations__status-dot" aria-hidden="true" />
-                      {t(selected.location ? "Located" : "No location")}
-                    </span>
-                  </div>
-                  {failedPreviews.has(selected.id) ? <p role="alert">{t("Could not load this media.")}</p> : (
-                    <img className="locations__selected-photo" src={mediaPreviewUrl(selected.id)}
-                      alt={selected.originalFilename}
-                      onError={() => setFailedPreviews((previous) => new Set(previous).add(selected.id))} />
-                  )}
-                  {selected.location && (
-                    <p className="locations__coordinate-readout">
-                      {selected.location.latitude.toFixed(6)}, {selected.location.longitude.toFixed(6)}
-                    </p>
-                  )}
-                  {canEdit ? (
-                    <LocationEditor key={selected.id} media={selected} draft={draft}
-                      onChange={(location) => updateDraft(selected.id, location)} />
-                  ) : <p className="locations__hint">{t("Only the uploader or an administrator can change this location.")}</p>}
-                </>
-              ) : <EmptyState title="Select a photo" hint="Choose a map pin or photo below to view its location." />}
-            </aside>
-          </div>
-          <div className="locations__library-header">
-            <h2>{t("Photos")} <span>{t("{located} of {total} located", { located: locatedCount, total: query.data?.pages[0]?.total ?? 0 })}</span></h2>
+            {selected && (
+              <aside className="locations__details" aria-label={t("Selected photo")}>
+                <div className="locations__details-head">
+                  <h2>{selected.originalFilename}</h2>
+                  <span className={`locations__status${selected.location ? " locations__status--located" : ""}`}>
+                    <span className="locations__status-dot" aria-hidden="true" />
+                    {t(selected.location ? "Located" : "No location")}
+                  </span>
+                </div>
+                {failedPreviews.has(selected.id) ? <p role="alert">{t("Could not load this media.")}</p> : (
+                  <img className="locations__selected-photo" src={mediaPreviewUrl(selected.id)}
+                    alt={selected.originalFilename}
+                    onError={() => setFailedPreviews((previous) => new Set(previous).add(selected.id))} />
+                )}
+                {selected.location && (
+                  <p className="locations__coordinate-readout">
+                    {selected.location.latitude.toFixed(6)}, {selected.location.longitude.toFixed(6)}
+                  </p>
+                )}
+                {canEdit ? (
+                  <LocationEditor key={selected.id} media={selected} draft={draft}
+                    onChange={(location) => updateDraft(selected.id, location)} />
+                ) : <p className="locations__hint">{t("Only the uploader or an administrator can change this location.")}</p>}
+              </aside>
+            )}
           </div>
           {query.isFetchNextPageError && <ErrorState message="Could not load all photos." onRetry={() => void query.fetchNextPage()} />}
           {query.isRefetchError && <ErrorState message="Could not refresh photos." onRetry={() => void query.refetch()} />}
           {query.hasNextPage && !query.isFetchNextPageError && <Spinner label="Loading photos…" />}
-          {!media.length ? <EmptyState title="No photos to show" hint="Upload photos." /> : (
-            <ul className="locations__photos">
-              {media.map((item) => (
-                <li key={item.id}>
-                  <button type="button" className="locations__photo" aria-pressed={selectedId === item.id} disabled={saving}
-                    onClick={() => select(item)}>
-                    {!failedPreviews.has(item.id) && <img src={mediaPreviewUrl(item.id)} alt="" loading="lazy"
-                      onError={() => setFailedPreviews((previous) => new Set(previous).add(item.id))} />}
-                    <span>{item.originalFilename}</span>
-                    <span className={`locations__status${item.location ? " locations__status--located" : ""}`}>
-                      <span className="locations__status-dot" aria-hidden="true" />
-                      {t(item.location ? "Located" : "No location")}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
+          {!!media.length && (
+            <>
+              <div className="locations__library-header">
+                <h2>{t("Photos")} <span>{t("{located} of {total} located", { located: locatedCount, total: query.data?.pages[0]?.total ?? 0 })}</span></h2>
+              </div>
+              <ul className="locations__photos">
+                {media.map((item) => (
+                  <li key={item.id}>
+                    <button type="button" className="locations__photo" aria-pressed={selectedId === item.id} disabled={saving}
+                      onClick={() => select(item)}>
+                      {!failedPreviews.has(item.id) && <img src={mediaPreviewUrl(item.id)} alt="" loading="lazy"
+                        onError={() => setFailedPreviews((previous) => new Set(previous).add(item.id))} />}
+                      <span>{item.originalFilename}</span>
+                      <span className={`locations__status${item.location ? " locations__status--located" : ""}`}>
+                        <span className="locations__status-dot" aria-hidden="true" />
+                        {t(item.location ? "Located" : "No location")}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
           )}
         </>
       )}

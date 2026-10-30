@@ -174,6 +174,22 @@ describe("Locations", () => {
     expect(container.textContent).toContain("2 of 3 located");
   });
 
+  it("shows photo details only after a photo is selected", async () => {
+    await render();
+    expect(container.querySelector(".locations__details")).toBeNull();
+    await act(async () => container.querySelector<HTMLButtonElement>(".locations__photo")!.click());
+    expect(container.querySelector(".locations__details h2")?.textContent).toBe("gps.jpg");
+  });
+
+  it("hides the photo library when no photos exist", async () => {
+    photos = [];
+    await render();
+    expect(container.querySelector(".locations__map-panel")).not.toBeNull();
+    expect(container.querySelector(".locations__library-header")).toBeNull();
+    expect(container.querySelector(".locations__photos")).toBeNull();
+    expect(container.textContent).not.toContain("No photos to show");
+  });
+
   it("shows all photos without a location filter", async () => {
     await render();
     expect(container.querySelectorAll(".locations__photo")).toHaveLength(3);

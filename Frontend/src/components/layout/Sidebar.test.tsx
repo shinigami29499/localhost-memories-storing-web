@@ -23,9 +23,24 @@ vi.mock("../animate-ui/icons/map-pin", async () => {
   return { MapPin: () => <svg data-animated={String(useAnimateIconContext().active === true)} /> };
 });
 
+vi.mock("../animate-ui/icons/plane-takeoff", async () => {
+  const { useAnimateIconContext } = await import("@animate-ui/react/icons");
+  return { PlaneTakeoff: () => <svg data-animated={String(useAnimateIconContext().active === true)} /> };
+});
+
+vi.mock("../animate-ui/icons/utensils", async () => {
+  const { useAnimateIconContext } = await import("@animate-ui/react/icons");
+  return { Utensils: () => <svg data-animated={String(useAnimateIconContext().active === true)} /> };
+});
+
 vi.mock("../animate-ui/icons/camera", async () => {
   const { useAnimateIconContext } = await import("@animate-ui/react/icons");
   return { Camera: () => <svg data-animated={String(useAnimateIconContext().active === true)} /> };
+});
+
+vi.mock("../animate-ui/icons/library-big", async () => {
+  const { useAnimateIconContext } = await import("@animate-ui/react/icons");
+  return { LibraryBig: () => <svg data-animated={String(useAnimateIconContext().active === true)} /> };
 });
 
 vi.mock("../animate-ui/icons/image", async () => {
@@ -119,33 +134,57 @@ describe("Sidebar icon hover behavior", () => {
     vi.unstubAllGlobals();
   });
 
-  it.each(["/", "/gallery", "/gallery/trash", "/locations", "/users"])("does not animate the icon when hovering the %s link text", async (href) => {
+  it.each(["/", "/gallery", "/gallery/trash", "/locations", "/food", "/users"])("animates the icon when hovering the %s link text", async (href) => {
     const link = container.querySelector<HTMLAnchorElement>(`.sidebar__nav a[href="${href}"]`)!;
     const label = link.querySelector("span")!;
     expect(link.classList.contains("sidebar__link")).toBe(true);
-    expect(link.classList.contains("sidebar__sub-link")).toBe(href.startsWith("/gallery"));
+    expect(link.classList.contains("sidebar__sub-link"))
+      .toBe(href.startsWith("/gallery") || href === "/locations" || href === "/food");
+    if (href === "/gallery/trash") {
+      expect(container.querySelector('[aria-label="Library items"] [href="/gallery/trash"]')).not.toBeNull();
+    }
     expect(link.classList.contains("sidebar__link--active")).toBe(href === "/users");
     expect(link.getAttribute("aria-current")).toBe(href === "/users" ? "page" : null);
     expect(link.querySelector("svg")?.getAttribute("data-animated")).toBe("false");
 
     await act(async () => label.dispatchEvent(new MouseEvent("pointerover", { bubbles: true })));
-    expect(link.querySelector("svg")?.getAttribute("data-animated")).toBe("false");
+    expect(link.querySelector("svg")?.getAttribute("data-animated")).toBe("true");
 
     await act(async () => label.dispatchEvent(new MouseEvent("pointerout", { bubbles: true, relatedTarget: document.body })));
     expect(link.querySelector("svg")?.getAttribute("data-animated")).toBe("false");
   });
 
-  it("shows Gallery pages and Users to non-admin users without Trash", async () => {
+  it("animates the Library icon when hovered", async () => {
+    const library = container.querySelector<HTMLButtonElement>('[aria-label="Library"]')!;
+    const icon = library.querySelector("svg")!;
+
+    expect(icon.getAttribute("data-animated")).toBe("false");
+    await act(async () => library.dispatchEvent(new MouseEvent("pointerover", { bubbles: true })));
+    expect(icon.getAttribute("data-animated")).toBe("true");
+
+    await act(async () => library.dispatchEvent(new MouseEvent("pointerout", { bubbles: true, relatedTarget: document.body })));
+    expect(icon.getAttribute("data-animated")).toBe("false");
+  });
+
+  it("shows Gallery and Album under Library without Videos, Favorites, or Trash for non-admin users", async () => {
     await act(async () => useAuthStore.setState({
       user: { id: "reader", username: "reader", role: "user", status: "active", createdAt: "2026-01-01T00:00:00Z" },
     }));
-    const galleryPages = container.querySelector<HTMLElement>('[aria-label="Gallery pages"]')!;
-    expect(Array.from(galleryPages.querySelectorAll("a"), (link) => link.getAttribute("href")))
-      .toEqual(["/gallery", "/gallery/videos", "/gallery/favorites", "/albums"]);
-    expect(container.querySelector('[href="/gallery"]')?.textContent).toBe("Pictures");
+    const libraryItems = container.querySelector<HTMLElement>('[aria-label="Library items"]')!;
+    expect(Array.from(libraryItems.querySelectorAll("a"), (link) => link.getAttribute("href")))
+      .toEqual(["/gallery", "/albums"]);
+    expect(container.querySelector('[href="/gallery/videos"]')).toBeNull();
+    expect(container.querySelector('[href="/gallery"]')?.textContent).toBe("Gallery");
+    expect(container.querySelector('.sidebar__nav > a[href="/gallery"]')).toBeNull();
+    expect(container.querySelector('[href="/gallery/favorites"]')).toBeNull();
+    expect(container.querySelector('[aria-label="Library"]')?.getAttribute("aria-expanded")).toBe("true");
     expect(container.querySelector('[href="/albums"]')?.textContent).toBe("Album");
+    expect(container.querySelector('[href="/albums"]')?.classList.contains("sidebar__sub-link")).toBe(true);
     expect(container.querySelector('[href="/users"]')?.textContent).toBe("Users");
-    expect(container.querySelector('[href="/locations"]')?.textContent).toBe("Locations");
+    expect(container.querySelector('[href="/locations"]')?.textContent).toBe("Travel");
+    expect(container.querySelector('[aria-label="Locations"]')?.getAttribute("aria-expanded")).toBe("true");
+    expect(container.querySelector('[href="/food"]')?.textContent).toBe("Food");
+    expect(container.querySelector('[href="/food"]')?.classList.contains("sidebar__sub-link")).toBe(true);
     expect(container.querySelector('[href="/gallery/trash"]')).toBeNull();
     expect(container.querySelector('[href^="/admin"]')).toBeNull();
   });
@@ -159,7 +198,7 @@ describe("Sidebar icon hover behavior", () => {
     const syncActions = container.querySelector<HTMLElement>('[aria-label="Sync actions"]')!;
     const items = Array.from(syncActions.querySelectorAll<HTMLElement>(".sidebar__sub-link"));
 
-    expect(groups).toEqual(["Gallery", "Sync"]);
+    expect(groups).toEqual(["Library", "Locations", "Sync"]);
     expect(sync.getAttribute("aria-expanded")).toBe("true");
     expect(sync.querySelector("svg")?.getAttribute("data-animated")).toBe("false");
     expect(items.map((item) => item.textContent?.trim())).toEqual(["Upload", "Download"]);
@@ -177,7 +216,7 @@ describe("Sidebar icon hover behavior", () => {
     for (const item of items) {
       const label = item.querySelector("span")!;
       await act(async () => label.dispatchEvent(new MouseEvent("pointerover", { bubbles: true })));
-      expect(item.querySelector("svg")?.getAttribute("data-animated")).toBe("false");
+      expect(item.querySelector("svg")?.getAttribute("data-animated")).toBe("true");
 
       await act(async () => label.dispatchEvent(new MouseEvent("pointerout", { bubbles: true, relatedTarget: document.body })));
       expect(item.querySelector("svg")?.getAttribute("data-animated")).toBe("false");
@@ -188,7 +227,7 @@ describe("Sidebar icon hover behavior", () => {
     expect(items[1].classList.contains("sidebar__link--active")).toBe(false);
 
     await act(async () => sync.dispatchEvent(new MouseEvent("pointerover", { bubbles: true })));
-    expect(sync.querySelector("svg")?.getAttribute("data-animated")).toBe("false");
+    expect(sync.querySelector("svg")?.getAttribute("data-animated")).toBe("true");
 
     await act(async () => sync.dispatchEvent(new MouseEvent("pointerout", { bubbles: true, relatedTarget: document.body })));
     expect(sync.querySelector("svg")?.getAttribute("data-animated")).toBe("false");

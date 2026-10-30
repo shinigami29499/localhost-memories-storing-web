@@ -285,7 +285,7 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
               ) : (
                 <MediaRetryProvider key={mediaKind} order={items.map((item) => item.id)}>
                   <div
-                    className={`gallery-date-grid gallery-date-grid--${items.length <= 5 ? 5 : items.length <= 10 ? 10 : 15}`}
+                    className="gallery-date-grid"
                     aria-busy={media.isFetching}
                   >
                     {items.map((item) => (

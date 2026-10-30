@@ -384,27 +384,17 @@
   font-size: 0.9rem;
 }
 
-.sidebar__sub-link[href="/gallery/favorites"] > svg > path {
-  fill: var(--danger) !important;
-  stroke: var(--danger) !important;
-}
-
-.sidebar__sub-link[href="/albums"] > svg > path {
+.sidebar__link[href="/albums"] > svg > path {
   stroke: var(--notification-icon) !important;
 }
 
-.sidebar__sub-link[href="/albums"] > svg > path,
+.sidebar__link[href="/albums"] > svg > path,
 .gallery-card__album > svg > path {
   fill: var(--notification-icon) !important;
 }
 
-.sidebar__sub-link[href="/gallery/trash"] > svg > path {
+.sidebar__link[href="/gallery/trash"] > svg > path {
   fill: color-mix(in srgb, var(--text-muted) 50%, var(--surface-raised));
-}
-
-.sidebar__sub-link[href="/gallery/videos"] > svg > g > path,
-.sidebar__sub-link[href="/gallery/videos"] > svg > g > rect {
-  fill: currentColor !important;
 }
 
 .sidebar__sub-link:hover {

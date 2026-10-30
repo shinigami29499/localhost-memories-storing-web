@@ -8,4 +8,6 @@ public class User : AuditableEntity
     public required string Password { get; set; }
     public AccountStatus Status { get; set; } = AccountStatus.Active;
     public UserRole Role { get; set; } = UserRole.User;
+    public double? HomeLatitude { get; set; }
+    public double? HomeLongitude { get; set; }
 }

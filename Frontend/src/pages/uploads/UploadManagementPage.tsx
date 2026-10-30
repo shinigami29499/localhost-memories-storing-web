@@ -246,22 +246,6 @@ export function UploadManagementPage() {
                 setOffset(0);
               }}
             />
-            {selectedDate ? (
-              <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
-                <button
-                  type="button"
-                  className="upload-page__clear-filter"
-                  aria-label={t("Remove filter")}
-                  title={t("Remove filter")}
-                  onClick={() => {
-                    setSelectedDate("");
-                    setOffset(0);
-                  }}
-                >
-                  <XIcon size={16} aria-hidden="true" />
-                </button>
-              </AnimateIcon>
-            ) : null}
             <Button
               type="button"
               variant="ghost"

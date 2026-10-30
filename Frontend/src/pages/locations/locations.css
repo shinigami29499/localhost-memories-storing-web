@@ -108,6 +108,8 @@
   overflow: hidden;
 }
 
+.locations__workspace--map-only { grid-template-columns: minmax(0, 1fr); }
+
 .locations__map-panel {
   background: var(--surface);
   height: 600px;

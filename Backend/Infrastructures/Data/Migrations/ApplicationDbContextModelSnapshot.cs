@@ -746,6 +746,14 @@ namespace Infrastructures.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("deleted_by");
 
+                    b.Property<double?>("HomeLatitude")
+                        .HasColumnType("double precision")
+                        .HasColumnName("home_latitude");
+
+                    b.Property<double?>("HomeLongitude")
+                        .HasColumnType("double precision")
+                        .HasColumnName("home_longitude");
+
                     b.Property<string>("Password")
                         .IsRequired()
                         .HasMaxLength(128)

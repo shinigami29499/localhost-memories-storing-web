@@ -4,6 +4,8 @@ using Apis.Authorization;
 using Apis.Interfaces;
 using Services.Interfaces;
 using Services.Responses.Auth;
+using Services.Models.Users;
+using Services.Requests.Users;
 
 namespace Apis.Controllers;
 
@@ -18,6 +20,23 @@ public class UsersController(IUserService userService, ICurrentUserContext curre
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<UserResponse>>> ListAsync(CancellationToken cancellationToken)
         => Ok(await _userService.ListAsync(cancellationToken));
+
+    [HttpGet("me/home-location")]
+    public async Task<ActionResult<HomeLocationDto?>> GetHomeLocationAsync(CancellationToken cancellationToken)
+        => Ok(await _userService.GetHomeLocationAsync(_currentUser.RequireUserId(), cancellationToken));
+
+    [HttpPut("me/home-location")]
+    public async Task<ActionResult<HomeLocationDto>> SetHomeLocationAsync(
+        SetHomeLocationRequest request, CancellationToken cancellationToken)
+        => Ok(await _userService.SetHomeLocationAsync(
+            _currentUser.RequireUserId(), request, cancellationToken));
+
+    [HttpDelete("me/home-location")]
+    public async Task<IActionResult> ClearHomeLocationAsync(CancellationToken cancellationToken)
+    {
+        await _userService.ClearHomeLocationAsync(_currentUser.RequireUserId(), cancellationToken);
+        return NoContent();
+    }
 
     [RequireAdmin]
     [HttpPost("{id:guid}/approve")]

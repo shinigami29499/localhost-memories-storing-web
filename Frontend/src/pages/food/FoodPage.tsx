@@ -10,6 +10,7 @@ import {
 import { useLocale } from "../../context/LocaleContext";
 import { useAuthStore } from "../../store/authStore";
 import { ApiError } from "../../services/api";
+import { useHomeLocation } from "../../features/locations/hooks/useHomeLocation";
 import { mediaPreviewUrl } from "../../utils/media";
 import { FoodMap } from "../../features/food/components/FoodMap";
 import { FoodPlaceDialog } from "../../features/food/components/FoodPlaceDialog";
@@ -68,6 +69,7 @@ export function FoodPage() {
   const { t } = useLocale();
   const user = useAuthStore((state) => state.user);
   const isAdmin = user?.role?.toLowerCase() === "admin";
+  const home = useHomeLocation(user?.id);
   const query = useFoodPlaces();
   const save = useSaveFoodPlace();
   const remove = useDeleteFoodPlace();
@@ -75,8 +77,14 @@ export function FoodPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [placeToDelete, setPlaceToDelete] = useState<FoodPlace | null>(null);
+  const [manualHomePick, setManualHomePick] = useState(false);
+  const [homePromptDismissed, setHomePromptDismissed] = useState(false);
+  const [homeDialogOpen, setHomeDialogOpen] = useState(false);
+  const [confirmHomeRemoval, setConfirmHomeRemoval] = useState(false);
 
   const places = query.data ?? [];
+  const homePrompt = home.query.isSuccess && !home.query.data && !homePromptDismissed;
+  const homePicking = manualHomePick || (homePrompt && !editor);
   const selected = places.find((place) => place.id === selectedId);
   const canEdit = (place: FoodPlace) => place.owner.id === user?.id || isAdmin;
   const mapPlaces = useMemo(
@@ -85,10 +93,26 @@ export function FoodPage() {
   );
   const rated = places.filter((place) => place.rating > 0).length;
 
-  const startCreate = () => {
-    setSelectedId(null);
-    setFormError(null);
-    setEditor({ coordinate: null, values: { ...emptyValues } });
+  const pickHome = async (coordinate: FoodCoordinate) => {
+    try {
+      await home.save.mutateAsync(coordinate);
+      setManualHomePick(false);
+      setHomePromptDismissed(true);
+      showToast.success(t("Home location saved."));
+    } catch (error) {
+      showToast.error(error instanceof ApiError ? error.message : t("Could not save your home location."));
+    }
+  };
+
+  const cancelHomePick = () => {
+    setManualHomePick(false);
+    setHomePromptDismissed(true);
+  };
+
+  const removeHomeLocation = async () => {
+    await home.clear.mutateAsync();
+    setHomePromptDismissed(false);
+    showToast.success(t("Home location removed."));
   };
 
   const startEdit = (place: FoodPlace) => {
@@ -105,6 +129,7 @@ export function FoodPage() {
   /** Moves a draft marker or starts a new place at the selected map point. */
   const pickOnMap = (coordinate: FoodCoordinate, placeName?: string) => {
     if (!editor) {
+      if (!home.query.data) setHomePromptDismissed(false);
       setSelectedId(null);
       setFormError(null);
       setEditor({ coordinate, values: { ...emptyValues, name: placeName ?? "" } });
@@ -171,15 +196,54 @@ export function FoodPage() {
           <h1>{t("Food")}<span className="brand__dot">.</span></h1>
           <p>{t("Save the places you ate at, rate them, and keep your notes on the map.")}</p>
         </div>
-        <Button onClick={startCreate} disabled={!!editor}>{t("Add food place")}</Button>
       </header>
       <p className="food__hint">{t("Mapbox requires internet access and receives map coordinates. Your notes stay on this server.")}</p>
       {editor && !editor.coordinate && (
         <div className="food__notice" role="status">
-          <span>{t("Click the map or a place label to drop the marker for this place.")}</span>
+          <span>{t("Click the map, use your current location, or select a place label to set the marker.")}</span>
           <Button type="button" variant="secondary" onClick={cancelMapPick}>
             {t(editor.previousCoordinate ? "Cancel location change" : "Cancel")}
           </Button>
+        </div>
+      )}
+      {home.query.isError && (
+        <div className="food__notice" role="alert">
+          <span>{t("Could not load your home location.")}</span>
+          <Button type="button" variant="secondary" onClick={() => void home.query.refetch()}>
+            {t("Retry")}
+          </Button>
+        </div>
+      )}
+      {(homePrompt || manualHomePick) && (
+        <div className="food__notice" role="status">
+          <span>{t(manualHomePick
+            ? "Click the map to set your home location."
+            : editor
+              ? "Your home location is not set."
+              : "Home not set.")}</span>
+          {manualHomePick ? (
+            <Button type="button" variant="secondary" disabled={home.save.isPending} onClick={cancelHomePick}>
+              {t("Cancel")}
+            </Button>
+          ) : editor ? (
+            <>
+              <Button type="button" disabled={home.save.isPending} onClick={() => setManualHomePick(true)}>
+                {t("Set home")}
+              </Button>
+              <Button type="button" variant="secondary" onClick={cancelHomePick}>
+                {t("Not now")}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button type="button" disabled={home.save.isPending} onClick={() => setManualHomePick(true)}>
+                {t("Add now")}
+              </Button>
+              <Button type="button" variant="secondary" onClick={cancelHomePick}>
+                {t("Set home later")}
+              </Button>
+            </>
+          )}
         </div>
       )}
 
@@ -196,13 +260,26 @@ export function FoodPage() {
                 draftIcon={editor?.values.markerIcon ?? DEFAULT_FOOD_MARKER_ICON}
                 draftColor={editor?.values.markerColor ?? DEFAULT_FOOD_MARKER_COLOR}
                 picking={!!editor}
+                homeLocation={home.query.data ?? null}
+                homeLocationReady={home.query.isSuccess || home.query.isError}
+                homePicking={homePicking}
                 onSelect={selectPlace}
+                onPickHome={(coordinate) => void pickHome(coordinate)}
+                onHomeUnavailable={() => {
+                  if (home.query.isSuccess) setHomeDialogOpen(true);
+                  else void home.query.refetch();
+                }}
+                onRequestHomePick={() => {
+                  setHomePromptDismissed(false);
+                  setManualHomePick(true);
+                }}
+                onHomeMarkerClick={() => setHomeDialogOpen(true)}
                 onPick={pickOnMap}
               />
             </div>
           </div>
           {!places.length ? (
-            <EmptyState title="No food places yet" hint="Add your first place to see it on the map." />
+            <EmptyState title="No food places yet" hint="Click the map or use your current location to add your first place." />
           ) : (
             <>
               <div className="food__library-header">
@@ -317,6 +394,59 @@ export function FoodPage() {
         </FoodPlaceDialog>
       )}
 
+      {homeDialogOpen && home.query.isSuccess && (
+        <FoodPlaceDialog
+          title={t("Home location")}
+          onClose={() => setHomeDialogOpen(false)}
+        >
+          <div className="food__home-dialog">
+            {home.query.data ? (
+              <>
+                <p className="food__coordinate-readout">
+                  {home.query.data.latitude.toFixed(6)}, {home.query.data.longitude.toFixed(6)}
+                </p>
+                <div className="food__form-actions">
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      setHomeDialogOpen(false);
+                      setHomePromptDismissed(false);
+                      setManualHomePick(true);
+                    }}
+                  >
+                    {t("Change home location")}
+                  </Button>
+                  <Button
+                    variant="danger"
+                    onClick={() => {
+                      setHomeDialogOpen(false);
+                      setConfirmHomeRemoval(true);
+                    }}
+                  >
+                    {t("Remove home marker")}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p>{t("Home not set.")}</p>
+                <div className="food__form-actions">
+                  <Button
+                    onClick={() => {
+                      setHomeDialogOpen(false);
+                      setHomePromptDismissed(false);
+                      setManualHomePick(true);
+                    }}
+                  >
+                    {t("Add now")}
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
+        </FoodPlaceDialog>
+      )}
+
       {placeToDelete && (
         <ConfirmationDialog
           title="Delete this food place?"
@@ -325,6 +455,16 @@ export function FoodPage() {
           onClose={() => setPlaceToDelete(null)}
         >
           <p>{t("{name} will be removed from the map.", { name: placeToDelete.name })}</p>
+        </ConfirmationDialog>
+      )}
+      {confirmHomeRemoval && (
+        <ConfirmationDialog
+          title="Remove your home location?"
+          danger
+          onConfirm={removeHomeLocation}
+          onClose={() => setConfirmHomeRemoval(false)}
+        >
+          <p>{t("The home marker will be removed. You can set it again later.")}</p>
         </ConfirmationDialog>
       )}
     </main>

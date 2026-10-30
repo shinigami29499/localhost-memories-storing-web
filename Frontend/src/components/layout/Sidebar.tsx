@@ -5,18 +5,17 @@ import { Camera } from "@/components/animate-ui/icons/camera";
 import { ChevronDown } from "@/components/animate-ui/icons/chevron-down";
 import { Download } from "@/components/animate-ui/icons/download";
 import { RefreshCw } from "@/components/animate-ui/icons/refresh-cw";
-import { Heart } from "@/components/animate-ui/icons/heart";
 import { Home } from "@/components/animate-ui/icons/home";
-import { Image } from "@/components/animate-ui/icons/image";
+import { LibraryBig } from "@/components/animate-ui/icons/library-big";
 import { LogOut } from "@/components/animate-ui/icons/log-out";
 import { MapPin } from "@/components/animate-ui/icons/map-pin";
 import { PanelLeftClose } from "@/components/animate-ui/icons/panel-left-close";
 import { PanelLeftOpen } from "@/components/animate-ui/icons/panel-left-open";
+import { PlaneTakeoff } from "@/components/animate-ui/icons/plane-takeoff";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
 import { Upload } from "@/components/animate-ui/icons/upload";
 import { Users } from "@/components/animate-ui/icons/users";
 import { Utensils } from "@/components/animate-ui/icons/utensils";
-import { Video } from "@/components/animate-ui/icons/video";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
 import { authService } from "../../features/auth";
@@ -39,15 +38,14 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
   const location = useLocation();
   const isAdmin = user?.role?.toLowerCase() === "admin";
 
-  const isGalleryRoute = location.pathname.startsWith("/gallery")
+  const [libraryOpen, setLibraryOpen] = useState(true);
+  const [locationsOpen, setLocationsOpen] = useState(true);
+  const [syncOpen, setSyncOpen] = useState(true);
+  const libraryActive = location.pathname.startsWith("/gallery")
     || location.pathname.startsWith("/albums")
     || location.pathname.startsWith("/saved");
-  const [syncOpen, setSyncOpen] = useState(true);
-  const [galleryOpen, setGalleryOpen] = useState(true);
-  const galleryLinks = [
-    { to: "/gallery", label: "Pictures", icon: Camera, active: location.pathname === "/gallery" },
-    { to: "/gallery/videos", label: "Videos", icon: Video, active: location.pathname === "/gallery/videos" },
-    { to: "/gallery/favorites", label: "Favorites", icon: Heart, active: location.pathname === "/gallery/favorites" },
+  const libraryLinks = [
+    { to: "/gallery", label: "Gallery", icon: Camera, active: location.pathname === "/gallery" },
     { to: "/albums", label: "Album", icon: Bookmark, active: location.pathname.startsWith("/albums") || location.pathname.startsWith("/saved") },
     ...(isAdmin
       ? [{ to: "/gallery/trash", label: "Trash", icon: Trash2, active: location.pathname === "/gallery/trash" }]
@@ -109,7 +107,7 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
             <Brand />
           </div>
           <nav id="sidebar-navigation" className="sidebar__nav" aria-label={t("Main navigation")}>
-            <AnimateIcon animateOnHover={false} animateOnTap completeOnStop asChild>
+            <AnimateIcon animateOnTap completeOnStop asChild>
               <NavLink
                 to="/"
                 className={`sidebar__link sidebar__home-link${location.pathname === "/" ? " sidebar__link--active" : ""}`}
@@ -123,32 +121,32 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
               </NavLink>
             </AnimateIcon>
             <Collapsible.Root
-              className={`sidebar__group${isGalleryRoute ? " sidebar__group--active" : ""}`}
-              open={galleryOpen && !compact}
-              onOpenChange={(open) => setGalleryOpen(compact || open)}
+              className={`sidebar__group${libraryActive ? " sidebar__group--active" : ""}`}
+              open={libraryOpen && !compact}
+              onOpenChange={(open) => setLibraryOpen(compact || open)}
             >
-              <AnimateIcon animateOnHover={false} animateOnTap completeOnStop asChild>
+              <AnimateIcon animateOnTap completeOnStop asChild>
                 <Collapsible.Trigger
                   type="button"
-                  className={`sidebar__link sidebar__group-toggle${isGalleryRoute && compact ? " sidebar__link--active" : ""}`}
+                  className={`sidebar__link sidebar__group-toggle${libraryActive && compact ? " sidebar__link--active" : ""}`}
                   onClick={() => { if (compact) onToggle(); }}
-                  aria-label={t("Gallery")}
-                  title={t("Gallery")}
+                  aria-label={t("Library")}
+                  title={t("Library")}
                   data-sidebar="menu-button"
                 >
-                  <Image size={18} aria-hidden="true" />
-                  <span>{t("Gallery")}</span>
+                  <LibraryBig size={18} aria-hidden="true" />
+                  <span>{t("Library")}</span>
                   <ChevronDown
                     size={14}
                     aria-hidden="true"
-                    className={`sidebar__chevron${galleryOpen ? " sidebar__chevron--open" : ""}`}
+                    className={`sidebar__chevron${libraryOpen ? " sidebar__chevron--open" : ""}`}
                   />
                 </Collapsible.Trigger>
               </AnimateIcon>
-              <Collapsible.Panel className="sidebar__sub-panel" role="group" aria-label={t("Gallery pages")}>
+              <Collapsible.Panel className="sidebar__sub-panel" role="group" aria-label={t("Library items")}>
                 <div className="sidebar__sub-nav">
-                  {galleryLinks.map(({ to, label, icon: Icon, active }) => (
-                    <AnimateIcon key={to} animateOnHover={false} animateOnTap completeOnStop asChild>
+                  {libraryLinks.map(({ to, label, icon: Icon, active }) => (
+                    <AnimateIcon key={to} animateOnTap completeOnStop asChild>
                       <NavLink
                         to={to}
                         end={to !== "/albums"}
@@ -165,31 +163,59 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
                 </div>
               </Collapsible.Panel>
             </Collapsible.Root>
-            <AnimateIcon animateOnHover={false} animateOnTap completeOnStop asChild>
-              <NavLink
-                to="/locations"
-                className={`sidebar__link${location.pathname === "/locations" ? " sidebar__link--active" : ""}`}
-                data-sidebar="menu-button"
-                aria-label={t("Locations")}
-                title={t("Locations")}
-              >
-                <MapPin size={18} aria-hidden="true" />
-                <span>{t("Locations")}</span>
-              </NavLink>
-            </AnimateIcon>
-            <AnimateIcon animateOnHover={false} animateOnTap completeOnStop asChild>
-              <NavLink
-                to="/food"
-                className={`sidebar__link${location.pathname === "/food" ? " sidebar__link--active" : ""}`}
-                data-sidebar="menu-button"
-                aria-label={t("Food")}
-                title={t("Food")}
-              >
-                <Utensils size={18} aria-hidden="true" />
-                <span>{t("Food")}</span>
-              </NavLink>
-            </AnimateIcon>
-            <AnimateIcon animateOnHover={false} animateOnTap completeOnStop asChild>
+            <Collapsible.Root
+              className={`sidebar__group${location.pathname === "/locations" || location.pathname.startsWith("/food") ? " sidebar__group--active" : ""}`}
+              open={locationsOpen && !compact}
+              onOpenChange={(open) => setLocationsOpen(open)}
+            >
+              <AnimateIcon animateOnTap completeOnStop asChild>
+                <Collapsible.Trigger
+                  type="button"
+                  className={`sidebar__link sidebar__group-toggle${(location.pathname === "/locations" || location.pathname.startsWith("/food")) && compact ? " sidebar__link--active" : ""}`}
+                  onClick={() => { if (compact) onToggle(); }}
+                  aria-label={t("Locations")}
+                  title={t("Locations")}
+                  data-sidebar="menu-button"
+                >
+                  <MapPin size={18} aria-hidden="true" />
+                  <span>{t("Locations")}</span>
+                  <ChevronDown
+                    size={14}
+                    aria-hidden="true"
+                    className={`sidebar__chevron${locationsOpen ? " sidebar__chevron--open" : ""}`}
+                  />
+                </Collapsible.Trigger>
+              </AnimateIcon>
+              <Collapsible.Panel className="sidebar__sub-panel" role="group" aria-label={t("Locations")}>
+                <div className="sidebar__sub-nav">
+                  <AnimateIcon animateOnTap completeOnStop asChild>
+                    <NavLink
+                      to="/locations"
+                      className={`sidebar__link sidebar__sub-link${location.pathname === "/locations" ? " sidebar__link--active" : ""}`}
+                      data-sidebar="menu-sub-button"
+                      aria-label={t("Travel")}
+                      title={t("Travel")}
+                    >
+                      <PlaneTakeoff size={16} animateOnHover aria-hidden="true" />
+                      <span>{t("Travel")}</span>
+                    </NavLink>
+                  </AnimateIcon>
+                  <AnimateIcon animateOnTap completeOnStop asChild>
+                    <NavLink
+                      to="/food"
+                      className={`sidebar__link sidebar__sub-link${location.pathname === "/food" ? " sidebar__link--active" : ""}`}
+                      data-sidebar="menu-sub-button"
+                      aria-label={t("Food")}
+                      title={t("Food")}
+                    >
+                      <Utensils size={16} aria-hidden="true" />
+                      <span>{t("Food")}</span>
+                    </NavLink>
+                  </AnimateIcon>
+                </div>
+              </Collapsible.Panel>
+            </Collapsible.Root>
+            <AnimateIcon animateOnTap completeOnStop asChild>
               <NavLink
                 to="/users"
                 className={`sidebar__link${location.pathname === "/users" ? " sidebar__link--active" : ""}`}
@@ -206,7 +232,7 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
               open={syncOpen && !compact}
               onOpenChange={(open) => setSyncOpen(open)}
             >
-              <AnimateIcon animateOnHover={false} animateOnTap completeOnStop asChild>
+              <AnimateIcon animateOnTap completeOnStop asChild>
                 <Collapsible.Trigger
                   type="button"
                   className={`sidebar__link sidebar__group-toggle${location.pathname.startsWith("/uploads") && compact ? " sidebar__link--active" : ""}`}
@@ -226,7 +252,7 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
               </AnimateIcon>
               <Collapsible.Panel className="sidebar__sub-panel" role="group" aria-label={t("Sync actions")}>
                 <div className="sidebar__sub-nav">
-                  <AnimateIcon animateOnHover={false} animateOnTap completeOnStop asChild>
+                  <AnimateIcon animateOnTap completeOnStop asChild>
                     <NavLink
                       to="/uploads"
                       className={`sidebar__link sidebar__sub-link${location.pathname === "/uploads" ? " sidebar__link--active" : ""}`}
@@ -238,7 +264,7 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
                       <span>{t("Upload")}</span>
                     </NavLink>
                   </AnimateIcon>
-                  <AnimateIcon animateOnHover={false} animateOnTap completeOnStop asChild>
+                  <AnimateIcon animateOnTap completeOnStop asChild>
                     <div className="sidebar__link sidebar__sub-link sidebar__link--static" aria-disabled="true">
                       <Download size={16} aria-hidden="true" />
                       <span>{t("Download")}</span>
@@ -302,7 +328,7 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
                       <span className="sidebar__account-role">{t(roleName)}</span>
                     </span>
                   </div>
-                  <AnimateIcon animateOnHover={false} animateOnTap completeOnStop asChild>
+                  <AnimateIcon animateOnTap completeOnStop asChild>
                     <button
                       type="button"
                       className="sidebar__link sidebar__link--danger"
@@ -321,7 +347,7 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
           </div>
         </SidebarInner>
       </Container>
-      <AnimateIcon animateOnHover={false} animateOnTap completeOnStop asChild>
+      <AnimateIcon animateOnTap completeOnStop asChild>
         <button
           type="button"
           className="sidebar__toggle"

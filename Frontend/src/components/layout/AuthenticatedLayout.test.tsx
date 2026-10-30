@@ -107,17 +107,13 @@ describe("AuthenticatedLayout sidebar", () => {
     expect(container.querySelector(".app-shell")?.getAttribute("data-state")).toBe("expanded");
   });
 
-  it("opens the Gallery section from the collapsed rail", async () => {
+  it("shows Gallery and admin Trash in the collapsed rail", async () => {
     narrowScreen = true;
     useAuthStore.setState({
       user: { id: "admin", username: "Admin", role: "admin", status: "active", createdAt: "2026-01-01T00:00:00Z" },
     });
     await renderLayout();
-    const gallery = container.querySelector<HTMLButtonElement>('[aria-label="Gallery"]')!;
-    expect(gallery.getAttribute("aria-expanded")).toBe("false");
-    await act(async () => gallery.click());
-    expect(container.querySelector(".app-shell")?.getAttribute("data-state")).toBe("expanded");
-    expect(gallery.getAttribute("aria-expanded")).toBe("true");
+    expect(container.querySelector<HTMLAnchorElement>('[aria-label="Gallery"]')?.getAttribute("href")).toBe("/gallery");
     expect(container.querySelector('[href="/gallery/trash"]')).not.toBeNull();
   });
 

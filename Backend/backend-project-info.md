@@ -91,7 +91,7 @@ The Infrastructures project's Data area hosts workflow orchestration that coordi
 | Photo locations | `MediaController.cs` | `IMediaService`; `PUT /api/media/{mediaId}/location`, `POST /api/media/locations/scan` |
 | Food places, ratings, notes, custom markers | `FoodPlacesController.cs` | `IFoodPlaceService`, `FoodPlaceService`; `/api/food-places` |
 | Upload batches, queue, progress, file completion | `UploadsController.cs` | `IUploadService`, `UploadService`; `/api/uploads` |
-| User listing, admin approval/deletion | `UsersController.cs` | `IUserService`, `UserService`; `/api/users` |
+| User listing, admin approval/deletion, account home location | `UsersController.cs` | `IUserService`, `UserService`; `/api/users` |
 | Mention candidate lookup | `UserDirectoryController.cs` | `IUserService`; `GET /api/user-directory/mentions` |
 
 `GET /api/media` lists active standalone media across uploaders for signed-in users;
@@ -155,6 +155,10 @@ the given order (duplicates are ignored), or keeps them unchanged when omitted.
 `FoodPlaceDto.MediaIds` lists only active images, so trashed or deleted media drop out.
 Deleting a food place soft-deletes its links.
 
+Each account stores one optional home coordinate on `User`. Authenticated users read
+and update only their own location through `GET` and `PUT /api/users/me/home-location`;
+`DELETE` clears it.
+
 ### Locations and previews
 
 `MediaStorageService.Location.cs` reads image EXIF GPS using MetadataExtractor during
@@ -179,7 +183,8 @@ notifications, and upload-to-post links, transferring media ownership to users.
 table for map-based food places with rating, note, and marker columns.
 `AddFoodPlaceMedia` adds the ordered `food_place_media` image links.
 `AddFoodPlaceAddress` adds an optional address to `food_places`. Earlier post-related
-migrations remain historical steps, not active API documentation. The model snapshot is
+migrations remain historical steps, not active API documentation.
+`AddUserHomeLocation` adds nullable home coordinates to `users`. The model snapshot is
 `Backend/Infrastructures/Data/Migrations/ApplicationDbContextModelSnapshot.cs`.
 
 ## Runtime configuration

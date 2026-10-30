@@ -193,7 +193,7 @@ describe("UploadManagementPage", () => {
     expect(container.querySelector("#upload-media-files")).not.toBeNull();
   });
 
-  it.each(["user", "admin"])("filters and clears history for a %s", async (role) => {
+  it.each(["user", "admin"])("filters history and clears the date selection for a %s", async (role) => {
     useAuthStore.setState({
       user: { id: "viewer", username: "viewer", role, status: "active", createdAt: "" },
     });
@@ -216,9 +216,11 @@ describe("UploadManagementPage", () => {
     });
     expect(list).toHaveBeenLastCalledWith(0, 10, "2026-10-30");
     expect(container.querySelectorAll('input[type="date"]')).toHaveLength(1);
-    const removeFilter = container.querySelector<HTMLButtonElement>('[aria-label="Remove filter"]')!;
 
-    await act(async () => removeFilter.click());
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(dateInput, "");
+      dateInput.dispatchEvent(new Event("change", { bubbles: true }));
+    });
     await act(async () => {
       await vi.waitFor(() => expect(container.textContent).toContain("No upload batches"));
     });
@@ -227,7 +229,7 @@ describe("UploadManagementPage", () => {
     expect(container.querySelector('[aria-label="Remove filter"]')).toBeNull();
   });
 
-  it("resets pagination when the date changes and when the filter is removed", async () => {
+  it("resets pagination when the date changes and when the date selection is cleared", async () => {
     vi.mocked(uploadService.list).mockImplementation(async (offset = 0, limit = 10) => ({
       offset, limit, totalItems: 25, items: [emptyBatch],
     }));
@@ -263,7 +265,8 @@ describe("UploadManagementPage", () => {
       await vi.waitFor(() => expect(uploadService.list).toHaveBeenLastCalledWith(10, 10, "2026-10-30"));
     });
     await act(async () => {
-      container.querySelector<HTMLButtonElement>('[aria-label="Remove filter"]')!.click();
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(dateInput, "");
+      dateInput.dispatchEvent(new Event("change", { bubbles: true }));
     });
     expect(container.querySelector('[aria-current="page"]')?.textContent).toBe("1");
     expect(dateInput.value).toBe("");
