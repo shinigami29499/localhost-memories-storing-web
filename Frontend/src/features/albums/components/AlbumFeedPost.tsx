@@ -7,6 +7,7 @@ import { Bookmark } from "@/components/animate-ui/icons/bookmark";
 import { X } from "@/components/animate-ui/icons/x";
 import { ConfirmationDialog, showToast } from "../../../components/ui";
 import { useLocale } from "../../../context/LocaleContext";
+import { UserAvatar } from "../../../components/common/UserAvatar";
 import { mediaService } from "../../media/services/mediaService";
 import { ApiError } from "../../../services/api";
 import { formatTimestamp, mediaPreviewUrl } from "../../../utils/media";
@@ -40,7 +41,7 @@ export function AlbumFeedPost({ album, canDelete }: Props) {
   const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previewId = album.previewMediaId;
   const failed = previewId !== null && failedPreview === previewId;
-  const albumPath = `/albums/${album.id}`;
+  const albumPath = `/library/album/${album.id}`;
   const openLabel = t("Open album {name}", { name: album.name });
   const favorite = useMutation({
     mutationFn: ({ mediaId, isFavorited }: { mediaId: string; isFavorited: boolean }) => isFavorited
@@ -94,9 +95,7 @@ export function AlbumFeedPost({ album, canDelete }: Props) {
   return (
     <article className="album-feed-post" aria-label={album.name}>
       <header className="album-feed-post__header">
-        <span className="album-feed-post__avatar" aria-hidden="true">
-          {album.owner.username.slice(0, 1).toLocaleUpperCase(language)}
-        </span>
+        <UserAvatar user={album.owner} className="album-feed-post__avatar" />
         <div className="album-feed-post__identity">
           <span className="album-feed-post__owner">{album.owner.username}</span>
           <div className="album-feed-post__meta">

@@ -10,7 +10,7 @@ internal static class CollectionMappings
         source.Collection.Name,
         source.Collection.Caption,
         source.Collection.IsPublic,
-        new UserSummaryDto(source.Owner.Id, source.Owner.Username),
+        new UserSummaryDto(source.Owner.Id, source.Owner.Username, source.Owner.AvatarSeed),
         source.MediaCount,
         source.CustomPreviewMediaId ?? source.DefaultPreviewMediaId,
         source.CustomPreviewMediaId,

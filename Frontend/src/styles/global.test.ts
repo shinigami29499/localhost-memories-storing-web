@@ -8,6 +8,7 @@ const sidebarStyles = readFileSync(resolve("src", "styles", "sidebar.css"), "utf
 const usersStyles = readFileSync(resolve("src", "pages", "users", "users.css"), "utf8");
 const galleryStyles = readFileSync(resolve("src", "pages", "gallery", "gallery.css"), "utf8");
 const loginStyles = readFileSync(resolve("src", "pages", "login", "login.css"), "utf8");
+const foodStyles = readFileSync(resolve("src", "pages", "food", "food.css"), "utf8");
 
 function contrastRatio(foreground: string, background: string) {
   const luminance = (color: string) => {
@@ -28,7 +29,7 @@ describe("Global styles", () => {
   beforeEach(() => {
     document.documentElement.classList.add("dark");
     style = document.createElement("style");
-    style.textContent = globalStyles.replace(/^@import .*;$/gm, "") + sidebarStyles + usersStyles + galleryStyles;
+    style.textContent = globalStyles.replace(/^@import .*;$/gm, "") + sidebarStyles + usersStyles + galleryStyles + foodStyles;
     document.head.append(style);
     card = document.createElement("article");
     card.className = "post-card";
@@ -134,7 +135,7 @@ describe("Global styles", () => {
     document.documentElement.classList.remove("dark");
     const lightPalette = getComputedStyle(document.documentElement);
     expect(lightPalette.getPropertyValue("--bg").trim()).toBe("#eef0f2");
-    expect(lightPalette.getPropertyValue("--surface").trim()).toBe("#fafaff");
+    expect(lightPalette.getPropertyValue("--surface").trim()).toBe("#fafafa");
     expect(lightPalette.getPropertyValue("--surface-raised").trim()).toBe("#f0f1f3");
     expect(lightPalette.getPropertyValue("--surface-card-raised").trim()).toBe("#f0f1f3");
     expect(lightPalette.getPropertyValue("--text").trim()).toBe("#30343a");
@@ -188,6 +189,9 @@ describe("Global styles", () => {
     const ruleFor = (selector: string) => rules.find((rule) => rule.selectorText === selector);
 
     expect(ruleFor(".confirmation-dialog")?.style.background).toBe("var(--surface-card)");
+    expect(ruleFor(".confirmation-dialog")?.style.boxShadow).toBe("var(--shadow-popover)");
+    expect(ruleFor(".food__dialog")?.style.boxShadow).toBe("var(--shadow-popover)");
+    expect(ruleFor(".food-picker")?.style.boxShadow).toBe("var(--shadow-popover)");
     expect(ruleFor(".confirmation-dialog__actions")?.style.background).toBe("var(--surface-card-raised)");
     expect(ruleFor(".confirmation-dialog__actions")?.style.borderTop).toBe("1px solid var(--border)");
     expect(ruleFor(".post-card__footer")?.style.background).toBe("var(--surface-raised)");

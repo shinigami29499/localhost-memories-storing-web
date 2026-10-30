@@ -14,13 +14,20 @@ type HomeProps = IconProps<keyof typeof animations>;
 const animations = {
   default: {
     group: {
-      initial: { scale: 1 },
+      initial: { y: 0 },
       animate: {
-        scale: [1, 1.08, 1],
-        transition: { duration: 0.4, ease: 'easeInOut' },
+        y: [0, -1, 0],
+        transition: { duration: 0.6, ease: 'easeInOut' },
       },
     },
-    path: {},
+    door: {
+      initial: { scaleX: 1, transformOrigin: '0% 50%' },
+      animate: {
+        scaleX: [1, 0.25, 1],
+        transformOrigin: '0% 50%',
+        transition: { duration: 0.6, ease: 'easeInOut' },
+      },
+    },
   } satisfies Record<string, Variants>,
 } as const;
 
@@ -39,17 +46,17 @@ function IconComponent({ size, ...props }: HomeProps) {
       strokeWidth={2}
       strokeLinecap="round"
       strokeLinejoin="round"
-      variants={variants.group}
-      initial="initial"
-      animate={controls}
       {...props}
     >
-      <motion.path
-        d="m3 10 9-7 9 7v11a1 1 0 0 1-1 1h-6v-8H10v8H4a1 1 0 0 1-1-1z"
-        variants={variants.path}
-        initial="initial"
-        animate={controls}
-      />
+      <motion.g variants={variants.group} initial="initial" animate={controls}>
+        <path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+        <motion.path
+          d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"
+          variants={variants.door}
+          initial="initial"
+          animate={controls}
+        />
+      </motion.g>
     </motion.svg>
   );
 }

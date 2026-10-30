@@ -38,6 +38,7 @@ Paths in this page are relative to the repository root.
 | Composition, JWT, CORS, storage options, hub routing | `Backend/Apis/Program.cs` |
 | Startup migrations and seeding | `Backend/Apis/Core/DataSeeder.cs` |
 | HTTP exception translation | `Backend/Apis/Middleware/ExceptionHandlingMiddleware.cs` |
+| Account avatars | `UsersController` exposes authenticated `GET /api/users/me` and `PUT /api/users/me/avatar` (`{ "seed": "..." }`, 1-128 characters). `UserService` updates only the current account and returns `UserResponse`; auth/user and owner-summary responses include nullable `avatarSeed`. Migration `AddUserAvatarSeed` adds nullable `users.avatar_seed`, preserving existing accounts. Apply through the normal migration workflow before using the updated API; builds do not update the database. |
 | Persistence and workflow registration | `Backend/Infrastructures/Data/DependencyInjection/ServiceCollectionExtensions.cs` |
 | Application utility registration | `Backend/Services/DependencyInjection/ServiceCollectionExtensions.cs` |
 | Mapping implementation and definitions | `Backend/Services/Implementations/Mapper.cs`, `Backend/Services/Mappings/AuthMappings.cs`, `Backend/Services/Mappings/CollectionMappings.cs`, `Backend/Services/Mappings/FoodPlaceMappings.cs` |
@@ -85,17 +86,18 @@ The Infrastructures project's Data area hosts workflow orchestration that coordi
 | Feature | Controller in `Backend/Apis/Controllers/` | Application boundary / API |
 | --- | --- | --- |
 | Register, login, refresh, logout, current user | `AuthController.cs` | `IAuthService`, `AuthService`, `TokenService`; `/api/auth` |
-| Album lists, details, media, captions, previews | `CollectionsController.cs` | `ICollectionService`, `CollectionService`; `/api/collections` |
-| Media lists, files, trash, restore, purge | `MediaController.cs` | `IMediaService`, `MediaService`; `/api/media` |
-| Media favorites | `MediaFavoritesController.cs` | `IMediaService`; `GET /api/media/favorites`, `POST`/`DELETE /api/media/{mediaId}/favorite` |
-| Photo locations | `MediaController.cs` | `IMediaService`; `PUT /api/media/{mediaId}/location`, `POST /api/media/locations/scan` |
-| Food places, ratings, notes, custom markers | `FoodPlacesController.cs` | `IFoodPlaceService`, `FoodPlaceService`; `/api/food-places` |
-| Upload batches, queue, progress, file completion | `UploadsController.cs` | `IUploadService`, `UploadService`; `/api/uploads` |
-| User listing, admin approval/deletion, account home location | `UsersController.cs` | `IUserService`, `UserService`; `/api/users` |
-| Mention candidate lookup | `UserDirectoryController.cs` | `IUserService`; `GET /api/user-directory/mentions` |
+| Album lists, details, media, captions, previews | `CollectionsController.cs` | `ICollectionService`, `CollectionService`; `/api/library/album` |
+| Media lists, files, trash, restore, purge | `MediaController.cs` | `IMediaService`, `MediaService`; `/api/library/gallery` |
+| Media favorites | `MediaFavoritesController.cs` | `IMediaService`; `GET /api/library/gallery/favorites`, `POST`/`DELETE /api/library/gallery/{mediaId}/favorite` |
+| Photo locations | `MediaController.cs` | `IMediaService`; `PUT /api/location/travel/{mediaId}`, `POST /api/location/travel/scan` |
+| Food places, ratings, notes, custom markers | `FoodPlacesController.cs` | `IFoodPlaceService`, `FoodPlaceService`; `/api/location/food` |
+| Upload batches, queue, progress, file completion | `UploadsController.cs` | `IUploadService`, `UploadService`; `/api/sync/upload` |
+| User listing, admin approval/deletion, account home location | `UsersController.cs` | `IUserService`, `UserService`; `/api/users`, `/api/location/food/home-location` |
+| Mention candidate lookup | `UserDirectoryController.cs` | `IUserService`; `GET /api/users/directory/mentions` |
 
-`GET /api/media` lists active standalone media across uploaders for signed-in users;
-`GET /api/media/favorites` filters that library to the caller's favorites. Both accept
+New routes follow sidebar groups; previous API paths remain aliases for compatibility.
+`GET /api/library/gallery` lists active standalone media across uploaders for signed-in users;
+`GET /api/library/gallery/favorites` filters that library to the caller's favorites. Both accept
 `offset`, `limit`, and optional `mediaKind` (`image`/`video`), and sort by media creation
 time descending. Favorite state is viewer-specific. Deleted-media listing, deletion,
 restoration, and permanent deletion are `[RequireAdmin]`.
@@ -104,14 +106,14 @@ Repositories return domain entities or query results; workflows do not compose E
 
 ### Uploads and realtime
 
-`POST /api/uploads/batches` registers file metadata. Each item is started, receives
+`POST /api/sync/upload/batches` registers file metadata. Each item is started, receives
 progress updates, and accepts its bytes through
-`POST /api/uploads/batches/{batchId}/items/{itemId}/file`. Successful completion creates
+`POST /api/sync/upload/batches/{batchId}/items/{itemId}/file`. Successful completion creates
 one standalone `MediaFile` through `IMapper` and commits media metadata with item state.
 Batch row locks and item revisions reject conflicting completions; storage cleanup
 compensates failed persistence.
 
-Tracking and item actions are owner-scoped. `GET /api/uploads/admin/batches` is
+Tracking and item actions are owner-scoped. `GET /api/sync/upload/admin/batches` is
 admin-only and includes owner names. Both list endpoints accept `createdFrom`
 (inclusive) and `createdBefore` (exclusive), normalized to UTC before pagination and
 counting. Queue, active-batch, and recovery endpoints support the client upload runtime.
@@ -125,7 +127,7 @@ post/comment/reaction notification API; browser upload notifications are client-
 Collections are albums in the client. They are owned by one user and private by default.
 `scope=mine` lists owned albums; `scope=public` lists other users' public albums.
 Signed-in viewers can read public albums and update their captions through
-`PUT /api/collections/{collectionId}/caption` (maximum 4,000 characters).
+`PUT /api/library/album/{collectionId}/caption` (maximum 4,000 characters).
 Only owners can change other album details, upload previews, or add/remove media.
 Owners and administrators can delete albums without deleting their media files.
 Private albums return 404 to other viewers; owner-only edits reject non-owners.
@@ -146,7 +148,7 @@ latitude/longitude, a rating, and marker styling.
 `Rating` is 1 to 5 stars, or 0 when the place is unrated. `MarkerIcon` is a short emoji
 or glyph (maximum 16 characters) and `MarkerColor` is a `#RGB` or `#RRGGBB` hex color;
 both fall back to defaults when omitted. Every signed-in user can read all food places
-through `GET /api/food-places`; only the owner or an administrator can update or delete
+through `GET /api/location/food`; only the owner or an administrator can update or delete
 one. Deletion is a soft delete, like every other entity.
 
 `FoodPlaceMedia` links a food place to up to 12 active library images in display order;
@@ -156,7 +158,7 @@ the given order (duplicates are ignored), or keeps them unchanged when omitted.
 Deleting a food place soft-deletes its links.
 
 Each account stores one optional home coordinate on `User`. Authenticated users read
-and update only their own location through `GET` and `PUT /api/users/me/home-location`;
+and update only their own location through `GET` and `PUT /api/location/food/home-location`;
 `DELETE` clears it.
 
 ### Locations and previews
@@ -169,7 +171,7 @@ Scans process up to 25 unscanned active photos per request (own photos for membe
 all photos for admins), returning counts, failed IDs, and a continuation offset.
 Manual location changes mark photos scanned so concurrent backfill cannot overwrite them.
 
-`GET /api/media/{mediaId}/file` accepts a bearer token or `accessToken` query parameter.
+`GET /api/library/gallery/{mediaId}/file` accepts a bearer token or `accessToken` query parameter.
 `preview=true` requests a JPEG bounded by 640 x 640 pixels; preview generation uses
 FFmpeg. `includeDeleted=true` requires an admin token and serves trash without restoring
 it. Both previews and deleted-file responses use `Cache-Control: no-store`.

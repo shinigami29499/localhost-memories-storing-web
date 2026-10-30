@@ -273,19 +273,25 @@ export function MediaPreviewDialog({
           </button>
         </AnimateIcon>
         </>}
-        {!trashActions && current.mediaKind === "image" && current.location ? (
+        {!trashActions && current.mediaKind === "image" ? (
           <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
             <button
               type="button"
               className="viewer-icon-btn media-preview-dialog__action"
-              aria-label={t("View photo location")}
-              title={t("View photo location")}
+              aria-label={t(current.location ? "View photo location" : "Set photo location")}
+              title={t(current.location ? "View photo location" : "Set photo location")}
               onClick={() => {
                 onClose(current.id);
-                navigate(`/locations?mediaId=${encodeURIComponent(current.id)}`);
+                const parameter = current.location ? "focusMediaId" : "mediaId";
+                navigate(`/location/travel?${parameter}=${encodeURIComponent(current.id)}`);
               }}
             >
-              <MapPin size={20} aria-hidden="true" />
+              <MapPin
+                size={20}
+                stroke="currentColor"
+                fill={current.location ? "var(--danger)" : "none"}
+                aria-hidden="true"
+              />
             </button>
           </AnimateIcon>
         ) : null}

@@ -1,6 +1,9 @@
 import { api } from "../../../services/api";
 import type { FoodPlace, SaveFoodPlaceInput } from "../types";
 
+const LEGACY_PURPLE_MARKER = "#7048E8";
+const REPLACEMENT_MARKER_COLOR = "#0EA5E9";
+
 function toBody(input: SaveFoodPlaceInput) {
   return {
     name: input.name,
@@ -17,18 +20,23 @@ function toBody(input: SaveFoodPlaceInput) {
 
 export const foodPlaceService = {
   list(): Promise<FoodPlace[]> {
-    return api("/api/food-places");
+    return api<FoodPlace[]>("/api/location/food").then((places) => places.map((place) => ({
+      ...place,
+      markerColor: place.markerColor.toUpperCase() === LEGACY_PURPLE_MARKER
+        ? REPLACEMENT_MARKER_COLOR
+        : place.markerColor,
+    })));
   },
 
   create(input: SaveFoodPlaceInput): Promise<FoodPlace> {
-    return api("/api/food-places", { method: "POST", body: toBody(input) });
+    return api("/api/location/food", { method: "POST", body: toBody(input) });
   },
 
   update(foodPlaceId: string, input: SaveFoodPlaceInput): Promise<FoodPlace> {
-    return api(`/api/food-places/${foodPlaceId}`, { method: "PUT", body: toBody(input) });
+    return api(`/api/location/food/${foodPlaceId}`, { method: "PUT", body: toBody(input) });
   },
 
   remove(foodPlaceId: string): Promise<void> {
-    return api(`/api/food-places/${foodPlaceId}`, { method: "DELETE" });
+    return api(`/api/location/food/${foodPlaceId}`, { method: "DELETE" });
   },
 };

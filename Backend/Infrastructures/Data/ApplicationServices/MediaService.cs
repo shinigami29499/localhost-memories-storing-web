@@ -201,12 +201,15 @@ public partial class MediaService(
         var total = await _repository.CountMediaAsync(
             mediaKind, favoriteUserId, includeDeleted, cancellationToken);
         var favoriteIds = (await _repository.GetFavoritedMediaIdsAsync(
-            viewerId, media.Select(item => item.Id).ToArray(), cancellationToken)).ToHashSet();
+            viewerId, media.Select(item => item.Media.Id).ToArray(), cancellationToken)).ToHashSet();
         return new PagedMediaResponse<MediaFileDto>(
             offset,
             limit,
             total,
-            media.Select(item => _mapper.Map(item, favoriteIds.Contains(item.Id))).ToList());
+            media.Select(item => _mapper.Map(item.Media, favoriteIds.Contains(item.Media.Id)) with
+            {
+                OwnerUsername = item.OwnerUsername,
+            }).ToList());
     }
 
     public async Task SetMediaFavoriteAsync(

@@ -21,16 +21,29 @@ public class UsersController(IUserService userService, ICurrentUserContext curre
     public async Task<ActionResult<IReadOnlyList<UserResponse>>> ListAsync(CancellationToken cancellationToken)
         => Ok(await _userService.ListAsync(cancellationToken));
 
+    [HttpGet("me")]
+    public async Task<ActionResult<UserResponse>> GetProfileAsync(CancellationToken cancellationToken)
+        => Ok(await _userService.GetProfileAsync(_currentUser.RequireUserId(), cancellationToken));
+
+    [HttpPut("me/avatar")]
+    public async Task<ActionResult<UserResponse>> SetAvatarAsync(
+        SetAvatarRequest request, CancellationToken cancellationToken)
+        => Ok(await _userService.SetAvatarAsync(
+            _currentUser.RequireUserId(), request, cancellationToken));
+
+    [HttpGet("~/api/location/food/home-location")]
     [HttpGet("me/home-location")]
     public async Task<ActionResult<HomeLocationDto?>> GetHomeLocationAsync(CancellationToken cancellationToken)
         => Ok(await _userService.GetHomeLocationAsync(_currentUser.RequireUserId(), cancellationToken));
 
+    [HttpPut("~/api/location/food/home-location")]
     [HttpPut("me/home-location")]
     public async Task<ActionResult<HomeLocationDto>> SetHomeLocationAsync(
         SetHomeLocationRequest request, CancellationToken cancellationToken)
         => Ok(await _userService.SetHomeLocationAsync(
             _currentUser.RequireUserId(), request, cancellationToken));
 
+    [HttpDelete("~/api/location/food/home-location")]
     [HttpDelete("me/home-location")]
     public async Task<IActionResult> ClearHomeLocationAsync(CancellationToken cancellationToken)
     {

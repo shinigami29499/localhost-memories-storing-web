@@ -4,7 +4,7 @@ import { wakeUploadRuntime } from "./uploadRuntime";
 import type { PagedUploadBatches, UploadBatch, UploadItem } from "../types";
 import type { UploadItemMetadata } from "../types";
 
-const BASE_PATH = "/api/uploads";
+const BASE_PATH = "/api/sync/upload";
 
 function uploadListQuery(offset: number, limit: number, date?: string): string {
   const query = new URLSearchParams({ offset: String(offset), limit: String(limit) });

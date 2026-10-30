@@ -17,6 +17,7 @@ using Services.Responses.Media;
 namespace Apis.Controllers;
 
 [ApiController]
+[Route("api/library/gallery")]
 [Route("api/media")]
 [Authorize]
 public class MediaController(
@@ -29,7 +30,8 @@ public class MediaController(
     private readonly JwtOptions _jwtOptions = jwtOptions.Value;
 
     /// <summary>Changes or clears a photo location; restricted to its owner or an administrator.</summary>
-    [HttpPut("{mediaId:guid}/location")]
+    [HttpPut("~/api/location/travel/{mediaId:guid}")]
+    [HttpPut("~/api/media/{mediaId:guid}/location")]
     public async Task<IActionResult> SetLocationAsync(
         Guid mediaId, SetMediaLocationRequest request, CancellationToken cancellationToken)
     {
@@ -39,7 +41,8 @@ public class MediaController(
     }
 
     /// <summary>Extracts GPS from up to 25 unscanned photos owned by the caller (all photos for admins).</summary>
-    [HttpPost("locations/scan")]
+    [HttpPost("~/api/location/travel/scan")]
+    [HttpPost("~/api/media/locations/scan")]
     public async Task<ActionResult<ScanMediaLocationsResponse>> ScanLocationsAsync(
         CancellationToken cancellationToken, [FromQuery] int offset = 0)
         => Ok(await _mediaService.ScanLocationsAsync(

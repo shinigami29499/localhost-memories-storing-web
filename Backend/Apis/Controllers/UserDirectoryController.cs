@@ -7,6 +7,7 @@ using Services.Requests.Users;
 namespace Apis.Controllers;
 
 [ApiController]
+[Route("api/users/directory")]
 [Route("api/user-directory")]
 [Authorize]
 public class UserDirectoryController(IUserService userService) : ControllerBase

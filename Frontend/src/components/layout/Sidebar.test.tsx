@@ -134,14 +134,14 @@ describe("Sidebar icon hover behavior", () => {
     vi.unstubAllGlobals();
   });
 
-  it.each(["/", "/gallery", "/gallery/trash", "/locations", "/food", "/users"])("animates the icon when hovering the %s link text", async (href) => {
+  it.each(["/", "/library/gallery", "/library/gallery/trash", "/location/travel", "/location/food", "/users"])("animates the icon when hovering the %s link text", async (href) => {
     const link = container.querySelector<HTMLAnchorElement>(`.sidebar__nav a[href="${href}"]`)!;
     const label = link.querySelector("span")!;
     expect(link.classList.contains("sidebar__link")).toBe(true);
     expect(link.classList.contains("sidebar__sub-link"))
-      .toBe(href.startsWith("/gallery") || href === "/locations" || href === "/food");
-    if (href === "/gallery/trash") {
-      expect(container.querySelector('[aria-label="Library items"] [href="/gallery/trash"]')).not.toBeNull();
+      .toBe(href.startsWith("/library/gallery") || href.startsWith("/location/"));
+    if (href === "/library/gallery/trash") {
+      expect(container.querySelector('[aria-label="Library items"] [href="/library/gallery/trash"]')).not.toBeNull();
     }
     expect(link.classList.contains("sidebar__link--active")).toBe(href === "/users");
     expect(link.getAttribute("aria-current")).toBe(href === "/users" ? "page" : null);
@@ -172,20 +172,20 @@ describe("Sidebar icon hover behavior", () => {
     }));
     const libraryItems = container.querySelector<HTMLElement>('[aria-label="Library items"]')!;
     expect(Array.from(libraryItems.querySelectorAll("a"), (link) => link.getAttribute("href")))
-      .toEqual(["/gallery", "/albums"]);
-    expect(container.querySelector('[href="/gallery/videos"]')).toBeNull();
-    expect(container.querySelector('[href="/gallery"]')?.textContent).toBe("Gallery");
-    expect(container.querySelector('.sidebar__nav > a[href="/gallery"]')).toBeNull();
-    expect(container.querySelector('[href="/gallery/favorites"]')).toBeNull();
+      .toEqual(["/library/gallery", "/library/album"]);
+    expect(container.querySelector('[href="/library/gallery/videos"]')).toBeNull();
+    expect(container.querySelector('[href="/library/gallery"]')?.textContent).toBe("Gallery");
+    expect(container.querySelector('.sidebar__nav > a[href="/library/gallery"]')).toBeNull();
+    expect(container.querySelector('[href="/library/gallery/favorites"]')).toBeNull();
     expect(container.querySelector('[aria-label="Library"]')?.getAttribute("aria-expanded")).toBe("true");
-    expect(container.querySelector('[href="/albums"]')?.textContent).toBe("Album");
-    expect(container.querySelector('[href="/albums"]')?.classList.contains("sidebar__sub-link")).toBe(true);
+    expect(container.querySelector('[href="/library/album"]')?.textContent).toBe("Album");
+    expect(container.querySelector('[href="/library/album"]')?.classList.contains("sidebar__sub-link")).toBe(true);
     expect(container.querySelector('[href="/users"]')?.textContent).toBe("Users");
-    expect(container.querySelector('[href="/locations"]')?.textContent).toBe("Travel");
+    expect(container.querySelector('[href="/location/travel"]')?.textContent).toBe("Travel");
     expect(container.querySelector('[aria-label="Locations"]')?.getAttribute("aria-expanded")).toBe("true");
-    expect(container.querySelector('[href="/food"]')?.textContent).toBe("Food");
-    expect(container.querySelector('[href="/food"]')?.classList.contains("sidebar__sub-link")).toBe(true);
-    expect(container.querySelector('[href="/gallery/trash"]')).toBeNull();
+    expect(container.querySelector('[href="/location/food"]')?.textContent).toBe("Food");
+    expect(container.querySelector('[href="/location/food"]')?.classList.contains("sidebar__sub-link")).toBe(true);
+    expect(container.querySelector('[href="/library/gallery/trash"]')).toBeNull();
     expect(container.querySelector('[href^="/admin"]')).toBeNull();
   });
 
@@ -207,11 +207,11 @@ describe("Sidebar icon hover behavior", () => {
     expect(items[1].classList.contains("sidebar__link--static")).toBe(true);
     expect(items.map((item) => item.querySelector("svg")?.getAttribute("data-animated"))).toEqual(["false", "false"]);
     expect(container.querySelector('[href="/sync/download"]')).toBeNull();
-    const uploadLink = syncActions.querySelector<HTMLAnchorElement>('[href="/uploads"]')!;
+    const uploadLink = syncActions.querySelector<HTMLAnchorElement>('[href="/sync/upload"]')!;
     expect(uploadLink.textContent?.trim()).toBe("Upload");
     expect(container.querySelector('[href="/uploads/activity"]')).toBeNull();
     expect(container.querySelector('[href="/uploads/new"]')).toBeNull();
-    expect(navigation.querySelector(':scope > a[href="/uploads"]')).toBeNull();
+    expect(navigation.querySelector(':scope > a[href="/sync/upload"]')).toBeNull();
 
     for (const item of items) {
       const label = item.querySelector("span")!;
@@ -244,6 +244,11 @@ describe("Sidebar icon hover behavior", () => {
     expect(trigger.querySelector(".sidebar__account-name")?.textContent).toBe("Admin");
     expect(trigger.querySelector(".sidebar__account-role")?.textContent).toBe("Admin");
     expect(trigger.getAttribute("aria-expanded")).toBe("false");
+    const profileLink = account.querySelector<HTMLAnchorElement>('a[href="/profile"]');
+    expect(profileLink?.textContent?.trim()).toBe("User profile");
+    const settingsLink = account.querySelector<HTMLAnchorElement>('a[href="/settings"]');
+    expect(settingsLink?.textContent?.trim()).toBe("Settings");
+    expect(settingsLink?.classList.contains("sidebar__link")).toBe(true);
     expect(account.querySelector('[aria-label="Log out"]')).not.toBeNull();
 
     await act(async () => trigger.click());
@@ -251,6 +256,7 @@ describe("Sidebar icon hover behavior", () => {
     expect(trigger.getAttribute("aria-expanded")).toBe("true");
     expect(account.querySelector(".sidebar__account-menu-user .sidebar__account-name")?.textContent).toBe("Admin");
     expect(account.querySelector(".sidebar__account-menu-user .sidebar__account-role")?.textContent).toBe("Admin");
+    expect(profileLink).not.toBeNull();
 
     await act(async () => {
       document.body.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true }));

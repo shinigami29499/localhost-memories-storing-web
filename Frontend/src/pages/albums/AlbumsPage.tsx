@@ -104,10 +104,10 @@ export function AlbumsPage() {
       {creating ? (
         <AlbumFormDialog
           onClose={() => setCreating(false)}
-          onSubmit={async ({ name, isPublic, caption }) => {
-            const created = await albumService.create({ name, isPublic, caption });
+          onSubmit={async ({ name, isPublic }) => {
+            const created = await albumService.create({ name, isPublic });
             await invalidate();
-            navigate(`/albums/${created.id}`);
+            navigate(`/library/album/${created.id}`);
           }}
         />
       ) : null}

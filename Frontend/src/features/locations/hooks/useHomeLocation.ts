@@ -11,7 +11,7 @@ export function useHomeLocation(userId: string | undefined) {
   const query = useQuery({
     queryKey: userId ? homeLocationKeys.byUser(userId) : ["users", "anonymous", "home-location"],
     queryFn: homeLocationService.get,
-    enabled: Boolean(userId),
+    enabled: !!userId,
   });
   const save = useMutation({
     mutationFn: (location: HomeLocation) => homeLocationService.set(location),

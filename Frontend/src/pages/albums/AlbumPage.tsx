@@ -158,7 +158,7 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
             ) : (
               <ErrorState message={t("Could not load this album.")} onRetry={() => void album.refetch()} />
             )}
-            <Link to="/albums" className="btn btn--secondary album-page__back">{t("Back to Albums")}</Link>
+            <Link to="/library/album" className="btn btn--secondary album-page__back">{t("Back to Albums")}</Link>
           </div>
         </div>
       </main>
@@ -176,7 +176,7 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
         <ScrollProgressContainer className="gallery-page__content" ref={contentRef}>
         <div className="gallery-page__inner">
           <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
-            <Link to="/albums" className="btn btn--ghost album-page__back">
+            <Link to="/library/album" className="btn btn--ghost album-page__back">
               <ArrowLeft size={16} aria-hidden="true" />
               {t("Back to Albums")}
             </Link>
@@ -366,7 +366,7 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
           onClose={() => setDeleting(false)}
           onConfirm={async () => {
             await albumService.remove(data.id);
-            navigate("/albums", { replace: true });
+            navigate("/library/album", { replace: true });
             void invalidate();
           }}
         >

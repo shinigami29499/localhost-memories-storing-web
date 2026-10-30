@@ -96,7 +96,7 @@ export function GravityStarsBackground({
     let width = 0;
     let height = 0;
     let dpr = 1;
-    let color = '#fafaff';
+    let color = '#fafafa';
     let running = false;
     let frameId = 0;
 
@@ -141,7 +141,7 @@ export function GravityStarsBackground({
     };
 
     const readColor = () => {
-      color = getComputedStyle(container).color || '#fafaff';
+      color = getComputedStyle(container).color || '#fafafa';
       if (!running) draw();
     };
 
@@ -178,7 +178,7 @@ export function GravityStarsBackground({
       dpr = nextDpr;
       canvas.width = Math.max(1, Math.floor(width * dpr));
       canvas.height = Math.max(1, Math.floor(height * dpr));
-      color = getComputedStyle(container).color || '#fafaff';
+      color = getComputedStyle(container).color || '#fafafa';
       if (starsRef.current.length === 0) {
         createStars();
       } else {

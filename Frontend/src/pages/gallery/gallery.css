@@ -87,8 +87,12 @@
 
 .gallery-date-grid {
   display: grid;
-  gap: 8px;
+  gap: 12px;
   grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.gallery-page .media-tile {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
 }
 
 .gallery-date-grid .media-tile {

@@ -9,34 +9,34 @@ function mediaQuery(offset: number, limit: number, mediaKind?: MediaKindFilter):
 
 export const mediaService = {
   list(offset = 0, limit = 20, mediaKind?: MediaKindFilter): Promise<PagedMedia> {
-    return api(`/api/media?${mediaQuery(offset, limit, mediaKind)}`);
+    return api(`/api/library/gallery?${mediaQuery(offset, limit, mediaKind)}`);
   },
 
   favorites(offset = 0, limit = 20, mediaKind?: MediaKindFilter): Promise<PagedMedia> {
-    return api(`/api/media/favorites?${mediaQuery(offset, limit, mediaKind)}`);
+    return api(`/api/library/gallery/favorites?${mediaQuery(offset, limit, mediaKind)}`);
   },
 
   deleted(offset = 0, limit = 20, mediaKind?: MediaKindFilter): Promise<PagedMedia> {
-    return api(`/api/media/deleted?${mediaQuery(offset, limit, mediaKind)}`);
+    return api(`/api/library/gallery/deleted?${mediaQuery(offset, limit, mediaKind)}`);
   },
 
   favorite(mediaId: string): Promise<void> {
-    return api(`/api/media/${mediaId}/favorite`, { method: "POST" });
+    return api(`/api/library/gallery/${mediaId}/favorite`, { method: "POST" });
   },
 
   unfavorite(mediaId: string): Promise<void> {
-    return api(`/api/media/${mediaId}/favorite`, { method: "DELETE" });
+    return api(`/api/library/gallery/${mediaId}/favorite`, { method: "DELETE" });
   },
 
   remove(mediaId: string): Promise<void> {
-    return api(`/api/media/${mediaId}`, { method: "DELETE" });
+    return api(`/api/library/gallery/${mediaId}`, { method: "DELETE" });
   },
 
   restore(mediaId: string): Promise<void> {
-    return api(`/api/media/${mediaId}/restore`, { method: "POST" });
+    return api(`/api/library/gallery/${mediaId}/restore`, { method: "POST" });
   },
 
   permanentlyDelete(mediaId: string): Promise<void> {
-    return api(`/api/media/${mediaId}/permanent`, { method: "DELETE" });
+    return api(`/api/library/gallery/${mediaId}/permanent`, { method: "DELETE" });
   },
 };

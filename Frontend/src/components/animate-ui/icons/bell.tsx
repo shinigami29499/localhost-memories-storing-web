@@ -13,12 +13,25 @@ type BellProps = IconProps<keyof typeof animations>;
 const animations = {
   default: {
     group: {
-      initial: { rotate: 0 },
+      initial: {
+        rotate: 0,
+      },
       animate: {
-        rotate: [0, 12, -10, 6, -4, 0],
-        transition: { duration: 0.5, ease: 'easeInOut' },
+        rotate: [0, 20, -10, 10, -5, 3, 0],
+        transformOrigin: 'top center',
+        transition: { duration: 0.9, ease: 'easeInOut' },
       },
     },
+    path1: {
+      initial: {
+        x: 0,
+      },
+      animate: {
+        x: [0, -6, 5, -5, 4, -3, 2, 0],
+        transition: { duration: 1.1, ease: 'easeInOut' },
+      },
+    },
+    path2: {},
   } satisfies Record<string, Variants>,
 } as const;
 
@@ -42,8 +55,18 @@ function IconComponent({ size, ...props }: BellProps) {
       animate={controls}
       {...props}
     >
-      <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
-      <path d="M10 21h4" />
+      <motion.path
+        d="M10.268 21a2 2 0 0 0 3.464 0"
+        variants={variants.path1}
+        initial="initial"
+        animate={controls}
+      />
+      <motion.path
+        d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"
+        variants={variants.path2}
+        initial="initial"
+        animate={controls}
+      />
     </motion.svg>
   );
 }
@@ -52,4 +75,10 @@ function Bell(props: BellProps) {
   return <IconWrapper icon={IconComponent} {...props} />;
 }
 
-export { animations, Bell, Bell as BellIcon, type BellProps };
+export {
+  animations,
+  Bell,
+  Bell as BellIcon,
+  type BellProps,
+  type BellProps as BellIconProps,
+};

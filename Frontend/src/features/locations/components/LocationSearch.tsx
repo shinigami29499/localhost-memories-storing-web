@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Input, Spinner } from "../../../components/ui";
+import { Input } from "../../../components/ui";
+import { AnimateIcon } from "../../../components/animate-ui/icons/icon";
 import { Search } from "../../../components/animate-ui/icons/search";
 import { useLocale } from "../../../context/LocaleContext";
 import { searchLocations, type LocationSearchResult } from "../services/locationSearchService";
@@ -7,10 +8,11 @@ import { searchLocations, type LocationSearchResult } from "../services/location
 interface Props {
   accessToken: string;
   disabled?: boolean;
+  onFocus?: () => void;
   onSelect: (result: LocationSearchResult) => void;
 }
 
-export function LocationSearch({ accessToken, disabled = false, onSelect }: Props) {
+export function LocationSearch({ accessToken, disabled = false, onFocus, onSelect }: Props) {
   const { t } = useLocale();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<LocationSearchResult[]>([]);
@@ -65,38 +67,41 @@ export function LocationSearch({ accessToken, disabled = false, onSelect }: Prop
   };
 
   return (
-    <section className="food__location-search" aria-label={t("Search locations")}>
-      <div className="food__location-search-form">
-        <Input
-          className="food__location-search-input"
-          value={query}
-          onChange={setQuery}
-          placeholder={t("Search a city or address")}
-          aria-label={t("Search a city or address")}
-          autoComplete="off"
-          disabled={disabled}
-        />
-        <span className="food__location-search-icon" aria-hidden="true">
-          {loading ? <span className="food__location-search-spinner" /> : <Search size={18} />}
-        </span>
-      </div>
-      {loading && (
-        <p className="food__location-search-message" role="status">{t("Searching locations…")}</p>
-      )}
-      {(error || (searched && !loading && results.length === 0)) && (
-        <p className="food__location-search-message" role={error ? "alert" : "status"}>
-          {error ?? t("No matching locations found.")}
-        </p>
-      )}
-      {results.length > 0 && (
-        <ul className="food__location-search-results" aria-label={t("Search results")}>
-          {results.map((result) => (
-            <li key={result.id}>
-              <button type="button" onClick={() => choose(result)}>{result.placeName}</button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
+    <AnimateIcon animateOnHover animateOnTap={false} animateOnView={false} completeOnStop asChild>
+      <section className="food__location-search" aria-label={t("Search locations")}>
+        <div className="food__location-search-form">
+          <Input
+            className="food__location-search-input"
+            value={query}
+            onChange={setQuery}
+            onFocus={onFocus}
+            placeholder={t("Search a city or address")}
+            aria-label={t("Search a city or address")}
+            autoComplete="off"
+            disabled={disabled}
+          />
+          <span className="food__location-search-icon" aria-hidden="true">
+            {loading ? <span className="food__location-search-spinner" /> : <Search size={20} />}
+          </span>
+        </div>
+        {loading && (
+          <p className="food__location-search-message" role="status">{t("Searching locations…")}</p>
+        )}
+        {(error || (searched && !loading && results.length === 0)) && (
+          <p className="food__location-search-message" role={error ? "alert" : "status"}>
+            {error ?? t("No matching locations found.")}
+          </p>
+        )}
+        {results.length > 0 && (
+          <ul className="food__location-search-results" aria-label={t("Search results")}>
+            {results.map((result) => (
+              <li key={result.id}>
+                <button type="button" onClick={() => choose(result)}>{result.placeName}</button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </AnimateIcon>
   );
 }

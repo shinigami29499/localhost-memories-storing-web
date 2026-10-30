@@ -12,6 +12,7 @@ import { MapPin } from "@/components/animate-ui/icons/map-pin";
 import { PanelLeftClose } from "@/components/animate-ui/icons/panel-left-close";
 import { PanelLeftOpen } from "@/components/animate-ui/icons/panel-left-open";
 import { PlaneTakeoff } from "@/components/animate-ui/icons/plane-takeoff";
+import { Settings } from "@/components/animate-ui/icons/settings";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
 import { Upload } from "@/components/animate-ui/icons/upload";
 import { Users } from "@/components/animate-ui/icons/users";
@@ -24,6 +25,7 @@ import { Brand } from "./Brand";
 import { Container, Gap, Highlight } from "@animate-ui/react/primitives/sidebar";
 import { Collapsible } from "@animate-ui/react/primitives/base-ui/collapsible";
 import { useLocale } from "../../context/LocaleContext";
+import { UserAvatar } from "../common/UserAvatar";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -41,14 +43,16 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
   const [libraryOpen, setLibraryOpen] = useState(true);
   const [locationsOpen, setLocationsOpen] = useState(true);
   const [syncOpen, setSyncOpen] = useState(true);
-  const libraryActive = location.pathname.startsWith("/gallery")
-    || location.pathname.startsWith("/albums")
+  const locationsActive = location.pathname.startsWith("/location/travel")
+    || location.pathname.startsWith("/location/food");
+  const libraryActive = location.pathname.startsWith("/library/gallery")
+    || location.pathname.startsWith("/library/album")
     || location.pathname.startsWith("/saved");
   const libraryLinks = [
-    { to: "/gallery", label: "Gallery", icon: Camera, active: location.pathname === "/gallery" },
-    { to: "/albums", label: "Album", icon: Bookmark, active: location.pathname.startsWith("/albums") || location.pathname.startsWith("/saved") },
+    { to: "/library/gallery", label: "Gallery", icon: Camera, active: location.pathname === "/library/gallery" },
+    { to: "/library/album", label: "Album", icon: Bookmark, active: location.pathname.startsWith("/library/album") || location.pathname.startsWith("/saved") },
     ...(isAdmin
-      ? [{ to: "/gallery/trash", label: "Trash", icon: Trash2, active: location.pathname === "/gallery/trash" }]
+      ? [{ to: "/library/gallery/trash", label: "Trash", icon: Trash2, active: location.pathname === "/library/gallery/trash" }]
       : []),
   ];
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
@@ -149,7 +153,7 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
                     <AnimateIcon key={to} animateOnTap completeOnStop asChild>
                       <NavLink
                         to={to}
-                        end={to !== "/albums"}
+                        end={to !== "/library/album"}
                         className={`sidebar__link sidebar__sub-link${active ? " sidebar__link--active" : ""}`}
                         data-sidebar="menu-sub-button"
                         aria-label={t(label)}
@@ -164,14 +168,14 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
               </Collapsible.Panel>
             </Collapsible.Root>
             <Collapsible.Root
-              className={`sidebar__group${location.pathname === "/locations" || location.pathname.startsWith("/food") ? " sidebar__group--active" : ""}`}
+              className={`sidebar__group${locationsActive ? " sidebar__group--active" : ""}`}
               open={locationsOpen && !compact}
               onOpenChange={(open) => setLocationsOpen(open)}
             >
               <AnimateIcon animateOnTap completeOnStop asChild>
                 <Collapsible.Trigger
                   type="button"
-                  className={`sidebar__link sidebar__group-toggle${(location.pathname === "/locations" || location.pathname.startsWith("/food")) && compact ? " sidebar__link--active" : ""}`}
+                  className={`sidebar__link sidebar__group-toggle${locationsActive && compact ? " sidebar__link--active" : ""}`}
                   onClick={() => { if (compact) onToggle(); }}
                   aria-label={t("Locations")}
                   title={t("Locations")}
@@ -190,20 +194,20 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
                 <div className="sidebar__sub-nav">
                   <AnimateIcon animateOnTap completeOnStop asChild>
                     <NavLink
-                      to="/locations"
-                      className={`sidebar__link sidebar__sub-link${location.pathname === "/locations" ? " sidebar__link--active" : ""}`}
+                      to="/location/travel"
+                      className={`sidebar__link sidebar__sub-link${location.pathname === "/location/travel" ? " sidebar__link--active" : ""}`}
                       data-sidebar="menu-sub-button"
                       aria-label={t("Travel")}
                       title={t("Travel")}
                     >
-                      <PlaneTakeoff size={16} animateOnHover aria-hidden="true" />
+                      <PlaneTakeoff size={16} aria-hidden="true" />
                       <span>{t("Travel")}</span>
                     </NavLink>
                   </AnimateIcon>
                   <AnimateIcon animateOnTap completeOnStop asChild>
                     <NavLink
-                      to="/food"
-                      className={`sidebar__link sidebar__sub-link${location.pathname === "/food" ? " sidebar__link--active" : ""}`}
+                      to="/location/food"
+                      className={`sidebar__link sidebar__sub-link${location.pathname === "/location/food" ? " sidebar__link--active" : ""}`}
                       data-sidebar="menu-sub-button"
                       aria-label={t("Food")}
                       title={t("Food")}
@@ -228,14 +232,14 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
               </NavLink>
             </AnimateIcon>
             <Collapsible.Root
-              className={`sidebar__group${location.pathname.startsWith("/uploads") ? " sidebar__group--active" : ""}`}
+              className={`sidebar__group${location.pathname.startsWith("/sync/upload") ? " sidebar__group--active" : ""}`}
               open={syncOpen && !compact}
               onOpenChange={(open) => setSyncOpen(open)}
             >
               <AnimateIcon animateOnTap completeOnStop asChild>
                 <Collapsible.Trigger
                   type="button"
-                  className={`sidebar__link sidebar__group-toggle${location.pathname.startsWith("/uploads") && compact ? " sidebar__link--active" : ""}`}
+                  className={`sidebar__link sidebar__group-toggle${location.pathname.startsWith("/sync/upload") && compact ? " sidebar__link--active" : ""}`}
                   onClick={() => { if (compact) onToggle(); }}
                   aria-label={t("Sync")}
                   title={t("Sync")}
@@ -254,8 +258,8 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
                 <div className="sidebar__sub-nav">
                   <AnimateIcon animateOnTap completeOnStop asChild>
                     <NavLink
-                      to="/uploads"
-                      className={`sidebar__link sidebar__sub-link${location.pathname === "/uploads" ? " sidebar__link--active" : ""}`}
+                      to="/sync/upload"
+                      className={`sidebar__link sidebar__sub-link${location.pathname.startsWith("/sync/upload") ? " sidebar__link--active" : ""}`}
                       data-sidebar="menu-sub-button"
                       aria-label={t("Upload")}
                       title={t("Upload")}
@@ -302,9 +306,7 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
                   title={user.username}
                   onClick={() => setAccountMenuOpen(true)}
                 >
-                  <span className="sidebar__account-avatar" aria-hidden="true">
-                    {user.username.slice(0, 1).toUpperCase()}
-                  </span>
+                  <UserAvatar user={user} className="sidebar__account-avatar" />
                   <span className="sidebar__account-details">
                     <span className="sidebar__account-name">{user.username}</span>
                     <span className="sidebar__account-role">{t(roleName)}</span>
@@ -320,14 +322,38 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
                   className={`sidebar__account-menu${accountMenuOpen ? " sidebar__account-menu--open" : ""}`}
                 >
                   <div className="sidebar__account-menu-user">
-                    <span className="sidebar__account-avatar" aria-hidden="true">
-                      {user.username.slice(0, 1).toUpperCase()}
-                    </span>
+                    <UserAvatar user={user} className="sidebar__account-avatar" />
                     <span className="sidebar__account-details">
                       <span className="sidebar__account-name">{user.username}</span>
                       <span className="sidebar__account-role">{t(roleName)}</span>
                     </span>
                   </div>
+                  <AnimateIcon animateOnTap completeOnStop asChild>
+                    <NavLink
+                      to="/profile"
+                      className={`sidebar__link${location.pathname === "/profile" ? " sidebar__link--active" : ""}`}
+                      onClick={() => setAccountMenuOpen(false)}
+                      data-sidebar="menu-button"
+                      aria-label={t("User profile")}
+                      title={t("User profile")}
+                    >
+                      <Users size={18} aria-hidden="true" />
+                      <span>{t("User profile")}</span>
+                    </NavLink>
+                  </AnimateIcon>
+                  <AnimateIcon animateOnTap completeOnStop asChild>
+                    <NavLink
+                      to="/settings"
+                      className={`sidebar__link${location.pathname === "/settings" ? " sidebar__link--active" : ""}`}
+                      onClick={() => setAccountMenuOpen(false)}
+                      data-sidebar="menu-button"
+                      aria-label={t("Settings")}
+                      title={t("Settings")}
+                    >
+                      <Settings size={18} aria-hidden="true" />
+                      <span>{t("Settings")}</span>
+                    </NavLink>
+                  </AnimateIcon>
                   <AnimateIcon animateOnTap completeOnStop asChild>
                     <button
                       type="button"

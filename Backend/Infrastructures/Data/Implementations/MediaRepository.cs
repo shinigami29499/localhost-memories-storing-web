@@ -63,7 +63,7 @@ public sealed class MediaRepository(ApplicationDbContext db) : IMediaRepository
             .ExecuteDeleteAsync(cancellationToken);
     }
 
-    public async Task<IReadOnlyList<MediaFile>> GetMediaPageAsync(
+    public async Task<IReadOnlyList<(MediaFile Media, string? OwnerUsername)>> GetMediaPageAsync(
         int offset,
         int limit,
         string? mediaKind,
@@ -72,12 +72,21 @@ public sealed class MediaRepository(ApplicationDbContext db) : IMediaRepository
         CancellationToken cancellationToken = default)
     {
         var query = BuildMediaQuery(mediaKind, favoriteUserId, includeDeleted);
-        return await query
+        var page = await query
             .OrderByDescending(media => media.CreatedAt)
             .ThenByDescending(media => media.Id)
             .Skip(offset)
             .Take(limit)
+            .Select(media => new
+            {
+                Media = media,
+                OwnerUsername = db.Users
+                    .Where(user => user.Id == media.OwnerId)
+                    .Select(user => user.Username)
+                    .FirstOrDefault(),
+            })
             .ToListAsync(cancellationToken);
+        return page.Select(item => (item.Media, item.OwnerUsername)).ToList();
     }
 
     public Task<long> CountMediaAsync(

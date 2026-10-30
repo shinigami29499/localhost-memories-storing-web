@@ -13,8 +13,10 @@ import { BulkSaveToAlbumDialog } from "../../features/albums/components/BulkSave
 import { albumKeys } from "../../features/albums/hooks/useAlbums";
 import { albumService } from "../../features/albums/services/albumService";
 import { ConfirmationDialog, EmptyState, ErrorState, Spinner } from "../../components/ui";
+import { PageTransition } from "../../components/layout/PageTransition";
 import { showToast } from "../../components/ui/Toast";
 import { useLocale } from "../../context/LocaleContext";
+import { readPageTransitionEffect } from "../../utils/pageTransition";
 import { MediaTile } from "../../features/media/components/MediaTile";
 import { MediaRetryProvider } from "../../features/media/components/MediaRetryProvider";
 import { MediaPreviewDialog } from "../../features/media/components/MediaPreviewDialog";
@@ -80,6 +82,7 @@ async function applyFavorites(mediaIds: string[], favorite: boolean) {
 
 export function GalleryPage({ view = "pictures", initialFilter }: { view?: GalleryView; initialFilter?: FavoritesFilter }) {
   const { t, language } = useLocale();
+  const pageTransition = readPageTransitionEffect();
   const queryClient = useQueryClient();
   const [selectedFilter, setSelectedFilter] = useState<FavoritesFilter>(() => initialFilter ?? "all");
   const [selectionMode, setSelectionMode] = useState(false);
@@ -472,7 +475,9 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
                 </Tabs.List>
               </div>
               <Tabs.Content value={selectedFilter} className="gallery-page__tab-panel">
-                {galleryContent}
+                <PageTransition effect={pageTransition} transitionKey={selectedFilter}>
+                  {galleryContent}
+                </PageTransition>
               </Tabs.Content>
             </Tabs.Root>
           </div>

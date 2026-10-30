@@ -37,39 +37,45 @@ shared `Suspense` fallback for them.
 | Route | Page source | Feature entry points |
 | --- | --- | --- |
 | `/` | `src/pages/home/HomePage.tsx` | `features/albums/components/AlbumFeedPost.tsx`, `features/albums/hooks/useAlbums.ts` |
-| `/albums` | `src/pages/albums/AlbumsPage.tsx` | `features/albums/components/AlbumCard.tsx`, `features/albums/components/AlbumFormDialog.tsx` |
-| `/albums/:albumId` | `src/pages/albums/AlbumPage.tsx` | `features/albums/components/AlbumCaption.tsx`, `features/albums/hooks/useAlbums.ts` |
-| `/gallery`, `/gallery/videos`, `/gallery/favorites` | `src/pages/gallery/GalleryPage.tsx` | `features/media/hooks/useMedia.ts`, `features/media/hooks/useMediaSelectionDrag.ts` |
-| `/gallery/trash` | `src/pages/gallery/TrashPage.tsx` | `features/media/services/mediaService.ts` |
-| `/uploads` | `src/pages/uploads/UploadManagementPage.tsx` | `features/uploads/components/UploadBatchCard.tsx`, `features/uploads/components/UploadActivityDialog.tsx`, `features/uploads/services/uploadService.ts` |
-| `/locations` | `src/pages/locations/LocationsPage.tsx` | `features/locations/hooks/useLocations.ts`, `features/locations/components/LocationMap.tsx`, `features/locations/components/LocationEditor.tsx` |
-| `/food` | `src/pages/food/FoodPage.tsx` | `features/food/hooks/useFoodPlaces.ts`, `features/locations/hooks/useHomeLocation.ts`, `features/food/components/FoodMap.tsx`, `features/food/components/FoodPlaceDialog.tsx`, `features/food/components/FoodPlaceEditor.tsx`, `features/food/components/FoodImagePicker.tsx`, `features/food/components/StarRating.tsx` |
+| `/library/album` | `src/pages/albums/AlbumsPage.tsx` | `features/albums/components/AlbumCard.tsx`, `features/albums/components/AlbumFormDialog.tsx` |
+| `/library/album/:albumId` | `src/pages/albums/AlbumPage.tsx` | `features/albums/components/AlbumCaption.tsx`, `features/albums/hooks/useAlbums.ts` |
+| `/library/gallery`, `/library/gallery/videos`, `/library/gallery/favorites` | `src/pages/gallery/GalleryPage.tsx` | `features/media/hooks/useMedia.ts`, `features/media/hooks/useMediaSelectionDrag.ts` |
+| `/library/gallery/trash` | `src/pages/gallery/TrashPage.tsx` | `features/media/services/mediaService.ts` |
+| `/sync/upload` | `src/pages/uploads/UploadManagementPage.tsx` | `features/uploads/components/UploadBatchCard.tsx`, `features/uploads/components/UploadActivityDialog.tsx`, `features/uploads/services/uploadService.ts` |
+| `/location/travel` | `src/pages/locations/LocationsPage.tsx` | `features/locations/hooks/useLocations.ts`, `features/locations/components/LocationMap.tsx`, `features/locations/components/LocationEditor.tsx` |
+| `/location/food` | `src/pages/food/FoodPage.tsx` | `features/food/hooks/useFoodPlaces.ts`, `features/locations/hooks/useHomeLocation.ts`, `features/food/components/FoodMap.tsx`, `features/food/components/FoodPlaceDialog.tsx`, `features/food/components/FoodPlaceEditor.tsx`, `features/food/components/FoodImagePicker.tsx`, `features/food/components/StarRating.tsx` |
 | `/users` | `src/pages/users/UsersPage.tsx` | `features/users/services/userService.ts` |
+| `/profile` | `src/pages/profile/ProfilePage.tsx` | `features/users/components/AvatarPicker.tsx`, `features/users/services/userService.ts` |
 | `/login`, `/register` | `src/pages/login/LoginPage.tsx`, `src/pages/register/RegisterPage.tsx` | `features/auth/services/authService.ts`, `components/ui/PasswordInput.tsx` |
 
-Feature entry points in this table are under `src/`. Legacy `/saved` and
-`/saved/:albumId` redirect to album routes; `/uploads/new` redirects to `/uploads`,
-and `/admin/users` redirects to `/users`.
+Feature entry points in this table are under `src/`. Previous `/gallery`, `/albums`,
+`/locations`, `/food`, and `/uploads` routes redirect to these sidebar-based routes.
+Legacy `/saved` and `/saved/:albumId` still redirect to album routes; `/uploads/new`
+and `/admin/users` redirect to `/sync/upload` and `/users`.
 
 ## Shared behavior and API boundaries
 
 | Concern | Source and boundary |
 | --- | --- |
 | Session and token refresh | `src/store/authStore.ts`, `src/services/api.ts`; `/api/auth` |
-| Album queries, membership, captions, previews | `src/features/albums/hooks/useAlbums.ts`, `src/features/albums/services/albumService.ts`; `/api/collections` |
-| Media queries, favorites, trash | `src/features/media/hooks/useMedia.ts`, `src/features/media/services/mediaService.ts`; `/api/media` |
+| Account avatars | `src/components/common/UserAvatar.tsx` renders `react-nice-avatar` locally from an account seed (user ID for existing accounts). The profile picker previews choices, cancels drafts, and saves through `PUT /api/users/me/avatar`. `GET /api/users/me` reloads the saved profile; login/refresh and user/owner responses also include `avatarSeed`. Saving updates the persisted session and invalidates user, album, and food-place caches. No avatar service receives account data. |
+| Album queries, membership, captions, previews | `src/features/albums/hooks/useAlbums.ts`, `src/features/albums/services/albumService.ts`; `/api/library/album` |
+| Media queries, favorites, trash | `src/features/media/hooks/useMedia.ts`, `src/features/media/services/mediaService.ts`; `/api/library/gallery` |
 | Media tiles, preview retries, fullscreen carousel | `src/features/media/components/MediaTile.tsx`, `MediaRetryProvider.tsx`, `MediaPreviewDialog.tsx` in the same folder |
 | Album pickers and bulk saving | `src/features/albums/components/SaveToAlbumButton.tsx`, `SaveToAlbumDialog.tsx`, `BulkSaveToAlbumDialog.tsx` in the same folder |
-| Location edits and GPS backfill | `src/features/locations/services/locationService.ts`; `PUT /api/media/{mediaId}/location`, `POST /api/media/locations/scan` |
-| Food map location search and account home location | `src/features/locations/components/LocationSearch.tsx`, `locationSearchService.ts`, `src/features/locations/hooks/useHomeLocation.ts`, `homeLocationService.ts`; Mapbox Geocoding API and `GET`/`PUT`/`DELETE /api/users/me/home-location`. Click the home marker to change or remove it. |
-| Food place list, optional addresses, rating, notes, custom markers, linked library photos | `src/features/food/services/foodPlaceService.ts`, `src/features/food/hooks/useFoodPlaces.ts`; `/api/food-places` |
-| Upload submission, progress, recovery | `src/features/uploads/services/uploadService.ts`, `uploadRuntime.ts`, `uploadFileStore.ts` in the same folder; `/api/uploads` |
+| Location edits and GPS backfill | `src/features/locations/services/locationService.ts`; `PUT /api/location/travel/{mediaId}`, `POST /api/location/travel/scan` |
+| Shared map location search and account home location | `src/features/locations/components/LocationSearch.tsx`, `HomeLocationMarker.tsx`, `locationSearchService.ts`, `src/features/locations/hooks/useHomeLocation.ts`, `homeLocationService.ts`; Mapbox Geocoding API and `GET`/`PUT`/`DELETE /api/location/food/home-location`. On both maps, press and drag the home marker to request a move. Holding still opens removal confirmation at 600 ms without waiting for release; starting a drag before that threshold cancels removal. Right-click or Delete/Backspace while focused also requests removal. Both actions use the shared confirmation dialog; cancel keeps the saved position. Normal click keeps the existing home controls. |
+| Food place list, optional addresses, rating, notes, custom markers, linked library photos | `src/features/food/services/foodPlaceService.ts`, `src/features/food/hooks/useFoodPlaces.ts`; `/api/location/food` |
+| Upload submission, progress, recovery | `src/features/uploads/services/uploadService.ts`, `uploadRuntime.ts`, `uploadFileStore.ts` in the same folder; `/api/sync/upload` |
 | Mounted upload runtime and query invalidation | `src/features/uploads/components/UploadRuntime.tsx`, `src/features/uploads/hooks/useUploadRuntime.ts`; invalidates media, albums, and uploads |
 | Local notification UI | `src/components/layout/NotificationBell.tsx`, `src/features/notifications/uploadNotificationStore.ts` |
 | Shell and navigation | `src/components/layout/AuthenticatedLayout.tsx`, `src/components/layout/Sidebar.tsx` |
 | Language, theme, shared icons | `src/context/LocaleContext.tsx`, `src/context/ThemeContext.tsx`, `src/components/animate-ui/icons/` |
 
 Feature DTOs live with their features (`types.ts`, or `auth/types/index.ts`).
+Avatar SVG layers are excluded from global icon zoom to preserve their proportions on
+mobile and desktop. Sidebar avatar containers are circular and transparent; only the
+avatar artwork supplies their background.
 Album UI uses the backend's collection vocabulary only at its API boundary.
 Posts, comments, reactions, and persisted server notifications are no longer active
 client features.
@@ -78,12 +84,20 @@ client has no SignalR subscription. The upload runtime refreshes local query sta
 
 ## Key behavior
 
+- Travel and Food share `features/locations/components/mapControls.css`: equal
+  viewport-based map heights, 54 px corner Settings/search controls with 20 px
+  icons, and home above geolocation at bottom right. Search expands on hover
+  (fine pointers) or focus; Settings reveals its label on hover and opens on click.
+  Touch controls expand on tap, and both maps retain Mapbox Standard/street styles.
+- Opening a home-marker confirmation ends the active gesture on both maps.
+  Cancel and successful confirmation discard pending drag callbacks and release clicks;
+  another action requires a fresh press or explicit keyboard activation.
 - Home (`/`) lists albums the signed-in user owns and public albums. Each card loads
   only its preview image in a single-column feed with owner, date, and album information.
   The media count appears as a number at the preview's bottom right. Long captions
   expand and collapse with Show more/Show less, respecting reduced-motion preferences.
   Failed previews offer a text-only retry action.
-  Clicking the preview opens `/albums/:albumId`; double-clicking adds the preview image
+  Clicking the preview opens `/library/album/:albumId`; double-clicking adds the preview image
   to favorites without navigating. The heart toggles that image's favorite state,
   and the bookmark opens the existing save-to-album picker for that image. Albums
   without previews disable both actions. Owners and admins can delete albums after
@@ -92,7 +106,7 @@ client has no SignalR subscription. The upload runtime refreshes local query sta
   select media, then remove selected items from the album.
 - Albums can be private or public, can choose a preview from their images or upload one
   from the edit dialog, and support adding/removing media. Uploaded preview images are
-  added to the album. Album APIs are under `/api/collections`.
+  added to the album. Album APIs are under `/api/library/album`.
 - The album detail header hides absent preview images and shows a transparent caption
   area beside the album details, stacking below on narrow screens.
   Owners and viewers of public albums can edit captions inline, up to 4,000
@@ -123,7 +137,7 @@ client has no SignalR subscription. The upload runtime refreshes local query sta
   for more album changes; Done or Close dismisses it. Escape cancels selection
   when the   picker is closed. There is no selection-entry button in these gallery views.
   Successful saves in both album pickers show a localized toast with the destination album name.
-- Administrators can browse deleted media under `/gallery/trash`, preview files
+- Administrators can browse deleted media under `/library/gallery/trash`, preview files
   without restoring them (`includeDeleted=true`), and restore or permanently delete
   items. Clicking a tile opens the fullscreen carousel with restore and delete
   icons instead of heart and save. Hold a tile (or press Shift+Space) to select
@@ -133,7 +147,7 @@ client has no SignalR subscription. The upload runtime refreshes local query sta
   the remaining items available for retry without repeating successful requests.
   Gallery, album-detail, and trash grids use five columns with 8px gaps and
   rounded tiles on desktop, and three columns on phones.
-- Uploads are submitted from `/uploads` as standalone media batches. The Select
+- Uploads are submitted from `/sync/upload` as standalone media batches. The Select
   files button on the left opens the file picker; the adjacent Upload media button
   submits selected files, with a removable selected-file count chip beside it; the
   calendar-day filter and the Activity button sit on the right, without a
@@ -145,7 +159,7 @@ client has no SignalR subscription. The upload runtime refreshes local query sta
   pending file bytes in IndexedDB, uploads one file at a time, and supports retry,
   cancellation, refresh recovery, and query invalidation after upload changes. Users see their
   own batches; administrators can see all batches and owner names. Completed upload
-  notifications are local to the browser and open `/uploads`. The toolbar's Activity
+  notifications are local to the browser and open `/sync/upload`. The toolbar's Activity
   button opens a dialog with a responsive 36-week desktop or 12-week mobile heatmap
   of completed files that can retry if upload history cannot load.
 - Browser media elements use the authenticated query-token URL because they cannot
@@ -154,23 +168,69 @@ client has no SignalR subscription. The upload runtime refreshes local query sta
   covers, and album pickers. These JPEG previews fit within 640 x 640 pixels.
   `mediaUrl` without the preview flag is reserved for the active fullscreen item;
   inactive carousel slides use previews. FFmpeg is required by the backend.
-- Locations (`/locations`) uses `useLocations` to load image pages and scan existing
+- Locations (`/location/travel`) uses `useLocations` to load image pages and scan existing
   photos for GPS in batches of up to 25. Scan failures retain failed-media counts
   and expose errors; finishing a scan invalidates media queries.
   `LocationEditor` sets or clears coordinates through `locationService`. Coordinates
   come only from the map: clicking the map or dragging the draft pin picks the point,
   and the editor shows that point read-only. Saving and removing both require a
   confirmation dialog and report the result through a toast.
+  Save, Remove location, and Cancel stay side by side with icons. Their labels hide
+  when the available editor width cannot fit all actions; accessible names and tooltips
+  remain available. Labels return when there is enough room.
+  Saving successfully exits photo selection mode and keeps the map focused on the
+  saved photo. Failed saves retain the selection and draft for retry.
+  On desktop, Escape or a click outside the map and photo details exits photo
+  selection and clears the `mediaId` request. Photo tiles still switch selection;
+  map clicks still pick locations. Open dialogs and pending saves prevent
+  selection dismissal, and Escape closes open map settings first.
+  Cancel and other unsaved exits discard the draft without changing the saved
+  location or moving the camera. Cancel is disabled during saves.
+  Clicking a map photo pin previews it without opening the editor. On desktop,
+  owners and admins can press and drag a photo pin more than 8 pixels to open
+  editing at the dropped coordinates. This updates only the draft; saving still
+  requires confirmation. Photo library tiles and `mediaId` links retain direct
+  editor access, including for photos without coordinates. Mobile pins cannot
+  enter editing by dragging.
+  On phones (up to 640px), Locations keeps its title, subtitle, Mapbox notice,
+  map, and map controls.
+  Photo taps and `mediaId` links show previews without the details panel,
+  photo library, location editor, or draggable draft pin. Focused pins leave room
+  above them for the photo popup. Desktop photo selection and editing are unchanged.
   Owners and admins can edit photo locations; backfill scans own photos for members
   and all photos for admins.
   Locations uses Mapbox GL JS through `react-map-gl/mapbox`, with 3D Basemap as the
   default view. Its Setting control follows the sidebar styling, is collapsed
   by default, and expands to title-only Street map, 3D Basemap, and Photo markers
   controls. Hover animates their icons and slightly scales the scene buttons.
-  Located photos in the fullscreen viewer link to this page and select the matching
-  photo on the map.
+  On both maps, selecting a photo or food marker zooms to at least level 18.
+  Marker previews use white-framed, 180px-wide portrait photos (3:4) in both themes
+  and show localized "By {username}" attribution. Travel previews omit filenames
+  and coordinates; paged gallery media includes an optional `ownerUsername`.
+  Food previews retain place details and ratings.
+  Street view stays flat; 3D view tilts toward the selected marker.
+  The Home control clears marker focus and editing, closes map settings, switches
+  to Street map, and returns to the saved home location at zoom 14 with no tilt.
+  Without a saved home location, it opens the existing home setup flow.
+  Outside editing, clicking or tapping outside a marker dismisses its preview on
+  desktop and mobile. The first map tap dismisses a selected food preview instead
+  of creating a new place. Open dialogs and pending saves prevent dismissal.
+  Clearing marker selection leaves the camera unchanged; zooming occurs when
+  selecting a marker, not when dismissing its preview.
+  The fullscreen photo viewer always shows a location action. Located photos use a
+  red filled pin with theme-default inner and outer outlines and a transparent center.
+  They open `?focusMediaId=<id>` to zoom to
+  the photo without entering selection mode. Unlocated photos open `?mediaId=<id>`
+  in selection mode, centered on the current device location when permission allows.
+  Initial device centering falls back to the saved home location or photo bounds
+  when unavailable and never overrides a focused photo.
   Satellite view is not available. Photo previews appear in point-bottom map pins
-  and on hover; a draggable draft pin is also available. Photos within about 46
+  with white outlines in both themes and on hover; a draggable draft pin is also
+  available. Hovered, focused, and selected photo pins grow by 10% without changing
+  their images, white borders, or shadows. Home pins on both maps keep a dark
+  fill, white home icon, and white border in both themes and grow on interaction.
+  Keyboard focus retains a separate focus outline; reduced motion disables scale
+  transitions. Photos within about 46
   screen pixels of each other share one marker that stacks them with a count badge
   and fans them out in an arc on hover, focus, badge click, or selection; at most
   eight photos are fanned and the badge keeps the full count.

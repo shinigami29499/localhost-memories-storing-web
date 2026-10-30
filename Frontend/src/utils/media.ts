@@ -9,7 +9,7 @@ export function mediaUrl(mediaId: string, includeDeleted = false): string {
   const configuredBase = import.meta.env.VITE_API_URL?.trim();
   const base = (configuredBase || "http://localhost:8000").replace(/\/$/, "");
   const token = useAuthStore.getState().accessToken ?? "";
-  return `${base}/api/media/${mediaId}/file?accessToken=${encodeURIComponent(token)}${includeDeleted ? "&includeDeleted=true" : ""}`;
+  return `${base}/api/library/gallery/${mediaId}/file?accessToken=${encodeURIComponent(token)}${includeDeleted ? "&includeDeleted=true" : ""}`;
 }
 
 export function mediaPreviewUrl(mediaId: string, includeDeleted = false): string {

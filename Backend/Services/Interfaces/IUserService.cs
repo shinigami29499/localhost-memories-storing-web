@@ -7,6 +7,9 @@ namespace Services.Interfaces;
 public interface IUserService
 {
     Task<IReadOnlyList<UserResponse>> ListAsync(CancellationToken cancellationToken = default);
+    Task<UserResponse> GetProfileAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<UserResponse> SetAvatarAsync(
+        Guid userId, SetAvatarRequest request, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<UserMentionCandidateDto>> SearchMentionCandidatesAsync(
         string usernamePrefix, CancellationToken cancellationToken = default);
     Task<UserResponse> ApproveAsync(Guid userId, CancellationToken cancellationToken = default);

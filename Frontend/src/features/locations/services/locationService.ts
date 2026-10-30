@@ -11,13 +11,13 @@ export interface LocationScanResult {
 
 export const locationService = {
   set(mediaId: string, location: PhotoLocation | null): Promise<void> {
-    return api(`/api/media/${mediaId}/location`, {
+    return api(`/api/location/travel/${mediaId}`, {
       method: "PUT",
       body: { latitude: location?.latitude ?? null, longitude: location?.longitude ?? null },
     });
   },
 
   scan(offset: number, signal: AbortSignal): Promise<LocationScanResult> {
-    return api(`/api/media/locations/scan?offset=${offset}`, { method: "POST", signal });
+    return api(`/api/location/travel/scan?offset=${offset}`, { method: "POST", signal });
   },
 };

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import Map, { GeolocateControl, Marker, useMap, type MapRef } from "react-map-gl/mapbox";
 import { useShouldReduceMotion } from "@animate-ui/react/utils/motion";
 import "mapbox-gl/dist/mapbox-gl.css";
+import "../../locations/components/mapControls.css";
 import { ErrorState, showToast, Spinner } from "../../../components/ui";
 import { AnimateIcon } from "../../../components/animate-ui/icons/icon";
 import { Globe } from "../../../components/animate-ui/icons/globe";
@@ -10,9 +11,11 @@ import { Settings } from "../../../components/animate-ui/icons/settings";
 import { ChevronDown } from "../../../components/animate-ui/icons/chevron-down";
 import { Utensils } from "../../../components/animate-ui/icons/utensils";
 import { useLocale } from "../../../context/LocaleContext";
+import { useMediaQuery } from "../../../hooks/useMediaQuery";
 import { mediaPreviewUrl } from "../../../utils/media";
 import { StarRating } from "./StarRating";
 import { LocationSearch } from "../../locations/components/LocationSearch";
+import { HomeLocationMarker } from "../../locations/components/HomeLocationMarker";
 import type { LocationSearchResult } from "../../locations/services/locationSearchService";
 import { findPlaceAt } from "../../locations/utils/findPlaceAt";
 import type { HomeLocation } from "../../locations/types";
@@ -28,16 +31,17 @@ interface Props {
   homeLocation: HomeLocation | null;
   homeLocationReady: boolean;
   homePicking: boolean;
+  homeActionDisabled: boolean;
   onSelect: (place: FoodPlace) => void;
   onPickHome: (coordinate: HomeLocation) => void;
-  onRequestHomePick: () => void;
-  onHomeMarkerClick: () => void;
-  onHomeUnavailable: () => void;
+  onHomeClick: () => void;
   /** `placeName` is set when the click snapped to a basemap place label. */
   onPick: (coordinate: FoodCoordinate, placeName?: string) => void;
 }
 
 type MapScene = "streets" | "3d";
+
+const MOBILE_PREVIEW_PADDING = { top: 300, bottom: 0, left: 0, right: 0 };
 
 function MapViewport({ places, selected, ready, allowFit }: {
   places: FoodPlace[];
@@ -46,8 +50,12 @@ function MapViewport({ places, selected, ready, allowFit }: {
   allowFit: boolean;
 }) {
   const { current: map } = useMap();
+  const isMobile = useMediaQuery("(max-width: 640px)");
   const fittedCount = useRef(-1);
+  const hadSelection = useRef(false);
   useEffect(() => {
+    if (selected) hadSelection.current = true;
+    if (hadSelection.current) return;
     if (!map || !ready || !allowFit || selected || !places.length) return;
     // Framing runs once per place-count change so editing never moves the camera.
     if (fittedCount.current === places.length) return;
@@ -69,8 +77,9 @@ function MapViewport({ places, selected, ready, allowFit }: {
     map.jumpTo({
       center: [selected.longitude, selected.latitude],
       zoom: Math.max(map.getZoom(), 13),
+      ...(isMobile ? { padding: MOBILE_PREVIEW_PADDING, retainPadding: false } : {}),
     });
-  }, [map, ready, selected?.id, selected?.latitude, selected?.longitude]);
+  }, [map, ready, selected?.id, selected?.latitude, selected?.longitude, isMobile]);
   return null;
 }
 
@@ -86,25 +95,24 @@ function InitialLocationCenter({
   onResolved: (hasCenter: boolean) => void;
 }) {
   const { current: map } = useMap();
-  const started = useRef(false);
-  const centered = useRef(false);
+  const resolved = useRef(false);
 
   useEffect(() => {
-    if (!map || !ready || !homeLocationReady) return;
+    if (!map || !ready || !homeLocationReady || resolved.current) return;
+    let cancelled = false;
     const center = (location: HomeLocation) => {
+      if (cancelled) return;
+      resolved.current = true;
       map.easeTo({ center: [location.longitude, location.latitude], zoom: 14, duration: 0 });
-      centered.current = true;
       onResolved(true);
     };
-    if (started.current) {
-      if (!centered.current && homeLocation) center(homeLocation);
-      return;
-    }
-
-    started.current = true;
     const fallback = () => {
+      if (cancelled) return;
       if (homeLocation) center(homeLocation);
-      else onResolved(false);
+      else {
+        resolved.current = true;
+        onResolved(false);
+      }
     };
 
     if (!navigator.geolocation) {
@@ -120,6 +128,7 @@ function InitialLocationCenter({
       fallback,
       { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 },
     );
+    return () => { cancelled = true; };
   }, [map, ready, homeLocationReady, homeLocation, onResolved]);
 
   return null;
@@ -138,27 +147,49 @@ function MapResizer() {
   return null;
 }
 
-function MapCameraScene({ scene, selected, ready }: {
+function MapCameraScene({ scene, selected, ready, homeLocation, homeRequest, focusRequest }: {
   scene: MapScene;
   selected: FoodPlace | undefined;
   ready: boolean;
+  homeLocation: HomeLocation | null;
+  homeRequest: number;
+  focusRequest: number;
 }) {
   const shouldReduceMotion = useShouldReduceMotion();
+  const isMobile = useMediaQuery("(max-width: 640px)");
   const { current: map } = useMap();
+  const handledHomeRequest = useRef(homeRequest);
+  const previousScene = useRef(scene);
   useEffect(() => {
     if (!map || !ready) return;
+    const sceneChanged = previousScene.current !== scene;
+    previousScene.current = scene;
+    if (homeRequest !== handledHomeRequest.current && homeLocation) {
+      handledHomeRequest.current = homeRequest;
+      map.easeTo({
+        center: [homeLocation.longitude, homeLocation.latitude],
+        zoom: 14,
+        pitch: 0,
+        bearing: 0,
+        padding: { top: 0, bottom: 0, left: 0, right: 0 },
+        duration: shouldReduceMotion ? 0 : 400,
+      });
+      return;
+    }
+    if (!selected && !sceneChanged) return;
     map.easeTo({
-      ...(scene === "3d" && selected
+      ...(selected
         ? {
             center: [selected.longitude, selected.latitude] as [number, number],
-            zoom: Math.max(map.getZoom(), 15),
+            zoom: Math.max(map.getZoom(), 18),
           }
         : {}),
       pitch: scene === "3d" && selected ? 55 : 0,
       bearing: scene === "3d" && selected ? -20 : 0,
       duration: shouldReduceMotion ? 0 : 400,
+      ...(isMobile && selected ? { padding: MOBILE_PREVIEW_PADDING, retainPadding: false } : {}),
     });
-  }, [map, ready, scene, selected?.id, shouldReduceMotion]);
+  }, [map, ready, scene, selected?.id, selected?.latitude, selected?.longitude, shouldReduceMotion, isMobile, homeLocation, homeRequest, focusRequest]);
   return null;
 }
 
@@ -167,6 +198,7 @@ function FoodPlaceMarker({ place, selected, onSelect }: {
   selected: boolean;
   onSelect: (place: FoodPlace) => void;
 }) {
+  const { t } = useLocale();
   return (
     <div className="food__marker" data-selected={selected}>
       <button
@@ -193,6 +225,7 @@ function FoodPlaceMarker({ place, selected, onSelect }: {
         {place.address && <small>{place.address}</small>}
         <StarRating value={place.rating} size="sm" />
         {place.note && <small>{place.note}</small>}
+        <small>{t("By {username}", { username: place.owner.username })}</small>
       </article>
     </div>
   );
@@ -200,17 +233,21 @@ function FoodPlaceMarker({ place, selected, onSelect }: {
 
 function MapContent({
   places, selectedId, draft, draftIcon, draftColor, picking, homeLocation,
-  homeLocationReady, homePicking, onSelect, onPick, onPickHome, onRequestHomePick,
-  onHomeMarkerClick, onHomeUnavailable, token,
+  homeLocationReady, homePicking, homeActionDisabled, onSelect, onPick, onPickHome,
+  onHomeClick, token,
 }: Props & { token: string }) {
   const { t } = useLocale();
+  const shouldReduceMotion = useShouldReduceMotion();
   const mapRef = useRef<MapRef>(null);
+  const scenesRef = useRef<HTMLDetailsElement>(null);
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
   const [initialLocationResolved, setInitialLocationResolved] = useState(false);
   const [hasInitialCenter, setHasInitialCenter] = useState(false);
   const [scene, setScene] = useState<MapScene>("3d");
   const [showMarkers, setShowMarkers] = useState(true);
+  const [homeRequest, setHomeRequest] = useState(0);
+  const [focusRequest, setFocusRequest] = useState(0);
   const resolveInitialLocation = useCallback((hasCenter: boolean) => {
     setHasInitialCenter(hasCenter);
     setInitialLocationResolved(true);
@@ -219,6 +256,28 @@ function MapContent({
     () => places.find((place) => place.id === selectedId),
     [places, selectedId],
   );
+
+  useEffect(() => {
+    const closeOnOutsideClick = (event: PointerEvent) => {
+      const settings = scenesRef.current;
+      if (settings?.open && event.target instanceof Node && !settings.contains(event.target))
+        settings.open = false;
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      const settings = scenesRef.current;
+      if (event.key === "Escape" && settings?.open) {
+        settings.open = false;
+        settings.querySelector("summary")?.focus();
+      }
+    };
+
+    document.addEventListener("pointerdown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, []);
 
   const selectSearchResult = (result: LocationSearchResult) => {
     mapRef.current?.easeTo({
@@ -235,7 +294,7 @@ function MapContent({
     return <ErrorState message="Mapbox could not load. Check internet access, WebGL support, the public access token, account billing, and allowed website URLs. Food places can only be placed on the map." />;
 
   return (
-    <div className="food__map" role="region" aria-label={t("Food places map")}>
+    <div className="food__map map-controls" role="region" aria-label={t("Food places map")}>
       {!loaded && <div className="food__map-loading"><Spinner label="Loading map…" /></div>}
       <Map
         style={{ minHeight: "inherit" }}
@@ -284,7 +343,7 @@ function MapContent({
         <InitialLocationCenter
           homeLocation={homeLocation}
           homeLocationReady={homeLocationReady}
-          ready={loaded}
+          ready={loaded && homeRequest === 0 && !selected}
           onResolved={resolveInitialLocation}
         />
         <MapViewport
@@ -293,25 +352,19 @@ function MapContent({
           ready={loaded}
           allowFit={initialLocationResolved && !hasInitialCenter}
         />
-        <MapCameraScene scene={scene} selected={selected} ready={loaded} />
+        <MapCameraScene scene={scene} selected={selected} ready={loaded}
+          homeLocation={homeLocation} homeRequest={homeRequest} focusRequest={focusRequest} />
         <MapResizer />
         {homeLocation && (
-          <Marker
-            latitude={homeLocation.latitude}
-            longitude={homeLocation.longitude}
-            anchor="bottom"
-            onClick={(event) => event.originalEvent.stopPropagation()}
-          >
-            <button
-              type="button"
-              className="food__home-pin"
-              aria-label={t("Home location")}
-              title={t("Home location")}
-              onClick={onHomeMarkerClick}
-            >
-              <Home size={18} aria-hidden="true" />
-            </button>
-          </Marker>
+          <HomeLocationMarker location={homeLocation} variant="food" onClick={() => {
+            mapRef.current?.easeTo({
+              center: [homeLocation.longitude, homeLocation.latitude],
+              zoom: Math.max(mapRef.current.getZoom(), 18),
+              pitch: scene === "3d" ? 55 : 0,
+              bearing: scene === "3d" ? -20 : 0,
+              duration: shouldReduceMotion ? 0 : 400,
+            });
+          }} />
         )}
         {showMarkers && places.map((place) => (
           <Marker
@@ -322,7 +375,10 @@ function MapContent({
             style={{ zIndex: place.id === selectedId ? 2 : 1 }}
             onClick={(event) => event.originalEvent.stopPropagation()}
           >
-            <FoodPlaceMarker place={place} selected={place.id === selectedId} onSelect={onSelect} />
+            <FoodPlaceMarker place={place} selected={place.id === selectedId} onSelect={(item) => {
+              setFocusRequest((request) => request + 1);
+              onSelect(item);
+            }} />
           </Marker>
         ))}
         {draft && (
@@ -352,33 +408,37 @@ function MapContent({
       <LocationSearch
         accessToken={token}
         disabled={!loaded}
+        onFocus={() => {
+          if (window.matchMedia("(max-width: 640px)").matches && scenesRef.current)
+            scenesRef.current.open = false;
+        }}
         onSelect={selectSearchResult}
       />
-      <button
-        type="button"
-        className="food__map-home-control"
-        aria-label={t(homeLocation ? "Go to home" : "Home location not set")}
-        title={t(homeLocation ? "Go to home" : "Home location not set")}
-        disabled={!loaded || !homeLocationReady}
-        onClick={() => {
-          if (homeLocation) {
-            mapRef.current?.easeTo({
-              center: [homeLocation.longitude, homeLocation.latitude],
-              zoom: 14,
-              duration: 400,
-            });
-          } else {
-            onHomeUnavailable();
-          }
-        }}
-      >
-        <Home size={18} aria-hidden="true" />
-      </button>
-      <details className="food__scenes" aria-label={t("Map scenes")}>
+      <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
+        <button
+          type="button"
+          className="food__map-home-control"
+          aria-label={t(homeLocation ? "Go to home" : "Home location")}
+          title={t(homeLocation ? "Go to home" : "Home location")}
+          disabled={!loaded || !homeLocationReady || homeActionDisabled}
+          onClick={() => {
+            if (homeLocation) {
+              setScene("streets");
+              setHasInitialCenter(true);
+              setHomeRequest((request) => request + 1);
+              if (scenesRef.current) scenesRef.current.open = false;
+            }
+            onHomeClick();
+          }}
+        >
+          <Home size={18} aria-hidden="true" />
+        </button>
+      </AnimateIcon>
+      <details ref={scenesRef} className="food__scenes" aria-label={t("Map scenes")}>
         <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
-          <summary className="food__scenes-title">
-            <Settings size={18} aria-hidden="true" />
-            <span>{t("Setting")}</span>
+          <summary className="food__scenes-title" aria-label={t("Setting")}>
+            <Settings size={20} aria-hidden="true" />
+            <span className="food__scenes-label">{t("Setting")}</span>
             <span className="food__scenes-chevron" aria-hidden="true">
               <ChevronDown size={16} animate={false} />
             </span>

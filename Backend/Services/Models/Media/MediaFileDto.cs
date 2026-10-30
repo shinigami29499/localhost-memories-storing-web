@@ -9,4 +9,5 @@ public sealed record MediaFileDto(
     DateTime CreatedAt,
     bool IsFavorited,
     Guid OwnerId = default,
-    MediaLocationDto? Location = null);
+    MediaLocationDto? Location = null,
+    string? OwnerUsername = null);

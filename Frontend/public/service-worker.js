@@ -45,6 +45,20 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) {
+        if ("focus" in client && "navigate" in client) {
+          return client.navigate("/sync/upload").then(() => client.focus());
+        }
+      }
+      return self.clients.openWindow("/sync/upload");
+    }),
+  );
+});
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);

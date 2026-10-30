@@ -10,7 +10,7 @@ import { ApiError } from "../../../services/api";
 import { mediaPreviewUrl } from "../../../utils/media";
 import { useAlbumMedia } from "../hooks/useAlbums";
 import type { Album, UpdateAlbumInput } from "../types";
-import { ALBUM_CAPTION_MAX_LENGTH, ALBUM_NAME_MAX_LENGTH } from "../types";
+import { ALBUM_NAME_MAX_LENGTH } from "../types";
 
 const PREVIEW_CANDIDATE_LIMIT = 100;
 
@@ -26,7 +26,6 @@ export function AlbumFormDialog({ album, onSubmit, onClose }: Props) {
   const { t } = useLocale();
   const editing = Boolean(album);
   const [name, setName] = useState(album?.name ?? "");
-  const [caption, setCaption] = useState(album?.caption ?? "");
   const [isPublic, setIsPublic] = useState(album?.isPublic ?? false);
   const [previewMediaId, setPreviewMediaId] = useState<string | null>(album?.customPreviewMediaId ?? null);
   const [previewFile, setPreviewFile] = useState<File | null>(null);
@@ -71,7 +70,6 @@ export function AlbumFormDialog({ album, onSubmit, onClose }: Props) {
     setBusy(true);
     try {
       const input: UpdateAlbumInput = { name: trimmed, isPublic, previewMediaId };
-      if (!editing) input.caption = caption.trim();
       await onSubmit(input, previewFile ?? undefined);
     } catch (err) {
       showToast.error(err instanceof ApiError ? err.message : t("Could not complete this action. Please retry."));
@@ -110,17 +108,6 @@ export function AlbumFormDialog({ album, onSubmit, onClose }: Props) {
                     autoFocus
                   />
                 </label>
-                {!editing ? (
-                  <label className="album-form__field">
-                    <span>{t("Album caption")}</span>
-                    <textarea
-                      value={caption}
-                      onChange={(event) => setCaption(event.target.value)}
-                      maxLength={ALBUM_CAPTION_MAX_LENGTH}
-                      rows={3}
-                    />
-                  </label>
-                ) : null}
                 <label className="album-form__toggle">
                   <input type="checkbox" checked={isPublic} onChange={(event) => setIsPublic(event.target.checked)} />
                   <span>

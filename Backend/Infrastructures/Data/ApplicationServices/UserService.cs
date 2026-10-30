@@ -16,6 +16,33 @@ public class UserService(IUserRepository repository, IUnitOfWork unitOfWork, IMa
     private readonly IUserRepository _repository = repository;
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
+    public async Task<UserResponse> GetProfileAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var user = await _repository.FindUserAsync(userId, cancellationToken);
+        if (user is null || user.DeletedAt is not null)
+            throw new NotFoundException("User not found.");
+
+        return mapper.Map(user);
+    }
+
+    public async Task<UserResponse> SetAvatarAsync(
+        Guid userId, SetAvatarRequest request, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.Seed) || request.Seed.Length > 128)
+            throw new ValidationException("Invalid avatar seed.", new Dictionary<string, string[]>
+            {
+                ["seed"] = ["Provide an avatar seed between 1 and 128 characters."],
+            });
+
+        var user = await _repository.FindUserAsync(userId, cancellationToken);
+        if (user is null || user.DeletedAt is not null)
+            throw new NotFoundException("User not found.");
+
+        user.AvatarSeed = request.Seed.Trim();
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        return mapper.Map(user);
+    }
+
     public async Task<IReadOnlyList<UserResponse>> ListAsync(CancellationToken cancellationToken = default)
     {
         // Pending accounts first so the admin approval queue is immediately visible.

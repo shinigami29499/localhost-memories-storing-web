@@ -3,17 +3,17 @@ import type { HomeLocation } from "../types";
 
 export const homeLocationService = {
   get(): Promise<HomeLocation | null> {
-    return api("/api/users/me/home-location");
+    return api("/api/location/food/home-location");
   },
 
   set(location: HomeLocation): Promise<HomeLocation> {
-    return api("/api/users/me/home-location", {
+    return api("/api/location/food/home-location", {
       method: "PUT",
       body: { latitude: location.latitude, longitude: location.longitude },
     });
   },
 
   clear(): Promise<void> {
-    return api("/api/users/me/home-location", { method: "DELETE" });
+    return api("/api/location/food/home-location", { method: "DELETE" });
   },
 };

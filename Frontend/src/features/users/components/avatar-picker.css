@@ -1,0 +1,88 @@
+.avatar-picker {
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+  margin-top: 24px;
+}
+
+.avatar-picker fieldset {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  margin: 0;
+}
+
+.avatar-picker legend {
+  color: var(--text-strong);
+  font-weight: 600;
+}
+
+.avatar-picker fieldset > p {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  margin: 8px 0 16px;
+}
+
+.avatar-picker__options {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.avatar-picker__option {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 8px;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  background: var(--surface-raised);
+  cursor: pointer;
+}
+
+.avatar-picker__option:hover {
+  background: var(--surface-hover);
+}
+
+.avatar-picker__option:has(input:checked) {
+  border-color: var(--accent);
+}
+
+.avatar-picker__option:has(input:focus-visible) {
+  outline: 2px solid var(--text-strong);
+  outline-offset: 3px;
+}
+
+.avatar-picker__option input {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: inherit;
+}
+
+.avatar-picker__image {
+  display: block;
+  width: 100%;
+  max-width: 80px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+}
+
+.avatar-picker__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.avatar-picker__error {
+  color: var(--danger);
+}
+
+.avatar-picker:has(fieldset:disabled) .avatar-picker__option {
+  cursor: wait;
+}

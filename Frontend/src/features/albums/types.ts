@@ -8,7 +8,7 @@ export interface Album {
   name: string;
   caption: string;
   isPublic: boolean;
-  owner: { id: string; username: string };
+  owner: { id: string; username: string; avatarSeed?: string | null };
   mediaCount: number;
   /** Custom preview when set, otherwise the first image in the album. */
   previewMediaId: string | null;

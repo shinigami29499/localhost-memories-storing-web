@@ -5,6 +5,7 @@
 
 .sidebar {
   position: fixed;
+  view-transition-name: app-sidebar;
   top: 8px;
   left: 8px;
   bottom: 8px;
@@ -384,17 +385,13 @@
   font-size: 0.9rem;
 }
 
-.sidebar__link[href="/albums"] > svg > path {
-  stroke: var(--notification-icon) !important;
-}
-
-.sidebar__link[href="/albums"] > svg > path,
+.sidebar__link[href="/library/album"] > svg > path,
 .gallery-card__album > svg > path {
   fill: var(--notification-icon) !important;
 }
 
-.sidebar__link[href="/gallery/trash"] > svg > path {
-  fill: color-mix(in srgb, var(--text-muted) 50%, var(--surface-raised));
+.sidebar__link[href="/library/gallery/trash"] > svg {
+  stroke: #fff;
 }
 
 .sidebar__sub-link:hover {
@@ -458,8 +455,8 @@
   width: 40px;
   height: 40px;
   flex-shrink: 0;
-  border-radius: 10px;
-  background: var(--gradient);
+  border-radius: 50%;
+  background: transparent;
   color: var(--text-on-accent);
   font-size: 1.4rem;
   font-style: italic;

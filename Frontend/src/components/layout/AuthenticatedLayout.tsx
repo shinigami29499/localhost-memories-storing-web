@@ -3,12 +3,13 @@ import { Outlet, useLocation } from "react-router-dom";
 import { Provider } from "@animate-ui/react/primitives/sidebar";
 import { ScrollProgressContainer, ScrollProgressProvider } from "@animate-ui/react/primitives/scroll-progress";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
-import { Brand } from "./Brand";
 import { Sidebar } from "./Sidebar";
 import { NotificationBell } from "./NotificationBell";
 import { UploadRuntime } from "../../features/uploads/components/UploadRuntime";
 import { Spinner } from "../ui/Status";
 import { useLocale } from "../../context/LocaleContext";
+import { PageTransition } from "./PageTransition";
+import { readPageTransitionEffect } from "../../utils/pageTransition";
 
 export const MOBILE_QUERY = "(max-width: 640px)";
 
@@ -20,6 +21,7 @@ export function AuthenticatedLayout() {
   );
   const isMobile = useMediaQuery(MOBILE_QUERY);
   const location = useLocation();
+  const pageTransition = readPageTransitionEffect();
   const drawerOpen = isMobile && !sidebarCollapsed;
 
   useEffect(() => {
@@ -84,14 +86,15 @@ export function AuthenticatedLayout() {
       <div ref={mainRef} className="app-shell__main" inert={drawerOpen}>
         <UploadRuntime />
         <header className="app-topbar">
-          {isMobile && location.pathname !== "/" ? <Brand /> : null}
           <NotificationBell />
         </header>
         <ScrollProgressProvider>
           <ScrollProgressContainer id="main-content" tabIndex={-1} className="app-shell__content">
-            <Suspense fallback={<Spinner label="Loading page…" />}>
-              <Outlet />
-            </Suspense>
+            <PageTransition effect={pageTransition}>
+              <Suspense fallback={<Spinner label="Loading page…" />}>
+                <Outlet />
+              </Suspense>
+            </PageTransition>
           </ScrollProgressContainer>
         </ScrollProgressProvider>
       </div>

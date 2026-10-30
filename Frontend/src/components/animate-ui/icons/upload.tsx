@@ -14,34 +14,23 @@ type UploadProps = IconProps<keyof typeof animations>;
 
 const animations = {
   default: {
-    group: {
-      initial: {
-        y: 0,
-        transition: { duration: 0.3, ease: 'easeInOut' },
-      },
+    shaft: {
+      initial: { pathLength: 1, opacity: 1 },
       animate: {
-        y: -2,
-        transition: { duration: 0.3, ease: 'easeInOut' },
+        pathLength: [0, 1],
+        opacity: [0, 1],
+        transition: { duration: 0.4, ease: 'easeInOut' },
       },
     },
-    path1: {},
-    path2: {},
-    path3: {},
-  } satisfies Record<string, Variants>,
-  'default-loop': {
-    group: {
-      initial: {
-        y: 0,
-        transition: { duration: 0.6, ease: 'easeInOut' },
-      },
+    head: {
+      initial: { opacity: 1, scale: 1, transformOrigin: '50% 0%' },
       animate: {
-        y: [0, -2, 0],
-        transition: { duration: 0.6, ease: 'easeInOut' },
+        opacity: [0, 1],
+        scale: [0.3, 1],
+        transformOrigin: '50% 0%',
+        transition: { duration: 0.3, ease: 'easeOut', delay: 0.3 },
       },
     },
-    path1: {},
-    path2: {},
-    path3: {},
   } satisfies Record<string, Variants>,
 } as const;
 
@@ -62,23 +51,16 @@ function IconComponent({ size, ...props }: UploadProps) {
       strokeLinejoin="round"
       {...props}
     >
-      <motion.g variants={variants.group} initial="initial" animate={controls}>
-        <motion.path
-          d="M12 3v12"
-          variants={variants.path1}
-          initial="initial"
-          animate={controls}
-        />
-        <motion.path
-          d="m17 8-5-5-5 5"
-          variants={variants.path2}
-          initial="initial"
-          animate={controls}
-        />
-      </motion.g>
+      <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
       <motion.path
-        d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
-        variants={variants.path3}
+        d="M12 15V2"
+        variants={variants.shaft}
+        initial="initial"
+        animate={controls}
+      />
+      <motion.path
+        d="m16 6-4-4-4 4"
+        variants={variants.head}
         initial="initial"
         animate={controls}
       />

@@ -1,5 +1,6 @@
 import { ApiError } from "../../../services/api";
 import { showToast } from "../../../components/ui";
+import { showBrowserNotification } from "../../notifications/browserNotifications";
 import { useUploadNotificationStore } from "../../notifications/uploadNotificationStore";
 import { getUploadFile, removeUploadFile } from "./uploadFileStore";
 import { uploadService } from "./uploadService";
@@ -74,6 +75,12 @@ export function startUploadRuntime(
       cancelled: batch.cancelledFiles,
     });
     if (batch.status === "Completed") {
+      void showBrowserNotification(
+        translate("Upload batch completed"),
+        summary,
+      ).catch((error: unknown) => {
+        console.error("Could not show upload notification.", error);
+      });
       if (window.location.pathname === "/") {
         showToast.success(translate("Upload batch completed"), summary);
       } else {

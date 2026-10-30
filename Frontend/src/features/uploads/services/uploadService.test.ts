@@ -17,16 +17,16 @@ describe("uploadService date filtering", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it.each([
-    ["list", "/api/uploads/batches"],
-    ["listAll", "/api/uploads/admin/batches"],
+    ["list", "/api/sync/upload/batches"],
+    ["listAll", "/api/sync/upload/admin/batches"],
   ] as const)("preserves unfiltered %s requests", async (method, path) => {
     await uploadService[method](20, 10);
     expect(api).toHaveBeenCalledWith(`${path}?offset=20&limit=10`);
   });
 
   it.each([
-    ["list", "/api/uploads/batches"],
-    ["listAll", "/api/uploads/admin/batches"],
+    ["list", "/api/sync/upload/batches"],
+    ["listAll", "/api/sync/upload/admin/batches"],
   ] as const)("filters %s by the full local calendar day", async (method, path) => {
     await uploadService[method](0, 10, "2026-10-30");
     const query = new URLSearchParams({
@@ -46,6 +46,6 @@ describe("uploadService date filtering", () => {
       createdFrom: new Date(2026, 9, 31).toISOString(),
       createdBefore: new Date(2026, 10, 1).toISOString(),
     });
-    expect(api).toHaveBeenCalledWith(`/api/uploads/batches?${query}`);
+    expect(api).toHaveBeenCalledWith(`/api/sync/upload/batches?${query}`);
   });
 });

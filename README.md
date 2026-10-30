@@ -41,8 +41,8 @@ Existing photo coordinates and saved locations are unchanged by the provider swi
 
 The authenticated media API adds `ownerId` and nullable
 `location: { latitude, longitude }` to media responses. Owners/admins can
-`PUT /api/media/{mediaId}/location` with both decimal coordinates, or both null
-to remove the pin. `POST /api/media/locations/scan?offset=0` returns `scanned`,
+`PUT /api/location/travel/{mediaId}` with both decimal coordinates, or both null
+to remove the pin. `POST /api/location/travel/scan?offset=0` returns `scanned`,
 `located`, `failedMediaIds`, `nextOffset`, and `hasMore`; repeat using `nextOffset`
 until `hasMore` is false. Start a later retry at offset zero.
 
@@ -224,8 +224,8 @@ npm test -- --run
   not on a timer. Events cover batch creation, recovery, and progress, and reach only
   the owner and administrators. Connecting or
   reconnecting refreshes the upload list to catch missed events. The browser's
-  background upload worker also stays idle without polling `/api/uploads/queue`
-  or `/api/uploads/active`. Notifications, connection recovery, local submissions,
+  background upload worker also stays idle without polling `/api/sync/upload/queue`
+  or `/api/sync/upload/active`. Notifications, connection recovery, local submissions,
   retries, and cancellations wake it. It drains pending files sequentially, then
   waits for another change; failed requests retain retry backoff.
 - **Audit columns on every entity:** `created_by/created_at`, `updated_by/updated_at`,
@@ -236,7 +236,7 @@ npm test -- --run
   remaining in the table.
 - **Media trash workflow:** deleting media moves the file into
   `storage/Trash/<kind>/` and records `trash_relative_path`/`trashed_at` while keeping the
-  original `relative_path` for restoration (`POST /api/media/{id}/restore`). Filesystem
+  original `relative_path` for restoration (`POST /api/library/gallery/{id}/restore`). Filesystem
   and DB steps are kept consistent with verify-copy + compensation-rollback logic.
 - **Foreign keys never cascade** (`DeleteBehavior.NoAction` everywhere).
 
@@ -249,21 +249,25 @@ npm test -- --run
 | `/users?`                                        | GET            | admin — all accounts, pending first                            |
 | `/users/{id}/approve`                            | POST           | admin — activates a pending account                            |
 | `/users/{id}`                                    | DELETE         | admin — soft delete + session revoke                           |
-| `/media?offset=&limit=`                          | GET            | current user's media, optionally filtered by kind              |
-| `/media/favorites`                               | GET            | current user's favorited media                                 |
-| `/media/deleted`                                 | GET            | admin — deleted media                                          |
-| `/media/{id}/favorite`                           | POST/DELETE    | add/remove a media favorite                                    |
-| `/media/{id}/file`                               | GET            | authorized with header or `?accessToken=`                      |
-| `/media/{id}` / `/media/{id}/restore`            | DELETE/POST    | admin — media trash/restore                                    |
-| `/collections?scope=`                            | GET            | current user's or public albums                                |
-| `/collections`                                   | POST           | create an album                                                |
-| `/collections/{id}`                              | GET/PUT/DELETE | read, update, or delete an album                               |
-| `/collections/{id}/media`                        | GET/POST       | list or add album media                                        |
-| `/collections/{id}/media/{mediaId}`              | DELETE         | remove media from an album                                     |
-| `/uploads/batches`                               | GET/POST       | list batches or submit standalone media metadata               |
-| `/uploads/batches/{id}`                          | GET            | authorized — owner only (admins may view any batch)            |
-| `/uploads/admin/batches`                         | GET            | admin — all batches, including owner usernames                 |
-| `/uploads/batches/{id}/items/{itemId}/...`       | POST           | authorized — start, report progress, upload, cancel, or fail   |
+| `/library/gallery?offset=&limit=`                | GET            | current user's media, optionally filtered by kind              |
+| `/library/gallery/favorites`                     | GET            | current user's favorited media                                 |
+| `/library/gallery/deleted`                       | GET            | admin — deleted media                                          |
+| `/library/gallery/{id}/favorite`                 | POST/DELETE    | add/remove a media favorite                                    |
+| `/library/gallery/{id}/file`                     | GET            | authorized with header or `?accessToken=`                      |
+| `/library/gallery/{id}` / `/library/gallery/{id}/restore` | DELETE/POST | admin — media trash/restore                                |
+| `/library/album?scope=`                          | GET            | current user's or public albums                                |
+| `/library/album`                                 | POST           | create an album                                                |
+| `/library/album/{id}`                            | GET/PUT/DELETE | read, update, or delete an album                               |
+| `/library/album/{id}/media`                      | GET/POST       | list or add album media                                        |
+| `/library/album/{id}/media/{mediaId}`            | DELETE         | remove media from an album                                     |
+| `/location/travel/{mediaId}`                     | PUT            | set or clear photo coordinates                                |
+| `/location/travel/scan`                          | POST           | scan photo GPS coordinates                                    |
+| `/location/food`                                  | GET/POST       | list or create food places                                     |
+| `/location/food/{id}`                            | PUT/DELETE     | update or delete food places                                   |
+| `/sync/upload/batches`                           | GET/POST       | list batches or submit standalone media metadata               |
+| `/sync/upload/batches/{id}`                      | GET            | authorized — owner only (admins may view any batch)            |
+| `/sync/upload/admin/batches`                     | GET            | admin — all batches, including owner usernames                 |
+| `/sync/upload/batches/{id}/items/{itemId}/...`   | POST           | authorized — start, report progress, upload, cancel, or fail   |
 
 Errors are RFC 7807 problem details (`application/problem+json`).
 

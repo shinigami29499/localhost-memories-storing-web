@@ -8,6 +8,7 @@ using Services.Requests.Food;
 namespace Apis.Controllers;
 
 [ApiController]
+[Route("api/location/food")]
 [Route("api/food-places")]
 [Authorize]
 public class FoodPlacesController(
@@ -30,7 +31,7 @@ public class FoodPlacesController(
     {
         var created = await foodPlaceService.CreateFoodPlaceAsync(
             currentUser.RequireUserId(), request, cancellationToken);
-        return Created($"/api/food-places/{created.Id}", created);
+        return Created($"/api/location/food/{created.Id}", created);
     }
 
     [HttpPut("{foodPlaceId:guid}")]

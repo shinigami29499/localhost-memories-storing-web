@@ -14,7 +14,7 @@ public interface IMediaRepository
         Guid mediaId, CancellationToken cancellationToken = default);
     Task PermanentlyDeleteMediaAsync(
         Guid mediaId, Guid actorId, CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<MediaFile>> GetMediaPageAsync(
+    Task<IReadOnlyList<(MediaFile Media, string? OwnerUsername)>> GetMediaPageAsync(
         int offset, int limit, string? mediaKind, Guid? favoriteUserId, bool includeDeleted,
         CancellationToken cancellationToken = default);
     Task<long> CountMediaAsync(

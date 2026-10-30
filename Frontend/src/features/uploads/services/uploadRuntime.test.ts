@@ -233,9 +233,9 @@ describe("media upload runtime", () => {
   });
 
   it.each([
-    ["/gallery/trash", "/"],
-    ["/", "/uploads"],
-    ["/", "/albums/example"],
+    ["/library/gallery/trash", "/"],
+    ["/", "/sync/upload"],
+    ["/", "/library/album/example"],
   ])("uses the completion route after navigating from %s to %s", async (initialPath, completionPath) => {
     window.history.replaceState(null, "", initialPath);
     const pending = item("route-file");

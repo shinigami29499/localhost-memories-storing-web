@@ -12,6 +12,7 @@ interface AuthState {
   refreshToken: string | null;
   setSession: (session: AuthSession) => void;
   setTokens: (accessToken: string, refreshToken: string) => void;
+  updateUser: (user: AuthUser) => void;
   clear: () => void;
 }
 
@@ -28,6 +29,7 @@ export const useAuthStore = create<AuthState>()(
           refreshToken: session.refreshToken,
         }),
       setTokens: (accessToken, refreshToken) => set({ accessToken, refreshToken }),
+      updateUser: (user) => set((state) => state.user?.id === user.id ? { user } : {}),
       clear: () => set({ user: null, accessToken: null, refreshToken: null }),
     }),
     { name: "shinigacim-auth" },

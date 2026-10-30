@@ -26,5 +26,6 @@ internal static class AuthMappings
             AccountStatus.Disabled => "disabled",
             _ => "active",
         },
-        user.CreatedAt);
+        user.CreatedAt,
+        user.AvatarSeed);
 }

@@ -129,12 +129,12 @@ describe("ThemeTogglerButton", () => {
       expect(button.disabled).toBe(true);
       expect(animate).toHaveBeenNthCalledWith(
         1,
-        { opacity: [1, 0], filter: ["blur(0px)", "blur(10px)"] },
+        { opacity: [1, 0] },
         expect.objectContaining({ duration: 280, pseudoElement: "::view-transition-old(root)" }),
       );
       expect(animate).toHaveBeenNthCalledWith(
         2,
-        { opacity: [0, 1], filter: ["blur(10px)", "blur(0px)"] },
+        { opacity: [0, 1] },
         expect.objectContaining({ duration: 280, pseudoElement: "::view-transition-new(root)" }),
       );
 

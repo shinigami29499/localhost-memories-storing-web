@@ -27,7 +27,7 @@ export function AlbumCard({ album, isOwner, showOwner = false, onEdit }: Props) 
 
   return (
     <article className="album-card">
-      <Link to={`/albums/${album.id}`} className="album-card__link" aria-label={t("Open album {name}", { name: album.name })}>
+      <Link to={`/library/album/${album.id}`} className="album-card__link" aria-label={t("Open album {name}", { name: album.name })}>
         <span ref={previewRef} className="album-card__media">
           {showImage ? (
             inView ? <img src={mediaPreviewUrl(preview)} alt="" loading="lazy" decoding="async" onError={() => setFailedId(preview)} /> : null

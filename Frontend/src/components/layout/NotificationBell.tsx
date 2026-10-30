@@ -84,7 +84,7 @@ export function NotificationBell() {
               {notifications.map((notification) => (
                 <li key={notification.id}>
                   <Link
-                    to="/uploads"
+                    to="/sync/upload"
                     className={`notification-bar__item${notification.readAt ? "" : " notification-bar__item--unread"}`}
                     onClick={() => {
                       setOpen(false);

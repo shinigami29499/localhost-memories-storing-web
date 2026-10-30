@@ -1,42 +1,127 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useIsMutating } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
-import { Button, ErrorState, Spinner } from "../../components/ui";
+import { Button, ErrorState, showToast, Spinner } from "../../components/ui";
 import { useLocale } from "../../context/LocaleContext";
+import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { useAuthStore } from "../../store/authStore";
+import { ApiError } from "../../services/api";
 import { mediaPreviewUrl } from "../../utils/media";
+import { useHomeLocation } from "../../features/locations/hooks/useHomeLocation";
 import { useLocations } from "../../features/locations/hooks/useLocations";
 import { LocationMap } from "../../features/locations/components/LocationMap";
 import { LocationEditor } from "../../features/locations/components/LocationEditor";
 import type { MediaFile, PickedLocation } from "../../features/media/types";
+import type { HomeLocation } from "../../features/locations/types";
 import "./locations.css";
 
 export function LocationsPage() {
   const { t } = useLocale();
-  const [searchParams] = useSearchParams();
+  const isMobile = useMediaQuery("(max-width: 640px)");
+  const [searchParams, setSearchParams] = useSearchParams();
   const requestedMediaId = searchParams.get("mediaId");
+  const focusedMediaId = searchParams.get("focusMediaId");
   const user = useAuthStore((state) => state.user);
-  const { query, media, scan, scanning, scanProgress, scanResult, scanError } = useLocations();
-  const [selection, setSelection] = useState<{ id: string; draft: PickedLocation | null } | null>(null);
+  const home = useHomeLocation(user?.id);
+  const { query, media, scanning, scanProgress, scanResult, scanError } = useLocations();
+  const [selection, setSelection] = useState<{ id: string; draft: PickedLocation | null; editing: boolean } | null>(null);
+  const [homePicking, setHomePicking] = useState(false);
+  const workspaceRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!requestedMediaId || selection) return;
     const requestedMedia = media.find((item) => item.id === requestedMediaId);
-    if (requestedMedia) setSelection({ id: requestedMedia.id, draft: requestedMedia.location ?? null });
+    if (requestedMedia) setSelection({ id: requestedMedia.id, draft: requestedMedia.location ?? null, editing: true });
   }, [media, requestedMediaId, selection]);
   const selectedId = selection?.id;
   const draft = selection?.draft ?? null;
   const saving = useIsMutating({ mutationKey: ["media-location"] }) > 0;
   const [failedPreviews, setFailedPreviews] = useState<Set<string>>(() => new Set());
   const selected = media.find((item) => item.id === selectedId);
-  const canEdit = !!selected && (selected.ownerId === user?.id || user?.role.toLowerCase() === "admin");
+  const focused = media.find((item) => item.id === focusedMediaId);
+  const showDetails = !!selected && !!selection?.editing && !isMobile;
+  const canMove = (item: MediaFile) => !isMobile && !saving
+    && (item.ownerId === user?.id || user?.role.toLowerCase() === "admin");
+  const canEdit = !!selected && !!selection?.editing && canMove(selected);
   const locatedCount = media.filter((item) => item.location).length;
-  const select = (item: MediaFile) => {
-    if (!saving) setSelection({ id: item.id, draft: item.location ?? null });
+  const clearSelection = useCallback(() => {
+    if (saving) return;
+    if (document.activeElement instanceof HTMLElement
+      && document.activeElement.closest(".locations__marker")) document.activeElement.blur();
+    setSelection(null);
+    const nextSearchParams = new URLSearchParams(searchParams);
+    nextSearchParams.delete("mediaId");
+    if (selected?.location) nextSearchParams.set("focusMediaId", selected.id);
+    else nextSearchParams.delete("focusMediaId");
+    setSearchParams(nextSearchParams, { replace: true });
+  }, [saving, selected, searchParams, setSearchParams]);
+
+  useEffect(() => {
+    if (isMobile || !selected || saving) return;
+    const hasOpenDialog = () => !!document.querySelector('[role="dialog"], [role="alertdialog"]');
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || event.defaultPrevented || hasOpenDialog()
+        || workspaceRef.current?.querySelector(".locations__scenes[open]")) return;
+      clearSelection();
+    };
+    const onPointerDown = (event: PointerEvent) => {
+      if (!(event.target instanceof Element) || hasOpenDialog()
+        || workspaceRef.current?.contains(event.target)
+        || event.target.closest(".locations__photo")) return;
+      clearSelection();
+    };
+    document.addEventListener("keydown", onKeyDown, true);
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown, true);
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
+  }, [isMobile, selected, saving, clearSelection]);
+
+  useEffect(() => {
+    if (!selected || saving || (!isMobile && selection?.editing)) return;
+    const dismissPreview = (event: MouseEvent) => {
+      if (!(event.target instanceof Element)
+        || document.querySelector('[role="dialog"], [role="alertdialog"]')
+        || event.target.closest(".locations__marker, .locations__cluster-toggle, .locations__photo, .locations__map-home-control")) return;
+      clearSelection();
+    };
+    document.addEventListener("click", dismissPreview);
+    return () => document.removeEventListener("click", dismissPreview);
+  }, [selected, saving, isMobile, selection?.editing, clearSelection]);
+
+  const select = (item: MediaFile, editing = false) => {
+    if (saving) return;
+    if (focusedMediaId) {
+      const nextSearchParams = new URLSearchParams(searchParams);
+      nextSearchParams.delete("focusMediaId");
+      setSearchParams(nextSearchParams, { replace: true });
+    }
+    if (selection?.id === item.id) {
+      clearSelection();
+      return;
+    }
+    setSelection({ id: item.id, draft: item.location ?? null, editing });
   };
   const updateDraft = (id: string, location: PickedLocation | null) => {
-    setSelection((current) => current?.id === id ? { id, draft: location } : current);
+    setSelection((current) => current?.id === id ? { ...current, draft: location } : current);
   };
-
+  const movePhoto = (item: MediaFile, location: PickedLocation) => {
+    if (!canMove(item)) return;
+    const nextSearchParams = new URLSearchParams(searchParams);
+    nextSearchParams.delete("mediaId");
+    nextSearchParams.delete("focusMediaId");
+    setSearchParams(nextSearchParams, { replace: true });
+    setSelection({ id: item.id, draft: location, editing: true });
+  };
+  const pickHome = async (location: HomeLocation) => {
+    try {
+      await home.save.mutateAsync(location);
+      setHomePicking(false);
+      showToast.success(t("Home location saved."));
+    } catch (error) {
+      showToast.error(error instanceof ApiError ? error.message : t("Could not save your home location."));
+    }
+  };
   return (
     <main className="locations">
       <header className="locations__header">
@@ -44,11 +129,15 @@ export function LocationsPage() {
           <h1>{t("Locations")}<span className="brand__dot">.</span></h1>
           <p>{t("Explore where your photos were taken.")}</p>
         </div>
-        <Button variant="secondary" onClick={() => void scan()} busy={scanning}>
-          {t(scanning ? "Scanning photos…" : "Scan existing photos")}
-        </Button>
       </header>
       <p className="locations__hint">{t("Mapbox requires internet access and receives map coordinates. Photos stay on this server.")}</p>
+      {homePicking && (
+        <div className="locations__notice" role="status">
+          <span>{t("Click the map or search for a place to set your home location.")}</span>
+          <Button type="button" variant="secondary" disabled={home.save.isPending}
+            onClick={() => setHomePicking(false)}>{t("Cancel")}</Button>
+        </div>
+      )}
       {scanning && (
         <p className="locations__notice" role="status">
           {t("Scanned {count} photos.", { count: scanProgress })}
@@ -72,12 +161,25 @@ export function LocationsPage() {
         <ErrorState message="Could not load photos." onRetry={() => void query.refetch()} />
       ) : (
         <>
-          <div className={`locations__workspace${selected ? "" : " locations__workspace--map-only"}`}>
+          <div ref={workspaceRef} className={`locations__workspace${showDetails ? "" : " locations__workspace--map-only"}`}>
             <div className="locations__map-panel">
-              <LocationMap media={media} selected={selected} draft={draft} editable={canEdit && !saving}
-                onSelect={select} onPick={(location) => { if (selected) updateDraft(selected.id, location); }} />
+              <LocationMap media={media} selected={selected} focused={focused} draft={draft} editable={canEdit && !saving}
+                homeLocation={home.query.data ?? null} homeLocationReady={home.query.isFetched}
+                homeActionDisabled={saving || home.save.isPending}
+                homePicking={homePicking} onSelect={select} canMove={canMove} onMove={movePhoto}
+                onPick={(location) => { if (selected) updateDraft(selected.id, location); }}
+                onPickHome={(location) => void pickHome(location)}
+                onHomeClick={() => {
+                  setSelection(null);
+                  const nextSearchParams = new URLSearchParams(searchParams);
+                  nextSearchParams.delete("mediaId");
+                  nextSearchParams.delete("focusMediaId");
+                  setSearchParams(nextSearchParams, { replace: true });
+                  setHomePicking(!home.query.data);
+                }}
+                onHomeMarkerClick={() => setHomePicking(true)} />
             </div>
-            {selected && (
+            {selected && showDetails && (
               <aside className="locations__details" aria-label={t("Selected photo")}>
                 <div className="locations__details-head">
                   <h2>{selected.originalFilename}</h2>
@@ -98,7 +200,15 @@ export function LocationsPage() {
                 )}
                 {canEdit ? (
                   <LocationEditor key={selected.id} media={selected} draft={draft}
-                    onChange={(location) => updateDraft(selected.id, location)} />
+                    onChange={(location) => updateDraft(selected.id, location)}
+                    onCancel={clearSelection}
+                    onSaved={() => {
+                      const nextSearchParams = new URLSearchParams(searchParams);
+                      nextSearchParams.delete("mediaId");
+                      nextSearchParams.set("focusMediaId", selected.id);
+                      setSearchParams(nextSearchParams, { replace: true });
+                      setSelection(null);
+                    }} />
                 ) : <p className="locations__hint">{t("Only the uploader or an administrator can change this location.")}</p>}
               </aside>
             )}
@@ -106,7 +216,7 @@ export function LocationsPage() {
           {query.isFetchNextPageError && <ErrorState message="Could not load all photos." onRetry={() => void query.fetchNextPage()} />}
           {query.isRefetchError && <ErrorState message="Could not refresh photos." onRetry={() => void query.refetch()} />}
           {query.hasNextPage && !query.isFetchNextPageError && <Spinner label="Loading photos…" />}
-          {!!media.length && (
+          {!isMobile && !!media.length && (
             <>
               <div className="locations__library-header">
                 <h2>{t("Photos")} <span>{t("{located} of {total} located", { located: locatedCount, total: query.data?.pages[0]?.total ?? 0 })}</span></h2>
@@ -115,7 +225,7 @@ export function LocationsPage() {
                 {media.map((item) => (
                   <li key={item.id}>
                     <button type="button" className="locations__photo" aria-pressed={selectedId === item.id} disabled={saving}
-                      onClick={() => select(item)}>
+                      onClick={() => select(item, true)}>
                       {!failedPreviews.has(item.id) && <img src={mediaPreviewUrl(item.id)} alt="" loading="lazy"
                         onError={() => setFailedPreviews((previous) => new Set(previous).add(item.id))} />}
                       <span>{item.originalFilename}</span>

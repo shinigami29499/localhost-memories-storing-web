@@ -79,7 +79,7 @@
   width: 32px;
   z-index: 3;
 }
-.food__map-home-control:hover { background: var(--surface-hover); }
+.food__map-home-control:hover { background: var(--surface-raised); }
 .food__map-home-control:disabled { cursor: not-allowed; opacity: 0.6; }
 .food__map-home-control:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 3px; }
 
@@ -121,10 +121,6 @@
 .food__scenes[open] { width: min(264px, calc(100% - 32px)); }
 
 .food__location-search {
-  background: var(--sidebar-bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-popover);
   position: absolute;
   right: 16px;
   top: 16px;
@@ -132,10 +128,24 @@
   z-index: 5;
 }
 
-.food__location-search-form { align-items: center; display: flex; padding: 4px; position: relative; }
+.food__location-search-form {
+  align-items: center;
+  background: var(--sidebar-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-popover);
+  display: flex;
+  padding: 4px;
+  position: relative;
+}
+.food .food__location-search-input,
+.food .food__scenes-title {
+  height: 44px;
+  min-height: 44px;
+}
 .food .food__location-search-input {
   background: var(--surface);
-  border: 1px solid var(--border-control);
+  border: 1px solid transparent;
   border-radius: 8px;
   color: var(--text);
   flex: 1;
@@ -160,11 +170,22 @@
   width: 18px;
 }
 @keyframes food-search-spin { to { transform: rotate(360deg); } }
-.food__location-search-message { font-size: 0.8125rem; margin: 0 !important; padding: 4px 12px 10px; }
+.food__location-search-message {
+  background: var(--sidebar-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-popover);
+  font-size: 0.8125rem;
+  margin: 4px 0 0 !important;
+  padding: 4px 12px 10px;
+}
 .food__location-search-results {
-  border-top: 1px solid var(--border);
+  background: var(--sidebar-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-popover);
   list-style: none;
-  margin: 0;
+  margin: 4px 0 0;
   max-height: 240px;
   overflow-y: auto;
   padding: 4px;
@@ -192,7 +213,6 @@
   gap: 12px;
   list-style: none;
   margin: 0;
-  min-height: 44px;
   padding: 10px 12px;
 }
 
@@ -247,7 +267,7 @@
 .food__pin {
   align-items: center;
   background: var(--marker-color, var(--accent-strong));
-  border: 3px solid var(--surface-raised);
+  border: 3px solid #fff;
   border-radius: 50% 50% 50% 0;
   color: #fff;
   cursor: pointer;
@@ -261,12 +281,13 @@
   top: 0;
   transform: rotate(-45deg);
   width: 40px;
-  box-shadow: 0 2px 6px rgb(0 0 0 / 45%);
+  box-shadow: 0 0 0 2px #fff, 0 2px 6px rgb(0 0 0 / 70%);
+  transition: scale 140ms ease-out;
 }
 
 .food__pin > span { transform: rotate(45deg); }
-.food__pin:hover { border-color: var(--focus-ring); }
-.food__pin[aria-pressed="true"] { border-color: var(--focus-ring); box-shadow: 0 0 0 2px var(--bg); }
+.food__pin:is(:hover, :focus-visible, :active, [aria-pressed="true"]) { scale: 1.1; }
+.food__pin:is(:hover, [aria-pressed="true"]) { border-color: #fff; }
 
 .food__pin--draft {
   border-style: dashed;
@@ -275,46 +296,41 @@
 }
 
 .food__home-pin {
-  align-items: center;
-  background: var(--surface-raised);
-  border: 2px solid var(--accent-strong);
-  border-radius: 50%;
-  box-shadow: 0 2px 6px rgb(0 0 0 / 45%);
-  color: var(--accent-strong);
-  display: inline-flex;
-  cursor: pointer;
-  height: 36px;
-  justify-content: center;
-  padding: 0;
-  width: 36px;
+  touch-action: none;
+  user-select: none;
+  background: #30353b;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 2px #fff, 0 2px 6px rgb(0 0 0 / 70%);
+  color: #fff;
 }
 
-.food__home-pin:hover { background: var(--surface-hover); }
+.food__home-pin:hover { border-color: #fff; }
+.food__home-pin svg { stroke-width: 2.5; }
+.food__home-pin:focus-visible svg { color: #fff; }
 .food__home-pin:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 3px; }
 .food__home-dialog .food__coordinate-readout { margin-top: 0; }
 
 .food__popup {
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: #fff;
+  border: 4px solid #fff;
   border-radius: 10px;
   bottom: calc(100% + 12px);
   box-shadow: var(--shadow-popover);
-  color: var(--text);
+  color: #30353b;
   display: grid;
   gap: 4px;
   left: 50%;
   opacity: 0;
-  padding: 10px 12px;
+  padding: 0 0 8px;
   pointer-events: none;
   position: absolute;
   transform: translate(-50%, 4px);
   transition: opacity 120ms ease, transform 120ms ease, visibility 120ms ease;
   visibility: hidden;
-  width: min(260px, calc(100vw - 48px));
+  width: min(180px, calc(100vw - 48px));
   z-index: 6;
 }
 
-.food__marker:hover .food__popup,
 .food__marker:focus-within .food__popup,
 .food__marker[data-selected="true"] .food__popup {
   opacity: 1;
@@ -322,25 +338,35 @@
   visibility: visible;
 }
 
+@media (hover: hover) and (pointer: fine) {
+  .food__marker:hover .food__popup {
+    opacity: 1;
+    transform: translate(-50%, 0);
+    visibility: visible;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .food__pin { transition: none; }
   .food__popup { transition: none; }
 }
 
 .food__popup::after {
   border: 8px solid transparent;
-  border-top-color: var(--surface);
+  border-top-color: #fff;
   content: "";
   left: calc(50% - 8px);
   position: absolute;
   top: 100%;
 }
 
+.food__popup > :not(.food__popup-cover) { margin-inline: 8px; }
 .food__popup strong { font-size: 0.8125rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.food__popup small { color: var(--text-muted); font-size: 0.75rem; }
+.food__popup small { color: inherit; font-size: 0.75rem; overflow-wrap: anywhere; }
 
 .food__popup-cover {
-  aspect-ratio: 16 / 9;
-  background: var(--surface-raised);
+  aspect-ratio: 3 / 4;
+  background: #fff;
   border-radius: 6px;
   margin-bottom: 4px;
   overflow: hidden;
@@ -422,7 +448,7 @@
 .food-picker {
   background: var(--surface-card);
   border-radius: var(--radius);
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--shadow-popover);
   color: var(--text);
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
@@ -667,11 +693,26 @@
 @media (max-width: 640px) {
   .food { padding: 16px 8px; }
   .food__map-panel { height: max(360px, calc(100dvh - var(--app-topbar-height, 68px) - 220px)); }
-  .food__map-home-control { bottom: 112px; right: 8px; }
+  .food__map-home-control { bottom: 96px; }
   .food__scenes { left: 8px; max-height: calc(100% - 16px); top: 8px; }
-  .food__location-search { right: 8px; top: 8px; width: min(320px, calc(100% - 72px)); }
+  .food__scenes:not([open]) { width: 54px; }
+  .food .food__scenes:not([open]) .food__scenes-title { justify-content: center; padding: 0; }
+  .food__scenes:not([open]) .food__scenes-label,
+  .food__scenes:not([open]) .food__scenes-chevron { display: none; }
+  .food__location-search { right: 8px; top: 8px; width: 54px; }
+  .food__location-search:focus-within { width: min(320px, calc(100% - 78px)); z-index: 6; }
+  .food__location-search:not(:focus-within) .food__location-search-input {
+    background: transparent;
+    color: transparent;
+    cursor: text;
+    padding: 0;
+  }
+  .food__location-search:not(:focus-within) .food__location-search-input::placeholder { color: transparent; }
+  .food__location-search:not(:focus-within) .food__location-search-icon { right: 17px; }
+  .food__location-search:not(:focus-within) .food__location-search-message,
+  .food__location-search:not(:focus-within) .food__location-search-results { display: none; }
   .food__location-search-results { max-height: 200px; }
-  .food__scenes[open] { width: min(200px, calc(100% - 16px)); }
+  .food__scenes[open] { width: min(200px, calc(100% - 78px)); }
   .food__dialog { max-height: calc(100dvh - 16px); max-width: calc(100vw - 16px); }
   .food__dialog-header { padding: 12px 16px; }
   .food__dialog-body { max-height: calc(100dvh - 88px); padding: 16px; }

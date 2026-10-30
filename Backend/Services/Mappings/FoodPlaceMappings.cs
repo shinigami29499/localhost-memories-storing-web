@@ -15,7 +15,7 @@ internal static class FoodPlaceMappings
         source.Place.Rating,
         source.Place.MarkerIcon,
         source.Place.MarkerColor,
-        new UserSummaryDto(source.Owner.Id, source.Owner.Username),
+        new UserSummaryDto(source.Owner.Id, source.Owner.Username, source.Owner.AvatarSeed),
         source.Place.CreatedAt,
         source.Place.UpdatedAt,
         source.MediaIds);

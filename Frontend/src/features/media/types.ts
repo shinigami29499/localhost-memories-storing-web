@@ -7,6 +7,7 @@ export interface MediaFile {
   createdAt: string;
   isFavorited: boolean;
   ownerId?: string;
+  ownerUsername?: string | null;
   location?: PhotoLocation | null;
 }
 

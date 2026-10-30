@@ -49,11 +49,11 @@ export function ThemeTogglerButton({ className = "" }: { className?: string }) {
         easing: fadeTiming.easing,
       };
       const oldScreen = root.animate(
-        { opacity: [1, 0], filter: ["blur(0px)", "blur(10px)"] },
+        { opacity: [1, 0] },
         { ...animationOptions, pseudoElement: "::view-transition-old(root)" },
       );
       const newScreen = root.animate(
-        { opacity: [0, 1], filter: ["blur(10px)", "blur(0px)"] },
+        { opacity: [0, 1] },
         { ...animationOptions, pseudoElement: "::view-transition-new(root)" },
       );
       await Promise.all([oldScreen.finished, newScreen.finished]);

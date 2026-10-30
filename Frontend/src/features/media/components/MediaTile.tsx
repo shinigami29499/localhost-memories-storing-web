@@ -1,9 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useInView } from "motion/react";
-import { useShouldReduceMotion } from "@animate-ui/react/utils/motion";
-import { AnimateIcon } from "@/components/animate-ui/icons/icon";
-import { Checkbox as CheckboxPrimitive } from "@animate-ui/react/primitives/base-ui/checkbox";
-import { Check } from "@/components/animate-ui/icons/check";
 import { RotateCcw } from "@/components/animate-ui/icons/rotate-ccw";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import { useLocale } from "../../../context/LocaleContext";
@@ -67,7 +63,6 @@ export function MediaTile({
   const previewUrl = `${url}${attempt ? `${url.includes("?") ? "&" : "?"}previewRetry=${attempt}` : ""}`;
   const tileRef = useRef<HTMLButtonElement>(null);
   const inView = useInView(tileRef, { margin: "200px 0px" });
-  const shouldReduceMotion = useShouldReduceMotion();
   const isSelecting = selectionEnabled && selectionMode;
   const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -103,13 +98,6 @@ export function MediaTile({
   };
 
   return (
-    <AnimateIcon
-      animate={shouldReduceMotion ? false : undefined}
-      animateOnHover
-      animateOnTap
-      completeOnStop
-      asChild
-    >
       <button
         ref={tileRef}
         type="button"
@@ -196,17 +184,15 @@ export function MediaTile({
         onDoubleClick={favorite}
       >
       {isSelecting ? (
-        <CheckboxPrimitive.Root
-          className="media-tile__selection"
-          checked={selected}
-          readOnly
-          tabIndex={-1}
-          aria-hidden="true"
-        >
-          <CheckboxPrimitive.Indicator className="media-tile__selection-indicator">
-            <Check size={14} />
-          </CheckboxPrimitive.Indicator>
-        </CheckboxPrimitive.Root>
+        <span className="media-tile__selection" aria-hidden="true">
+          <span className="media-tile__selection-indicator">
+            {selected ? (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m4 12 5 5L20 6" />
+              </svg>
+            ) : null}
+          </span>
+        </span>
       ) : null}
       <span className="media-tile__motion">
         {failed || (!inView && !retrying) ? null : (
@@ -221,6 +207,5 @@ export function MediaTile({
         </span>
       ) : null}
       </button>
-    </AnimateIcon>
   );
 }

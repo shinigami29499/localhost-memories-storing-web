@@ -12,6 +12,7 @@ using Services.Responses.Uploads;
 namespace Apis.Controllers;
 
 [ApiController]
+[Route("api/sync/upload")]
 [Route("api/uploads")]
 [Authorize]
 public sealed class UploadsController(
@@ -40,7 +41,7 @@ public sealed class UploadsController(
             _currentUser.RequireUserId(), request, cancellationToken);
         await notificationsHub.NotifyUploadsChangedAsync(
             _currentUser.RequireUserId(), logger, cancellationToken);
-        return Created($"/api/uploads/batches/{batch.Id}", batch);
+        return Created($"/api/sync/upload/batches/{batch.Id}", batch);
     }
 
     [RequireAdmin]

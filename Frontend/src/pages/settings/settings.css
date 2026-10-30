@@ -1,0 +1,222 @@
+.settings-page {
+  min-height: 100%;
+  padding: 40px 24px 72px;
+}
+
+.settings-page__inner {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.settings-page__header {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 32px;
+}
+
+.settings-page__header h1 {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: clamp(1.75rem, 3vw, 2.25rem);
+  letter-spacing: -0.04em;
+  line-height: 1.15;
+}
+
+.settings-page__header p {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.settings-page__section h2 {
+  margin: 0 0 16px;
+  color: var(--text-strong);
+  font-size: 1.1rem;
+}
+
+.settings-page__fields {
+  display: grid;
+  gap: 12px;
+}
+
+.settings-page__field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 240px);
+  align-items: center;
+  gap: 20px;
+  padding: 16px;
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.settings-page__field > label,
+.settings-page__field-copy label {
+  color: var(--text-strong);
+  font-weight: 600;
+}
+
+.settings-page__field-copy {
+  display: grid;
+  gap: 5px;
+}
+
+.settings-page__field-copy p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.settings-page__transition-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.375rem;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--border-control);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text-strong);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.settings-page__transition-trigger:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
+}
+
+.settings-page__transition-trigger[data-disabled] {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.settings-page__transition-icon {
+  flex: 0 0 auto;
+  color: var(--text-muted);
+  transition: transform 0.15s ease;
+}
+
+.settings-page__transition-trigger[data-open] .settings-page__transition-icon {
+  transform: rotate(180deg);
+}
+
+.settings-page__transition-positioner {
+  z-index: 30;
+  width: var(--anchor-width);
+}
+
+.settings-page__transition-popup {
+  max-height: min(20rem, var(--available-height));
+  overflow: auto;
+  padding: 0.25rem;
+  border: 1px solid var(--border-control);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text-strong);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.settings-page__transition-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.settings-page__transition-item {
+  display: flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0.375rem 0.5rem;
+  border-radius: 4px;
+  color: var(--text-strong);
+  cursor: pointer;
+  outline: none;
+}
+
+.settings-page__transition-item:hover,
+.settings-page__transition-item[data-highlighted] {
+  background: var(--surface-hover);
+}
+
+.settings-page__transition-item[data-selected] {
+  background: var(--surface-hover);
+}
+
+.settings-page__transition-item[data-disabled] {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.settings-page__field select:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.settings-page__mobile-notifications {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .settings-page {
+    padding: 16px 12px 24px;
+  }
+
+  .settings-page__field {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .settings-page__mobile-notifications {
+    display: block;
+    margin-top: 28px;
+  }
+
+  .settings-page__mobile-notifications h2 {
+    margin: 0 0 12px;
+    color: var(--text-strong);
+    font-size: 1.1rem;
+  }
+
+  .settings-page__notification {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+  }
+
+  .settings-page__notification input {
+    width: 16px;
+    height: 16px;
+    flex: 0 0 auto;
+    margin: 2px 0 0;
+    accent-color: var(--accent-strong);
+  }
+
+  .settings-page__notification-copy {
+    display: grid;
+    gap: 4px;
+  }
+
+  .settings-page__notification-copy label {
+    color: var(--text-strong);
+    font-weight: 600;
+  }
+
+  .settings-page__notification-copy p,
+  .settings-page__notification-note {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+  }
+
+  .settings-page__notification-note {
+    margin-top: 8px;
+    padding-inline: 12px;
+  }
+}

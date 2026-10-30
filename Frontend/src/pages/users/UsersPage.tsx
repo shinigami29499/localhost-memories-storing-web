@@ -17,6 +17,7 @@ import type { AuthUser } from "../../features/auth";
 import "../gallery/gallery.css";
 import "./users.css";
 import { useLocale } from "../../context/LocaleContext";
+import { UserAvatar } from "../../components/common/UserAvatar";
 
 const statusLabels: Record<string, string> = {
   active: "Active",
@@ -279,13 +280,12 @@ function UserRow({
 }: RowProps) {
   const { t } = useLocale();
   const isPending = user.status === "pending_approval";
-  const initials = user.username.slice(0, 2).toLocaleUpperCase();
 
   return (
     <tr>
       <td data-label={t("Member")}>
         <div className="admin-users__identity">
-          <span className="admin-users__avatar" aria-hidden="true">{initials}</span>
+          <UserAvatar user={user} className="admin-users__avatar" />
           <span className="admin-users__username">{user.username}</span>
         </div>
       </td>

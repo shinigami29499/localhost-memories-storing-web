@@ -27,6 +27,8 @@ const UsersPage = lazy(() => import("./pages/users/UsersPage").then((module) => 
 const LocationsPage = lazy(() => import("./pages/locations/LocationsPage").then((module) => ({ default: module.LocationsPage })));
 const FoodPage = lazy(() => import("./pages/food/FoodPage").then((module) => ({ default: module.FoodPage })));
 const UploadManagementPage = lazy(() => import("./pages/uploads/UploadManagementPage").then((module) => ({ default: module.UploadManagementPage })));
+const SettingsPage = lazy(() => import("./pages/settings/SettingsPage").then((module) => ({ default: module.SettingsPage })));
+const ProfilePage = lazy(() => import("./pages/profile/ProfilePage").then((module) => ({ default: module.ProfilePage })));
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 15_000, refetchOnWindowFocus: false } },
@@ -47,25 +49,36 @@ const router = createBrowserRouter([
         ),
         children: [
           { path: "/", element: <HomePage /> },
-          { path: "/gallery", element: <GalleryPage key="pictures" view="pictures" /> },
-          { path: "/gallery/videos", element: <GalleryPage key="videos" view="pictures" initialFilter="video" /> },
-          { path: "/gallery/favorites", element: <GalleryPage key="favorites" view="favorites" /> },
+          { path: "/library/gallery", element: <GalleryPage key="pictures" view="pictures" /> },
+          { path: "/library/gallery/videos", element: <GalleryPage key="videos" view="pictures" initialFilter="video" /> },
+          { path: "/library/gallery/favorites", element: <GalleryPage key="favorites" view="favorites" /> },
           {
-            path: "/gallery/trash",
+            path: "/library/gallery/trash",
             element: (
               <RequireAdmin>
                 <TrashPage />
               </RequireAdmin>
             ),
           },
-          { path: "/albums", element: <AlbumsPage /> },
-          { path: "/albums/:albumId", element: <AlbumPage /> },
+          { path: "/library/album", element: <AlbumsPage /> },
+          { path: "/library/album/:albumId", element: <AlbumPage /> },
+          { path: "/gallery", element: <Navigate replace to="/library/gallery" /> },
+          { path: "/gallery/videos", element: <Navigate replace to="/library/gallery/videos" /> },
+          { path: "/gallery/favorites", element: <Navigate replace to="/library/gallery/favorites" /> },
+          { path: "/gallery/trash", element: <Navigate replace to="/library/gallery/trash" /> },
+          { path: "/albums", element: <Navigate replace to="/library/album" /> },
+          { path: "/albums/:albumId", element: <LegacyAlbumRedirect /> },
           { path: "/saved", element: <LegacyAlbumRedirect /> },
           { path: "/saved/:albumId", element: <LegacyAlbumRedirect /> },
-          { path: "/uploads", element: <UploadManagementPage /> },
-          { path: "/locations", element: <LocationsPage /> },
-          { path: "/food", element: <FoodPage /> },
-          { path: "/uploads/new", element: <Navigate replace to="/uploads" /> },
+          { path: "/sync/upload", element: <UploadManagementPage /> },
+          { path: "/location/travel", element: <LocationsPage /> },
+          { path: "/location/food", element: <FoodPage /> },
+          { path: "/profile", element: <ProfilePage /> },
+          { path: "/settings", element: <SettingsPage /> },
+          { path: "/uploads", element: <Navigate replace to="/sync/upload" /> },
+          { path: "/uploads/new", element: <Navigate replace to="/sync/upload" /> },
+          { path: "/locations", element: <Navigate replace to="/location/travel" /> },
+          { path: "/food", element: <Navigate replace to="/location/food" /> },
           { path: "/users", element: <UsersPage /> },
           { path: "/admin/users", element: <Navigate replace to="/users" /> },
         ],
@@ -97,7 +110,7 @@ function RequireAdmin({ children }: { children: ReactNode }) {
 
 function LegacyAlbumRedirect() {
   const { albumId } = useParams<{ albumId: string }>();
-  return <Navigate replace to={albumId ? `/albums/${albumId}` : "/albums"} />;
+  return <Navigate replace to={albumId ? `/library/album/${albumId}` : "/library/album"} />;
 }
 
 export function App() {

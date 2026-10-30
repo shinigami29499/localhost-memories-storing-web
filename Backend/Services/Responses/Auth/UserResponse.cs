@@ -5,4 +5,5 @@ public record UserResponse(
     string Username,
     string Role,
     string Status,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    string? AvatarSeed = null);

@@ -11,6 +11,7 @@ using Services.Responses.Media;
 namespace Apis.Controllers;
 
 [ApiController]
+[Route("api/library/album")]
 [Route("api/collections")]
 [Authorize]
 public class CollectionsController(
@@ -39,7 +40,7 @@ public class CollectionsController(
     {
         var created = await collectionService.CreateCollectionAsync(
             currentUser.RequireUserId(), request, cancellationToken);
-        return Created($"/api/collections/{created.Id}", created);
+        return Created($"/api/library/album/{created.Id}", created);
     }
 
     [HttpPut("{collectionId:guid}")]

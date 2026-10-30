@@ -1,6 +1,7 @@
 export interface FoodPlaceOwner {
   id: string;
   username: string;
+  avatarSeed?: string | null;
 }
 
 export interface FoodPlace {
@@ -45,7 +46,7 @@ export const FOOD_MARKER_ICONS = [
 ] as const;
 
 export const FOOD_MARKER_COLORS = [
-  "#E2572B", "#F08C00", "#F2B705", "#2F9E44", "#1C7ED6", "#7048E8", "#E64980", "#495057",
+  "#E2572B", "#F08C00", "#F2B705", "#2F9E44", "#1C7ED6", "#0EA5E9", "#E64980", "#495057",
 ] as const;
 
 export const DEFAULT_FOOD_MARKER_ICON = FOOD_MARKER_ICONS[0];

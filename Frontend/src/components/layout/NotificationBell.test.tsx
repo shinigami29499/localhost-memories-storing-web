@@ -83,7 +83,7 @@ describe("NotificationBell", () => {
     });
 
     expect(container.textContent).toContain("Upload batch completed");
-    expect(container.querySelector(".notification-bar__item")?.getAttribute("href")).toBe("/uploads");
+    expect(container.querySelector(".notification-bar__item")?.getAttribute("href")).toBe("/sync/upload");
     expect(container.querySelector(".notification-bar__badge")).toBeNull();
     expect(useUploadNotificationStore.getState().items.find((item) => item.userId === "viewer")?.readAt).toBeTruthy();
     expect(useUploadNotificationStore.getState().items.find((item) => item.userId === "another-user")?.readAt).toBeNull();

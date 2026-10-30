@@ -1,3 +1,3 @@
 namespace Services.Models.Users;
 
-public sealed record UserSummaryDto(Guid Id, string Username);
+public sealed record UserSummaryDto(Guid Id, string Username, string? AvatarSeed = null);

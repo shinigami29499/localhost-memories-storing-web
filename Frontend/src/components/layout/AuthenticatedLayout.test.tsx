@@ -113,14 +113,14 @@ describe("AuthenticatedLayout sidebar", () => {
       user: { id: "admin", username: "Admin", role: "admin", status: "active", createdAt: "2026-01-01T00:00:00Z" },
     });
     await renderLayout();
-    expect(container.querySelector<HTMLAnchorElement>('[aria-label="Gallery"]')?.getAttribute("href")).toBe("/gallery");
-    expect(container.querySelector('[href="/gallery/trash"]')).not.toBeNull();
+    expect(container.querySelector<HTMLAnchorElement>('[aria-label="Gallery"]')?.getAttribute("href")).toBe("/library/gallery");
+    expect(container.querySelector('[href="/library/gallery/trash"]')).not.toBeNull();
   });
 
   it("uses an off-canvas drawer with a top bar on phones", async () => {
     narrowScreen = true;
     mobileScreen = true;
-    await renderLayout();
+    await renderLayout("/library/gallery");
     const shell = container.querySelector(".app-shell")!;
     expect(container.querySelector(".app-topbar .brand")).toBeNull();
     expect(shell.getAttribute("data-state")).toBe("collapsed");
@@ -205,7 +205,7 @@ describe("AuthenticatedLayout sidebar", () => {
   it("shows the brand on non-home pages and keeps controls inside the mobile header", async () => {
     narrowScreen = true;
     mobileScreen = true;
-    await renderLayout("/albums");
+    await renderLayout("/library/album");
     const header = container.querySelector(".app-topbar");
     expect(header?.querySelector(".brand")).not.toBeNull();
     expect(header?.querySelector(".notification-bar")).not.toBeNull();

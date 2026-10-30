@@ -121,8 +121,8 @@ describe("HomePage", () => {
     await renderPage();
     expect(container.querySelectorAll(".album-feed-post img")).toHaveLength(2);
     expect(container.querySelectorAll("video")).toHaveLength(0);
-    expect(container.querySelector('a[href="/albums/own-album"]')).not.toBeNull();
-    expect(container.querySelector('a[href="/albums/public-album"]')).not.toBeNull();
+    expect(container.querySelector('a[href="/library/album/own-album"]')).not.toBeNull();
+    expect(container.querySelector('a[href="/library/album/public-album"]')).not.toBeNull();
     expect(container.querySelector('img[src*="own-preview"]')).not.toBeNull();
     expect(container.querySelector('img[src*="public-preview"]')).not.toBeNull();
     expect(albumService.list).toHaveBeenCalledWith("mine", undefined);
@@ -134,7 +134,7 @@ describe("HomePage", () => {
     await act(async () => { pointerClick(preview(), 1); });
     expect(location()).toBe("/");
     await act(async () => { await new Promise((resolve) => setTimeout(resolve, 400)); });
-    expect(location()).toBe("/albums/own-album");
+    expect(location()).toBe("/library/album/own-album");
     expect(mediaService.favorite).not.toHaveBeenCalled();
   });
 
@@ -154,7 +154,7 @@ describe("HomePage", () => {
     expect(modifiedClick.defaultPrevented).toBe(false);
     expect(location()).toBe("/");
     await act(async () => { preview().click(); });
-    expect(location()).toBe("/albums/own-album");
+    expect(location()).toBe("/library/album/own-album");
   });
 
   it("hides favorite and save actions and does not unfavorite on double-click", async () => {
@@ -204,7 +204,7 @@ describe("HomePage", () => {
     await doubleClick();
     expect(mediaService.favorite).not.toHaveBeenCalled();
     await act(async () => preview().click());
-    expect(location()).toBe("/albums/own-album");
+    expect(location()).toBe("/library/album/own-album");
   });
 
   it("reports favorite failures and leaves navigation and state unchanged", async () => {

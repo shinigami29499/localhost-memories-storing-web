@@ -9,6 +9,7 @@ using Services.Responses.Media;
 namespace Apis.Controllers;
 
 [ApiController]
+[Route("api/library/gallery")]
 [Route("api/media")]
 [Authorize]
 public sealed class MediaFavoritesController(IMediaService mediaService, ICurrentUserContext currentUser) : ControllerBase

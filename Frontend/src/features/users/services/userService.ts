@@ -1,8 +1,16 @@
 import { api } from "../../../services/api";
 import type { AuthUser } from "../../auth/types";
 
-/** Admin-only user management endpoints under /api/users. */
+/** Account profiles and user management endpoints under /api/users. */
 export const userService = {
+  profile(): Promise<AuthUser> {
+    return api("/api/users/me");
+  },
+
+  setAvatar(seed: string): Promise<AuthUser> {
+    return api("/api/users/me/avatar", { method: "PUT", body: { seed } });
+  },
+
   list(): Promise<AuthUser[]> {
     return api("/api/users");
   },

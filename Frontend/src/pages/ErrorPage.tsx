@@ -27,7 +27,7 @@ export function ErrorPage() {
     <main className="error-page">
       <div className="error-page__content">
         <div className="error-page__icon">
-          <span>⚠️</span>
+          <span aria-hidden="true">!</span>
         </div>
         <h1 className="error-page__title">{t(title)}</h1>
         <p className="error-page__message">{t(message)}</p>

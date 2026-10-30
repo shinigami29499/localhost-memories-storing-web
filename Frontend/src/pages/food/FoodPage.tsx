@@ -1,4 +1,4 @@
-import { useState, useMemo, type CSSProperties } from "react";
+import { useCallback, useEffect, useState, useMemo, type CSSProperties } from "react";
 import {
   Button,
   ConfirmationDialog,
@@ -78,13 +78,11 @@ export function FoodPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [placeToDelete, setPlaceToDelete] = useState<FoodPlace | null>(null);
   const [manualHomePick, setManualHomePick] = useState(false);
-  const [homePromptDismissed, setHomePromptDismissed] = useState(false);
   const [homeDialogOpen, setHomeDialogOpen] = useState(false);
   const [confirmHomeRemoval, setConfirmHomeRemoval] = useState(false);
 
   const places = query.data ?? [];
-  const homePrompt = home.query.isSuccess && !home.query.data && !homePromptDismissed;
-  const homePicking = manualHomePick || (homePrompt && !editor);
+  const homePicking = manualHomePick;
   const selected = places.find((place) => place.id === selectedId);
   const canEdit = (place: FoodPlace) => place.owner.id === user?.id || isAdmin;
   const mapPlaces = useMemo(
@@ -92,12 +90,28 @@ export function FoodPage() {
     [places, editor?.id, editor?.coordinate],
   );
   const rated = places.filter((place) => place.rating > 0).length;
+  const clearPreview = useCallback(() => {
+    if (document.activeElement instanceof HTMLElement
+      && document.activeElement.closest(".food__marker")) document.activeElement.blur();
+    setSelectedId(null);
+  }, []);
+
+  useEffect(() => {
+    if (!selectedId || editor || save.isPending || remove.isPending) return;
+    const dismissPreview = (event: MouseEvent) => {
+      if (!(event.target instanceof Element)
+        || document.querySelector('[role="dialog"], [role="alertdialog"]')
+        || event.target.closest(".food__marker, .food__card, .food__map-home-control")) return;
+      clearPreview();
+    };
+    document.addEventListener("click", dismissPreview);
+    return () => document.removeEventListener("click", dismissPreview);
+  }, [selectedId, editor, save.isPending, remove.isPending, clearPreview]);
 
   const pickHome = async (coordinate: FoodCoordinate) => {
     try {
       await home.save.mutateAsync(coordinate);
       setManualHomePick(false);
-      setHomePromptDismissed(true);
       showToast.success(t("Home location saved."));
     } catch (error) {
       showToast.error(error instanceof ApiError ? error.message : t("Could not save your home location."));
@@ -106,12 +120,20 @@ export function FoodPage() {
 
   const cancelHomePick = () => {
     setManualHomePick(false);
-    setHomePromptDismissed(true);
+  };
+
+  const startHomePick = () => {
+    setHomeDialogOpen(false);
+    setManualHomePick(true);
+  };
+
+  const openHomeDialog = () => {
+    setHomeDialogOpen(true);
+    void home.query.refetch();
   };
 
   const removeHomeLocation = async () => {
     await home.clear.mutateAsync();
-    setHomePromptDismissed(false);
     showToast.success(t("Home location removed."));
   };
 
@@ -129,7 +151,10 @@ export function FoodPage() {
   /** Moves a draft marker or starts a new place at the selected map point. */
   const pickOnMap = (coordinate: FoodCoordinate, placeName?: string) => {
     if (!editor) {
-      if (!home.query.data) setHomePromptDismissed(false);
+      if (selectedId) {
+        clearPreview();
+        return;
+      }
       setSelectedId(null);
       setFormError(null);
       setEditor({ coordinate, values: { ...emptyValues, name: placeName ?? "" } });
@@ -206,44 +231,12 @@ export function FoodPage() {
           </Button>
         </div>
       )}
-      {home.query.isError && (
-        <div className="food__notice" role="alert">
-          <span>{t("Could not load your home location.")}</span>
-          <Button type="button" variant="secondary" onClick={() => void home.query.refetch()}>
-            {t("Retry")}
-          </Button>
-        </div>
-      )}
-      {(homePrompt || manualHomePick) && (
+      {manualHomePick && (
         <div className="food__notice" role="status">
-          <span>{t(manualHomePick
-            ? "Click the map to set your home location."
-            : editor
-              ? "Your home location is not set."
-              : "Home not set.")}</span>
-          {manualHomePick ? (
-            <Button type="button" variant="secondary" disabled={home.save.isPending} onClick={cancelHomePick}>
-              {t("Cancel")}
-            </Button>
-          ) : editor ? (
-            <>
-              <Button type="button" disabled={home.save.isPending} onClick={() => setManualHomePick(true)}>
-                {t("Set home")}
-              </Button>
-              <Button type="button" variant="secondary" onClick={cancelHomePick}>
-                {t("Not now")}
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button type="button" disabled={home.save.isPending} onClick={() => setManualHomePick(true)}>
-                {t("Add now")}
-              </Button>
-              <Button type="button" variant="secondary" onClick={cancelHomePick}>
-                {t("Set home later")}
-              </Button>
-            </>
-          )}
+          <span>{t("Click the map to set your home location.")}</span>
+          <Button type="button" variant="secondary" disabled={home.save.isPending} onClick={cancelHomePick}>
+            {t("Cancel")}
+          </Button>
         </div>
       )}
 
@@ -261,19 +254,18 @@ export function FoodPage() {
                 draftColor={editor?.values.markerColor ?? DEFAULT_FOOD_MARKER_COLOR}
                 picking={!!editor}
                 homeLocation={home.query.data ?? null}
-                homeLocationReady={home.query.isSuccess || home.query.isError}
+                homeLocationReady={home.query.isFetched}
+                homeActionDisabled={save.isPending || remove.isPending || home.save.isPending}
                 homePicking={homePicking}
                 onSelect={selectPlace}
                 onPickHome={(coordinate) => void pickHome(coordinate)}
-                onHomeUnavailable={() => {
-                  if (home.query.isSuccess) setHomeDialogOpen(true);
-                  else void home.query.refetch();
+                onHomeClick={() => {
+                  setSelectedId(null);
+                  setEditor(null);
+                  setFormError(null);
+                  setManualHomePick(false);
+                  if (!home.query.data) openHomeDialog();
                 }}
-                onRequestHomePick={() => {
-                  setHomePromptDismissed(false);
-                  setManualHomePick(true);
-                }}
-                onHomeMarkerClick={() => setHomeDialogOpen(true)}
                 onPick={pickOnMap}
               />
             </div>
@@ -394,13 +386,25 @@ export function FoodPage() {
         </FoodPlaceDialog>
       )}
 
-      {homeDialogOpen && home.query.isSuccess && (
+      {homeDialogOpen && (
         <FoodPlaceDialog
           title={t("Home location")}
           onClose={() => setHomeDialogOpen(false)}
         >
           <div className="food__home-dialog">
-            {home.query.data ? (
+            {home.query.isPending || home.query.isFetching ? (
+              <Spinner />
+            ) : home.query.isError ? (
+              <>
+                <p role="alert">{t("Could not load your home location. Add it manually or retry.")}</p>
+                <div className="food__form-actions">
+                  <Button type="button" onClick={startHomePick}>{t("Add manually")}</Button>
+                  <Button type="button" variant="secondary" onClick={() => void home.query.refetch()}>
+                    {t("Retry")}
+                  </Button>
+                </div>
+              </>
+            ) : home.query.data ? (
               <>
                 <p className="food__coordinate-readout">
                   {home.query.data.latitude.toFixed(6)}, {home.query.data.longitude.toFixed(6)}
@@ -408,11 +412,7 @@ export function FoodPage() {
                 <div className="food__form-actions">
                   <Button
                     variant="secondary"
-                    onClick={() => {
-                      setHomeDialogOpen(false);
-                      setHomePromptDismissed(false);
-                      setManualHomePick(true);
-                    }}
+                    onClick={startHomePick}
                   >
                     {t("Change home location")}
                   </Button>
@@ -432,11 +432,7 @@ export function FoodPage() {
                 <p>{t("Home not set.")}</p>
                 <div className="food__form-actions">
                   <Button
-                    onClick={() => {
-                      setHomeDialogOpen(false);
-                      setHomePromptDismissed(false);
-                      setManualHomePick(true);
-                    }}
+                    onClick={startHomePick}
                   >
                     {t("Add now")}
                   </Button>
