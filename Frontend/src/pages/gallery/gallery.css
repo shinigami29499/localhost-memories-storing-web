@@ -638,6 +638,11 @@
   padding: 4px;
 }
 
+.gallery-selection-bar--compact .gallery-selection-bar__count {
+  color: #fff;
+  padding-inline: 8px;
+}
+
 .gallery-selection-bar__status {
   clip-path: inset(50%);
   height: 1px;

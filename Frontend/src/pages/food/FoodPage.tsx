@@ -101,7 +101,7 @@ export function FoodPage() {
     const dismissPreview = (event: MouseEvent) => {
       if (!(event.target instanceof Element)
         || document.querySelector('[role="dialog"], [role="alertdialog"]')
-        || event.target.closest(".food__marker, .food__card, .food__map-home-control")) return;
+        || event.target.closest(".food__marker, .food__card, .food__map-home-control, .map-navigation")) return;
       clearPreview();
     };
     document.addEventListener("click", dismissPreview);

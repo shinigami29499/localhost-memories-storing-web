@@ -39,6 +39,35 @@ manual coordinate entry still works. Mapbox receives map requests and coordinate
 but the app does not send Mapbox photo files or media authentication tokens.
 Existing photo coordinates and saved locations are unchanged by the provider switch.
 
+### Travel and food navigation
+
+Select a located travel photo or saved food place, then choose **Navigate**.
+Driving is the default; walking and cycling are also available.
+**Open Google Maps** opens directions on Google Maps, which determines the current
+location on the receiving device. This option remains available for selected saved
+destinations even if Mapbox is unconfigured or fails to load.
+**Preview with Mapbox** requests browser location
+permission and displays the route, distance, estimated duration, and turn-by-turn
+instructions. Select **Start navigation** after reviewing the route to enable live
+GPS guidance. Routes recalculate when a reliable GPS fix is more than 50 meters
+off-route (or twice the reported accuracy), at most once every 15 seconds.
+Rerouting failures stop guidance and show an error; preview again to retry.
+
+Location access requires HTTPS or localhost. Mapbox Directions uses the same public
+token and requires internet access and an account with Directions API access and
+available usage/billing allowance. Google Maps and Mapbox receive the current
+location and destination when their respective options are used. Navigation does
+not save GPS fixes to the app server or browser storage. Stop/close navigation,
+change the destination, or leave the page to release the GPS watch.
+
+Keep the page open and active: this browser feature is not background, offline, or
+voice navigation. Duration estimates are not live traffic predictions. Poor GPS
+accuracy pauses progress updates; follow road signs and local traffic rules.
+Mapbox may snap endpoints to nearby routable roads or paths.
+The preview shows any gap larger than 35 meters between the route endpoint and the
+saved destination. Reaching that endpoint completes the route without claiming
+arrival at a destination that is still farther away.
+
 The authenticated media API adds `ownerId` and nullable
 `location: { latitude, longitude }` to media responses. Owners/admins can
 `PUT /api/location/travel/{mediaId}` with both decimal coordinates, or both null

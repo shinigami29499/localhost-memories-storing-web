@@ -21,10 +21,7 @@ import "../../features/media/components/media.css";
 
 const TRASH_PAGE_SIZE = 20;
 
-type TrashFilter = MediaKindFilter | "all";
-
-const filters: { value: TrashFilter; label: string }[] = [
-  { value: "all", label: "All" },
+const filters: { value: MediaKindFilter; label: string }[] = [
   { value: "image", label: "Images" },
   { value: "video", label: "Videos" },
 ];
@@ -33,7 +30,7 @@ export function TrashPage() {
   const { t } = useLocale();
   const pageTransition = readPageTransitionEffect();
   const queryClient = useQueryClient();
-  const [filter, setFilter] = useState<TrashFilter>("all");
+  const [filter, setFilter] = useState<MediaKindFilter>("image");
   const [previewMediaId, setPreviewMediaId] = useState<string | null>(null);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
@@ -44,7 +41,7 @@ export function TrashPage() {
   const query = useInfiniteQuery({
     queryKey: ["media", "deleted", filter, TRASH_PAGE_SIZE],
     initialPageParam: 0,
-    queryFn: ({ pageParam }) => mediaService.deleted(pageParam, TRASH_PAGE_SIZE, filter === "all" ? undefined : filter),
+    queryFn: ({ pageParam }) => mediaService.deleted(pageParam, TRASH_PAGE_SIZE, filter),
     getNextPageParam: (lastPage) => {
       const nextOffset = lastPage.offset + lastPage.items.length;
       return nextOffset < lastPage.total ? nextOffset : undefined;
@@ -171,7 +168,7 @@ export function TrashPage() {
             <Tabs.Root
               value={filter}
               onValueChange={(value) => {
-                if (value !== "all" && value !== "image" && value !== "video") return;
+                if (value !== "image" && value !== "video") return;
                 cancelSelection();
                 setFilter(value);
               }}
@@ -232,7 +229,7 @@ export function TrashPage() {
         {selectionMode ? (
           <footer className="gallery-page__footer">
             <div className="gallery-selection-bar gallery-selection-bar--compact" role="group" aria-label={t("{count} selected", { count: selectedIds.size })}>
-              <span className="gallery-selection-bar__status" role="status">{t("{count} selected", { count: selectedIds.size })}</span>
+              <span className="gallery-selection-bar__count" role="status">{t("{count} selected", { count: selectedIds.size })}</span>
               <button
                 type="button"
                 className="gallery-selection-bar__action"

@@ -159,9 +159,10 @@ describe("TrashPage", () => {
 
   it("opens a trash carousel with restore/delete instead of heart/save", async () => {
     await renderPage();
-    expect(mediaService.deleted).toHaveBeenCalledWith(0, 20, undefined);
+    expect(mediaService.deleted).toHaveBeenCalledWith(0, 20, "image");
     expect(Array.from(container.querySelectorAll(".gallery-page__filter")).map((button) => button.textContent))
-      .toEqual(["All", "Images", "Videos"]);
+      .toEqual(["Images", "Videos"]);
+    expect(container.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe("Images");
     expect(container.querySelector(".pagination")).toBeNull();
     expect(container.querySelector(".media-card__name")).toBeNull();
     expect(container.querySelector(".gallery-page--trash")).not.toBeNull();
@@ -180,32 +181,43 @@ describe("TrashPage", () => {
     await vi.waitFor(() => expect(mediaService.restore).toHaveBeenCalledWith("trashed-id"));
   });
 
-  it("filters trash by media kind and includes all kinds by default", async () => {
-    vi.mocked(mediaService.deleted).mockResolvedValue({
+  it("filters trash by media kind and shows images by default", async () => {
+    vi.mocked(mediaService.deleted).mockResolvedValueOnce({
+      offset: 0,
+      limit: 20,
+      total: 1,
+      items: [trashedMedia],
+    }).mockResolvedValueOnce({
       offset: 0,
       limit: 20,
       total: 1,
       items: [{ ...trashedMedia, mediaKind: "video", mimeType: "video/mp4", originalFilename: "deleted.mp4" }],
+    }).mockResolvedValueOnce({
+      offset: 0,
+      limit: 20,
+      total: 1,
+      items: [trashedMedia],
     });
     await renderPage();
 
     const filter = (label: string) => Array.from(container.querySelectorAll<HTMLButtonElement>(".gallery-page__filter"))
       .find((button) => button.textContent === label)!;
     expect(container.querySelector("h1")?.textContent).toBe("Trash.");
+    expect(container.querySelector(".media-tile")?.getAttribute("aria-label")).toBe("Open deleted.png");
+    expect(mediaService.deleted).toHaveBeenCalledWith(0, 20, "image");
+
+    await act(async () => {
+      filter("Videos").dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
+      filter("Videos").click();
+    });
+    await vi.waitFor(() => expect(mediaService.deleted).toHaveBeenLastCalledWith(0, 20, "video"));
     expect(container.querySelector(".media-tile")?.getAttribute("aria-label")).toBe("Open deleted.mp4");
-    expect(mediaService.deleted).toHaveBeenCalledWith(0, 20, undefined);
 
     await act(async () => {
       filter("Images").dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
       filter("Images").click();
     });
     await vi.waitFor(() => expect(mediaService.deleted).toHaveBeenLastCalledWith(0, 20, "image"));
-
-    await act(async () => {
-      filter("All").dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
-      filter("All").click();
-    });
-    await vi.waitFor(() => expect(mediaService.deleted).toHaveBeenLastCalledWith(0, 20, undefined));
   });
 
   it("permanently deletes only the currently viewed item after confirmation", async () => {

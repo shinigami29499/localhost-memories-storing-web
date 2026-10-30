@@ -9,10 +9,17 @@ import { Globe } from "../../../components/animate-ui/icons/globe";
 import { Home } from "../../../components/animate-ui/icons/home";
 import { Settings } from "../../../components/animate-ui/icons/settings";
 import { ChevronDown } from "../../../components/animate-ui/icons/chevron-down";
+import { Sun } from "../../../components/animate-ui/icons/sun";
 import { Utensils } from "../../../components/animate-ui/icons/utensils";
 import { useLocale } from "../../../context/LocaleContext";
 import { useMediaQuery } from "../../../hooks/useMediaQuery";
 import { mediaPreviewUrl } from "../../../utils/media";
+import {
+  getMapAppearanceConfig,
+  MapAppearanceConfig,
+  MapAppearanceSettings,
+  useMapAppearance,
+} from "../../locations/components/MapAppearanceSettings";
 import { StarRating } from "./StarRating";
 import { LocationSearch } from "../../locations/components/LocationSearch";
 import { HomeLocationMarker } from "../../locations/components/HomeLocationMarker";
@@ -20,6 +27,8 @@ import type { LocationSearchResult } from "../../locations/services/locationSear
 import { findPlaceAt } from "../../locations/utils/findPlaceAt";
 import type { HomeLocation } from "../../locations/types";
 import type { FoodCoordinate, FoodPlace } from "../types";
+import { MapNavigation } from "../../navigation/components/MapNavigation";
+import { NavigationFallback } from "../../navigation/components/NavigationOptions";
 
 interface Props {
   places: FoodPlace[];
@@ -240,12 +249,15 @@ function MapContent({
   const shouldReduceMotion = useShouldReduceMotion();
   const mapRef = useRef<MapRef>(null);
   const scenesRef = useRef<HTMLDetailsElement>(null);
+  const appearanceRef = useRef<HTMLDetailsElement>(null);
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [navigationOpen, setNavigationOpen] = useState(false);
   const [initialLocationResolved, setInitialLocationResolved] = useState(false);
   const [hasInitialCenter, setHasInitialCenter] = useState(false);
   const [scene, setScene] = useState<MapScene>("3d");
   const [showMarkers, setShowMarkers] = useState(true);
+  const mapAppearance = useMapAppearance();
   const [homeRequest, setHomeRequest] = useState(0);
   const [focusRequest, setFocusRequest] = useState(0);
   const resolveInitialLocation = useCallback((hasCenter: boolean) => {
@@ -259,15 +271,17 @@ function MapContent({
 
   useEffect(() => {
     const closeOnOutsideClick = (event: PointerEvent) => {
-      const settings = scenesRef.current;
-      if (settings?.open && event.target instanceof Node && !settings.contains(event.target))
-        settings.open = false;
+      if (!(event.target instanceof Node)) return;
+      if (scenesRef.current?.contains(event.target) || appearanceRef.current?.contains(event.target)) return;
+      if (scenesRef.current) scenesRef.current.open = false;
+      if (appearanceRef.current) appearanceRef.current.open = false;
     };
     const closeOnEscape = (event: KeyboardEvent) => {
-      const settings = scenesRef.current;
-      if (event.key === "Escape" && settings?.open) {
-        settings.open = false;
-        settings.querySelector("summary")?.focus();
+      const activeControl = [scenesRef.current, appearanceRef.current].find((control) => control?.open);
+      if (event.key === "Escape" && activeControl) {
+        if (scenesRef.current) scenesRef.current.open = false;
+        if (appearanceRef.current) appearanceRef.current.open = false;
+        activeControl.querySelector("summary")?.focus();
       }
     };
 
@@ -291,7 +305,10 @@ function MapContent({
   };
 
   if (failed)
-    return <ErrorState message="Mapbox could not load. Check internet access, WebGL support, the public access token, account billing, and allowed website URLs. Food places can only be placed on the map." />;
+    return <>
+      <ErrorState message="Mapbox could not load. Check internet access, WebGL support, the public access token, account billing, and allowed website URLs. Food places can only be placed on the map." />
+      {selected && <NavigationFallback destination={{ ...selected, name: selected.name }} />}
+    </>;
 
   return (
     <div className="food__map map-controls" role="region" aria-label={t("Food places map")}>
@@ -301,12 +318,14 @@ function MapContent({
         ref={mapRef}
         mapboxAccessToken={token}
         mapStyle={scene === "3d" ? "mapbox://styles/mapbox/standard" : "mapbox://styles/mapbox/streets-v12"}
+        config={{ basemap: getMapAppearanceConfig(mapAppearance.lighting, mapAppearance.colorTheme) }}
         initialViewState={{ latitude: 20, longitude: 0, zoom: 2, pitch: 0, bearing: 0 }}
         cursor={picking || homePicking ? "crosshair" : undefined}
         cooperativeGestures
         onLoad={() => setLoaded(true)}
         onError={() => setFailed(true)}
         onClick={(event) => {
+          if (navigationOpen) return;
           const place = findPlaceAt(event, scene === "3d" ? "standard" : "classic");
           const point = place
             ? { latitude: place.latitude, longitude: place.longitude }
@@ -325,12 +344,17 @@ function MapContent({
           onPick(point);
         }}
       >
+        <MapAppearanceConfig
+          lighting={mapAppearance.lighting}
+          colorTheme={mapAppearance.colorTheme}
+        />
         <GeolocateControl
           position="bottom-right"
           positionOptions={{ enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }}
           trackUserLocation={false}
           showUserLocation={false}
           onGeolocate={(event) => {
+            if (navigationOpen) return;
             const coordinate = {
               latitude: event.coords.latitude,
               longitude: event.coords.longitude,
@@ -349,12 +373,16 @@ function MapContent({
         <MapViewport
           places={places}
           selected={selected}
-          ready={loaded}
+          ready={loaded && !navigationOpen}
           allowFit={initialLocationResolved && !hasInitialCenter}
         />
-        <MapCameraScene scene={scene} selected={selected} ready={loaded}
+        <MapCameraScene scene={scene} selected={selected} ready={loaded && !navigationOpen}
           homeLocation={homeLocation} homeRequest={homeRequest} focusRequest={focusRequest} />
         <MapResizer />
+        {loaded && selected && !picking && !homePicking && (
+          <MapNavigation destination={{ latitude: selected.latitude, longitude: selected.longitude, name: selected.name }}
+            accessToken={token} onOpenChange={setNavigationOpen} />
+        )}
         {homeLocation && (
           <HomeLocationMarker location={homeLocation} variant="food" onClick={() => {
             mapRef.current?.easeTo({
@@ -409,8 +437,10 @@ function MapContent({
         accessToken={token}
         disabled={!loaded}
         onFocus={() => {
-          if (window.matchMedia("(max-width: 640px)").matches && scenesRef.current)
-            scenesRef.current.open = false;
+          if (window.matchMedia("(max-width: 640px)").matches) {
+            if (scenesRef.current) scenesRef.current.open = false;
+            if (appearanceRef.current) appearanceRef.current.open = false;
+          }
         }}
         onSelect={selectSearchResult}
       />
@@ -423,10 +453,10 @@ function MapContent({
           disabled={!loaded || !homeLocationReady || homeActionDisabled}
           onClick={() => {
             if (homeLocation) {
-              setScene("streets");
               setHasInitialCenter(true);
               setHomeRequest((request) => request + 1);
               if (scenesRef.current) scenesRef.current.open = false;
+              if (appearanceRef.current) appearanceRef.current.open = false;
             }
             onHomeClick();
           }}
@@ -436,7 +466,13 @@ function MapContent({
       </AnimateIcon>
       <details ref={scenesRef} className="food__scenes" aria-label={t("Map scenes")}>
         <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
-          <summary className="food__scenes-title" aria-label={t("Setting")}>
+          <summary
+            className="food__scenes-title"
+            aria-label={t("Setting")}
+            onClick={() => {
+              if (appearanceRef.current) appearanceRef.current.open = false;
+            }}
+          >
             <Settings size={20} aria-hidden="true" />
             <span className="food__scenes-label">{t("Setting")}</span>
             <span className="food__scenes-chevron" aria-hidden="true">
@@ -468,6 +504,24 @@ function MapContent({
           </AnimateIcon>
         </div>
       </details>
+      <details ref={appearanceRef} className="food__scenes map-appearance-control" aria-label={t("Map appearance")}>
+        <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
+          <summary
+            className="food__scenes-title"
+            aria-label={t("Map appearance")}
+            onClick={() => {
+              if (scenesRef.current) scenesRef.current.open = false;
+            }}
+          >
+            <Sun size={20} animate={false} aria-hidden="true" />
+            <span>{t("Map appearance")}</span>
+            <span className="food__scenes-chevron" aria-hidden="true">
+              <ChevronDown size={16} animate={false} />
+            </span>
+          </summary>
+        </AnimateIcon>
+        <MapAppearanceSettings {...mapAppearance} />
+      </details>
     </div>
   );
 }
@@ -475,9 +529,14 @@ function MapContent({
 export function FoodMap(props: Props) {
   const { t } = useLocale();
   const token = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN?.trim();
-  if (!token)
-    return <p className="food__map-message" role="status">{t("Set VITE_MAPBOX_ACCESS_TOKEN to enable Mapbox. Food places can only be placed on the map.")}</p>;
-  if (!token.startsWith("pk."))
-    return <ErrorState message="Mapbox requires a public access token starting with pk. Never use a secret token in the frontend." />;
+  if (!token || !token.startsWith("pk.")) {
+    const selected = props.places.find((place) => place.id === props.selectedId);
+    return <>
+      {!token
+        ? <p className="food__map-message" role="status">{t("Set VITE_MAPBOX_ACCESS_TOKEN to enable Mapbox. Food places can only be placed on the map.")}</p>
+        : <ErrorState message="Mapbox requires a public access token starting with pk. Never use a secret token in the frontend." />}
+      {selected && <NavigationFallback destination={{ ...selected, name: selected.name }} />}
+    </>;
+  }
   return <MapContent key={token} {...props} token={token} />;
 }

@@ -9,7 +9,14 @@ import { MapPin } from "../../../components/animate-ui/icons/map-pin";
 import { Globe } from "../../../components/animate-ui/icons/globe";
 import { Home } from "../../../components/animate-ui/icons/home";
 import { Settings } from "../../../components/animate-ui/icons/settings";
+import { Sun } from "../../../components/animate-ui/icons/sun";
 import { ChevronDown } from "../../../components/animate-ui/icons/chevron-down";
+import {
+  getMapAppearanceConfig,
+  MapAppearanceConfig,
+  MapAppearanceSettings,
+  useMapAppearance,
+} from "./MapAppearanceSettings";
 import { LocationSearch } from "./LocationSearch";
 import { HomeLocationMarker } from "./HomeLocationMarker";
 import type { LocationSearchResult } from "../services/locationSearchService";
@@ -19,6 +26,8 @@ import { mediaPreviewUrl } from "../../../utils/media";
 import type { MediaFile, PhotoLocation, PickedLocation } from "../../media/types";
 import { findPlaceAt } from "../utils/findPlaceAt";
 import type { HomeLocation } from "../types";
+import { MapNavigation } from "../../navigation/components/MapNavigation";
+import { NavigationFallback } from "../../navigation/components/NavigationOptions";
 
 interface Props {
   media: MediaFile[];
@@ -36,7 +45,6 @@ interface Props {
   onPick: (location: PickedLocation) => void;
   onPickHome: (location: HomeLocation) => void;
   onHomeClick: () => void;
-  onHomeMarkerClick: () => void;
 }
 
 const MOBILE_PREVIEW_PADDING = { top: 300, bottom: 0, left: 0, right: 0 };
@@ -372,16 +380,19 @@ function PhotoMarkers({ media, selected, ready, onSelect, canMove, onMove }: Pic
 
 function MapContent({
   media, selected, focused, draft, editable, homeLocation, homeLocationReady, homePicking, homeActionDisabled,
-  onSelect, canMove, onMove, onPick, onPickHome, onHomeClick, onHomeMarkerClick, token,
+  onSelect, canMove, onMove, onPick, onPickHome, onHomeClick, token,
 }: Props & { token: string }) {
   const { t } = useLocale();
   const shouldReduceMotion = useShouldReduceMotion();
   const mapRef = useRef<MapRef>(null);
   const scenesRef = useRef<HTMLDetailsElement>(null);
+  const appearanceRef = useRef<HTMLDetailsElement>(null);
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [navigationOpen, setNavigationOpen] = useState(false);
   const [mapStyle, setMapStyle] = useState<MapScene>("3d");
   const [showMarkers, setShowMarkers] = useState(true);
+  const mapAppearance = useMapAppearance();
   const [homeRequest, setHomeRequest] = useState(0);
   const [focusRequest, setFocusRequest] = useState(0);
   const [initialLocationResolved, setInitialLocationResolved] = useState(false);
@@ -398,15 +409,17 @@ function MapContent({
 
   useEffect(() => {
     const closeOnOutsideClick = (event: PointerEvent) => {
-      const settings = scenesRef.current;
-      if (settings?.open && event.target instanceof Node && !settings.contains(event.target))
-        settings.open = false;
+      if (!(event.target instanceof Node)) return;
+      if (scenesRef.current?.contains(event.target) || appearanceRef.current?.contains(event.target)) return;
+      if (scenesRef.current) scenesRef.current.open = false;
+      if (appearanceRef.current) appearanceRef.current.open = false;
     };
     const closeOnEscape = (event: KeyboardEvent) => {
-      const settings = scenesRef.current;
-      if (event.key === "Escape" && settings?.open) {
-        settings.open = false;
-        settings.querySelector("summary")?.focus();
+      const activeControl = [scenesRef.current, appearanceRef.current].find((control) => control?.open);
+      if (event.key === "Escape" && activeControl) {
+        if (scenesRef.current) scenesRef.current.open = false;
+        if (appearanceRef.current) appearanceRef.current.open = false;
+        activeControl.querySelector("summary")?.focus();
       }
     };
 
@@ -430,7 +443,10 @@ function MapContent({
   };
 
   if (failed)
-    return <ErrorState message="Mapbox could not load. Check internet access, WebGL support, the public access token, account billing, and allowed website URLs. Photo locations can only be set on the map." />;
+    return <>
+      <ErrorState message="Mapbox could not load. Check internet access, WebGL support, the public access token, account billing, and allowed website URLs. Photo locations can only be set on the map." />
+      {selected?.location && <NavigationFallback destination={{ ...selected.location, name: selected.originalFilename }} />}
+    </>;
 
   return (
     <div className="locations__map map-controls" role="region" aria-label={t("Photo locations")}>
@@ -440,12 +456,14 @@ function MapContent({
         ref={mapRef}
         mapboxAccessToken={token}
         mapStyle={styleUrl}
+        config={{ basemap: getMapAppearanceConfig(mapAppearance.lighting, mapAppearance.colorTheme) }}
         initialViewState={{ latitude: 20, longitude: 0, zoom: 2, pitch: 0, bearing: 0 }}
-        cursor={editable || homePicking ? "crosshair" : undefined}
+        cursor={!navigationOpen && (editable || homePicking) ? "crosshair" : undefined}
         cooperativeGestures
         onLoad={() => setLoaded(true)}
         onError={() => setFailed(true)}
         onClick={(event) => {
+          if (navigationOpen) return;
           const place = findPlaceAt(event, mapStyle === "3d" ? "standard" : "classic");
           const point = event.lngLat.wrap();
           const location = place ?? { latitude: point.lat, longitude: point.lng };
@@ -453,12 +471,17 @@ function MapContent({
           else if (editable) onPick(location);
         }}
       >
+        <MapAppearanceConfig
+          lighting={mapAppearance.lighting}
+          colorTheme={mapAppearance.colorTheme}
+        />
         <GeolocateControl
           position="bottom-right"
           positionOptions={{ enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }}
           trackUserLocation={false}
           showUserLocation={false}
           onGeolocate={(event) => {
+            if (navigationOpen) return;
             const location = {
               latitude: event.coords.latitude,
               longitude: event.coords.longitude,
@@ -477,12 +500,16 @@ function MapContent({
         <MapViewport
           media={media}
           selected={cameraTarget}
-          ready={loaded}
+          ready={loaded && !navigationOpen}
           allowFit={initialLocationResolved && !hasInitialCenter}
         />
-        <MapCameraScene scene={mapStyle} selected={cameraTarget} ready={loaded}
+        <MapCameraScene scene={mapStyle} selected={cameraTarget} ready={loaded && !navigationOpen}
           homeLocation={homeLocation} homeRequest={homeRequest} focusRequest={focusRequest} />
         <MapResizer />
+        {loaded && selected?.location && !homePicking && (
+          <MapNavigation destination={{ ...selected.location, name: selected.originalFilename }} accessToken={token}
+            onOpenChange={setNavigationOpen} />
+        )}
         {homeLocation && (
           <HomeLocationMarker location={homeLocation} variant="locations" onClick={() => {
             mapRef.current?.easeTo({
@@ -492,15 +519,14 @@ function MapContent({
               bearing: mapStyle === "3d" ? -20 : 0,
               duration: shouldReduceMotion ? 0 : 400,
             });
-            onHomeMarkerClick();
           }} />
         )}
         {showMarkers && <PhotoMarkers media={located} selected={selected} ready={loaded}
           onSelect={(item) => {
             if (selected?.id !== item.id) setFocusRequest((request) => request + 1);
             onSelect(item);
-          }} canMove={canMove} onMove={onMove} />}
-        {editable && draft && (
+          }} canMove={(item) => !navigationOpen && canMove(item)} onMove={onMove} />}
+        {editable && draft && !navigationOpen && (
           <Marker
             latitude={draft.latitude}
             longitude={draft.longitude}
@@ -519,10 +545,12 @@ function MapContent({
       </Map>
       <LocationSearch
         accessToken={token}
-        disabled={!loaded}
+        disabled={!loaded || navigationOpen}
         onFocus={() => {
-          if (window.matchMedia("(max-width: 640px)").matches && scenesRef.current)
-            scenesRef.current.open = false;
+          if (window.matchMedia("(max-width: 640px)").matches) {
+            if (scenesRef.current) scenesRef.current.open = false;
+            if (appearanceRef.current) appearanceRef.current.open = false;
+          }
         }}
         onSelect={selectSearchResult}
       />
@@ -535,10 +563,10 @@ function MapContent({
           disabled={!loaded || !homeLocationReady || homeActionDisabled}
           onClick={() => {
             if (homeLocation) {
-              setMapStyle("streets");
               setHasInitialCenter(true);
               setHomeRequest((request) => request + 1);
               if (scenesRef.current) scenesRef.current.open = false;
+              if (appearanceRef.current) appearanceRef.current.open = false;
             }
             onHomeClick();
           }}
@@ -548,7 +576,13 @@ function MapContent({
       </AnimateIcon>
       <details ref={scenesRef} className="locations__scenes" aria-label={t("Map scenes")}>
         <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
-          <summary className="locations__scenes-title" aria-label={t("Setting")}>
+          <summary
+            className="locations__scenes-title"
+            aria-label={t("Setting")}
+            onClick={() => {
+              if (appearanceRef.current) appearanceRef.current.open = false;
+            }}
+          >
             <Settings size={20} aria-hidden="true" />
             <span>{t("Setting")}</span>
             <span className="locations__scenes-chevron" aria-hidden="true">
@@ -592,6 +626,24 @@ function MapContent({
           </AnimateIcon>
         </div>
       </details>
+      <details ref={appearanceRef} className="locations__scenes map-appearance-control" aria-label={t("Map appearance")}>
+        <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
+          <summary
+            className="locations__scenes-title"
+            aria-label={t("Map appearance")}
+            onClick={() => {
+              if (scenesRef.current) scenesRef.current.open = false;
+            }}
+          >
+            <Sun size={20} animate={false} aria-hidden="true" />
+            <span>{t("Map appearance")}</span>
+            <span className="locations__scenes-chevron" aria-hidden="true">
+              <ChevronDown size={16} animate={false} />
+            </span>
+          </summary>
+        </AnimateIcon>
+        <MapAppearanceSettings {...mapAppearance} />
+      </details>
     </div>
   );
 }
@@ -599,9 +651,14 @@ function MapContent({
 export function LocationMap(props: Props) {
   const { t } = useLocale();
   const token = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN?.trim();
-  if (!token)
-    return <p className="locations__map-message" role="status">{t("Set VITE_MAPBOX_ACCESS_TOKEN to enable Mapbox. Photo locations can only be set on the map.")}</p>;
-  if (!token.startsWith("pk."))
-    return <ErrorState message="Mapbox requires a public access token starting with pk. Never use a secret token in the frontend." />;
+  if (!token || !token.startsWith("pk."))
+    return <>
+      {!token
+        ? <p className="locations__map-message" role="status">{t("Set VITE_MAPBOX_ACCESS_TOKEN to enable Mapbox. Photo locations can only be set on the map.")}</p>
+        : <ErrorState message="Mapbox requires a public access token starting with pk. Never use a secret token in the frontend." />}
+      {props.selected?.location && (
+        <NavigationFallback destination={{ ...props.selected.location, name: props.selected.originalFilename }} />
+      )}
+    </>;
   return <MapContent key={token} {...props} token={token} />;
 }

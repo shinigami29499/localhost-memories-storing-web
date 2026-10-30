@@ -82,7 +82,7 @@ export function LocationsPage() {
     const dismissPreview = (event: MouseEvent) => {
       if (!(event.target instanceof Element)
         || document.querySelector('[role="dialog"], [role="alertdialog"]')
-        || event.target.closest(".locations__marker, .locations__cluster-toggle, .locations__photo, .locations__map-home-control")) return;
+        || event.target.closest(".locations__marker, .locations__cluster-toggle, .locations__photo, .locations__map-home-control, .map-navigation")) return;
       clearSelection();
     };
     document.addEventListener("click", dismissPreview);
@@ -176,8 +176,7 @@ export function LocationsPage() {
                   nextSearchParams.delete("focusMediaId");
                   setSearchParams(nextSearchParams, { replace: true });
                   setHomePicking(!home.query.data);
-                }}
-                onHomeMarkerClick={() => setHomePicking(true)} />
+                }} />
             </div>
             {selected && showDetails && (
               <aside className="locations__details" aria-label={t("Selected photo")}>

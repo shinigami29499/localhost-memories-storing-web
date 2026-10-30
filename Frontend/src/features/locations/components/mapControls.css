@@ -21,16 +21,157 @@
 
 :is(.food, .locations) .map-controls :is(.food__scenes, .locations__scenes)[open] {
   width: min(264px, calc(100% - 78px));
+  z-index: 7;
+}
+
+:is(.food, .locations) .map-controls .map-appearance-control {
+  top: 68px;
+}
+
+:is(.food, .locations) .map-appearance {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+:is(.food, .locations) .map-appearance__section {
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+}
+
+:is(.food, .locations) .map-appearance__heading {
+  margin: 0 0 8px;
+  color: var(--text-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+:is(.food, .locations) .map-appearance__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+:is(.food, .locations) .map-appearance__option {
+  display: flex;
+  min-width: 0;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background-color 140ms ease, border-color 140ms ease;
+}
+
+:is(.food, .locations) .map-appearance__option:hover {
+  background: var(--surface-hover);
+}
+
+:is(.food, .locations) .map-appearance__option:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+:is(.food, .locations) .map-appearance__option[aria-pressed="true"] {
+  background: var(--accent-wash);
+  border-color: var(--text-strong);
+  color: var(--text-strong);
+}
+
+:is(.food, .locations) .map-appearance__grid--themes {
+  row-gap: 8px;
+}
+
+:is(.food, .locations) .map-appearance__theme {
+  min-height: 54px;
+  flex-direction: column;
+  gap: 4px;
+}
+
+:is(.food, .locations) .map-appearance__swatches {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  height: 12px;
+}
+
+:is(.food, .locations) .map-appearance__swatches span {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--map-swatch, #4569f5);
+}
+
+:is(.food, .locations) .map-appearance__swatches span:nth-child(2) {
+  background: var(--map-swatch-secondary, #8b9bb3);
+}
+
+:is(.food, .locations) .map-appearance__swatches span:nth-child(3) {
+  background: var(--map-swatch-tertiary, #91b79d);
+}
+
+:is(.food, .locations) .map-appearance__theme[data-theme="faded"] {
+  --map-swatch: #9da2a8;
+  --map-swatch-secondary: #b7babd;
+  --map-swatch-tertiary: #d0d1d2;
+}
+
+:is(.food, .locations) .map-appearance__theme[data-theme="mono"] {
+  --map-swatch: #333333;
+  --map-swatch-secondary: #777777;
+  --map-swatch-tertiary: #aaaaaa;
+}
+
+:is(.food, .locations) .map-appearance__theme[data-theme="ocean"] {
+  --map-swatch: #008baa;
+  --map-swatch-secondary: #22a9bd;
+  --map-swatch-tertiary: #6bc6c9;
+}
+
+:is(.food, .locations) .map-appearance__theme[data-theme="warm"] {
+  --map-swatch: #d17a31;
+  --map-swatch-secondary: #e19a4b;
+  --map-swatch-tertiary: #9e6440;
+}
+
+:is(.food, .locations) .map-appearance__theme[data-theme="vivid"] {
+  --map-swatch: #ff4d55;
+  --map-swatch-secondary: #48d97a;
+  --map-swatch-tertiary: #4775ff;
 }
 
 :is(.food, .locations) .map-controls :is(.food__scenes-title, .locations__scenes-title) {
+  display: grid;
+  grid-template-columns: 44px max-content 20px;
+  justify-content: start;
+  align-items: center;
+  gap: 12px;
   height: 44px;
   min-height: 44px;
+  padding: 0 12px 0 0;
+  white-space: nowrap;
 }
 
 :is(.food, .locations) .map-controls :is(.food__scenes, .locations__scenes):not([open]) summary {
-  justify-content: center;
+  display: grid;
+  grid-template-columns: 44px;
+  justify-content: start;
   padding: 0;
+}
+
+:is(.food, .locations) .map-controls :is(.food__scenes-title, .locations__scenes-title) > svg:first-of-type {
+  justify-self: center;
 }
 
 :is(.food, .locations) .map-controls :is(.food__scenes, .locations__scenes):not([open]) summary > span {
@@ -60,7 +201,12 @@
 }
 
 :is(.food, .locations) .map-controls .food__location-search:not(:focus-within) .food__location-search-icon {
-  right: 17px;
+  top: 50%;
+  right: 0;
+  width: 54px;
+  height: 54px;
+  color: #fff;
+  transform: translateY(-50%);
 }
 
 :is(.food, .locations) .map-controls .food__location-search:not(:focus-within) :is(.food__location-search-message, .food__location-search-results) {
@@ -68,10 +214,19 @@
 }
 
 :is(.food, .locations) :is(.food__map-home-control, .locations__map-home-control) {
-  right: 10px;
-  bottom: 96px;
-  height: 32px;
-  width: 32px;
+  left: 8px;
+  right: auto;
+  top: 128px;
+  bottom: auto;
+  height: 54px;
+  width: 54px;
+  background: var(--sidebar-bg);
+  border-radius: var(--radius);
+  color: var(--text-strong);
+}
+
+:is(.food, .locations) .map-controls :is(.food__map-home-control, .locations__map-home-control):hover {
+  background: var(--sidebar-bg);
 }
 
 :is(.food, .locations) .home-location-marker {
@@ -99,16 +254,17 @@
 
 @media (prefers-reduced-motion: reduce) {
   :is(.food, .locations) .home-location-marker button { transition: none; }
+  :is(.food, .locations) .map-appearance__option { transition: none; }
 }
 
-@media (hover: hover) and (pointer: fine) {
+@media (hover: hover) and (pointer: fine) and (min-width: 641px) {
   :is(.food, .locations) .map-controls :is(.food__scenes, .locations__scenes):not([open]):hover {
     width: auto;
   }
 
   :is(.food, .locations) .map-controls :is(.food__scenes, .locations__scenes):not([open]):hover summary {
-    justify-content: flex-start;
-    padding: 10px 12px;
+    grid-template-columns: 44px max-content 20px;
+    padding: 0 12px 0 0;
   }
 
   :is(.food, .locations) .map-controls :is(.food__scenes, .locations__scenes):not([open]):hover summary > span {
@@ -139,6 +295,81 @@
 
 @media (max-width: 640px) {
   .locations { padding: 16px 8px; }
+
+  :is(.food, .locations) .map-controls .food__location-search:focus-within {
+    width: min(252px, calc(100% - 62px));
+  }
+
+  :is(.food, .locations) .map-controls :is(.food__scenes-title, .locations__scenes-title),
+  :is(.food, .locations) .map-controls .food__location-search-input {
+    font-size: 0.75rem;
+  }
+
+  :is(.food, .locations) .map-controls .food__location-search-input {
+    height: 44px;
+    min-height: 44px;
+  }
+
+  :is(.food, .locations) .map-appearance { gap: 6px; }
+
+  :is(.food, .locations) .map-appearance__section { padding: 6px; }
+
+  :is(.food, .locations) .map-appearance__grid { gap: 6px; }
+
+  :is(.food, .locations) .map-appearance__option {
+    min-height: 44px;
+    padding: 4px;
+    font-size: 0.75rem;
+  }
+
+  :is(.food, .locations) .map-appearance__theme {
+    min-height: 44px;
+    gap: 3px;
+  }
+
+  :is(.food, .locations) .map-appearance__swatches span {
+    width: 7px;
+    height: 7px;
+  }
+
+  :is(.food, .locations) .map-controls :is(.food__scene-list, .locations__scene-list) {
+    gap: 3px;
+    padding: 3px 3px 2px;
+  }
+
+  :is(.food, .locations) .map-controls :is(.food__scene, .locations__scene) {
+    min-height: 44px;
+    gap: 8px;
+    padding: 8px;
+    border-radius: 7px;
+  }
+
+  :is(.food, .locations) .map-controls :is(.food__scene-copy, .locations__scene-copy) strong {
+    font-size: 0.75rem;
+  }
+
+  :is(.food, .locations) .map-controls:has(.food__scenes[open]:not(.map-appearance-control), .locations__scenes[open]:not(.map-appearance-control)) .map-appearance-control {
+    visibility: hidden;
+  }
+
+  :is(.food, .locations) .map-appearance__heading {
+    margin-bottom: 6px;
+    font-size: 0.6875rem;
+  }
+
+  :is(.food, .locations) .map-controls :is(.food__scenes, .locations__scenes),
+  :is(.food, .locations) .map-controls .food__location-search-form {
+    border-radius: 10px;
+  }
+
+  :is(.food, .locations) .map-controls :is(.food__scenes-title, .locations__scenes-title),
+  :is(.food, .locations) .map-controls .food__location-search-input {
+    border-radius: 7px;
+  }
+
+  :is(.food, .locations) .map-appearance__section { border-radius: 5px; }
+
+  :is(.food, .locations) .map-appearance__option { border-radius: 3px; }
 
   :is(.food, .locations) :is(.food__map-panel, .locations__map-panel) {
     height: max(360px, calc(100dvh - var(--app-topbar-height, 68px) - 220px));

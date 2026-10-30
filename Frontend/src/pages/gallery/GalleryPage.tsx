@@ -29,8 +29,6 @@ import "../../features/media/components/media.css";
 
 export type GalleryView = "pictures" | "favorites";
 
-type FavoritesFilter = MediaKindFilter | "all";
-
 const viewCopy: Record<GalleryView, { title: string; description: string; emptyTitle: string; emptyHint: string }> = {
   pictures: {
     title: "Gallery",
@@ -46,8 +44,7 @@ const viewCopy: Record<GalleryView, { title: string; description: string; emptyT
   },
 };
 
-const filters: { value: FavoritesFilter; label: string }[] = [
-  { value: "all", label: "All" },
+const filters: { value: MediaKindFilter; label: string }[] = [
   { value: "image", label: "Images" },
   { value: "video", label: "Videos" },
 ];
@@ -80,11 +77,11 @@ async function applyFavorites(mediaIds: string[], favorite: boolean) {
   return failedIds;
 }
 
-export function GalleryPage({ view = "pictures", initialFilter }: { view?: GalleryView; initialFilter?: FavoritesFilter }) {
+export function GalleryPage({ view = "pictures", initialFilter }: { view?: GalleryView; initialFilter?: MediaKindFilter }) {
   const { t, language } = useLocale();
   const pageTransition = readPageTransitionEffect();
   const queryClient = useQueryClient();
-  const [selectedFilter, setSelectedFilter] = useState<FavoritesFilter>(() => initialFilter ?? "all");
+  const [selectedFilter, setSelectedFilter] = useState<MediaKindFilter>(() => initialFilter ?? "image");
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedItems, setSelectedItems] = useState<Map<string, MediaFile>>(() => new Map());
   const selectedIds = [...selectedItems.keys()];
@@ -106,8 +103,7 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
   const galleryRef = useRef<HTMLElement>(null);
   const returnToMediaId = useRef<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
-  const filter: MediaKindFilter | undefined = selectedFilter === "all" ? undefined : selectedFilter;
-  const query = useMedia(20, view === "favorites" ? "favorites" : "all", filter);
+  const query = useMedia(20, view === "favorites" ? "favorites" : "all", selectedFilter);
   const media = useMemo(
     () => (query.data?.pages ?? []).flatMap((page) => page.items),
     [query.data],
@@ -144,7 +140,7 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
   };
 
   useEffect(() => {
-    setSelectedFilter(initialFilter ?? "all");
+    setSelectedFilter(initialFilter ?? "image");
     setSelectionMode(false);
     setSelectedItems(new Map());
     setSaveDialogOpen(false);
@@ -452,7 +448,7 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
             <Tabs.Root
               value={selectedFilter}
               onValueChange={(value) => {
-                if (value !== "all" && value !== "image" && value !== "video") return;
+                if (value !== "image" && value !== "video") return;
                 setSelectedFilter(value);
                 setPreviewMediaId(null);
                 setTimelineDay(null);

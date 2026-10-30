@@ -112,19 +112,20 @@ describe("GalleryPage", () => {
     ));
   }
 
-  it("loads all library media by default", async () => {
+  it("loads image media by default", async () => {
     await renderPage();
     await vi.waitFor(() => expect(container.querySelectorAll(".media-tile")).toHaveLength(1));
 
     expect(container.querySelector(".media-tile")?.getAttribute("aria-label")).toBe("Open photo.png");
     expect(container.querySelector("h1")?.textContent).toBe("Gallery.");
     expect(Array.from(container.querySelectorAll(".gallery-page__filter")).map((button) => button.textContent))
-      .toEqual(["All", "Images", "Videos"]);
-    expect(mediaService.list).toHaveBeenCalledWith(0, 20, undefined);
+      .toEqual(["Images", "Videos"]);
+    expect(container.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe("Images");
+    expect(mediaService.list).toHaveBeenCalledWith(0, 20, "image");
     expect(mediaService.favorites).not.toHaveBeenCalled();
   });
 
-  it("filters gallery media by kind and returns to All", async () => {
+  it("filters gallery media by kind", async () => {
     vi.mocked(mediaService.list).mockResolvedValue(page([image, video]));
     await renderPage();
     await vi.waitFor(() => expect(container.querySelectorAll(".media-tile")).toHaveLength(2));
@@ -139,11 +140,11 @@ describe("GalleryPage", () => {
     expect(container.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe("Videos");
 
     await act(async () => {
-      filter("All").dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
-      filter("All").click();
+      filter("Images").dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
+      filter("Images").click();
     });
-    await vi.waitFor(() => expect(mediaService.list).toHaveBeenLastCalledWith(0, 20, undefined));
-    expect(container.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe("All");
+    await vi.waitFor(() => expect(mediaService.list).toHaveBeenLastCalledWith(0, 20, "image"));
+    expect(container.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe("Images");
   });
 
   it("shows only the pagination retry after loading more fails", async () => {
@@ -171,7 +172,7 @@ describe("GalleryPage", () => {
     await act(async () => container.querySelector<HTMLButtonElement>(".error-state button")!.click());
     await vi.waitFor(() => expect(container.querySelectorAll(".media-tile")).toHaveLength(2));
     expect(container.querySelector(".error-state")).toBeNull();
-    expect(mediaService.list).toHaveBeenLastCalledWith(1, 20, undefined);
+    expect(mediaService.list).toHaveBeenLastCalledWith(1, 20, "image");
   });
 
   it("shows only the refresh retry when existing media cannot refresh", async () => {
@@ -186,11 +187,11 @@ describe("GalleryPage", () => {
 
   it("filters favorites by media kind", async () => {
     await renderPage("favorites");
-    await vi.waitFor(() => expect(container.querySelectorAll(".media-tile")).toHaveLength(2));
+    await vi.waitFor(() => expect(container.querySelectorAll(".media-tile")).toHaveLength(1));
     expect(Array.from(container.querySelectorAll(".gallery-page__filter")).map((button) => button.textContent))
-      .toEqual(["All", "Images", "Videos"]);
-    expect(container.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe("All");
-    expect(mediaService.favorites).toHaveBeenCalledWith(0, 20, undefined);
+      .toEqual(["Images", "Videos"]);
+    expect(container.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe("Images");
+    expect(mediaService.favorites).toHaveBeenCalledWith(0, 20, "image");
     const videoFilter = Array.from(container.querySelectorAll("button")).find((button) => button.textContent === "Videos");
     await act(async () => {
       videoFilter?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
