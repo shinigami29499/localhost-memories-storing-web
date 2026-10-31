@@ -14,7 +14,7 @@
 }
 
 .home-page__scroll-track {
-  background: var(--border);
+  background: var(--surface);
   height: 3px;
   inset: 0 0 auto;
   overflow: hidden;

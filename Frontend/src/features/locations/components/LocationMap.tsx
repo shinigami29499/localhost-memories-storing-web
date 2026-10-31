@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import Map, { GeolocateControl, Marker, useMap, type MapRef } from "react-map-gl/mapbox";
 import { useShouldReduceMotion } from "@animate-ui/react/utils/motion";
 import "mapbox-gl/dist/mapbox-gl.css";
@@ -367,8 +367,8 @@ function PhotoMarkers({ media, selected, ready, onSelect, canMove, onMove, homeL
         const nearHome = !!homeLocation && mapMarkersOverlap(cluster, homeLocation, project);
         const homeExpanded = homeHovered && nearHome;
         return (
+        <Fragment key={cluster.id}>
         <Marker
-          key={cluster.id}
           latitude={nearHome && homeLocation ? homeLocation.latitude : cluster.latitude}
           longitude={nearHome && homeLocation ? homeLocation.longitude : cluster.longitude}
           anchor="bottom"
@@ -380,6 +380,15 @@ function PhotoMarkers({ media, selected, ready, onSelect, canMove, onMove, homeL
             onHomeHoverChange={homeExpanded ? onHomeHoverChange : undefined}
             selected={selected} onSelect={onSelect} canMove={canMove} onMove={onMove} />
         </Marker>
+        {nearHome && homeLocation && cluster.items.length === 1 && (
+          <Marker latitude={homeLocation.latitude} longitude={homeLocation.longitude} anchor="bottom"
+            style={{ zIndex: 22, pointerEvents: "none" }}>
+            <div className="locations__cluster" aria-hidden="true">
+              <span className="locations__cluster-count">1</span>
+            </div>
+          </Marker>
+        )}
+        </Fragment>
         );
       })}
     </>

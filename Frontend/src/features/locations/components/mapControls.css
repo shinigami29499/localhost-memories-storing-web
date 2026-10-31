@@ -346,8 +346,6 @@
 }
 
 @media (max-width: 640px) {
-  .locations { padding: 16px 8px; }
-
   :is(.food, .locations) .map-controls .food__location-search:focus-within {
     width: min(252px, calc(100% - 62px));
   }

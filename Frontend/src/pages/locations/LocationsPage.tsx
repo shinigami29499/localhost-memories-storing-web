@@ -44,7 +44,6 @@ export function LocationsPage() {
   const canMove = (item: MediaFile) => !isMobile && !saving
     && (item.ownerId === user?.id || user?.role.toLowerCase() === "admin");
   const canEdit = !!selected && !!selection?.editing && canMove(selected);
-  const locatedCount = media.filter((item) => item.location).length;
   const clearSelection = useCallback(() => {
     if (saving) return;
     if (document.activeElement instanceof HTMLElement
@@ -67,8 +66,7 @@ export function LocationsPage() {
     };
     const onPointerDown = (event: PointerEvent) => {
       if (!(event.target instanceof Element) || hasOpenDialog()
-        || workspaceRef.current?.contains(event.target)
-        || event.target.closest(".locations__photo")) return;
+        || workspaceRef.current?.contains(event.target)) return;
       clearSelection();
     };
     document.addEventListener("keydown", onKeyDown, true);
@@ -84,7 +82,7 @@ export function LocationsPage() {
     const dismissPreview = (event: MouseEvent) => {
       if (!(event.target instanceof Element)
         || document.querySelector('[role="dialog"], [role="alertdialog"]')
-        || event.target.closest(".locations__marker, .locations__cluster-toggle, .locations__photo, .locations__map-home-control, .map-navigation")) return;
+        || event.target.closest(".locations__marker, .locations__cluster-toggle, .locations__map-home-control, .map-navigation")) return;
       clearSelection();
     };
     document.addEventListener("click", dismissPreview);
@@ -221,29 +219,6 @@ export function LocationsPage() {
               {query.isFetchNextPageError && <ErrorState message="Could not load all photos." onRetry={() => void query.fetchNextPage()} />}
               {query.isRefetchError && <ErrorState message="Could not refresh photos." onRetry={() => void query.refetch()} />}
               {query.hasNextPage && !query.isFetchNextPageError && <Spinner label="Loading photos…" />}
-              {!isMobile && !!media.length && (
-                <>
-                  <div className="locations__library-header">
-                    <h2>{t("Photos")} <span>{t("{located} of {total} located", { located: locatedCount, total: query.data?.pages[0]?.total ?? 0 })}</span></h2>
-                  </div>
-                  <ul className="locations__photos">
-                    {media.map((item) => (
-                      <li key={item.id}>
-                        <button type="button" className="locations__photo" aria-label={item.originalFilename}
-                          aria-pressed={selectedId === item.id} disabled={saving}
-                          onClick={() => select(item, true)}>
-                          {!failedPreviews.has(item.id) && <img src={mediaPreviewUrl(item.id)} alt="" loading="lazy"
-                            onError={() => setFailedPreviews((previous) => new Set(previous).add(item.id))} />}
-                          <span className={`locations__status${item.location ? " locations__status--located" : ""}`}>
-                            <span className="locations__status-dot" aria-hidden="true" />
-                            {t(item.location ? "Located" : "No location")}
-                          </span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              )}
             </>
           )}
           </div>

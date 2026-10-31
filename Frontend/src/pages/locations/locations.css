@@ -13,7 +13,7 @@
 }
 
 .locations__scroll-track {
-  background: var(--border);
+  background: var(--surface);
   height: 3px;
   inset: 0 0 auto;
   overflow: hidden;
@@ -43,7 +43,6 @@
   max-width: 1600px;
 }
 
-.locations__library-header,
 .locations__actions {
   align-items: center;
   display: flex;
@@ -61,7 +60,7 @@
   margin: 8px 0 0;
 }
 
-.locations__eyebrow,
+.locations .locations__eyebrow,
 .food__eyebrow {
   color: var(--text-strong);
   font-size: 0.6875rem;
@@ -91,9 +90,7 @@
 
 .locations h2 { font-size: 1.125rem; overflow-wrap: anywhere; }
 .locations p { margin: 8px 0 16px; }
-.locations__hint,
-.locations__library-header span,
-.locations__photo small { color: var(--text-muted); font-size: 0.875rem; }
+.locations__hint { color: var(--text-muted); font-size: 0.875rem; }
 
 .locations__notice {
   border: 1px solid var(--border-card);
@@ -575,28 +572,6 @@
   position: absolute;
   visibility: hidden;
 }
-.locations__library-header { margin-bottom: 16px; }
-.locations__library-header span { font-weight: 400; margin-left: 8px; }
-.locations__photos { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); list-style: none; margin: 0; padding: 0; }
-.locations__photo {
-  background: var(--surface);
-  border: 1px solid var(--border-card);
-  border-radius: 8px;
-  color: var(--text);
-  cursor: pointer;
-  display: grid;
-  gap: 8px;
-  height: 100%;
-  overflow: hidden;
-  padding: 8px;
-  text-align: left;
-  width: 100%;
-  align-content: start;
-}
-.locations__photo:hover:not(:disabled) { background: var(--surface-hover); border-color: var(--accent-soft); }
-.locations__photo:disabled { cursor: default; opacity: 0.6; }
-.locations__photo[aria-pressed="true"] { border-color: var(--accent-strong); background: var(--accent-wash); }
-.locations__photo img { aspect-ratio: 1; object-fit: cover; width: 100%; border-radius: 4px; }
 .locations input:focus-visible,
 .locations button:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 3px; }
 

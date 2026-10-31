@@ -88,17 +88,13 @@
 .album-card__media {
   aspect-ratio: 1;
   background: var(--surface-raised);
-  border: 1px solid var(--border);
   border-radius: var(--radius);
+  box-shadow: var(--shadow-popover);
   display: block;
   overflow: hidden;
   position: relative;
-  transition: border-color 0.15s ease;
 }
 
-.album-card__link:hover .album-card__media {
-  border-color: var(--accent-soft);
-}
 
 .album-card__link:focus-visible {
   outline: none;

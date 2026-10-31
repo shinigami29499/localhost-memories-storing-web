@@ -13,7 +13,7 @@
 }
 
 .food__scroll-track {
-  background: var(--border);
+  background: var(--surface);
   height: 3px;
   inset: 0 0 auto;
   overflow: hidden;
@@ -50,6 +50,18 @@
   flex-wrap: wrap;
   gap: 16px;
   justify-content: space-between;
+}
+
+.food__header { margin-bottom: 28px; }
+
+.food .food__header h1 {
+  line-height: 1.15;
+  margin: 0;
+}
+
+.food__header > div > p:last-child {
+  color: var(--text-muted);
+  margin: 8px 0 0;
 }
 
 .food__view-switch {
@@ -168,7 +180,7 @@
   opacity: 0.6;
 }
 
-.food__eyebrow {
+.food .food__eyebrow {
   color: var(--text-strong);
   font-size: 0.6875rem;
   font-weight: 700;
@@ -1143,7 +1155,6 @@
 .food button:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 3px; }
 
 @media (max-width: 900px) {
-  .food { padding: 40px 24px; }
   .food__map-panel { height: clamp(420px, calc(100dvh - var(--app-topbar-height, 68px) - 190px), 900px); }
 }
 
@@ -1152,7 +1163,8 @@
 }
 
 @media (max-width: 640px) {
-  .food { padding: 16px 8px; }
+  .food__content { padding: 16px 8px 24px; }
+  .food__header { margin-bottom: 16px; }
   .food__map-panel { height: max(360px, calc(100dvh - var(--app-topbar-height, 68px) - 220px)); }
   .food__pin {
     height: 36px;

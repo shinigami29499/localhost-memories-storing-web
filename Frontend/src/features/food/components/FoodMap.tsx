@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import Map, { GeolocateControl, Marker, useMap, type MapRef } from "react-map-gl/mapbox";
 import { useShouldReduceMotion } from "@animate-ui/react/utils/motion";
 import "mapbox-gl/dist/mapbox-gl.css";
@@ -474,8 +474,8 @@ function FoodPlaceMarkers({ places, selectedId, ready, onSelect, canChange, onMo
         const nearHome = !!homeLocation && mapMarkersOverlap(group.location, homeLocation, project);
         const homeExpanded = homeHovered && nearHome;
         return (
+        <Fragment key={group.items[0].id}>
         <Marker
-          key={group.items[0].id}
           latitude={nearHome && homeLocation ? homeLocation.latitude : group.location.latitude}
           longitude={nearHome && homeLocation ? homeLocation.longitude : group.location.longitude}
           anchor="bottom"
@@ -487,6 +487,15 @@ function FoodPlaceMarkers({ places, selectedId, ready, onSelect, canChange, onMo
             onHomeHoverChange={homeExpanded ? onHomeHoverChange : undefined}
             canChange={canChange} onMove={onMove} onDelete={onDelete} />
         </Marker>
+        {nearHome && homeLocation && group.items.length === 1 && (
+          <Marker latitude={homeLocation.latitude} longitude={homeLocation.longitude} anchor="bottom"
+            style={{ zIndex: 22, pointerEvents: "none" }}>
+            <div className="food__cluster" aria-hidden="true">
+              <span className="food__cluster-count">1</span>
+            </div>
+          </Marker>
+        )}
+        </Fragment>
         );
       })}
     </>

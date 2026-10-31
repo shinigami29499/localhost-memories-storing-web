@@ -13,7 +13,7 @@
 }
 
 .gallery-page__scroll-track {
-  background: var(--border);
+  background: var(--surface);
   height: 3px;
   inset: 0 0 auto;
   overflow: hidden;
@@ -35,6 +35,11 @@
   overflow: auto;
   padding: 40px 24px;
   scroll-padding-block: 24px;
+}
+
+.gallery-page:has(.gallery-page__footer) .gallery-page__content {
+  padding-bottom: calc(88px + env(safe-area-inset-bottom));
+  scroll-padding-bottom: calc(88px + env(safe-area-inset-bottom));
 }
 
 .gallery-page__inner {
@@ -541,24 +546,27 @@
 
 .gallery-page__footer {
   display: flex;
+  bottom: 0;
   flex-shrink: 0;
   justify-content: center;
   padding: 12px 20px max(12px, env(safe-area-inset-bottom));
-  position: relative;
-  z-index: 2;
+  pointer-events: none;
+  position: sticky;
+  z-index: 10;
 }
 
 .gallery-selection-bar {
   align-items: center;
   background: var(--surface);
-  border: 1px solid var(--border-card);
+  border: 0;
   border-radius: 999px;
-  box-shadow: var(--shadow-popover);
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.3), var(--shadow-popover);
   display: flex;
   gap: 4px;
   max-width: 100%;
   overflow-x: auto;
   padding: 6px;
+  pointer-events: auto;
 }
 
 .gallery-selection-bar__count {
@@ -617,10 +625,6 @@
   color: var(--danger);
 }
 
-.gallery-page--trash .gallery-selection-bar__action:not(.gallery-selection-bar__action--danger) {
-  color: #fff;
-}
-
 .gallery-selection-bar__action--danger:hover:not(:disabled) {
   background: var(--danger-wash);
   color: var(--danger);
@@ -639,7 +643,7 @@
 }
 
 .gallery-selection-bar--compact .gallery-selection-bar__count {
-  color: #fff;
+  color: var(--text-strong);
   padding-inline: 8px;
 }
 
@@ -656,7 +660,7 @@
 .gallery-selection-bar--compact .gallery-selection-bar__action--download,
 .gallery-selection-bar--compact .gallery-selection-bar__cancel,
 .gallery-selection-bar--compact .gallery-selection-bar__cancel:hover {
-  color: #fff;
+  color: var(--text);
 }
 
 .gallery-selection-bar--compact .gallery-selection-bar__action:disabled {
@@ -671,8 +675,8 @@
   color: #e6bf69;
 }
 
-:root:not(.dark) .gallery-selection-bar--compact {
-  background: #1c1f23;
+:root:not(.dark) .gallery-selection-bar--compact .gallery-selection-bar__action--save[aria-pressed="true"] {
+  color: #805b0b;
 }
 
 .gallery-selection-bar--compact .gallery-selection-bar__cancel:disabled {

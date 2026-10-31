@@ -624,6 +624,11 @@ textarea::placeholder {
   min-height: 100%;
 }
 
+.app-shell__content:has(.home-page, .gallery-page, .food, .locations) > .page-transition {
+  height: 100%;
+  min-height: 0;
+}
+
 /* Post card ---------------------------------------------------------------- */
 
 .post-card {

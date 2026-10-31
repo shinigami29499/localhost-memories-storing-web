@@ -6,15 +6,16 @@
 .sidebar {
   position: fixed;
   view-transition-name: app-sidebar;
-  top: 8px;
+  top: 1dvh;
   left: 8px;
-  bottom: 8px;
+  height: 98dvh;
   width: calc(var(--sidebar-width) - 16px);
   display: flex;
   flex-direction: column;
   background: var(--sidebar-bg);
   border: 0;
   border-radius: var(--radius);
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.3), var(--shadow-popover);
   z-index: 20;
 }
 
@@ -52,7 +53,7 @@
 
 .sidebar__toggle {
   position: fixed;
-  top: 27px;
+  top: calc(1dvh + 19px);
   left: min(calc(var(--sidebar-width) - 56px), calc(100vw - 48px));
   z-index: 21;
   display: inline-flex;
@@ -147,11 +148,11 @@
   align-items: center;
   gap: 2px;
   padding: 3px;
-  border: 1px solid var(--border);
+  border: 0;
   border-radius: 999px;
   background: var(--sidebar-bg);
   color: var(--text-strong);
-  box-shadow: var(--shadow-popover);
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.3), var(--shadow-popover);
 }
 
 .notification-bar .theme-toggler {
@@ -722,7 +723,7 @@
   }
 
   .sidebar__toggle {
-    top: calc(8px + env(safe-area-inset-top));
+    top: calc(1dvh + env(safe-area-inset-top));
     left: 12px;
     transform: translate(calc(var(--sidebar-width) - 76px), 11px);
     z-index: 41;
@@ -733,6 +734,7 @@
   }
 
   .sidebar--collapsed ~ .sidebar__toggle {
+    top: calc(8px + env(safe-area-inset-top));
     left: 12px;
     transform: translate(0, 0);
   }
@@ -786,10 +788,10 @@
     position: absolute;
     inset: 3px 2px;
     z-index: -1;
-    border: 1px solid var(--border);
+    border: 0;
     border-radius: inherit;
     background: var(--sidebar-bg);
-    box-shadow: var(--shadow-popover);
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.3), var(--shadow-popover);
     content: "";
     pointer-events: none;
   }
