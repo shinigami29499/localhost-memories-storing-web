@@ -8,9 +8,7 @@ From `Frontend/` in PowerShell:
 
 ```powershell
 $env:VITE_API_URL = "https://your-api.example.com"
-npm run android:sync
-cd android
-.\gradlew.bat assembleDebug
+npm.cmd run android:sync; if ($LASTEXITCODE -eq 0) { Push-Location android; .\gradlew.bat assembleDebug; Pop-Location }
 ```
 
 The debug APK is `android/app/build/outputs/apk/debug/app-debug.apk`. It uses a debug signing key and is intended for development, not distribution. Release builds require a private signing key and a configured release signing process. Run `npm run android:sync` after frontend changes before rebuilding the APK.
