@@ -135,6 +135,15 @@ public sealed class UploadsController(
         return Ok(result.Item);
     }
 
+    [HttpPost("batches/{batchId:guid}/items/delete")]
+    public async Task<IActionResult> DeleteRecordsAsync(Guid batchId, [FromBody] Guid[] itemIds, CancellationToken cancellationToken)
+    {
+        if (itemIds is null || itemIds.Length is < 1 or > 1000 || itemIds.Any(id => id == Guid.Empty) || itemIds.Distinct().Count() != itemIds.Length) return BadRequest();
+        await _uploadService.DeleteRecordsAsync(_currentUser.RequireUserId(), batchId, itemIds, cancellationToken);
+        await notificationsHub.NotifyUploadsChangedAsync(_currentUser.RequireUserId(), logger, cancellationToken);
+        return NoContent();
+    }
+
     [HttpDelete("batches/{batchId:guid}")]
     [HttpDelete("batches/{batchId:guid}/items/{itemId:guid}")]
     public async Task<IActionResult> DeleteRecordAsync(Guid batchId, Guid? itemId, CancellationToken cancellationToken)

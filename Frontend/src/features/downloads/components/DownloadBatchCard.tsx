@@ -1,27 +1,35 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Collapsible } from "@animate-ui/react/primitives/base-ui/collapsible";
 import { Progress } from "@animate-ui/react/primitives/base-ui/progress";
-import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { ChevronDown } from "@/components/animate-ui/icons/chevron-down";
 import { Image } from "@/components/animate-ui/icons/image";
 import { Video } from "@/components/animate-ui/icons/video";
 import { FileText } from "@/components/animate-ui/icons/file-text";
 import { formatBytes } from "../../uploads/components/UploadBatchCard";
+import { BatchItemFilters, batchFileType } from "../../uploads/components/BatchItemFilters";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import { RotateCcw } from "@/components/animate-ui/icons/rotate-ccw";
+import { Trash2 } from "@/components/animate-ui/icons/trash-2";
 import { Pause } from "@/components/animate-ui/icons/pause";
 import { Play } from "@/components/animate-ui/icons/play";
-import { X } from "@/components/animate-ui/icons/x";
 import { Button } from "../../../components/ui/Button";
 import { Pagination } from "../../../components/ui/Pagination";
+import { ConfirmationDialog } from "../../../components/ui/ConfirmationDialog";
 import { showToast } from "../../../components/ui/Toast";
 import { useLocale } from "../../../context/LocaleContext";
-import { cancelDownload, pauseDownloadBatch, resumeDownloadBatch, retryDownload, retryHistoryDownload, useDownloadStore, type DownloadBatch } from "../services/downloadQueue";
+import { pauseDownloadBatch, pauseDownloadItem, resumeDownloadBatch, resumeDownloadItem, removeDownloadRecord, retryDownload, retryHistoryDownload, useDownloadStore, type DownloadBatch } from "../services/downloadQueue";
 
 const ITEMS_PER_PAGE = 5;
 
 export function DownloadBatchCard({ batch, displayId, showUsername = false, canRetry = true }: { batch: DownloadBatch; displayId: number; showUsername?: boolean; canRetry?: boolean }) {
   const { t, language } = useLocale();
+  const queryClient = useQueryClient();
+  const [deleting, setDeleting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const selectedItems = batch.items.filter (item => selectedIds.has(item.id));
+  const actionItems = selectedItems.length ? selectedItems : batch.items;
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; filename: string } | "batch" | null>(null);
   const active = batch.items.some((item) => item.status === "Pending" || item.status === "Downloading");
   const paused = batch.items.some((item) => item.status === "Paused");
   const sent = batch.items.filter((item) => item.status === "Sent to browser").length;
@@ -33,6 +41,10 @@ export function DownloadBatchCard({ batch, displayId, showUsername = false, canR
     : "Completed";
   const [expanded, setExpanded] = useState(active);
   const [page, setPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
+  const filteredItems = batch.items.filter((item) => (!statusFilter || item.status === statusFilter) && (!typeFilter || batchFileType(item.originalFilename) === typeFilter));
+  const currentPage = Math.min(page, Math.max(1, Math.ceil(filteredItems.length / ITEMS_PER_PAGE)));
   const panelId = `download-batch-${batch.id}`;
   const toggleLabel = t(expanded ? "Hide files" : "View files");
   const retry = (itemId: string) => {
@@ -42,6 +54,16 @@ export function DownloadBatchCard({ batch, displayId, showUsername = false, canR
     } catch (error) {
       showToast.error(t("Could not start this download."), error instanceof Error ? error.message : undefined);
     }
+  };
+
+  const remove = async (itemId?: string, itemIds?: string[]) => {
+    setDeleting(true);
+    try {
+      await removeDownloadRecord(batch, itemId, itemIds);
+      await Promise.all([queryClient.invalidateQueries({ queryKey: ["download-history"] }), queryClient.invalidateQueries({ queryKey: ["download-batches"] })]);
+    } catch (error) {
+      showToast.error(t("Could not delete download record."), error instanceof Error ? error.message : undefined);
+    } finally { setDeleting(false); }
   };
 
   return (
@@ -76,23 +98,24 @@ export function DownloadBatchCard({ batch, displayId, showUsername = false, canR
             <span className="upload-progress__value">{sent}/{batch.items.length}</span>
           </div>
         </div>
+        <BatchItemFilters statuses={[...new Set(batch.items.map((item) => item.status))]} types={[...new Set(batch.items.map((item) => batchFileType(item.originalFilename)))]} status={statusFilter} type={typeFilter} onStatusChange={(value) => { setStatusFilter(value); setPage(1); }} onTypeChange={(value) => { setTypeFilter(value); setPage(1); }} />
         <div className="upload-batch__footer">
-            <Button type="button" variant="ghost" className="upload-item__action" aria-label={t("Retry all failed")} title={t("Retry all failed")} disabled={!canRetry || batch.items.filter((item) => item.status === "Failed").length < 1} onClick={() => batch.items.filter((item) => item.status === "Failed").forEach((item) => retry(item.id))}>
+            {canRetry ? <input className="upload-item__select upload-batch__select-all" type="checkbox" aria-label={t("Select all files")} title={t("Select all files")} checked={batch.items.length > 0 && selectedItems.length === batch.items.length} ref={(element) => { if (element) element.indeterminate = selectedItems.length > 0 && selectedItems.length < batch.items.length; }} onChange={(event) => setSelectedIds(event.target.checked ? new Set(batch.items.map((item) => item.id)) : new Set())} /> : null}
+            <Button type="button" variant="ghost" className="upload-item__action" aria-label={t("Retry all failed")} title={t("Retry all failed")} disabled={!canRetry || actionItems.filter((item) => item.status === "Failed").length < 1} onClick={() => actionItems.filter((item) => item.status === "Failed").forEach((item) => retry(item.id))}>
               <RotateCcw size={18} aria-hidden="true" />
             </Button>
-              <Button type="button" variant="ghost" className="upload-item__action" aria-label={t(paused ? "Resume batch" : "Pause batch")} title={t(paused ? "Resume batch" : "Pause batch")} disabled={!canRetry || (!active && !paused)} onClick={() => {
-                try { if (paused) resumeDownloadBatch(batch); else pauseDownloadBatch(batch.id); }
+              <Button type="button" variant="ghost" className="upload-item__action" aria-label={t(!active && paused ? "Resume batch" : "Pause batch")} title={t(!active && paused ? "Resume batch" : "Pause batch")} disabled={!canRetry || (!active && !paused)} onClick={() => {
+                try { if (active) pauseDownloadBatch(batch.id); else resumeDownloadBatch(batch); }
                 catch (error) { showToast.error(t("Could not start this download."), error instanceof Error ? error.message : undefined); }
-              }}>{paused ? <Play size={18} aria-hidden="true" /> : <Pause size={18} aria-hidden="true" />}</Button>
-              <Button type="button" variant="ghost" className="upload-item__action upload-item__action--cancel" aria-label={t("Cancel batch")} title={t("Cancel batch")} disabled={!canRetry || (!active && !paused)} onClick={() => {
-                if (paused && !useDownloadStore.getState().batches.some((entry) => entry.id === batch.id)) useDownloadStore.setState((state) => ({ batches: [batch, ...state.batches] }));
-                batch.items.forEach((item) => cancelDownload(item.id));
-              }}><X size={18} aria-hidden="true" /></Button>
+              }}>{!active && paused ? <Play size={18} aria-hidden="true" /> : <Pause size={18} aria-hidden="true" />}</Button>
+              <Button type="button" variant="ghost" className="upload-item__action upload-item__action--delete" aria-label={t("Delete batch record")} title={t("Delete batch record")} disabled={!canRetry || deleting || actionItems.some((item) => item.status === "Sent to browser")} onClick={() => setDeleteTarget("batch")}><Trash2 size={18} aria-hidden="true" /></Button>
+
         </div>
       </div>
       <Collapsible.Panel id={panelId} className="upload-batch__panel">
         <div className="upload-batch__items">
-          {batch.items.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE).map((item) => {
+          {filteredItems.length === 0 ? <p className="upload-batch__empty">{t("No files match these filters.")}</p> : null}
+          {filteredItems.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map((item) => {
             const busy = item.status === "Pending" || item.status === "Downloading";
             const percent = item.status === "Sent to browser" ? 100
               : item.fileSizeBytes > 0 ? Math.min(99, Math.floor(item.loaded / item.fileSizeBytes * 100)) : 0;
@@ -103,6 +126,7 @@ export function DownloadBatchCard({ batch, displayId, showUsername = false, canR
               : /\.(png|jpe?g|gif|webp|avif|heic|bmp)$/i.test(item.originalFilename) ? Image : FileText;
             return (
               <section key={item.id} className="upload-item" aria-label={item.originalFilename}>
+                {canRetry ? <input className="upload-item__select" type="checkbox" aria-label={t("Select {name}", { name: item.originalFilename })} checked={selectedIds.has(item.id)} onChange={(event) => setSelectedIds((current) => { const next = new Set(current); if (event.target.checked) next.add(item.id); else next.delete(item.id); return next; })} /> : null}
                 <span className="upload-item__file-type" aria-hidden="true">
                   {item.status === "Downloading"
                     ? <LoaderCircle size={18} className="spinner__wheel" />
@@ -118,20 +142,11 @@ export function DownloadBatchCard({ batch, displayId, showUsername = false, canR
                   </div>
                 </div>
                 <div className="upload-item__controls">
-                  <span className="upload-progress__value">{percent}%</span>
-                  {canRetry ? <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className="upload-item__action"
-                      disabled={!busy && item.status !== "Failed"}
-                      aria-label={busy ? t("Cancel download: {filename}", { filename: item.originalFilename }) : actionLabel}
-                      title={busy ? t("Cancel download: {filename}", { filename: item.originalFilename }) : actionLabel}
-                      onClick={() => busy ? cancelDownload(item.id) : retry(item.id)}
-                    >
-                      {busy ? <X size={18} aria-hidden="true" /> : <RotateCcw size={18} aria-hidden="true" />}
-                    </Button>
-                  </AnimateIcon> : null}
+                  {canRetry ? <div className="upload-item__actions">
+                    <Button type="button" variant="ghost" className="upload-item__action" disabled={deleting || item.status !== "Failed"} aria-label={actionLabel} title={actionLabel} onClick={() => retry(item.id)}><RotateCcw size={18} aria-hidden="true" /></Button>
+                    <Button type="button" variant="ghost" className="upload-item__action" disabled={deleting || (!busy && item.status !== "Paused")} aria-label={t(item.status === "Paused" ? "Resume {name}" : "Pause {name}", { name: item.originalFilename })} title={t(item.status === "Paused" ? "Resume {name}" : "Pause {name}", { name: item.originalFilename })} onClick={() => { try { if (item.status === "Paused") resumeDownloadItem(batch, item.id); else pauseDownloadItem(item.id); } catch (error) { showToast.error(t("Could not start this download."), error instanceof Error ? error.message : undefined); } }}>{item.status === "Paused" ? <Play size={18} aria-hidden="true" /> : <Pause size={18} aria-hidden="true" />}</Button>
+                    <Button type="button" variant="ghost" className="upload-item__action upload-item__action--delete" disabled={deleting || item.status === "Sent to browser"} aria-label={t("Delete record: {filename}", { filename: item.originalFilename })} title={t("Delete record: {filename}", { filename: item.originalFilename })} onClick={() => setDeleteTarget({ id: item.id, filename: item.originalFilename })}><Trash2 size={18} aria-hidden="true" /></Button>
+                  </div> : null}
                 </div>
                 <div className="upload-item__progress-row">
                   <Progress.Root value={percent} aria-label={t("Progress for {name}", { name: item.originalFilename })} aria-valuetext={`${percent}%`} className="upload-progress">
@@ -143,10 +158,15 @@ export function DownloadBatchCard({ batch, displayId, showUsername = false, canR
             );
           })}
         </div>
-        {batch.items.length > ITEMS_PER_PAGE ? (
-          <Pagination page={page} pageSize={ITEMS_PER_PAGE} total={batch.items.length} onPageChange={setPage} itemLabel="files" />
+        {filteredItems.length > ITEMS_PER_PAGE ? (
+          <Pagination page={currentPage} pageSize={ITEMS_PER_PAGE} total={filteredItems.length} onPageChange={setPage} itemLabel="files" />
         ) : null}
       </Collapsible.Panel>
+      {deleteTarget ? (
+        <ConfirmationDialog title="Delete record" danger onClose={() => setDeleteTarget(null)} onConfirm={async () => { if (deleteTarget === "batch" && selectedItems.length) { await remove(undefined, selectedItems.map((item) => item.id)); setSelectedIds(new Set()); } else await remove(deleteTarget === "batch" ? undefined : deleteTarget.id); }}>
+          {deleteTarget === "batch" ? t(selectedItems.length ? "Delete the selected file records?" : "Delete this batch record and its file records?") : t("Delete the record for {filename}?", { filename: deleteTarget.filename })}
+        </ConfirmationDialog>
+      ) : null}
     </Collapsible.Root>
   );
 }

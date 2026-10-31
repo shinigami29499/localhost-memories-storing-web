@@ -12,7 +12,7 @@ import { useAuthStore } from "../../store/authStore";
 import { useLocale } from "../../context/LocaleContext";
 import { cancelRunningUpload, requestUploadRetry, setUploadPaused } from "../../features/uploads/services/uploadRuntime";
 import { uploadService } from "../../features/uploads/services/uploadService";
-import { saveUploadFile } from "../../features/uploads/services/uploadFileStore";
+import { removeUploadFile, saveUploadFile } from "../../features/uploads/services/uploadFileStore";
 import { UploadActivityDialog } from "../../features/uploads/components/UploadActivityDialog";
 import { UploadBatchCard } from "../../features/uploads/components/UploadBatchCard";
 import type { UploadBatch, UploadItem } from "../../features/uploads/types";
@@ -156,6 +156,25 @@ export function UploadManagementPage() {
     if (unmatched) showToast.error(t("Choose the same file name and size to retry."));
   };
 
+  const removeRecord = async (batch: UploadBatch, item?: UploadItem, selected?: UploadItem[]) => {
+    const targets = selected ?? (item ? [item] : batch.items);
+    for (const target of targets) markBusy(target.id);
+    try {
+      for (const target of targets) {
+        if (target.status === "Pending" || target.status === "Uploading" || target.status === "Paused") await cancelRunningUpload(batch.id, target.id);
+      }
+      if (selected) await uploadService.deleteRecords(batch.id, selected.map((target) => target.id));
+      else await uploadService.deleteRecord(batch.id, item?.id);
+      await Promise.allSettled(targets.map((target) => removeUploadFile(target.id)));
+      await queryClient.invalidateQueries({ queryKey: ["uploads"] });
+    } catch (error) {
+      await queryClient.invalidateQueries({ queryKey: ["uploads"] });
+      showToast.error(t("Could not delete upload record."), error instanceof Error ? error.message : undefined);
+    } finally {
+      setBusyItemIds((current) => { const next = new Set(current); for (const target of targets) next.delete(target.id); return next; });
+    }
+  };
+
   const togglePause = async (batch: UploadBatch, item: UploadItem | undefined, paused: boolean) => {
     const affected = item ? [item] : batch.items.filter((entry) => paused ? entry.status === "Pending" || entry.status === "Uploading" : entry.status === "Paused");
     for (const entry of affected) markBusy(entry.id);
@@ -164,23 +183,6 @@ export function UploadManagementPage() {
     finally { setBusyItemIds((current) => { const next = new Set(current); for (const entry of affected) next.delete(entry.id); return next; }); }
   };
 
-  const cancel = async (batch: UploadBatch, item: UploadItem) => {
-    markBusy(item.id);
-    try {
-      await cancelRunningUpload(batch.id, item.id);
-      await queryClient.invalidateQueries({ queryKey: ["uploads"] });
-    } catch (error) {
-      setBusyItemIds((current) => {
-        const next = new Set(current);
-        next.delete(item.id);
-        return next;
-      });
-      const timeout = busyTimeouts.current.get(item.id);
-      if (timeout) window.clearTimeout(timeout);
-      busyTimeouts.current.delete(item.id);
-      showToast.error(t("Could not cancel this upload."), error instanceof Error ? error.message : undefined);
-    }
-  };
 
   const data = query.data;
   const batches = data?.items ?? [];
@@ -301,9 +303,10 @@ export function UploadManagementPage() {
                 showUsername={isAdmin}
                 busyItemIds={busyItemIds}
                 onRetry={(batch, item) => retryItems(batch, [item])}
+                onDelete={(batch, item) => removeRecord(batch, item)}
+                onDeleteMany={(batch, items) => removeRecord(batch, undefined, items)}
                 onPause={(batch, item, paused) => void togglePause(batch, item, paused)}
                 onRetryAll={(batch) => retryItems(batch, batch.items.filter((item) => item.status === "Failed"))}
-                onCancel={(itemBatch, item) => void cancel(itemBatch, item)}
               />
             ))}
           </div>

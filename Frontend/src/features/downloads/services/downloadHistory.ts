@@ -36,3 +36,11 @@ export async function listAllDownloadBatches(): Promise<DownloadBatch[]> {
 export function saveDownloadBatch(batch: DownloadBatch) {
   return api<void>(`/api/downloads/batches/${encodeURIComponent(batch.id)}`, { method: "PUT", body: { items: batch.items } });
 }
+
+export function deleteDownloadRecord(batchId: string, itemId?: string) {
+  return api<void>(`/api/downloads/batches/${encodeURIComponent(batchId)}${itemId ? `/items/${encodeURIComponent(itemId)}` : ""}`, { method: "DELETE" });
+}
+
+export function deleteDownloadRecords(batchId: string, itemIds: string[]) {
+  return api<void>(`/api/downloads/batches/${encodeURIComponent(batchId)}/items/delete`, { method: "POST", body: itemIds });
+}

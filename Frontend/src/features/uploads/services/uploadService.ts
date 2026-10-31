@@ -98,6 +98,12 @@ export const uploadService = {
     );
   },
 
+  deleteRecords(batchId: string, itemIds: string[]): Promise<void> {
+    return api(`${BASE_PATH}/batches/${batchId}/items/delete`, { method: "POST", body: itemIds });
+  },
+  deleteRecord(batchId: string, itemId?: string): Promise<void> {
+    return api(`${BASE_PATH}/batches/${batchId}${itemId ? `/items/${itemId}` : ""}`, { method: "DELETE" });
+  },
   setPaused(batchId: string, itemId: string | undefined, paused: boolean): Promise<UploadBatch> {
     return api(`${BASE_PATH}/batches/${batchId}${itemId ? `/items/${itemId}` : ""}/${paused ? "pause" : "resume"}`, { method: "POST" });
   },

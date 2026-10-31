@@ -13,6 +13,13 @@ public class DownloadsController(IDownloadHistoryService history, ICurrentUserCo
     [HttpGet]
     public async Task<ActionResult<DownloadHistoryResponse>> ListAsync([FromQuery] int offset = 0, [FromQuery] int limit = 10, CancellationToken cancellationToken = default)
         => Ok(await history.ListAsync(currentUser.RequireUserId(), currentUser.IsAdmin, offset, limit, cancellationToken));
+    [HttpPost("batches/{batchId:guid}/items/delete")]
+    public async Task<IActionResult> DeleteRecordsAsync(Guid batchId, [FromBody] Guid[] itemIds, CancellationToken cancellationToken)
+    {
+        if (itemIds is null || itemIds.Length is < 1 or > 1000 || itemIds.Any(id => id == Guid.Empty) || itemIds.Distinct().Count() != itemIds.Length) return BadRequest();
+        return await history.DeleteRecordsAsync(currentUser.RequireUserId(), batchId, itemIds, cancellationToken) ? NoContent() : NotFound();
+    }
+
     [HttpDelete("batches/{batchId:guid}")]
     [HttpDelete("batches/{batchId:guid}/items/{itemId:guid}")]
     public async Task<IActionResult> DeleteRecordAsync(Guid batchId, Guid? itemId, CancellationToken cancellationToken)

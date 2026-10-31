@@ -7,7 +7,6 @@ import { Sidebar } from "./Sidebar";
 import { NotificationBell } from "./NotificationBell";
 import { UploadRuntime } from "../../features/uploads/components/UploadRuntime";
 import { DownloadRuntime } from "../../features/downloads/components/DownloadRuntime";
-import { Spinner } from "../ui/Status";
 import { useLocale } from "../../context/LocaleContext";
 import { PageTransition } from "./PageTransition";
 import { readPageTransitionEffect } from "../../utils/pageTransition";
@@ -93,7 +92,7 @@ export function AuthenticatedLayout() {
         <ScrollProgressProvider>
           <ScrollProgressContainer id="main-content" tabIndex={-1} className="app-shell__content">
             <PageTransition effect={pageTransition}>
-              <Suspense fallback={<Spinner label="Loading page…" />}>
+              <Suspense fallback={null}>
                 <Outlet />
               </Suspense>
             </PageTransition>

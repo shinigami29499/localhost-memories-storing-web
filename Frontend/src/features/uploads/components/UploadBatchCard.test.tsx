@@ -85,7 +85,6 @@ describe("UploadBatchCard", () => {
   let container: HTMLDivElement;
   let root: Root;
   let onRetry: ReturnType<typeof vi.fn>;
-  let onCancel: ReturnType<typeof vi.fn>;
   const originalAnimate = Object.getOwnPropertyDescriptor(Element.prototype, "animate");
 
   beforeEach(async () => {
@@ -117,7 +116,6 @@ describe("UploadBatchCard", () => {
     document.body.append(container);
     root = createRoot(container);
     onRetry = vi.fn();
-    onCancel = vi.fn();
     await act(async () => {
       root.render(
         <LocaleProvider>
@@ -128,7 +126,6 @@ describe("UploadBatchCard", () => {
                 showUsername={false}
                 busyItemIds={new Set()}
                 onRetry={onRetry}
-                onCancel={onCancel}
               />
             </AnimateUIProvider>
           </MemoryRouter>
@@ -159,7 +156,6 @@ describe("UploadBatchCard", () => {
                   showUsername={false}
                   busyItemIds={new Set()}
                   onRetry={onRetry}
-                  onCancel={onCancel}
                 />
               ))}
             </AnimateUIProvider>
@@ -223,31 +219,24 @@ describe("UploadBatchCard", () => {
     expect(container.querySelector(".pagination")).toBeNull();
   });
 
-  it("shows progress and only retries failed items or cancels pending and uploading items", async () => {
+  it("shows progress and only retries failed items", async () => {
     expect(container.querySelector(".upload-item__controls")?.textContent).toContain("70%");
     expect(container.querySelector('[aria-label="Retry failed.png"]')).not.toBeNull();
-    expect(container.querySelector('[aria-label="Cancel uploading.mp4"]')).not.toBeNull();
-    expect(container.querySelector('[aria-label="Cancel pending.webp"]')).not.toBeNull();
-    expect(container.querySelector('[aria-label="Retry success.jpg"]')).toBeNull();
-    expect(container.querySelector('[aria-label="Cancel success.jpg"]')).toBeNull();
+    expect(container.querySelector<HTMLButtonElement>('[aria-label="Retry success.jpg"]')?.disabled).toBe(true);
     expect(container.textContent).toContain("45%");
     expect(container.textContent).toContain("100%");
     expect(container.textContent).not.toContain("Batch status");
     expect(container.textContent).not.toContain("Item status");
     expect(container.querySelectorAll(".upload-item__file-type")).toHaveLength(items.length);
     expect(container.querySelectorAll(".upload-item__progress-row .upload-progress")).toHaveLength(items.length);
-    for (const action of container.querySelectorAll(".upload-item__action")) {
+    for (const action of container.querySelectorAll(".upload-item .upload-item__action")) {
       expect(action.closest(".upload-item__controls")).not.toBeNull();
     }
 
     await act(async () => {
       container.querySelector<HTMLButtonElement>('[aria-label="Retry failed.png"]')!.click();
-      container.querySelector<HTMLButtonElement>('[aria-label="Cancel pending.webp"]')!.click();
-      container.querySelector<HTMLButtonElement>('[aria-label="Cancel uploading.mp4"]')!.click();
     });
     expect(onRetry).toHaveBeenCalledWith(batch, items[0]);
-    expect(onCancel).toHaveBeenNthCalledWith(1, batch, items[2]);
-    expect(onCancel).toHaveBeenNthCalledWith(2, batch, items[1]);
   });
 
   it("places the expand control first in the summary without summary counters", () => {
@@ -278,7 +267,6 @@ describe("UploadBatchCard", () => {
                 showUsername={false}
                 busyItemIds={new Set()}
                 onRetry={onRetry}
-                onCancel={onCancel}
               />
             </AnimateUIProvider>
           </MemoryRouter>
@@ -328,7 +316,6 @@ describe("UploadBatchCard", () => {
                   showUsername={false}
                   busyItemIds={new Set()}
                   onRetry={onRetry}
-                  onCancel={onCancel}
                 />
               </AnimateUIProvider>
             </MemoryRouter>
@@ -358,6 +345,27 @@ describe("UploadBatchCard", () => {
     },
   );
 
+  it("protects successful records and orders item controls", async () => {
+    const onPause = vi.fn();
+    const onDelete = vi.fn();
+    await act(async () => root.render(
+      <LocaleProvider><MemoryRouter><AnimateUIProvider reducedMotion="never">
+        <UploadBatchCard batch={batch} showUsername={false} busyItemIds={new Set()} onRetry={onRetry} onRetryAll={vi.fn()} onPause={onPause} onDelete={onDelete} />
+      </AnimateUIProvider></MemoryRouter></LocaleProvider>,
+    ));
+    expect(container.querySelector<HTMLButtonElement>('[aria-label="Delete batch record"]')?.disabled).toBe(true);
+    expect(container.querySelector<HTMLButtonElement>('[aria-label="Delete record: success.jpg"]')?.disabled).toBe(true);
+    const failed = container.querySelector('[aria-label="failed.png"]')!;
+    const labels = [...failed.querySelectorAll(".upload-item__actions button")].map((button) => button.getAttribute("aria-label"));
+    expect(labels.slice(0, 3)).toEqual(["Retry failed.png", "Pause failed.png", "Delete record: failed.png"]);
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('[aria-label="Pause uploading.mp4"]')!.click();
+      container.querySelector<HTMLButtonElement>('[aria-label="Delete record: failed.png"]')!.click();
+    });
+    expect(onPause).toHaveBeenCalledWith(batch, items[1], true);
+    expect(onDelete).toHaveBeenCalledWith(batch, items[0]);
+  });
+
   it("keeps busy actions disabled beside progress and hides actions for read-only batches", async () => {
     const renderCard = (canManage: boolean) => (
       <LocaleProvider>
@@ -366,20 +374,19 @@ describe("UploadBatchCard", () => {
             <UploadBatchCard
               batch={{ ...batch, canManage }}
               showUsername={false}
-              busyItemIds={new Set(["uploading"])}
+              busyItemIds={new Set(["failed"])}
               onRetry={onRetry}
-              onCancel={onCancel}
             />
           </AnimateUIProvider>
         </MemoryRouter>
       </LocaleProvider>
     );
     await act(async () => root.render(renderCard(true)));
-    const cancel = container.querySelector<HTMLButtonElement>('[aria-label="Cancel uploading.mp4"]')!;
-    expect(cancel.disabled).toBe(true);
-    expect(cancel.getAttribute("aria-busy")).toBe("true");
-    expect(cancel.querySelector(".btn__spinner")).not.toBeNull();
-    expect(cancel.closest(".upload-item__controls")).not.toBeNull();
+    const retry = container.querySelector<HTMLButtonElement>('[aria-label="Retry failed.png"]')!;
+    expect(retry.disabled).toBe(true);
+    expect(retry.getAttribute("aria-busy")).toBe("true");
+    expect(retry.querySelector(".btn__spinner")).not.toBeNull();
+    expect(retry.closest(".upload-item__controls")).not.toBeNull();
 
     await act(async () => root.render(renderCard(false)));
     expect(container.querySelector(".upload-item__action")).toBeNull();
@@ -399,7 +406,6 @@ describe("UploadBatchCard", () => {
                   showUsername={false}
                   busyItemIds={new Set()}
                   onRetry={onRetry}
-                  onCancel={onCancel}
                 />
               </AnimateUIProvider>
             </MemoryRouter>
@@ -431,7 +437,6 @@ describe("UploadBatchCard", () => {
                 showUsername
                 busyItemIds={new Set()}
                 onRetry={vi.fn()}
-                onCancel={vi.fn()}
               />
             </AnimateUIProvider>
           </MemoryRouter>

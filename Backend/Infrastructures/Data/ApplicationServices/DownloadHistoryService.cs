@@ -9,6 +9,26 @@ public class DownloadHistoryService(ApplicationDbContext db) : IDownloadHistoryS
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
+    public async Task<bool> DeleteRecordsAsync(Guid userId, Guid batchId, IReadOnlyCollection<Guid> itemIds, CancellationToken cancellationToken)
+    {
+        var batch = await db.DownloadBatchStates.FirstOrDefaultAsync(entry => entry.Id == batchId && entry.UserId == userId, cancellationToken);
+        if (batch is null) return false;
+        var items = JsonSerializer.Deserialize<List<DownloadItemStateDto>>(batch.ItemsJson, JsonOptions) ?? [];
+        var ids = itemIds.ToHashSet();
+        var selected = items.Where(item => ids.Contains(item.Id)).ToList();
+        if (ids.Count == 0 || selected.Count != ids.Count) return false;
+        if (selected.Any(item => item.Status == "Sent to browser")) throw new Services.Exceptions.ConflictException("Successful downloads cannot be deleted.");
+        if (selected.Any(item => item.Status is "Pending" or "Downloading" or "Paused")) throw new Services.Exceptions.ConflictException("Active downloads cannot be deleted.");
+        var mediaIds = selected.Select(item => item.MediaId).ToHashSet();
+        var records = await db.DownloadRecords.Where(record => record.UserId == userId && record.BatchId == batchId && mediaIds.Contains(record.MediaId)).ToListAsync(cancellationToken);
+        var now = DateTime.UtcNow;
+        foreach (var record in records) { record.DeletedAt = now; record.DeletedBy = userId; }
+        if (items.Count == selected.Count) { batch.DeletedAt = now; batch.DeletedBy = userId; }
+        else batch.ItemsJson = JsonSerializer.Serialize(items.Where(item => !ids.Contains(item.Id)), JsonOptions);
+        await db.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
     public async Task<bool> DeleteRecordAsync(Guid userId, Guid batchId, Guid? itemId, CancellationToken cancellationToken)
     {
         var batch = await db.DownloadBatchStates.FirstOrDefaultAsync(entry => entry.Id == batchId && entry.UserId == userId, cancellationToken);
@@ -16,6 +36,7 @@ public class DownloadHistoryService(ApplicationDbContext db) : IDownloadHistoryS
         if (batch is null && records.Count == 0) return false;
         var items = batch is null ? [] : JsonSerializer.Deserialize<List<DownloadItemStateDto>>(batch.ItemsJson, JsonOptions) ?? [];
         var selected = itemId.HasValue ? items.Where(item => item.Id == itemId.Value).ToList() : items;
+        if (selected.Any(item => item.Status == "Sent to browser")) throw new Services.Exceptions.ConflictException("Successful downloads cannot be deleted.");
         if (selected.Any(item => item.Status is "Pending" or "Downloading" or "Paused")) throw new Services.Exceptions.ConflictException("Active downloads cannot be deleted.");
         var mediaId = itemId.HasValue ? selected.FirstOrDefault()?.MediaId ?? records.FirstOrDefault(record => record.Id == itemId.Value)?.MediaId : null;
         if (itemId.HasValue && !mediaId.HasValue) return false;

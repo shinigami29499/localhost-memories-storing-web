@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { downloadBlob } from "../../../services/api";
+import { api, downloadBlob } from "../../../services/api";
 import { useAuthStore } from "../../../store/authStore";
 import type { MediaFile } from "../../media/types";
-import { cancelDownload, clearDownloads, enqueueDownloads, retryDownload, useDownloadStore } from "./downloadQueue";
+import { cancelDownload, clearDownloads, enqueueDownloads, pauseDownloadItem, resumeDownloadItem, removeDownloadRecord, retryDownload, useDownloadStore } from "./downloadQueue";
 
-vi.mock("../../../services/api", () => ({ downloadBlob: vi.fn() }));
+vi.mock("../../../services/api", () => ({ downloadBlob: vi.fn(), api: vi.fn().mockResolvedValue(undefined) }));
 
 const image: MediaFile = {
   id: "image", originalFilename: "original photo.png", mediaKind: "image", mimeType: "image/png",
@@ -56,14 +56,14 @@ describe("download queue", () => {
     expect(downloadBlob).toHaveBeenCalledTimes(1);
     expect(items().map((item) => item.status)).toEqual(["Downloading", "Pending"]);
     expect(downloadBlob).toHaveBeenNthCalledWith(
-      1, "/api/library/gallery/image/file", expect.any(AbortSignal), expect.any(Function),
+      1, expect.stringMatching(/^\/api\/library\/gallery\/image\/file\?download=true&batchId=/), expect.any(AbortSignal), expect.any(Function),
     );
     vi.mocked(downloadBlob).mock.calls[0][2](2, 4);
     expect(items()[0].loaded).toBe(2);
     first.resolve(blob);
     await vi.waitFor(() => expect(items().every((item) => item.status === "Sent to browser")).toBe(true));
     expect(downloadBlob).toHaveBeenNthCalledWith(
-      2, "/api/library/gallery/video/file", expect.any(AbortSignal), expect.any(Function),
+      2, expect.stringMatching(/^\/api\/library\/gallery\/video\/file\?download=true&batchId=/), expect.any(AbortSignal), expect.any(Function),
     );
     expect(saves).toEqual(["original photo.png", "video.mp4"]);
     expect(document.querySelector('a[download]')).toBeNull();
@@ -126,11 +126,39 @@ describe("download queue", () => {
     enqueueDownloads([image], true);
     await vi.waitFor(() => expect(items()[0].status).toBe("Sent to browser"));
     expect(downloadBlob).toHaveBeenCalledWith(
-      "/api/library/gallery/image/file?includeDeleted=true", expect.any(AbortSignal), expect.any(Function),
+      expect.stringMatching(/^\/api\/library\/gallery\/image\/file\?download=true&includeDeleted=true&batchId=/), expect.any(AbortSignal), expect.any(Function),
     );
     const url = vi.mocked(URL.createObjectURL).mock.results[0].value;
     clearDownloads();
     expect(URL.revokeObjectURL).toHaveBeenCalledWith(url);
+  });
+
+  it("pauses and resumes one item without creating a batch", async () => {
+    const first = deferred<Blob>();
+    vi.mocked(downloadBlob).mockReturnValueOnce(first.promise);
+    const batchId = enqueueDownloads([image, video]);
+    const firstItem = items()[0];
+    const signal = vi.mocked(downloadBlob).mock.calls[0][1];
+    pauseDownloadItem(firstItem.id);
+    expect(signal.aborted).toBe(true);
+    expect(items()[0].status).toBe("Paused");
+    first.resolve(blob);
+    await vi.waitFor(() => expect(items()[1].status).toBe("Sent to browser"));
+    resumeDownloadItem(useDownloadStore.getState().batches[0], firstItem.id);
+    await vi.waitFor(() => expect(items()[0].status).toBe("Sent to browser"));
+    expect(useDownloadStore.getState().batches).toHaveLength(1);
+    expect(useDownloadStore.getState().batches[0].id).toBe(batchId);
+  });
+
+  it("deletes only the requested unsuccessful record and protects successful records", async () => {
+    vi.mocked(downloadBlob).mockRejectedValueOnce(new Error("Failed"));
+    enqueueDownloads([image, video]);
+    await vi.waitFor(() => expect(items()[1].status).toBe("Sent to browser"));
+    const batch = useDownloadStore.getState().batches[0];
+    await expect(removeDownloadRecord(batch)).rejects.toThrow("Successful downloads cannot be deleted.");
+    await removeDownloadRecord(batch, batch.items[0].id);
+    expect(useDownloadStore.getState().batches[0].items.map((item) => item.mediaId)).toEqual(["video"]);
+    expect(vi.mocked(api)).toHaveBeenCalledWith(expect.stringContaining(`/items/${batch.items[0].id}`), { method: "DELETE" });
   });
 
   it("requires a signed-in session and a nonempty selection", () => {

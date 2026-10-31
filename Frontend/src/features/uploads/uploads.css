@@ -215,16 +215,16 @@
 
 .upload-batch__summary {
   display: grid;
-  grid-template-columns: 44px 36px minmax(0, 1fr) 120px minmax(160px, 1.2fr) 160px;
-  grid-template-areas: "toggle ordinal created status progress footer";
+  grid-template-columns: 44px 36px minmax(100px, 1fr) 100px minmax(120px, 1fr) auto 200px;
+  grid-template-areas: "toggle ordinal created status progress filters footer";
   align-items: center;
   gap: 16px;
   padding: 10px 16px;
 }
 
 .upload-batch__summary--admin {
-  grid-template-columns: 44px 36px minmax(0, 0.8fr) minmax(0, 1fr) 120px minmax(140px, 1.2fr) 160px;
-  grid-template-areas: "toggle ordinal username created status progress footer";
+  grid-template-columns: 44px 36px minmax(80px, 0.8fr) minmax(100px, 1fr) 100px minmax(120px, 1fr) auto 200px;
+  grid-template-areas: "toggle ordinal username created status progress filters footer";
 }
 
 .upload-batch__field {
@@ -359,10 +359,63 @@
   align-items: center;
   justify-content: flex-end;
   grid-area: footer;
-  gap: 8px;
+  gap: 4px;
   min-width: 0;
   flex-wrap: wrap;
 }
+
+.upload-batch__filters {
+  display: flex;
+  flex-wrap: wrap;
+  grid-area: filters;
+  gap: 8px;
+  min-width: 0;
+}
+
+.upload-batch__filter-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 150px;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-card);
+  color: var(--text-strong);
+  font: inherit;
+  cursor: pointer;
+}
+
+.upload-batch__filter-trigger:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.upload-batch__filter-positioner { z-index: 30; }
+
+.upload-batch__filter-popup {
+  min-width: var(--anchor-width);
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-card);
+  color: var(--text-strong);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.15);
+}
+
+.upload-batch__filter-option {
+  padding: 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  outline: none;
+}
+
+.upload-batch__filter-option[data-highlighted],
+.upload-batch__filter-option[data-selected] { background: var(--surface-hover); }
+
+.upload-batch__empty { color: var(--text-muted); }
 
 .upload-batch__items {
   border-top: 1px solid var(--border);
@@ -371,10 +424,10 @@
 
 .upload-item {
   display: grid;
-  grid-template-columns: 36px minmax(0, 1fr) auto;
+  grid-template-columns: 68px minmax(0, 1fr) auto;
   grid-template-areas:
     "icon details controls"
-    "progress progress progress";
+    "icon progress .";
   align-items: center;
   gap: 8px 12px;
   padding: 12px 0;
@@ -384,10 +437,68 @@
   border-top: 1px solid var(--border);
 }
 
+.upload-item:has(.upload-item__select) {
+  grid-template-columns: 44px 68px minmax(0, 1fr) auto;
+  grid-template-areas: "select icon details controls" "select icon progress .";
+  column-gap: 16px;
+}
+
+.upload-item__select {
+  appearance: none;
+  display: grid;
+  grid-area: select;
+  place-content: center;
+  justify-self: center;
+  box-sizing: border-box;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface-raised);
+  cursor: pointer;
+}
+
+.upload-item__select::before {
+  width: 10px;
+  height: 10px;
+  background: var(--surface-card);
+  clip-path: polygon(14% 44%, 0 59%, 39% 100%, 100% 19%, 84% 6%, 37% 72%);
+  content: "";
+  transform: scale(0);
+  transition: transform 160ms ease-out;
+}
+
+.upload-batch__select-all {
+  grid-area: auto;
+  margin-right: 8px;
+}
+
+.upload-item__select:indeterminate::before {
+  clip-path: inset(40% 0);
+  transform: scale(1);
+}
+
+.upload-item__select:indeterminate,
+.upload-item__select:checked {
+  border-color: var(--accent-strong);
+  background: var(--accent-strong);
+}
+
+.upload-item__select:checked::before {
+  transform: scale(1);
+}
+
+.upload-item__select:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
+}
+
 .upload-item__file-type {
   display: grid;
-  width: 36px;
-  height: 40px;
+  width: 68px;
+  height: 68px;
   grid-area: icon;
   place-items: center;
   border: 1px solid var(--border);
@@ -396,7 +507,18 @@
   color: var(--text-muted);
 }
 
+.upload-item__file-type svg {
+  width: 70%;
+  height: 70%;
+}
+
+.upload-item__action svg {
+  width: 22px;
+  height: 22px;
+}
+
 .upload-item__details {
+  align-self: start;
   grid-area: details;
   min-width: 0;
 }
@@ -443,7 +565,9 @@
 }
 
 .upload-item__progress-row {
+  align-self: end;
   grid-area: progress;
+  margin-bottom: 4px;
 }
 
 .upload-item__error {
@@ -474,8 +598,14 @@
   place-items: center;
 }
 
-.upload-item__action--cancel {
+.upload-item__action--delete.btn {
   color: var(--danger);
+  background: var(--danger-wash);
+}
+
+.upload-item__action--delete.btn:hover:not(:disabled) {
+  background: var(--danger-wash);
+  filter: brightness(1.15);
 }
 
 @keyframes upload-progress-indeterminate {
@@ -521,26 +651,37 @@
     grid-template-columns: 44px 32px repeat(3, minmax(0, 1fr));
     grid-template-areas:
       "toggle ordinal created created created"
-      ". status progress progress footer";
+      ". status progress progress footer"
+      "filters filters filters filters filters";
     gap: 10px 12px;
   }
 
   .upload-batch__summary--admin {
     grid-template-areas:
       "toggle ordinal username created created"
-      ". status progress progress footer";
+      ". status progress progress footer"
+      "filters filters filters filters filters";
   }
 
   .upload-item {
-    grid-template-columns: 32px minmax(0, 1fr) auto;
+    grid-template-columns: 68px minmax(0, 1fr) auto;
   }
 
-  .upload-item__file-type {
-    width: 32px;
-  }
 }
 
 @container (max-width: 520px) {
+  .upload-item {
+    grid-template-columns: 68px minmax(0, 1fr);
+    grid-template-areas: "icon details" "icon progress" "controls controls";
+  }
+
+  .upload-item:has(.upload-item__select) {
+    grid-template-columns: 44px 68px minmax(0, 1fr);
+    grid-template-areas: "select icon details" "select icon progress" "controls controls controls";
+  }
+
+  .upload-item__controls { justify-content: flex-end; }
+
   .upload-batch__summary:not(.upload-batch__summary--admin) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     grid-template-areas: none;
@@ -553,6 +694,7 @@
       "toggle ordinal ordinal"
       "username created status"
       "progress progress progress"
+      "filters filters filters"
       "footer footer footer";
     gap: 12px;
   }
@@ -562,11 +704,13 @@
   .upload-batch__summary:not(.upload-batch__summary--admin) .upload-batch__created-field,
   .upload-batch__summary:not(.upload-batch__summary--admin) .upload-batch__status-field,
   .upload-batch__summary:not(.upload-batch__summary--admin) .upload-batch__progress-field,
+  .upload-batch__summary:not(.upload-batch__summary--admin) .upload-batch__filters,
   .upload-batch__summary:not(.upload-batch__summary--admin) .upload-batch__footer {
     grid-area: auto;
   }
 
   .upload-batch__progress-field,
+  .upload-batch__filters,
   .upload-batch__footer {
     grid-column: 1 / -1;
   }
@@ -574,6 +718,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .upload-item__select::before { transition: none; }
+
   .upload-progress[data-indeterminate] .upload-progress__indicator {
     animation-duration: 3s;
   }

@@ -6,10 +6,12 @@ import { Progress } from "@animate-ui/react/primitives/base-ui/progress";
 import { motionTokens, useShouldReduceMotion, useTempoTransition } from "@animate-ui/react/utils/motion";
 import { Button } from "../../../components/ui/Button";
 import { Pagination } from "../../../components/ui/Pagination";
+import { BatchItemFilters, batchFileType } from "./BatchItemFilters";
+import { ConfirmationDialog } from "../../../components/ui/ConfirmationDialog";
 import { RotateCcw } from "../../../components/animate-ui/icons/rotate-ccw";
+import { Trash2 } from "../../../components/animate-ui/icons/trash-2";
 import { Pause } from "../../../components/animate-ui/icons/pause";
 import { Play } from "../../../components/animate-ui/icons/play";
-import { X } from "../../../components/animate-ui/icons/x";
 import { ChevronDown } from "../../../components/animate-ui/icons/chevron-down";
 import { Image } from "../../../components/animate-ui/icons/image";
 import { Video } from "../../../components/animate-ui/icons/video";
@@ -44,8 +46,9 @@ interface UploadBatchCardProps {
   busyItemIds: ReadonlySet<string>;
   onRetry: (batch: UploadBatch, item: UploadItem) => void;
   onRetryAll?: (batch: UploadBatch) => void;
+  onDelete?: (batch: UploadBatch, item?: UploadItem) => void | Promise<void>;
+  onDeleteMany?: (batch: UploadBatch, items: UploadItem[]) => Promise<void>;
   onPause?: (batch: UploadBatch, item: UploadItem | undefined, paused: boolean) => void;
-  onCancel: (batch: UploadBatch, item: UploadItem) => void;
 }
 
 export function UploadBatchCard({
@@ -55,8 +58,9 @@ export function UploadBatchCard({
   busyItemIds,
   onRetry,
   onRetryAll,
+  onDelete,
+  onDeleteMany,
   onPause,
-  onCancel,
 }: UploadBatchCardProps) {
   const { t } = useLocale();
   const shouldReduceMotion = useShouldReduceMotion();
@@ -64,9 +68,16 @@ export function UploadBatchCard({
   const active = batch.status === "Uploading" || batch.status === "Pending";
   const [expanded, setExpanded] = useState(active);
   const [itemPage, setItemPage] = useState(1);
-  const totalItemPages = Math.max(1, Math.ceil(batch.items.length / ITEMS_PER_PAGE));
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const selectedItems = batch.items.filter((item) => selectedIds.has(item.id));
+  const actionItems = selectedItems.length ? selectedItems : batch.items;
+  const [deleteTarget, setDeleteTarget] = useState<UploadItem | "batch" | null>(null);
+  const [statusFilter, setStatusFilter] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
+  const filteredItems = batch.items.filter((item) => (!statusFilter || item.status === statusFilter) && (!typeFilter || batchFileType(item.originalFilename, item.contentType) === typeFilter));
+  const totalItemPages = Math.max(1, Math.ceil(filteredItems.length / ITEMS_PER_PAGE));
   const currentItemPage = Math.min(itemPage, totalItemPages);
-  const visibleItems = batch.items.slice(
+  const visibleItems = filteredItems.slice(
     (currentItemPage - 1) * ITEMS_PER_PAGE,
     currentItemPage * ITEMS_PER_PAGE,
   );
@@ -145,17 +156,18 @@ export function UploadBatchCard({
             </span>
           </div>
         </div>
+        <BatchItemFilters statuses={[...new Set(batch.items.map((item) => item.status))]} types={[...new Set(batch.items.map((item) => batchFileType(item.originalFilename, item.contentType)))]} status={statusFilter} type={typeFilter} onStatusChange={(value) => { setStatusFilter(value); setItemPage(1); }} onTypeChange={(value) => { setTypeFilter(value); setItemPage(1); }} />
         {batch.canManage ? (
           <div className="upload-batch__footer">
+            <input className="upload-item__select upload-batch__select-all" type="checkbox" aria-label={t("Select all files")} title={t("Select all files")} checked={batch.items.length > 0 && selectedItems.length === batch.items.length} ref={(element) => { if (element) element.indeterminate = selectedItems.length > 0 && selectedItems.length < batch.items.length; }} onChange={(event) => setSelectedIds(event.target.checked ? new Set(batch.items.map((item) => item.id)) : new Set())} />
             {onRetryAll ? (
-            <Button type="button" variant="ghost" className="upload-item__action" aria-label={t("Retry all failed")} title={t("Retry all failed")} disabled={batch.items.filter((item) => item.status === "Failed").length < 1 || batch.items.filter((item) => item.status === "Failed").every((item) => busyItemIds.has(item.id))} onClick={() => onRetryAll(batch)}>
+            <Button type="button" variant="ghost" className="upload-item__action" aria-label={t("Retry all failed")} title={t("Retry all failed")} disabled={actionItems.filter((item) => item.status === "Failed").length < 1 || actionItems.filter((item) => item.status === "Failed").every((item) => busyItemIds.has(item.id))} onClick={() => onRetryAll({ ...batch, items: actionItems })}>
               <RotateCcw size={18} aria-hidden="true" />
             </Button>
             ) : null}
-            {onPause ? <Button type="button" variant="ghost" className="upload-item__action" aria-label={t(batch.items.some((item) => item.status === "Paused") ? "Resume batch" : "Pause batch")} title={t(batch.items.some((item) => item.status === "Paused") ? "Resume batch" : "Pause batch")} disabled={!batch.items.some((item) => item.status === "Pending" || item.status === "Uploading" || item.status === "Paused") || batch.items.some((item) => busyItemIds.has(item.id))} onClick={() => onPause(batch, undefined, !batch.items.some((item) => item.status === "Paused"))}>{batch.items.some((item) => item.status === "Paused") ? <Play size={18} aria-hidden="true" /> : <Pause size={18} aria-hidden="true" />}</Button> : null}
-              <Button type="button" variant="ghost" className="upload-item__action upload-item__action--cancel" aria-label={t("Cancel batch")} title={t("Cancel batch")} disabled={batch.items.filter((item) => item.status === "Pending" || item.status === "Uploading" || item.status === "Paused").every((item) => busyItemIds.has(item.id))} onClick={() => batch.items.filter((item) => (item.status === "Pending" || item.status === "Uploading" || item.status === "Paused") && !busyItemIds.has(item.id)).forEach((item) => onCancel(batch, item))}>
-                <X size={18} aria-hidden="true" />
-              </Button>
+            {onPause ? <Button type="button" variant="ghost" className="upload-item__action" aria-label={t(!batch.items.some((item) => item.status === "Pending" || item.status === "Uploading") && batch.items.some((item) => item.status === "Paused") ? "Resume batch" : "Pause batch")} title={t(!batch.items.some((item) => item.status === "Pending" || item.status === "Uploading") && batch.items.some((item) => item.status === "Paused") ? "Resume batch" : "Pause batch")} disabled={!batch.items.some((item) => item.status === "Pending" || item.status === "Uploading" || item.status === "Paused") || batch.items.some((item) => busyItemIds.has(item.id))} onClick={() => onPause(batch, undefined, batch.items.some((item) => item.status === "Pending" || item.status === "Uploading"))}>{!batch.items.some((item) => item.status === "Pending" || item.status === "Uploading") && batch.items.some((item) => item.status === "Paused") ? <Play size={18} aria-hidden="true" /> : <Pause size={18} aria-hidden="true" />}</Button> : null}
+            {onDelete ? <Button type="button" variant="ghost" className="upload-item__action upload-item__action--delete" aria-label={t("Delete batch record")} title={t("Delete batch record")} disabled={actionItems.some((item) => item.status === "Success" || busyItemIds.has(item.id))} onClick={() => setDeleteTarget("batch")}><Trash2 size={18} aria-hidden="true" /></Button> : null}
+
           </div>
         ) : null}
       </div>
@@ -167,6 +179,7 @@ export function UploadBatchCard({
         transition={motionTokens.transition.reveal}
       >
         <div className="upload-batch__items">
+          {visibleItems.length === 0 ? <p className="upload-batch__empty">{t("No files match these filters.")}</p> : null}
           {visibleItems.map((item) => {
             const busy = busyItemIds.has(item.id);
             const indeterminate = item.status === "Uploading" && item.progressPercent === 0;
@@ -178,6 +191,7 @@ export function UploadBatchCard({
                 : FileText;
             return (
               <section key={item.id} className="upload-item" aria-label={item.originalFilename}>
+                {batch.canManage ? <input className="upload-item__select" type="checkbox" aria-label={t("Select {name}", { name: item.originalFilename })} checked={selectedIds.has(item.id)} onChange={(event) => setSelectedIds((current) => { const next = new Set(current); if (event.target.checked) next.add(item.id); else next.delete(item.id); return next; })} /> : null}
                 <span className="upload-item__file-type" aria-hidden="true">
                   <FileTypeIcon size={18} />
                 </span>
@@ -197,39 +211,12 @@ export function UploadBatchCard({
                   </div>
                 </div>
                 <div className="upload-item__controls">
-                  <span className="upload-progress__value">
-                    {indeterminate ? t("Starting") : `${itemProgress}%`}
-                  </span>
                   <div className="upload-item__actions">
-                    {onPause && batch.canManage ? <Button type="button" variant="ghost" className="upload-item__action" aria-label={t(item.status === "Paused" ? "Resume batch" : "Pause batch")} title={t(item.status === "Paused" ? "Resume batch" : "Pause batch")} disabled={busy || !["Pending", "Uploading", "Paused"].includes(item.status)} onClick={() => onPause(batch, item, item.status !== "Paused")}>{item.status === "Paused" ? <Play size={18} aria-hidden="true" /> : <Pause size={18} aria-hidden="true" />}</Button> : null}
-                    {item.status !== "Pending" && item.status !== "Uploading" && batch.canManage ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        className="upload-item__action"
-                        busy={busy}
-                        disabled={busy || item.status !== "Failed"}
-                        aria-label={t("Retry {name}", { name: item.originalFilename })}
-                        title={t("Retry")}
-                        onClick={() => onRetry(batch, item)}
-                      >
-                        {busy ? null : <RotateCcw size={18} aria-hidden="true" />}
-                      </Button>
-                    ) : null}
-                    {(item.status === "Pending" || item.status === "Uploading" || item.status === "Paused") && batch.canManage ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        className="upload-item__action upload-item__action--cancel"
-                        busy={busy}
-                        disabled={busy}
-                        aria-label={t("Cancel {name}", { name: item.originalFilename })}
-                        title={t("Cancel")}
-                        onClick={() => onCancel(batch, item)}
-                      >
-                        {busy ? null : <X size={18} aria-hidden="true" />}
-                      </Button>
-                    ) : null}
+                    {batch.canManage ? <>
+                      <Button type="button" variant="ghost" className="upload-item__action" busy={busy && item.status === "Failed"} disabled={busy || item.status !== "Failed"} aria-label={t("Retry {name}", { name: item.originalFilename })} title={t("Retry")} onClick={() => onRetry(batch, item)}><RotateCcw size={18} aria-hidden="true" /></Button>
+                      {onPause ? <Button type="button" variant="ghost" className="upload-item__action" aria-label={t(item.status === "Paused" ? "Resume {name}" : "Pause {name}", { name: item.originalFilename })} title={t(item.status === "Paused" ? "Resume {name}" : "Pause {name}", { name: item.originalFilename })} disabled={busy || !["Pending", "Uploading", "Paused"].includes(item.status)} onClick={() => onPause(batch, item, item.status !== "Paused")}>{item.status === "Paused" ? <Play size={18} aria-hidden="true" /> : <Pause size={18} aria-hidden="true" />}</Button> : null}
+                      {onDelete ? <Button type="button" variant="ghost" className="upload-item__action upload-item__action--delete" aria-label={t("Delete record: {filename}", { filename: item.originalFilename })} title={t("Delete record: {filename}", { filename: item.originalFilename })} disabled={busy || item.status === "Success"} onClick={() => setDeleteTarget(item)}><Trash2 size={18} aria-hidden="true" /></Button> : null}
+                    </> : null}
                   </div>
                 </div>
                 <div className="upload-item__progress-row">
@@ -256,16 +243,21 @@ export function UploadBatchCard({
             );
           })}
         </div>
-        {batch.items.length > ITEMS_PER_PAGE ? (
+        {filteredItems.length > ITEMS_PER_PAGE ? (
           <Pagination
             page={currentItemPage}
             pageSize={ITEMS_PER_PAGE}
-            total={batch.items.length}
+            total={filteredItems.length}
             itemLabel="Files"
             onPageChange={setItemPage}
           />
         ) : null}
       </Collapsible.Panel>
+      {deleteTarget ? (
+        <ConfirmationDialog title="Delete record" danger onClose={() => setDeleteTarget(null)} onConfirm={async () => { if (deleteTarget === "batch" && selectedItems.length) { await onDeleteMany?.(batch, selectedItems); setSelectedIds(new Set()); } else await onDelete?.(batch, deleteTarget === "batch" ? undefined : deleteTarget); }}>
+          {deleteTarget === "batch" ? t(selectedItems.length ? "Delete the selected file records?" : "Delete this batch record and its file records?") : t("Delete the record for {filename}?", { filename: deleteTarget.originalFilename })}
+        </ConfirmationDialog>
+      ) : null}
     </Collapsible.Root>
   );
 }

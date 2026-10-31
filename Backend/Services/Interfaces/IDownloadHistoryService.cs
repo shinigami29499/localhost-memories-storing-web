@@ -10,6 +10,7 @@ public sealed record DownloadBatchStatePage(IReadOnlyList<DownloadBatchStateDto>
 
 public interface IDownloadHistoryService
 {
+    Task<bool> DeleteRecordsAsync(Guid userId, Guid batchId, IReadOnlyCollection<Guid> itemIds, CancellationToken cancellationToken);
     Task<bool> DeleteRecordAsync(Guid userId, Guid batchId, Guid? itemId, CancellationToken cancellationToken);
     Task<DownloadBatchStatePage> ListBatchesAsync(Guid userId, bool isAdmin, int offset, int limit, CancellationToken cancellationToken);
     Task<bool> SaveBatchAsync(Guid userId, Guid batchId, IReadOnlyList<DownloadItemStateDto> items, CancellationToken cancellationToken);

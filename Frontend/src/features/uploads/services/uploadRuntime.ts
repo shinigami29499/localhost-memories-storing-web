@@ -255,7 +255,10 @@ export function startUploadRuntime(
           lastReportedPercent = percent;
           lastReportedAt = now;
           void uploadService.reportProgress(batchId, itemId, percent).catch((error: unknown) => {
-            if (error instanceof ApiError && error.status === 409) return;
+            if (error instanceof ApiError && error.status === 409) {
+              itemController.abort();
+              return;
+            }
             console.error("Could not persist upload progress.", error);
           });
         },
