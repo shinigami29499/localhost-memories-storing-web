@@ -18,12 +18,13 @@ import {
   useMapAppearance,
 } from "./MapAppearanceSettings";
 import { LocationSearch } from "./LocationSearch";
+import { useHomeMarkerHover } from "../hooks/useHomeMarkerHover";
 import { HomeLocationMarker } from "./HomeLocationMarker";
 import type { LocationSearchResult } from "../services/locationSearchService";
 import { useLocale } from "../../../context/LocaleContext";
 import { useMediaQuery } from "../../../hooks/useMediaQuery";
 import { mediaPreviewUrl } from "../../../utils/media";
-import { clusterMapMarkers, type MapProjector } from "../../../utils/mapMarkerGroups";
+import { clusterMapMarkers, getSpiderfyOffset, mapMarkersOverlap, type MapProjector } from "../../../utils/mapMarkerGroups";
 import type { MediaFile, PhotoLocation, PickedLocation } from "../../media/types";
 import { findPlaceAt } from "../utils/findPlaceAt";
 import type { HomeLocation } from "../types";
@@ -274,7 +275,9 @@ function PhotoPin({ item, selected, movable, onSelect, onMove }: {
   );
 }
 
-function PhotoClusterMarker({ cluster, selected, onSelect, canMove, onMove }: {
+function PhotoClusterMarker({ cluster, selected, onSelect, canMove, onMove, homeExpanded, onHomeHoverChange }: {
+  homeExpanded: boolean;
+  onHomeHoverChange?: (hovered: boolean) => void;
   cluster: PhotoCluster;
   selected: MediaFile | undefined;
   onSelect: (media: MediaFile) => void;
@@ -288,24 +291,36 @@ function PhotoClusterMarker({ cluster, selected, onSelect, canMove, onMove }: {
   const ordered = selectedIndex > 0
     ? [cluster.items[selectedIndex], ...cluster.items.filter((_, index) => index !== selectedIndex)]
     : cluster.items;
-  const fanned = ordered.slice(0, MAX_FANNED_PHOTOS);
-  const expanded = count === 1 || open || selectedIndex >= 0;
+  const fanned = homeExpanded ? ordered : ordered.slice(0, MAX_FANNED_PHOTOS);
+  const expanded = count === 1 || open || selectedIndex >= 0 || homeExpanded;
   const step = Math.min(26, 150 / Math.max(fanned.length - 1, 1));
 
   return (
     <div
       className={`locations__cluster${count > 1 ? " locations__cluster--group" : ""}`}
       data-open={expanded}
+      data-home-expanded={homeExpanded}
       data-selected={selectedIndex >= 0}
       style={{ "--fan-count": fanned.length, "--fan-step": `${step}deg` } as CSSProperties}
-      onPointerEnter={() => setOpen(true)}
-      onPointerLeave={() => setOpen(false)}
-      onFocus={() => setOpen(true)}
-      onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }}
+      onMouseEnter={(event) => {
+        const marker = event.currentTarget.closest<HTMLElement>(".mapboxgl-marker");
+        if (marker) marker.style.zIndex = "30";
+      }}
+      onMouseLeave={(event) => {
+        const marker = event.currentTarget.closest<HTMLElement>(".mapboxgl-marker");
+        if (marker) marker.style.zIndex = cluster.items.some((item) => item.id === selected?.id) ? "30" : "1";
+      }}
+      onPointerEnter={() => { setOpen(true); onHomeHoverChange?.(true); }}
+      onPointerLeave={() => { setOpen(false); onHomeHoverChange?.(false); }}
+      onFocus={() => { setOpen(true); onHomeHoverChange?.(true); }}
+      onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) { setOpen(false); onHomeHoverChange?.(false); } }}
     >
       {fanned.map((item, index) => item.location && (
         <div key={item.id} className="locations__marker" data-selected={selected?.id === item.id}
-          style={{ "--fan-index": index } as CSSProperties}>
+          style={{ "--fan-index": index,
+            "--spider-x": `${getSpiderfyOffset(index, count).x}px`,
+            "--spider-y": `${getSpiderfyOffset(index, count).y}px`,
+          } as CSSProperties}>
           <PhotoPin item={item} selected={selected?.id === item.id} movable={canMove(item)}
             onSelect={onSelect} onMove={onMove} />
           <article className="locations__popup" aria-label={item.originalFilename}>
@@ -327,7 +342,7 @@ function PhotoClusterMarker({ cluster, selected, onSelect, canMove, onMove }: {
   );
 }
 
-function PhotoMarkers({ media, selected, ready, onSelect, canMove, onMove }: Pick<Props, "media" | "selected" | "onSelect" | "canMove" | "onMove"> & { ready: boolean }) {
+function PhotoMarkers({ media, selected, ready, onSelect, canMove, onMove, homeLocation, homeHovered, onHomeHoverChange }: Pick<Props, "media" | "selected" | "onSelect" | "canMove" | "onMove"> & { ready: boolean; homeLocation: HomeLocation | null; homeHovered: boolean; onHomeHoverChange: (hovered: boolean) => void }) {
   const { current: map } = useMap();
   const [project, setProject] = useState<MapProjector | null>(null);
   useEffect(() => {
@@ -348,24 +363,25 @@ function PhotoMarkers({ media, selected, ready, onSelect, canMove, onMove }: Pic
 
   return (
     <>
-      {clusters.map((cluster) => (
+      {clusters.map((cluster) => {
+        const nearHome = !!homeLocation && mapMarkersOverlap(cluster, homeLocation, project);
+        const homeExpanded = homeHovered && nearHome;
+        return (
         <Marker
           key={cluster.id}
-          latitude={cluster.latitude}
-          longitude={cluster.longitude}
+          latitude={nearHome && homeLocation ? homeLocation.latitude : cluster.latitude}
+          longitude={nearHome && homeLocation ? homeLocation.longitude : cluster.longitude}
           anchor="bottom"
-          style={{ zIndex: cluster.items.some((item) => item.id === selected?.id) ? 2 : 1 }}
-          onMouseEnter={(event) => {
-            event.currentTarget.style.zIndex = "3";
-          }}
-          onMouseLeave={(event) => {
-            event.currentTarget.style.zIndex = cluster.items.some((item) => item.id === selected?.id) ? "2" : "1";
-          }}
+          style={{ zIndex: cluster.items.some((item) => item.id === selected?.id) ? 30 : 1 }}
           onClick={(event) => event.originalEvent.stopPropagation()}
         >
-          <PhotoClusterMarker cluster={cluster} selected={selected} onSelect={onSelect} canMove={canMove} onMove={onMove} />
+          <PhotoClusterMarker cluster={cluster}
+            homeExpanded={homeExpanded}
+            onHomeHoverChange={homeExpanded ? onHomeHoverChange : undefined}
+            selected={selected} onSelect={onSelect} canMove={canMove} onMove={onMove} />
         </Marker>
-      ))}
+        );
+      })}
     </>
   );
 }
@@ -387,6 +403,7 @@ function MapContent({
   const mapAppearance = useMapAppearance();
   const [appearanceOpen, setAppearanceOpen] = useState(false);
   const [homeRequest, setHomeRequest] = useState(0);
+  const { homeHovered, onHomeHoverChange } = useHomeMarkerHover();
   const [focusRequest, setFocusRequest] = useState(0);
   const [initialLocationResolved, setInitialLocationResolved] = useState(false);
   const [hasInitialCenter, setHasInitialCenter] = useState(false);
@@ -505,7 +522,7 @@ function MapContent({
             onOpenChange={setNavigationOpen} />
         )}
         {homeLocation && (
-          <HomeLocationMarker location={homeLocation} variant="locations" onClick={() => {
+          <HomeLocationMarker location={homeLocation} variant="locations" onHoverChange={onHomeHoverChange} onClick={() => {
             mapRef.current?.easeTo({
               center: [homeLocation.longitude, homeLocation.latitude],
               zoom: Math.max(mapRef.current.getZoom(), 18),
@@ -515,7 +532,7 @@ function MapContent({
             });
           }} />
         )}
-        {showMarkers && <PhotoMarkers media={located} selected={selected} ready={loaded}
+        {showMarkers && <PhotoMarkers homeLocation={homeLocation} homeHovered={homeHovered} onHomeHoverChange={onHomeHoverChange} media={located} selected={selected} ready={loaded}
           onSelect={(item) => {
             if (selected?.id !== item.id) setFocusRequest((request) => request + 1);
             onSelect(item);

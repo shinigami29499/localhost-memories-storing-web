@@ -12,11 +12,12 @@ interface Props {
   location: HomeLocation;
   variant: "food" | "locations";
   onClick: () => void;
+  onHoverChange?: (hovered: boolean) => void;
 }
 
 type Action = { type: "remove" } | { type: "move"; location: HomeLocation };
 
-export function HomeLocationMarker({ location, variant, onClick }: Props) {
+export function HomeLocationMarker({ location, variant, onClick, onHoverChange }: Props) {
   const { t } = useLocale();
   const userId = useAuthStore((state) => state.user?.id);
   const home = useHomeLocation(userId);
@@ -97,6 +98,7 @@ export function HomeLocationMarker({ location, variant, onClick }: Props) {
         latitude={position.latitude}
         longitude={position.longitude}
         anchor="bottom"
+        style={{ zIndex: 21 }}
         draggable={!blocked}
         onClick={(event) => event.originalEvent.stopPropagation()}
         onDragStart={() => {
@@ -112,7 +114,11 @@ export function HomeLocationMarker({ location, variant, onClick }: Props) {
           openAction({ type: "move", location: { latitude: point.lat, longitude: point.lng } });
         }}
       >
-        <div className={`${variant}__marker home-location-marker`}>
+        <div className={`${variant}__marker home-location-marker`}
+          onPointerEnter={() => onHoverChange?.(true)}
+          onPointerLeave={() => onHoverChange?.(false)}
+          onFocus={() => onHoverChange?.(true)}
+          onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) onHoverChange?.(false); }}>
           <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
             <button
               type="button"

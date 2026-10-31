@@ -13,6 +13,25 @@ export type MapProjector = (location: MapCoordinate) => { x: number; y: number }
 const CLUSTER_RADIUS_PX = 46;
 const CLUSTER_RADIUS_DEGREES = 0.0008;
 
+export function mapMarkersOverlap(a: MapCoordinate, b: MapCoordinate, project: MapProjector | null) {
+  const first = project ? project(a) : { x: a.longitude, y: a.latitude };
+  const second = project ? project(b) : { x: b.longitude, y: b.latitude };
+  return Math.hypot(first.x - second.x, first.y - second.y)
+    <= (project ? CLUSTER_RADIUS_PX : CLUSTER_RADIUS_DEGREES);
+}
+
+export function getSpiderfyOffset(index: number, count: number) {
+  if (count <= 8) {
+    const angle = -Math.PI / 2 + (index * 2 * Math.PI) / count;
+    const radius = Math.max(52, count * 10);
+    return { x: Math.cos(angle) * radius, y: Math.sin(angle) * radius };
+  }
+
+  const angle = index * 0.5;
+  const radius = 48 + index * 4;
+  return { x: Math.cos(angle) * radius, y: Math.sin(angle) * radius };
+}
+
 export function clusterMapMarkers<T>(
   items: readonly T[],
   getLocation: (item: T) => MapCoordinate | null | undefined,

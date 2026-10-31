@@ -16,6 +16,8 @@ import { useMediaQuery } from "../../../hooks/useMediaQuery";
 import { mediaPreviewUrl } from "../../../utils/media";
 import {
   clusterMapMarkers,
+  getSpiderfyOffset,
+  mapMarkersOverlap,
   type MapCoordinate,
   type MapMarkerGroup,
   type MapProjector,
@@ -29,6 +31,7 @@ import {
 import { StarRating } from "./StarRating";
 import { LocationSearch } from "../../locations/components/LocationSearch";
 import { HomeLocationMarker } from "../../locations/components/HomeLocationMarker";
+import { useHomeMarkerHover } from "../../locations/hooks/useHomeMarkerHover";
 import type { LocationSearchResult } from "../../locations/services/locationSearchService";
 import { findPlaceAt } from "../../locations/utils/findPlaceAt";
 import type { HomeLocation } from "../../locations/types";
@@ -365,19 +368,9 @@ function FoodPlaceMarker({ place, selected, onSelect, canChange, onMove, onDelet
   );
 }
 
-function getSpiderfyOffset(index: number, count: number) {
-  if (count <= 8) {
-    const angle = -Math.PI / 2 + (index * 2 * Math.PI) / count;
-    const radius = Math.max(52, count * 10);
-    return { x: Math.cos(angle) * radius, y: Math.sin(angle) * radius };
-  }
-
-  const angle = index * 0.5;
-  const radius = 48 + index * 4;
-  return { x: Math.cos(angle) * radius, y: Math.sin(angle) * radius };
-}
-
-function FoodPlaceClusterMarker({ group, selectedId, onSelect, canChange, onMove, onDelete }: {
+function FoodPlaceClusterMarker({ group, selectedId, onSelect, canChange, onMove, onDelete, homeExpanded, onHomeHoverChange }: {
+  homeExpanded: boolean;
+  onHomeHoverChange?: (hovered: boolean) => void;
   group: MapMarkerGroup<FoodPlace>;
   selectedId: string | null;
   onSelect: (place: FoodPlace) => void;
@@ -389,14 +382,29 @@ function FoodPlaceClusterMarker({ group, selectedId, onSelect, canChange, onMove
   const ordered = selectedIndex > 0
     ? [group.items[selectedIndex], ...group.items.filter((_, index) => index !== selectedIndex)]
     : group.items;
-  const expanded = count === 1 || open;
-  const visiblePlaces = expanded ? ordered : ordered.slice(0, 1);
-  const toggleLabel = t(expanded ? "Collapse {count} food places" : "{count} food places here", { count });
+  const expanded = count === 1 || open || selectedIndex >= 0 || homeExpanded;
+  const visiblePlaces = homeExpanded ? ordered : ordered.slice(0, 8);
+  const step = Math.min(26, 150 / Math.max(visiblePlaces.length - 1, 1));
+  const toggleLabel = t("{count} food places here", { count });
 
   return (
-    <div className={`food__cluster${count > 1 ? " food__cluster--group" : ""}`} data-open={expanded}>
+    <div className={`food__cluster${count > 1 ? " food__cluster--group" : ""}`} data-open={expanded}
+      data-home-expanded={homeExpanded}
+      style={{ "--fan-count": visiblePlaces.length, "--fan-step": `${step}deg` } as CSSProperties}
+      onPointerEnter={() => { setOpen(true); onHomeHoverChange?.(true); }}
+      onPointerLeave={() => { setOpen(false); onHomeHoverChange?.(false); }}
+      onFocus={() => { setOpen(true); onHomeHoverChange?.(true); }}
+      onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) { setOpen(false); onHomeHoverChange?.(false); } }}
+      onMouseEnter={(event) => {
+        const marker = event.currentTarget.closest<HTMLElement>(".mapboxgl-marker");
+        if (marker) marker.style.zIndex = "30";
+      }}
+      onMouseLeave={(event) => {
+        const marker = event.currentTarget.closest<HTMLElement>(".mapboxgl-marker");
+        if (marker) marker.style.zIndex = group.items.some((place) => place.id === selectedId) ? "30" : "1";
+      }}>
       {visiblePlaces.map((place, index) => {
-        const offset = count > 1 && expanded ? getSpiderfyOffset(index, count) : { x: 0, y: 0 };
+        const offset = getSpiderfyOffset(index, count);
         return (
           <div
             key={place.id}
@@ -405,6 +413,7 @@ function FoodPlaceClusterMarker({ group, selectedId, onSelect, canChange, onMove
             style={{
               "--spider-index": index,
               "--spider-count": count,
+              "--fan-index": index,
               "--spider-x": `${offset.x}px`,
               "--spider-y": `${offset.y}px`,
             } as CSSProperties}
@@ -426,14 +435,17 @@ function FoodPlaceClusterMarker({ group, selectedId, onSelect, canChange, onMove
             setOpen((value) => !value);
           }}
         >
-          <span aria-hidden="true">{expanded ? "×" : count}</span>
+          <span className="food__cluster-count" aria-hidden="true">{count}</span>
         </button>
       )}
     </div>
   );
 }
 
-function FoodPlaceMarkers({ places, selectedId, ready, onSelect, canChange, onMove, onDelete }: {
+function FoodPlaceMarkers({ places, selectedId, ready, onSelect, canChange, onMove, onDelete, homeLocation, homeHovered, onHomeHoverChange }: {
+  homeLocation: HomeLocation | null;
+  homeHovered: boolean;
+  onHomeHoverChange: (hovered: boolean) => void;
   places: FoodPlace[];
   selectedId: string | null;
   ready: boolean;
@@ -458,25 +470,25 @@ function FoodPlaceMarkers({ places, selectedId, ready, onSelect, canChange, onMo
 
   return (
     <>
-      {groups.map((group) => (
+      {groups.map((group) => {
+        const nearHome = !!homeLocation && mapMarkersOverlap(group.location, homeLocation, project);
+        const homeExpanded = homeHovered && nearHome;
+        return (
         <Marker
           key={group.items[0].id}
-          latitude={group.location.latitude}
-          longitude={group.location.longitude}
+          latitude={nearHome && homeLocation ? homeLocation.latitude : group.location.latitude}
+          longitude={nearHome && homeLocation ? homeLocation.longitude : group.location.longitude}
           anchor="bottom"
-          style={{ zIndex: group.items.some((place) => place.id === selectedId) ? 10 : 1 }}
-          onMouseEnter={(event) => {
-            event.currentTarget.style.zIndex = "20";
-          }}
-          onMouseLeave={(event) => {
-            event.currentTarget.style.zIndex = group.items.some((place) => place.id === selectedId) ? "10" : "1";
-          }}
+          style={{ zIndex: group.items.some((place) => place.id === selectedId) ? 30 : 1 }}
           onClick={(event) => event.originalEvent.stopPropagation()}
         >
           <FoodPlaceClusterMarker group={group} selectedId={selectedId} onSelect={onSelect}
+            homeExpanded={homeExpanded}
+            onHomeHoverChange={homeExpanded ? onHomeHoverChange : undefined}
             canChange={canChange} onMove={onMove} onDelete={onDelete} />
         </Marker>
-      ))}
+        );
+      })}
     </>
   );
 }
@@ -502,6 +514,7 @@ function MapContent({
   const mapAppearance = useMapAppearance();
   const [appearanceOpen, setAppearanceOpen] = useState(false);
   const [homeRequest, setHomeRequest] = useState(0);
+  const { homeHovered, onHomeHoverChange } = useHomeMarkerHover();
   const [focusRequest, setFocusRequest] = useState(0);
   const resolveInitialLocation = useCallback((hasCenter: boolean) => {
     setHasInitialCenter(hasCenter);
@@ -627,7 +640,7 @@ function MapContent({
             accessToken={token} homeLocation={homeLocation} onOpenChange={setNavigationOpen} />
         )}
         {homeLocation && (
-          <HomeLocationMarker location={homeLocation} variant="food" onClick={() => {
+          <HomeLocationMarker location={homeLocation} variant="food" onHoverChange={onHomeHoverChange} onClick={() => {
             mapRef.current?.easeTo({
               center: [homeLocation.longitude, homeLocation.latitude],
               zoom: Math.max(mapRef.current.getZoom(), 18),
@@ -639,6 +652,7 @@ function MapContent({
         )}
         {showMarkers && (
           <FoodPlaceMarkers places={places} selectedId={selectedId} ready={loaded}
+            homeLocation={homeLocation} homeHovered={homeHovered} onHomeHoverChange={onHomeHoverChange}
             canChange={(place) => !navigationOpen && canChange(place)} onMove={onMove} onDelete={onDelete} onSelect={(item) => {
             setFocusRequest((request) => request + 1);
             onSelect(item);
