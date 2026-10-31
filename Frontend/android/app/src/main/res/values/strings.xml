@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">ShinigaCim</string>
+    <string name="title_activity_main">ShinigaCim</string>
+    <string name="package_name">com.shinigacim.app</string>
+    <string name="custom_url_scheme">com.shinigacim.app</string>
+</resources>

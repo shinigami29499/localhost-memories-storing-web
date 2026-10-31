@@ -119,7 +119,7 @@ public sealed class UploadsController(
     public async Task<ActionResult<UploadItemDto>> UploadFileAsync(
         Guid batchId,
         Guid itemId,
-        [FromForm] IFormFile file,
+        IFormFile file,
         CancellationToken cancellationToken)
     {
         var ownerId = _currentUser.RequireUserId();

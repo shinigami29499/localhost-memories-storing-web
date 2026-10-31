@@ -360,7 +360,7 @@ Errors are RFC 7807 problem details (`application/problem+json`).
 - `Jwt:Key` — dev key; replace with user-secrets/env for anything beyond local dev
 - `MediaStorage:Root` — storage tree root (empty → `<Backend>/Storage`)
 - `MediaStorage:MaxFileMegabytes` — per-file upload limit (default 100 MB)
-- `Cors:AllowedOrigins` — `http://localhost:3000` by default
+- `Cors:AllowedOrigins` — `http://localhost:3000` and `https://localhost` by default; the latter is the Android app origin
 - `Seed:*` — admin account seeding + auto-migrate toggle
 
 See the [project overview](.opencode/instructions/overview.md) for AI guidance, [architecture](.opencode/instructions/architecture.md) for target layout conventions, and [code map](.opencode/instructions/code-map.md) for current implementation paths.

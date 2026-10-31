@@ -101,7 +101,7 @@ public class CollectionsController(
     [HttpPost("{collectionId:guid}/preview")]
     [Consumes("multipart/form-data")]
     public async Task<ActionResult<CollectionDto>> UploadPreviewImageAsync(
-        Guid collectionId, [FromForm] IFormFile file, CancellationToken cancellationToken)
+        Guid collectionId, IFormFile file, CancellationToken cancellationToken)
     {
         await using var content = file.OpenReadStream();
         return Ok(await collectionService.UploadPreviewImageAsync(

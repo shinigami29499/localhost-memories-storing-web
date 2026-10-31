@@ -12,6 +12,12 @@ node_modules/
 dist/
 .vite/
 
+# Android signing credentials
+Frontend/android/**/*.jks
+Frontend/android/**/*.keystore
+Frontend/android/**/keystore.properties
+Frontend/android/**/key.properties
+
 # Local environment and user-specific secrets
 **/.env
 **/.env.local
