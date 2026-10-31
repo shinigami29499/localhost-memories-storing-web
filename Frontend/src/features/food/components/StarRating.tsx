@@ -1,15 +1,17 @@
+import { Star } from "../../../components/animate-ui/icons/star";
 import { useLocale } from "../../../context/LocaleContext";
 
 interface Props {
   value: number;
   onChange?: (rating: number) => void;
   disabled?: boolean;
+  filledOnly?: boolean;
   size?: "sm" | "md" | "lg";
 }
 
 const STARS = [1, 2, 3, 4, 5];
 
-export function StarRating({ value, onChange, disabled, size = "md" }: Props) {
+export function StarRating({ value, onChange, disabled, filledOnly = false, size = "md" }: Props) {
   const { t } = useLocale();
   const label = value > 0
     ? t("Rated {rating} of 5 stars", { rating: value })
@@ -18,8 +20,8 @@ export function StarRating({ value, onChange, disabled, size = "md" }: Props) {
   if (!onChange) {
     return (
       <span className={`star-rating star-rating--${size}`} role="img" aria-label={label} title={label}>
-        {STARS.map((star) => (
-          <span key={star} className="star-rating__star" data-filled={star <= value} aria-hidden="true">★</span>
+        {STARS.filter((star) => !filledOnly || star <= value).map((star) => (
+          <Star key={star} className="star-rating__star" data-filled={star <= value} fill={star <= value ? "currentColor" : "none"} aria-hidden="true" />
         ))}
       </span>
     );
@@ -39,7 +41,7 @@ export function StarRating({ value, onChange, disabled, size = "md" }: Props) {
           title={t("Rate {rating} of 5 stars", { rating: star })}
           onClick={() => onChange(value === star ? 0 : star)}
         >
-          ★
+          <Star fill={star <= value ? "currentColor" : "none"} aria-hidden="true" />
         </button>
       ))}
       <span className="star-rating__readout">{label}</span>

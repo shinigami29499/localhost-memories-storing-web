@@ -434,6 +434,7 @@ export function FoodPage() {
             {editor?.coordinate && (
               <FoodPlaceDialog
                 title={t(editor.id ? "Edit food place" : "New food place")}
+                className="food__dialog--editor"
                 closeDisabled={save.isPending}
                 onClose={() => {
                   if (!save.isPending) {
@@ -472,7 +473,7 @@ export function FoodPage() {
                 <div>
                   {selected.address && <p className="food__address">{selected.address}</p>}
                   <div className="food__details-rating">
-                    <StarRating value={selected.rating} />
+                    <StarRating value={selected.rating} filledOnly />
                     {selected.rating > 0 && (
                       <span className="food__details-rating-value" aria-hidden="true">
                         {`${selected.rating}/5`}

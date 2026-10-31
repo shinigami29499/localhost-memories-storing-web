@@ -50,7 +50,6 @@
   flex: 0 0 auto;
   place-items: center;
   border-radius: 12px;
-  background: var(--surface-hover);
   color: var(--text-strong);
   font-size: 1.5rem;
   font-weight: 700;

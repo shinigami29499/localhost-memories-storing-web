@@ -1,5 +1,6 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { ErrorState, Spinner, showToast } from "../../../components/ui";
+import { Pagination } from "../../../components/ui/Pagination";
 import { ApiError } from "../../../services/api";
 import { useLocale } from "../../../context/LocaleContext";
 import { useDeleteFoodPlaceVisit, useFoodPlaceVisitHistory } from "../hooks/useFoodPlaces";
@@ -17,28 +18,14 @@ export function FoodPlaceVisitHistory({ foodPlaceId }: Props) {
   const titleId = useId();
   const history = useFoodPlaceVisitHistory();
   const removeVisit = useDeleteFoodPlaceVisit();
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const sentinelRef = useRef<HTMLDivElement>(null);
+  const [page, setPage] = useState(1);
   const visits = history.data?.filter((visit) => visit.foodPlaceId === foodPlaceId) ?? [];
-  const visibleVisits = visits.slice(0, visibleCount);
-  const hasMore = visibleCount < visits.length;
+  const totalPages = Math.max(1, Math.ceil(visits.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const visibleVisits = visits.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-  useEffect(() => {
-    const zone = scrollRef.current;
-    const sentinel = sentinelRef.current;
-    if (!hasMore || !zone || !sentinel) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
-          setVisibleCount((count) => count + PAGE_SIZE);
-        }
-      },
-      { root: zone },
-    );
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [hasMore, visits.length]);
+  useEffect(() => setPage(1), [foodPlaceId]);
+  useEffect(() => setPage((current) => Math.min(current, totalPages)), [totalPages]);
 
   const handleRemove = async (visit: FoodPlaceVisit) => {
     try {
@@ -57,14 +44,16 @@ export function FoodPlaceVisitHistory({ foodPlaceId }: Props) {
       ) : history.isPending ? (
         <Spinner />
       ) : visits.length ? (
-        <div className="food__history-scroll" ref={scrollRef}>
+        <div>
           <FoodVisitHistory
             visits={visibleVisits}
             showPlaceDetails={false}
             onRemove={(visit) => void handleRemove(visit)}
             removingVisitId={removeVisit.isPending ? removeVisit.variables : null}
           />
-          {hasMore && <div ref={sentinelRef} className="food__history-sentinel" aria-hidden="true" />}
+          {totalPages > 1 && (
+            <Pagination page={currentPage} pageSize={PAGE_SIZE} total={visits.length} itemLabel="visits" onPageChange={setPage} />
+          )}
         </div>
       ) : (
         <p className="food__hint">{t("No visits at this place yet.")}</p>

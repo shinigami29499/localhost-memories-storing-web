@@ -161,6 +161,7 @@ const vietnamese: Record<string, string> = {
   History: "Lịch sử",
   "Food place view": "Chế độ xem địa điểm ăn uống",
   "Could not load visit history.": "Không thể tải lịch sử ghé thăm.",
+  "visits": "lượt ghé thăm",
   "No visits yet": "Chưa có lượt ghé thăm",
   "Your visit history": "Lịch sử ghé thăm của bạn",
   "No visits at this place yet.": "Bạn chưa ghi nhận lượt ghé thăm nào tại địa điểm này.",

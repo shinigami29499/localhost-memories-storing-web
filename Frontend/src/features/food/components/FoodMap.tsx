@@ -360,7 +360,7 @@ function FoodPlaceMarker({ place, selected, onSelect, canChange, onMove, onDelet
         )}
         <strong>{place.name}</strong>
         {place.address && <small>{place.address}</small>}
-        <StarRating value={place.rating} size="sm" />
+        <StarRating value={place.rating} size="sm" filledOnly />
         {place.note && <small>{place.note}</small>}
         <small>{t("By {username}", { username: place.owner.username })}</small>
       </article>
