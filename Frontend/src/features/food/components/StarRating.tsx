@@ -4,7 +4,7 @@ interface Props {
   value: number;
   onChange?: (rating: number) => void;
   disabled?: boolean;
-  size?: "sm" | "md";
+  size?: "sm" | "md" | "lg";
 }
 
 const STARS = [1, 2, 3, 4, 5];

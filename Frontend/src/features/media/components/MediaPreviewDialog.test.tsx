@@ -142,6 +142,116 @@ describe("MediaPreviewDialog resolution loading", () => {
     expect(sources().filter((url) => !url.searchParams.has("preview"))).toHaveLength(1);
   });
 
+  it("closes when the last visible media item is removed", () => {
+    const onClose = vi.fn();
+    const onToggleFavorite = vi.fn();
+    const renderItems = (items: MediaFile[]) => act(() => root.render(
+      <MemoryRouter>
+        <MediaPreviewDialog
+          media={items}
+          initialMediaId={image.id}
+          onClose={onClose}
+          onToggleFavorite={onToggleFavorite}
+        />
+      </MemoryRouter>,
+    ));
+
+    renderItems([image]);
+    expect(container.querySelector("dialog")).not.toBeNull();
+    renderItems([]);
+
+    expect(onClose).toHaveBeenCalledExactlyOnceWith(image.id);
+  });
+
+  it.each([false, true])("toggles the selected image's favorite state (favorited=%s)", (isFavorited) => {
+    const onToggleFavorite = vi.fn();
+    act(() => root.render(
+      <MemoryRouter>
+        <MediaPreviewDialog
+          media={[{ ...image, isFavorited }, media[2]]}
+          initialMediaId="image"
+          onClose={vi.fn()}
+          onToggleFavorite={onToggleFavorite}
+        />
+      </MemoryRouter>,
+    ));
+
+    const images = container.querySelectorAll(".media-preview-dialog__stage img");
+    act(() => images[1].dispatchEvent(new MouseEvent("dblclick", { bubbles: true })));
+    expect(onToggleFavorite).not.toHaveBeenCalled();
+    act(() => images[0].dispatchEvent(new MouseEvent("dblclick", { bubbles: true })));
+    expect(onToggleFavorite).toHaveBeenLastCalledWith("image", isFavorited);
+
+    act(() => container.querySelector<HTMLButtonElement>(
+      `[aria-label="${isFavorited ? "Remove from favorites" : "Add to favorites"}"]`,
+    )!.click());
+    expect(onToggleFavorite).toHaveBeenCalledTimes(2);
+    expect(onToggleFavorite).toHaveBeenLastCalledWith("image", isFavorited);
+  });
+
+  it.each([false, true])("toggles the selected video's favorite state (favorited=%s)", (isFavorited) => {
+    const onToggleFavorite = vi.fn();
+    act(() => root.render(
+      <MemoryRouter>
+        <MediaPreviewDialog
+          media={[{ ...media[1], isFavorited }]}
+          initialMediaId="video"
+          onClose={vi.fn()}
+          onToggleFavorite={onToggleFavorite}
+        />
+      </MemoryRouter>,
+    ));
+    act(() => container.querySelector("video")!.dispatchEvent(
+      new MouseEvent("dblclick", { bubbles: true, cancelable: true }),
+    ));
+    expect(onToggleFavorite).toHaveBeenCalledExactlyOnceWith("video", isFavorited);
+  });
+
+  it("ignores double-clicks while a favorite update is pending", () => {
+    const onToggleFavorite = vi.fn();
+    act(() => root.render(
+      <MemoryRouter>
+        <MediaPreviewDialog
+          media={[image]}
+          initialMediaId="image"
+          onClose={vi.fn()}
+          onToggleFavorite={onToggleFavorite}
+          favoriteBusy
+        />
+      </MemoryRouter>,
+    ));
+    act(() => container.querySelector(".media-preview-dialog__stage img")!.dispatchEvent(
+      new MouseEvent("dblclick", { bubbles: true }),
+    ));
+    expect(onToggleFavorite).not.toHaveBeenCalled();
+    expect(container.querySelector<HTMLButtonElement>('[aria-label="Add to favorites"]')!.disabled).toBe(true);
+  });
+
+  it("does not expose favorite actions for trashed images or videos", () => {
+    const onRestore = vi.fn();
+    const onDelete = vi.fn();
+    act(() => root.render(
+      <MemoryRouter>
+        <MediaPreviewDialog
+          media={media}
+          initialMediaId="image"
+          onClose={vi.fn()}
+          trashActions={{ onRestore, onDelete }}
+        />
+      </MemoryRouter>,
+    ));
+    act(() => container.querySelector(".media-preview-dialog__stage img")!.dispatchEvent(
+      new MouseEvent("dblclick", { bubbles: true }),
+    ));
+    navigate("ArrowRight");
+    act(() => container.querySelector("video")!.dispatchEvent(
+      new MouseEvent("dblclick", { bubbles: true }),
+    ));
+    expect(container.querySelector('[aria-label="Add to favorites"]')).toBeNull();
+    expect(onRestore).not.toHaveBeenCalled();
+    expect(onDelete).not.toHaveBeenCalled();
+  });
+
   it.each([false, true])("downloads only the active original (trash=%s)", (includeDeleted) => {
     render(includeDeleted);
     act(() => container.querySelector<HTMLButtonElement>('[aria-label="Download"]')!.click());

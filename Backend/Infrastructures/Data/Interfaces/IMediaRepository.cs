@@ -1,9 +1,12 @@
 using Domains.Entities;
+using Services.Models.Media;
 
 namespace Infrastructures.Data.Interfaces;
 
 public interface IMediaRepository
 {
+    Task AssignHomeToUnlocatedPhotosAsync(
+        Guid ownerId, MediaLocationDto location, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<MediaFile>> GetLocationScanBatchAsync(
         Guid actorId, bool isAdmin, int offset, int limit, CancellationToken cancellationToken);
     Task<bool> TrySetExtractedLocationAsync(

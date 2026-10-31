@@ -1,6 +1,6 @@
 .app-shell__content:has(.home-page) {
-  overflow: hidden;
   padding-bottom: 0;
+  height: 100%;
 }
 
 .home-page {
@@ -10,6 +10,7 @@
   min-height: 0;
   position: relative;
   width: 100%;
+  flex: 1 1 0;
 }
 
 .home-page__scroll-track {
@@ -18,8 +19,8 @@
   inset: 0 0 auto;
   overflow: hidden;
   pointer-events: none;
-  position: absolute;
-  z-index: 1;
+  position: fixed;
+  z-index: 100;
 }
 
 .home-page__scroll-progress {

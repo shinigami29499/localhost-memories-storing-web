@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { Toast as AnimateToast } from '@animate-ui/react/primitives/base-ui/toast';
 import { AnimateIcon } from '@/components/animate-ui/icons/icon';
 import { Check } from '@/components/animate-ui/icons/check';
@@ -25,6 +25,8 @@ interface ToastData {
 
 /** Undoable toasts stay longer because the user has to decide before they close. */
 const UNDOABLE_TOAST_TIMEOUT = 10000;
+// Pointer capture can emit a click after a cancelled swipe.
+const TOAST_CLICK_MOVE_THRESHOLD = 8;
 
 export const toastManager = AnimateToast.createToastManager();
 
@@ -67,7 +69,7 @@ function ToastUndoButton({ toastId, data }: { toastId: string; data: ToastData }
 
   return (
     <AnimateToast.Action
-      className="toast-action"
+      className="toast-action toast-action--undo"
       disabled={undoing}
       aria-busy={undoing}
       onClick={() => void runUndo()}
@@ -78,15 +80,122 @@ function ToastUndoButton({ toastId, data }: { toastId: string; data: ToastData }
   );
 }
 
+function useToastLayer() {
+  const [layer] = useState(() => {
+    const element = document.createElement('div');
+    element.className = 'toast-layer';
+    return element;
+  });
+
+  useLayoutEffect(() => {
+    const selector = typeof CSS !== 'undefined' && typeof CSS.supports === 'function' && CSS.supports('selector(:modal)')
+      ? 'dialog:modal'
+      : 'dialog[open]';
+    let dialogs = Array.from(document.querySelectorAll<HTMLDialogElement>(selector));
+
+    const placeLayer = () => {
+      // Native modal dialogs are in the browser's top layer, above every z-index.
+      const container = dialogs.at(-1) ?? document.body;
+      if (layer.parentElement !== container || layer.nextElementSibling) {
+        const focused = document.activeElement;
+        const restoreFocus = focused instanceof HTMLElement && layer.contains(focused);
+        container.appendChild(layer);
+        if (restoreFocus) focused.focus({ preventScroll: true });
+      }
+    };
+
+    const observer = new MutationObserver((mutations) => {
+      let changed = false;
+      for (const mutation of mutations) {
+        if (mutation.type !== 'attributes' || !(mutation.target instanceof HTMLDialogElement)) continue;
+        const dialog = mutation.target;
+        dialogs = dialogs.filter((item) => item !== dialog);
+        if (dialog.isConnected && dialog.matches(selector)) dialogs.push(dialog);
+        changed = true;
+      }
+
+      const connectedDialogs = dialogs.filter((dialog) => dialog.isConnected);
+      if (connectedDialogs.length !== dialogs.length) {
+        dialogs = connectedDialogs;
+        changed = true;
+      }
+      if (changed || layer.nextElementSibling) placeLayer();
+    });
+
+    observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['open'],
+      childList: true,
+      subtree: true,
+    });
+    placeLayer();
+
+    return () => {
+      observer.disconnect();
+      layer.remove();
+    };
+  }, [layer]);
+
+  return layer;
+}
+
+function isInteractiveToastTarget(target: EventTarget | null) {
+  const element = target instanceof Element ? target : target instanceof Node ? target.parentElement : null;
+  return element?.closest('button, a, input, select, textarea, [role="button"], [role="link"]') != null;
+}
+
 export function Toaster() {
   const { t } = useLocale();
   const { toasts } = AnimateToast.useToastManager<ToastData>();
+  const layer = useToastLayer();
+  const pointers = useRef(new WeakMap<HTMLDivElement, {
+    pointerId: number;
+    x: number;
+    y: number;
+    moved: boolean;
+    startedOnControl: boolean;
+  }>());
 
   return (
-    <AnimateToast.Portal>
+    <AnimateToast.Portal container={layer}>
       <AnimateToast.Viewport className="toast-viewport">
         {toasts.map((toast) => (
-          <AnimateToast.Root key={toast.id} toast={toast} className="toast-root">
+          <AnimateToast.Root
+            key={toast.id}
+            toast={toast}
+            className="toast-root"
+            onPointerDown={(event) => {
+              if (event.button !== 0) return;
+              pointers.current.set(event.currentTarget, {
+                pointerId: event.pointerId,
+                x: event.clientX,
+                y: event.clientY,
+                moved: false,
+                startedOnControl: isInteractiveToastTarget(event.target),
+              });
+            }}
+            onPointerMove={(event) => {
+              const start = pointers.current.get(event.currentTarget);
+              if (start?.pointerId === event.pointerId
+                && Math.hypot(event.clientX - start.x, event.clientY - start.y) > TOAST_CLICK_MOVE_THRESHOLD) {
+                start.moved = true;
+              }
+            }}
+            onPointerCancel={(event) => {
+              const start = pointers.current.get(event.currentTarget);
+              if (start?.pointerId === event.pointerId) start.moved = true;
+            }}
+            onClick={(event) => {
+              const start = pointers.current.get(event.currentTarget);
+              pointers.current.delete(event.currentTarget);
+              if (isInteractiveToastTarget(event.target)) return;
+              if (event.detail !== 0 && start && (
+                start.startedOnControl || start.moved
+                || Math.hypot(event.clientX - start.x, event.clientY - start.y) > TOAST_CLICK_MOVE_THRESHOLD
+              )) return;
+              toastManager.close(toast.id);
+            }}
+          >
             <AnimateToast.Content className="toast-content">
               <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
                 <div className="toast-icon-wrapper" data-slot="toast-icon">

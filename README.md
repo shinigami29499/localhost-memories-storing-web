@@ -11,9 +11,18 @@ internet access, a WebGL-capable browser, and a Mapbox account with a public acc
 
 ### Photo locations
 
-New photo uploads extract embedded EXIF GPS coordinates when available. Photos
-without GPS keep a null location; no location is inferred from filenames, IP
-addresses, or the uploading device. Originals are never modified.
+New photo uploads, including album preview uploads, extract embedded EXIF GPS
+coordinates when available. Photos without GPS use the uploader's saved Home
+location. If Home is unset, they keep a null location. No location is inferred
+from filenames, IP addresses, or the uploading device. Originals are never modified.
+
+Setting Home from **Locations** or **Food** when it was unset opens a confirmation
+dialog to assign Home to your existing active photos without a location. Cancel
+keeps Home saved and leaves existing photos unchanged. Existing coordinates,
+videos, trashed photos, and other users' photos are not changed. Changing or
+removing Home does not move photos already assigned to it. The home-location
+`PUT` API accepts optional `applyToUnlocatedPhotos: true` for this confirmed action;
+omitting it only saves Home.
 
 Open **Locations** in the sidebar to see one numbered map pin per located photo.
 Photos at identical coordinates overlap; select them individually from the photo
@@ -38,6 +47,22 @@ token or commit local tokens. Missing/invalid tokens show a map configuration er
 manual coordinate entry still works. Mapbox receives map requests and coordinates,
 but the app does not send Mapbox photo files or media authentication tokens.
 Existing photo coordinates and saved locations are unchanged by the provider switch.
+
+### Location search
+
+On Travel and Food maps, type at least three characters of a place name or address.
+After a 500 ms pause, the app searches Photon using OpenStreetMap data and shows up
+to five results below the input. Select a result to move the map to its coordinates.
+No API key, Google Maps link, or separate tab is needed.
+Photo editing and Home picking must be active to update those drafts; Food results
+open the existing place editor. Confirm and save through the existing workflow.
+
+Search text goes directly to `photon.komoot.io`; photos, media authentication tokens,
+and saved account locations are not sent. Search needs internet access.
+Photon's public demo allows reasonable usage but may throttle requests and offers
+no availability guarantee. Heavy usage requires a self-hosted service.
+Search results come from OpenStreetMap, not Google's place catalogue.
+Map display still requires the existing Mapbox token; Mapbox geocoding is not used.
 
 ### Travel and food navigation
 
@@ -248,6 +273,12 @@ npm test -- --run
 
 ## Features
 
+- **Click animation:** Settings > Preferences offers Off (default), Ring, Ripple,
+  Crosshair, Burst, and Particles using Animate UI. The choice applies immediately
+  throughout the app and persists in this browser across reloads. Effects use the
+  current theme's accent color, a 100px size, and a 400ms duration (particles finish
+  slightly later). Reduced-motion preferences disable effects; clicks and keyboard
+  controls retain their normal behavior.
 - **Theme:** use the sun/moon button on sign-in, registration, or beside the
   language and notification controls in the app header to
   switch between light and dark mode. The choice persists across reloads.

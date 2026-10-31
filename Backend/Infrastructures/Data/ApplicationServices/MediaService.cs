@@ -219,7 +219,7 @@ public partial class MediaService(
             throw new NotFoundException($"Media '{mediaId}' was not found.");
 
         var favorite = await _repository.FindMediaFavoriteAsync(
-            userId, mediaId, includeDeleted: !isFavorite, cancellationToken);
+            userId, mediaId, includeDeleted: isFavorite, cancellationToken);
         if (isFavorite)
         {
             if (favorite is { DeletedAt: null })

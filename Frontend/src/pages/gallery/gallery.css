@@ -1,6 +1,6 @@
 .app-shell__content:has(.gallery-page) {
-  overflow: hidden;
   padding-bottom: 0;
+  height: 100%;
 }
 
 .gallery-page {
@@ -9,6 +9,7 @@
   height: 100%;
   min-height: 0;
   position: relative;
+  flex: 1 1 0;
 }
 
 .gallery-page__scroll-track {
@@ -17,8 +18,8 @@
   inset: 0 0 auto;
   overflow: hidden;
   pointer-events: none;
-  position: absolute;
-  z-index: 1;
+  position: fixed;
+  z-index: 100;
 }
 
 .gallery-page__scroll-progress {
@@ -96,7 +97,6 @@
 }
 
 .gallery-date-grid .media-tile {
-  aspect-ratio: 4 / 5;
   border-radius: var(--radius);
 }
 
@@ -765,7 +765,7 @@
   }
 
   .gallery-page__content {
-    padding: 16px 12px 24px;
+    padding: 16px 8px 24px;
   }
 
   .gallery-page__footer {

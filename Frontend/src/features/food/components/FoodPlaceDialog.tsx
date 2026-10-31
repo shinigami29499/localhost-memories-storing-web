@@ -6,12 +6,13 @@ import { useLocale } from "../../../context/LocaleContext";
 
 interface Props {
   title: string;
+  icon?: ReactNode;
   children: ReactNode;
   onClose: () => void;
   closeDisabled?: boolean;
 }
 
-export function FoodPlaceDialog({ title, children, onClose, closeDisabled = false }: Props) {
+export function FoodPlaceDialog({ title, icon, children, onClose, closeDisabled = false }: Props) {
   const { t } = useLocale();
   const [open, setOpen] = useState(true);
   const handleOpenChange = (nextOpen: boolean) => {
@@ -27,6 +28,7 @@ export function FoodPlaceDialog({ title, children, onClose, closeDisabled = fals
         <Dialog.Viewport className="confirmation-dialog-viewport">
           <Dialog.Popup className="food__dialog">
             <header className="food__dialog-header">
+              {icon}
               <Dialog.Title className="food__dialog-title">{title}</Dialog.Title>
               <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
                 <Dialog.Close

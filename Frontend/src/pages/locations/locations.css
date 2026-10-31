@@ -1,10 +1,48 @@
-.locations {
-  margin-inline: auto;
-  max-width: 1600px;
-  padding: 32px 24px;
+.app-shell__content:has(.locations) {
+  padding-bottom: 0;
+  height: 100%;
 }
 
-.locations__header,
+.locations {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  position: relative;
+  flex: 1 1 0;
+}
+
+.locations__scroll-track {
+  background: var(--border);
+  height: 3px;
+  inset: 0 0 auto;
+  overflow: hidden;
+  pointer-events: none;
+  position: fixed;
+  z-index: 100;
+}
+
+.locations__scroll-progress {
+  background: var(--accent-strong);
+  height: 100%;
+  transform-origin: left;
+  width: 100%;
+}
+
+.locations__content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 40px 24px;
+  scroll-padding-block: 24px;
+}
+
+.locations__inner {
+  margin-inline: auto;
+  max-width: 1600px;
+}
+
 .locations__library-header,
 .locations__actions {
   align-items: center;
@@ -14,10 +52,36 @@
   justify-content: space-between;
 }
 
+.locations__header {
+  margin-bottom: 28px;
+}
+
+.locations__header > p:last-child {
+  color: var(--text-muted);
+  margin: 8px 0 0;
+}
+
+.locations__eyebrow,
+.food__eyebrow {
+  color: var(--text-strong);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin: 0 0 8px;
+  text-transform: uppercase;
+}
+
 .locations h1,
 .locations h2 {
   color: var(--text-strong);
   margin: 0 0 8px;
+}
+
+.locations__header h1 {
+  font-size: clamp(1.75rem, 3vw, 2.25rem);
+  letter-spacing: -0.04em;
+  line-height: 1.15;
+  margin: 0;
 }
 
 .locations h1 {
@@ -104,7 +168,7 @@
   border-radius: var(--radius);
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;
-  margin-block: 24px;
+  margin-block: 24px 0;
   overflow: hidden;
 }
 
@@ -112,12 +176,12 @@
 
 .locations__map-panel {
   background: var(--surface);
-  height: 600px;
-  min-height: 480px;
+  height: 520px;
+  min-height: 360px;
   position: relative;
 }
 
-.locations__map { height: 100%; min-height: 480px; width: 100%; }
+.locations__map { height: 100%; min-height: 360px; width: 100%; }
 .locations__map-message { padding: 24px; }
 .locations__map-loading { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; z-index: 4; }
 .locations__map-home-control {
@@ -320,6 +384,9 @@
   z-index: calc(10 - var(--fan-index));
 }
 .locations__cluster--group .locations__marker[data-selected="true"] { z-index: 12; }
+@media (hover: hover) and (pointer: fine) {
+  .locations__cluster--group .locations__marker:hover { z-index: 14; }
+}
 .locations__cluster--group[data-open="false"] .locations__marker {
   transform: translateY(calc(var(--fan-index) * -2px)) rotate(calc(var(--fan-index) * 3deg - 3deg));
 }
@@ -527,22 +594,32 @@
 .locations__photo:disabled { cursor: default; opacity: 0.6; }
 .locations__photo[aria-pressed="true"] { border-color: var(--accent-strong); background: var(--accent-wash); }
 .locations__photo img { aspect-ratio: 1; object-fit: cover; width: 100%; border-radius: 4px; }
-.locations__photo > span:first-of-type { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.875rem; }
 .locations input:focus-visible,
 .locations button:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 3px; }
 
 @media (max-width: 900px) {
-  .locations { padding: 24px 16px; }
   .locations__workspace { grid-template-columns: minmax(0, 1fr); }
   .locations__map-panel,
-  .locations__map { height: 420px; min-height: 420px; }
+  .locations__map { height: 360px; min-height: 360px; }
   .locations__details { border-left: 0; border-top: 1px solid var(--border); }
   .locations__selected-photo { max-height: 240px; }
 }
 
 @media (max-width: 640px) {
+  .locations__content {
+    padding: 16px 8px 24px;
+  }
+
+  .locations__header {
+    margin-bottom: 16px;
+  }
+
+  .locations__workspace {
+    margin-block: 16px 0;
+  }
+
   .locations__map-panel,
-  .locations__map { height: 380px; min-height: 380px; }
+  .locations__map { height: 320px; min-height: 320px; }
   .locations__pin {
     height: 36px;
     left: 4px;

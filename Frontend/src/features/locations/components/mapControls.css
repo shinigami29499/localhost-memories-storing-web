@@ -184,16 +184,7 @@
 }
 
 :is(.food, .locations) .map-controls .map-appearance-control > summary {
-  transform: translateY(0) scale(1);
-  transition: transform 160ms ease-out;
-}
-
-:is(.food, .locations) .map-controls .map-appearance-control > summary:is(:hover, :focus-visible) {
-  transform: translateY(-2px) scale(1.03);
-}
-
-:is(.food, .locations) .map-controls .map-appearance-control > summary:active {
-  transform: scale(0.98);
+  transform: none;
 }
 
 :is(.food, .locations) .map-controls :is(.food__scenes, .locations__scenes):not([open]) summary {
@@ -238,13 +229,45 @@
   right: 0;
   width: 54px;
   height: 54px;
-  color: #fff;
+  color: var(--text-strong);
   transform: translateY(-50%);
 }
 
 :is(.food, .locations) .map-controls .food__location-search:not(:focus-within) :is(.food__location-search-message, .food__location-search-results) {
   display: none;
 }
+
+:is(.food, .locations) .food__location-search button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+:is(.food, .locations) .food__location-search button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+:is(.food, .locations) .food__location-search-message {
+  display: grid;
+  font-size: 0.8125rem;
+  gap: 8px;
+  padding: 12px;
+}
+
+:is(.food, .locations) .food__location-search-message p { margin: 0; }
+
+:is(.food, .locations) .food__location-search-message button {
+  background: transparent;
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius);
+  color: var(--text);
+  cursor: pointer;
+  min-height: 44px;
+  padding: 8px;
+}
+
+:is(.food, .locations) .food__location-search-message button:hover { background: var(--surface-hover); }
+:is(.food, .locations) .food__location-search-message [role="alert"] { color: var(--danger); }
 
 :is(.food, .locations) :is(.food__map-home-control, .locations__map-home-control) {
   left: 8px;
@@ -269,11 +292,6 @@
 }
 
 :is(.food, .locations) .home-location-marker :is(.food__home-pin, .locations__home-pin) {
-  height: 40px;
-  width: 40px;
-  left: 2px;
-  top: 2px;
-  padding: 0;
   cursor: grab;
   transition: scale 140ms ease-out;
 }

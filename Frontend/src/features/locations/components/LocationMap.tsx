@@ -23,6 +23,7 @@ import type { LocationSearchResult } from "../services/locationSearchService";
 import { useLocale } from "../../../context/LocaleContext";
 import { useMediaQuery } from "../../../hooks/useMediaQuery";
 import { mediaPreviewUrl } from "../../../utils/media";
+import { clusterMapMarkers, type MapProjector } from "../../../utils/mapMarkerGroups";
 import type { MediaFile, PhotoLocation, PickedLocation } from "../../media/types";
 import { findPlaceAt } from "../utils/findPlaceAt";
 import type { HomeLocation } from "../types";
@@ -170,7 +171,7 @@ function MapCameraScene({ scene, selected, ready, homeLocation, homeRequest, foc
       handledHomeRequest.current = homeRequest;
       map.easeTo({
         center: [homeLocation.longitude, homeLocation.latitude],
-        zoom: 14,
+        zoom: Math.max(map.getZoom(), 18),
         pitch: 0,
         bearing: 0,
         padding: { top: 0, bottom: 0, left: 0, right: 0 },
@@ -195,8 +196,6 @@ function MapCameraScene({ scene, selected, ready, homeLocation, homeRequest, foc
   return null;
 }
 
-type Projector = (location: PhotoLocation) => { x: number; y: number };
-
 interface PhotoCluster {
   id: string;
   latitude: number;
@@ -204,26 +203,7 @@ interface PhotoCluster {
   items: MediaFile[];
 }
 
-/** Photos closer than this on screen share one marker. Degrees are the fallback before the map projects. */
-const CLUSTER_RADIUS_PX = 46;
-const CLUSTER_RADIUS_DEGREES = 0.0008;
 const MAX_FANNED_PHOTOS = 8;
-
-function clusterPhotos(media: MediaFile[], project: Projector | null): PhotoCluster[] {
-  const radius = project ? CLUSTER_RADIUS_PX : CLUSTER_RADIUS_DEGREES;
-  const toPoint: Projector = project ?? ((location) => ({ x: location.longitude, y: location.latitude }));
-  const clusters: Array<PhotoCluster & { x: number; y: number }> = [];
-  for (const item of media) {
-    if (!item.location) continue;
-    const point = toPoint(item.location);
-    const near = clusters.find((cluster) => Math.hypot(cluster.x - point.x, cluster.y - point.y) <= radius);
-    if (near) near.items.push(item);
-    else clusters.push({
-      id: item.id, latitude: item.location.latitude, longitude: item.location.longitude, items: [item], ...point,
-    });
-  }
-  return clusters;
-}
 
 function PhotoPin({ item, selected, movable, onSelect, onMove }: {
   item: MediaFile;
@@ -349,7 +329,7 @@ function PhotoClusterMarker({ cluster, selected, onSelect, canMove, onMove }: {
 
 function PhotoMarkers({ media, selected, ready, onSelect, canMove, onMove }: Pick<Props, "media" | "selected" | "onSelect" | "canMove" | "onMove"> & { ready: boolean }) {
   const { current: map } = useMap();
-  const [project, setProject] = useState<Projector | null>(null);
+  const [project, setProject] = useState<MapProjector | null>(null);
   useEffect(() => {
     if (!map || !ready || typeof map.project !== "function") return;
     const update = () => setProject(() => (location: PhotoLocation) => map.project([location.longitude, location.latitude]));
@@ -358,7 +338,13 @@ function PhotoMarkers({ media, selected, ready, onSelect, canMove, onMove }: Pic
     map.on("moveend", update);
     return () => { map.off("moveend", update); };
   }, [map, ready]);
-  const clusters = useMemo(() => clusterPhotos(media, project), [media, project]);
+  const clusters = useMemo(() => clusterMapMarkers(media, (item) => item.location, project)
+    .map(({ location, items }) => ({
+      id: items[0].id,
+      latitude: location.latitude,
+      longitude: location.longitude,
+      items,
+    })), [media, project]);
 
   return (
     <>
@@ -369,6 +355,12 @@ function PhotoMarkers({ media, selected, ready, onSelect, canMove, onMove }: Pic
           longitude={cluster.longitude}
           anchor="bottom"
           style={{ zIndex: cluster.items.some((item) => item.id === selected?.id) ? 2 : 1 }}
+          onMouseEnter={(event) => {
+            event.currentTarget.style.zIndex = "3";
+          }}
+          onMouseLeave={(event) => {
+            event.currentTarget.style.zIndex = cluster.items.some((item) => item.id === selected?.id) ? "2" : "1";
+          }}
           onClick={(event) => event.originalEvent.stopPropagation()}
         >
           <PhotoClusterMarker cluster={cluster} selected={selected} onSelect={onSelect} canMove={canMove} onMove={onMove} />
@@ -546,7 +538,6 @@ function MapContent({
         )}
       </Map>
       <LocationSearch
-        accessToken={token}
         disabled={!loaded || navigationOpen}
         onFocus={() => {
           if (window.matchMedia("(max-width: 640px)").matches) {

@@ -110,7 +110,8 @@
 
 .settings-page__transition-popup {
   max-height: min(20rem, var(--available-height));
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   padding: 0.25rem;
   border: 1px solid var(--border-control);
   border-radius: 8px;

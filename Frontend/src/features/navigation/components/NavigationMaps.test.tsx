@@ -83,7 +83,8 @@ describe.each(["travel", "food"] as const)("%s map navigation integration", (kin
             draft={coordinate} editable canMove={() => true} onMove={vi.fn()} />
         ) : (
           <FoodMap {...shared} places={[place]} selectedId={selected ? place.id : null}
-            draft={null} draftIcon="" draftColor="" picking={false} />
+            draft={null} draftIcon="" draftColor="" picking={false}
+            canChange={() => true} onMove={vi.fn()} onDelete={vi.fn()} />
         )}
       </QueryClientProvider>,
     ));

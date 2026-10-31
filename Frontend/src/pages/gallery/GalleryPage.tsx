@@ -137,6 +137,11 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
   const allSelectedFavorited = selectedMedia.length > 0 && selectedMedia.every((item) => item.isFavorited);
   const favoriteBusy = favoriteBusyId !== null || bulkFavoriteBusy;
 
+  const refreshFavoriteQueries = () => Promise.all([
+    queryClient.invalidateQueries({ queryKey: ["media"] }),
+    queryClient.invalidateQueries({ queryKey: albumKeys.all }),
+  ]);
+
   const cancelSelection = () => {
     setSelectedItems(new Map());
     setSelectionMode(false);
@@ -199,12 +204,12 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
     try {
       if (isFavorited) await mediaService.unfavorite(mediaId);
       else await mediaService.favorite(mediaId);
-      await query.refetch();
+      await refreshFavoriteQueries();
       showToast.success(t(isFavorited ? "Favorites removed" : "Media added to favorites"), {
         undo: async () => {
           if (isFavorited) await mediaService.favorite(mediaId);
           else await mediaService.unfavorite(mediaId);
-          await query.refetch();
+          await refreshFavoriteQueries();
         },
       });
     } catch (error) {
@@ -262,24 +267,26 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
         }
         return next;
       });
+      await refreshFavoriteQueries();
       if (failedIds.length > 0) showToast.error(t("Could not update favorites."));
-      else if (changedItems.length > 0) {
+      if (changedItems.length > 0) {
         showToast.success(t(favorite ? "Media added to favorites" : "Favorites removed"), {
           undo: async () => {
             const undoFailedIds = await applyFavorites(changedItems.map((item) => item.id), !favorite);
-            if (undoFailedIds.length > 0) throw new Error(t("Could not update favorites."));
             setSelectedItems((current) => {
               const next = new Map(current);
               for (const item of changedItems) {
-                if (next.has(item.id)) next.set(item.id, { ...item, isFavorited: !favorite });
+                if (!undoFailedIds.includes(item.id) && next.has(item.id)) {
+                  next.set(item.id, { ...item, isFavorited: !favorite });
+                }
               }
               return next;
             });
-            await query.refetch();
+            await refreshFavoriteQueries();
+            if (undoFailedIds.length > 0) throw new Error(t("Could not update favorites."));
           },
         });
       }
-      await query.refetch();
     } catch (error) {
       showToast.error(t("Could not update favorites."), error instanceof Error ? error.message : undefined);
     } finally {

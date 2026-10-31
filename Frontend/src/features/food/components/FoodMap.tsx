@@ -15,6 +15,12 @@ import { useLocale } from "../../../context/LocaleContext";
 import { useMediaQuery } from "../../../hooks/useMediaQuery";
 import { mediaPreviewUrl } from "../../../utils/media";
 import {
+  clusterMapMarkers,
+  type MapCoordinate,
+  type MapMarkerGroup,
+  type MapProjector,
+} from "../../../utils/mapMarkerGroups";
+import {
   getMapAppearanceConfig,
   MapAppearanceConfig,
   MapAppearanceSettings,
@@ -41,11 +47,14 @@ interface Props {
   homeLocationReady: boolean;
   homePicking: boolean;
   homeActionDisabled: boolean;
+  canChange: (place: FoodPlace) => boolean;
+  onMove: (place: FoodPlace, coordinate: FoodCoordinate) => void;
+  onDelete: (place: FoodPlace) => void;
   onSelect: (place: FoodPlace) => void;
   onPickHome: (coordinate: HomeLocation) => void;
   onHomeClick: () => void;
   /** `placeName` is set when the click snapped to a basemap place label. */
-  onPick: (coordinate: FoodCoordinate, placeName?: string) => void;
+  onPick: (coordinate: FoodCoordinate, placeName?: string, source?: "search") => void;
 }
 
 type MapScene = "streets" | "3d";
@@ -177,7 +186,7 @@ function MapCameraScene({ scene, selected, ready, homeLocation, homeRequest, foc
       handledHomeRequest.current = homeRequest;
       map.easeTo({
         center: [homeLocation.longitude, homeLocation.latitude],
-        zoom: 14,
+        zoom: Math.max(map.getZoom(), 18),
         pitch: 0,
         bearing: 0,
         padding: { top: 0, bottom: 0, left: 0, right: 0 },
@@ -202,24 +211,140 @@ function MapCameraScene({ scene, selected, ready, homeLocation, homeRequest, foc
   return null;
 }
 
-function FoodPlaceMarker({ place, selected, onSelect }: {
+function FoodPlaceMarker({ place, selected, onSelect, canChange, onMove, onDelete }: {
   place: FoodPlace;
   selected: boolean;
   onSelect: (place: FoodPlace) => void;
-}) {
+} & Pick<Props, "canChange" | "onMove" | "onDelete">) {
   const { t } = useLocale();
+  const { current: map } = useMap();
+  const pinRef = useRef<HTMLButtonElement>(null);
+  const gesture = useRef<{ id: number; x: number; y: number; dragging: boolean } | null>(null);
+  const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const suppressClick = useRef(false);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const changeable = canChange(place);
+  const cancelHold = useCallback(() => {
+    if (holdTimer.current !== null) clearTimeout(holdTimer.current);
+    holdTimer.current = null;
+  }, []);
+  const cancelGesture = useCallback(() => {
+    cancelHold();
+    const start = gesture.current;
+    if (!start) return;
+    gesture.current = null;
+    suppressClick.current = true;
+    if (pinRef.current?.hasPointerCapture(start.id)) pinRef.current.releasePointerCapture(start.id);
+    setOffset({ x: 0, y: 0 });
+  }, [cancelHold]);
+
+  useEffect(() => {
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") cancelGesture();
+    };
+    const outside = (event: PointerEvent) => {
+      if (event.target instanceof Node && !pinRef.current?.contains(event.target)) cancelGesture();
+    };
+    window.addEventListener("keydown", escape, true);
+    window.addEventListener("blur", cancelGesture);
+    document.addEventListener("pointerdown", outside, true);
+    return () => {
+      cancelHold();
+      window.removeEventListener("keydown", escape, true);
+      window.removeEventListener("blur", cancelGesture);
+      document.removeEventListener("pointerdown", outside, true);
+    };
+  }, [cancelGesture, cancelHold]);
+
+  useEffect(() => {
+    if (!changeable) cancelGesture();
+  }, [changeable, cancelGesture]);
+
   return (
-    <div className="food__marker" data-selected={selected}>
+    <div className="food__marker" data-selected={selected} style={{ translate: `${offset.x}px ${offset.y}px` }}>
       <button
+        ref={pinRef}
         type="button"
         className="food__pin"
         style={{ "--marker-color": place.markerColor } as CSSProperties}
-        title={place.name}
+        data-changeable={changeable}
+        title={changeable ? t("Drag to move this place. Hold or right-click to delete.") : place.name}
         aria-label={place.name}
         aria-pressed={selected}
-        onClick={() => onSelect(place)}
+        aria-haspopup="dialog"
+        onPointerDown={(event) => {
+          suppressClick.current = false;
+          if (!changeable || !map || event.button !== 0 || !event.isPrimary) return;
+          event.preventDefault();
+          event.stopPropagation();
+          cancelHold();
+          gesture.current = { id: event.pointerId, x: event.clientX, y: event.clientY, dragging: false };
+          event.currentTarget.setPointerCapture(event.pointerId);
+          holdTimer.current = setTimeout(() => {
+            cancelGesture();
+            suppressClick.current = true;
+            onDelete(place);
+          }, 600);
+        }}
+        onPointerMove={(event) => {
+          const start = gesture.current;
+          if (!start || start.id !== event.pointerId) return;
+          const x = event.clientX - start.x, y = event.clientY - start.y;
+          if (Math.hypot(x, y) > 8) {
+            start.dragging = true;
+            cancelHold();
+          }
+          if (start.dragging) setOffset({ x, y });
+        }}
+        onPointerUp={(event) => {
+          const start = gesture.current;
+          if (!start || start.id !== event.pointerId) return;
+          gesture.current = null;
+          cancelHold();
+          setOffset({ x: 0, y: 0 });
+          event.currentTarget.releasePointerCapture(event.pointerId);
+          if (!start.dragging || !map || !changeable) return;
+          suppressClick.current = true;
+          const origin = map.project([place.longitude, place.latitude]);
+          const point = map.unproject([
+            origin.x + event.clientX - start.x,
+            origin.y + event.clientY - start.y,
+          ]).wrap();
+          onMove(place, { latitude: point.lat, longitude: point.lng });
+        }}
+        onLostPointerCapture={cancelGesture}
+        onPointerCancel={cancelGesture}
+        onContextMenu={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          if (changeable && (event.button === 2 || (!gesture.current && !suppressClick.current))) {
+            cancelGesture();
+            suppressClick.current = true;
+            onDelete(place);
+          }
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") suppressClick.current = false;
+          if (changeable && (event.key === "Delete" || event.key === "Backspace")) {
+            event.preventDefault();
+            cancelGesture();
+            onDelete(place);
+          }
+        }}
+        onClick={(event) => {
+          event.stopPropagation();
+          if (suppressClick.current) {
+            event.preventDefault();
+            return;
+          }
+          onSelect(place);
+        }}
       >
-        <span aria-hidden="true">{place.markerIcon}</span>
+        {place.mediaIds.length > 0 ? (
+          <img src={mediaPreviewUrl(place.mediaIds[0])} alt="" loading="lazy" draggable={false} />
+        ) : (
+          <span aria-hidden="true">{place.markerIcon}</span>
+        )}
       </button>
       <article className="food__popup" aria-label={place.name}>
         {place.mediaIds.length > 0 && (
@@ -240,10 +365,127 @@ function FoodPlaceMarker({ place, selected, onSelect }: {
   );
 }
 
+function getSpiderfyOffset(index: number, count: number) {
+  if (count <= 8) {
+    const angle = -Math.PI / 2 + (index * 2 * Math.PI) / count;
+    const radius = Math.max(52, count * 10);
+    return { x: Math.cos(angle) * radius, y: Math.sin(angle) * radius };
+  }
+
+  const angle = index * 0.5;
+  const radius = 48 + index * 4;
+  return { x: Math.cos(angle) * radius, y: Math.sin(angle) * radius };
+}
+
+function FoodPlaceClusterMarker({ group, selectedId, onSelect, canChange, onMove, onDelete }: {
+  group: MapMarkerGroup<FoodPlace>;
+  selectedId: string | null;
+  onSelect: (place: FoodPlace) => void;
+} & Pick<Props, "canChange" | "onMove" | "onDelete">) {
+  const { t } = useLocale();
+  const [open, setOpen] = useState(false);
+  const count = group.items.length;
+  const selectedIndex = group.items.findIndex((place) => place.id === selectedId);
+  const ordered = selectedIndex > 0
+    ? [group.items[selectedIndex], ...group.items.filter((_, index) => index !== selectedIndex)]
+    : group.items;
+  const expanded = count === 1 || open;
+  const visiblePlaces = expanded ? ordered : ordered.slice(0, 1);
+  const toggleLabel = t(expanded ? "Collapse {count} food places" : "{count} food places here", { count });
+
+  return (
+    <div className={`food__cluster${count > 1 ? " food__cluster--group" : ""}`} data-open={expanded}>
+      {visiblePlaces.map((place, index) => {
+        const offset = count > 1 && expanded ? getSpiderfyOffset(index, count) : { x: 0, y: 0 };
+        return (
+          <div
+            key={place.id}
+            className="food__cluster-marker"
+            data-selected={place.id === selectedId}
+            style={{
+              "--spider-index": index,
+              "--spider-count": count,
+              "--spider-x": `${offset.x}px`,
+              "--spider-y": `${offset.y}px`,
+            } as CSSProperties}
+          >
+            <FoodPlaceMarker place={place} selected={place.id === selectedId} onSelect={onSelect}
+              canChange={canChange} onMove={onMove} onDelete={onDelete} />
+          </div>
+        );
+      })}
+      {count > 1 && (
+        <button
+          type="button"
+          className="food__cluster-toggle"
+          aria-expanded={expanded}
+          aria-label={toggleLabel}
+          title={toggleLabel}
+          onClick={(event) => {
+            event.stopPropagation();
+            setOpen((value) => !value);
+          }}
+        >
+          <span aria-hidden="true">{expanded ? "×" : count}</span>
+        </button>
+      )}
+    </div>
+  );
+}
+
+function FoodPlaceMarkers({ places, selectedId, ready, onSelect, canChange, onMove, onDelete }: {
+  places: FoodPlace[];
+  selectedId: string | null;
+  ready: boolean;
+  onSelect: (place: FoodPlace) => void;
+} & Pick<Props, "canChange" | "onMove" | "onDelete">) {
+  const { current: map } = useMap();
+  const [project, setProject] = useState<MapProjector | null>(null);
+
+  useEffect(() => {
+    if (!map || !ready || typeof map.project !== "function") return;
+    const update = () => setProject(() => (location: MapCoordinate) => map.project([location.longitude, location.latitude]));
+    update();
+    if (typeof map.on !== "function") return;
+    map.on("moveend", update);
+    return () => { map.off("moveend", update); };
+  }, [map, ready]);
+
+  const groups = useMemo(
+    () => clusterMapMarkers(places, (place) => place, project),
+    [places, project],
+  );
+
+  return (
+    <>
+      {groups.map((group) => (
+        <Marker
+          key={group.items[0].id}
+          latitude={group.location.latitude}
+          longitude={group.location.longitude}
+          anchor="bottom"
+          style={{ zIndex: group.items.some((place) => place.id === selectedId) ? 10 : 1 }}
+          onMouseEnter={(event) => {
+            event.currentTarget.style.zIndex = "20";
+          }}
+          onMouseLeave={(event) => {
+            event.currentTarget.style.zIndex = group.items.some((place) => place.id === selectedId) ? "10" : "1";
+          }}
+          onClick={(event) => event.originalEvent.stopPropagation()}
+        >
+          <FoodPlaceClusterMarker group={group} selectedId={selectedId} onSelect={onSelect}
+            canChange={canChange} onMove={onMove} onDelete={onDelete} />
+        </Marker>
+      ))}
+    </>
+  );
+}
+
 function MapContent({
   places, selectedId, draft, draftIcon, draftColor, picking, homeLocation,
   homeLocationReady, homePicking, homeActionDisabled, onSelect, onPick, onPickHome,
   onHomeClick, token,
+  canChange, onMove, onDelete,
 }: Props & { token: string }) {
   const { t } = useLocale();
   const shouldReduceMotion = useShouldReduceMotion();
@@ -302,7 +544,7 @@ function MapContent({
     });
     const coordinate = { latitude: result.latitude, longitude: result.longitude };
     if (homePicking) onPickHome(coordinate);
-    else onPick(coordinate, result.placeName);
+    else onPick(coordinate, result.placeName, "search");
   };
 
   if (failed)
@@ -375,7 +617,7 @@ function MapContent({
           places={places}
           selected={selected}
           ready={loaded && !navigationOpen}
-          allowFit={initialLocationResolved && !hasInitialCenter}
+          allowFit={initialLocationResolved && !hasInitialCenter && !draft}
         />
         <MapCameraScene scene={scene} selected={selected} ready={loaded && !navigationOpen}
           homeLocation={homeLocation} homeRequest={homeRequest} focusRequest={focusRequest} />
@@ -395,21 +637,13 @@ function MapContent({
             });
           }} />
         )}
-        {showMarkers && places.map((place) => (
-          <Marker
-            key={place.id}
-            latitude={place.latitude}
-            longitude={place.longitude}
-            anchor="bottom"
-            style={{ zIndex: place.id === selectedId ? 2 : 1 }}
-            onClick={(event) => event.originalEvent.stopPropagation()}
-          >
-            <FoodPlaceMarker place={place} selected={place.id === selectedId} onSelect={(item) => {
-              setFocusRequest((request) => request + 1);
-              onSelect(item);
-            }} />
-          </Marker>
-        ))}
+        {showMarkers && (
+          <FoodPlaceMarkers places={places} selectedId={selectedId} ready={loaded}
+            canChange={(place) => !navigationOpen && canChange(place)} onMove={onMove} onDelete={onDelete} onSelect={(item) => {
+            setFocusRequest((request) => request + 1);
+            onSelect(item);
+          }} />
+        )}
         {draft && (
           <Marker
             latitude={draft.latitude}
@@ -435,8 +669,7 @@ function MapContent({
         )}
       </Map>
       <LocationSearch
-        accessToken={token}
-        disabled={!loaded}
+        disabled={!loaded || navigationOpen}
         onFocus={() => {
           if (window.matchMedia("(max-width: 640px)").matches) {
             if (scenesRef.current) scenesRef.current.open = false;

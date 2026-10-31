@@ -7,10 +7,13 @@ using Domains.Entities;
 using Domains.Enums;
 using Services.Models.Users;
 using Services.Requests.Users;
+using Services.Models.Media;
 
 namespace Infrastructures.Data.ApplicationServices;
 
-public class UserService(IUserRepository repository, IUnitOfWork unitOfWork, IMapper mapper) : IUserService
+public class UserService(
+    IUserRepository repository, IUnitOfWork unitOfWork, IMapper mapper,
+    IMediaRepository mediaRepository) : IUserService
 {
     private const int MentionCandidateLimit = 8;
     private readonly IUserRepository _repository = repository;
@@ -121,9 +124,23 @@ public class UserService(IUserRepository repository, IUnitOfWork unitOfWork, IMa
         if (user is null || user.DeletedAt is not null)
             throw new NotFoundException("User not found.");
 
+        if (request.ApplyToUnlocatedPhotos
+            && user.HomeLatitude is not null && user.HomeLongitude is not null
+            && (user.HomeLatitude != request.Latitude || user.HomeLongitude != request.Longitude))
+            throw new ConflictException("Home changed. Refresh and confirm the current home location.");
+
         user.HomeLatitude = request.Latitude;
         user.HomeLongitude = request.Longitude;
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        if (request.ApplyToUnlocatedPhotos)
+        {
+            await using var transaction = await _unitOfWork.BeginTransactionAsync(cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await mediaRepository.AssignHomeToUnlocatedPhotosAsync(
+                userId, new MediaLocationDto(request.Latitude, request.Longitude), cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        }
+        else
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
         return new HomeLocationDto(request.Latitude, request.Longitude);
     }
 

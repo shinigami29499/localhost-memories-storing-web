@@ -40,6 +40,15 @@ public class FoodPlacesController(
         return NoContent();
     }
 
+    [HttpDelete("visits/{visitId:guid}")]
+    public async Task<IActionResult> DeleteFoodPlaceVisitAsync(
+        Guid visitId, CancellationToken cancellationToken)
+    {
+        await foodPlaceService.DeleteFoodPlaceVisitAsync(
+            visitId, currentUser.RequireUserId(), cancellationToken);
+        return NoContent();
+    }
+
     [HttpPost]
     public async Task<ActionResult<FoodPlaceDto>> CreateFoodPlaceAsync(
         SaveFoodPlaceRequest request, CancellationToken cancellationToken)

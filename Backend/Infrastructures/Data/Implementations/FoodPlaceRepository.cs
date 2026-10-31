@@ -44,6 +44,9 @@ public sealed class FoodPlaceRepository(ApplicationDbContext db) : IFoodPlaceRep
     public Task<FoodPlace?> FindFoodPlaceAsync(Guid foodPlaceId, CancellationToken cancellationToken = default)
         => db.FoodPlaces.FirstOrDefaultAsync(place => place.Id == foodPlaceId, cancellationToken);
 
+    public Task<FoodPlaceVisit?> FindFoodPlaceVisitAsync(Guid visitId, CancellationToken cancellationToken = default)
+        => db.FoodPlaceVisits.FirstOrDefaultAsync(visit => visit.Id == visitId, cancellationToken);
+
     public void AddFoodPlace(FoodPlace foodPlace) => db.FoodPlaces.Add(foodPlace);
 
     public void AddFoodPlaceVisit(FoodPlaceVisit visit) => db.FoodPlaceVisits.Add(visit);

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useIsMutating } from "@tanstack/react-query";
+import { ScrollProgress, ScrollProgressContainer, ScrollProgressProvider } from "@animate-ui/react/primitives/scroll-progress";
 import { useSearchParams } from "react-router-dom";
 import { Button, ErrorState, showToast, Spinner } from "../../components/ui";
 import { useLocale } from "../../context/LocaleContext";
@@ -8,6 +9,7 @@ import { useAuthStore } from "../../store/authStore";
 import { ApiError } from "../../services/api";
 import { mediaPreviewUrl } from "../../utils/media";
 import { useHomeLocation } from "../../features/locations/hooks/useHomeLocation";
+import { HomeLocationPhotoConfirmation } from "../../features/locations/components/HomeLocationPhotoConfirmation";
 import { useLocations } from "../../features/locations/hooks/useLocations";
 import { LocationMap } from "../../features/locations/components/LocationMap";
 import { LocationEditor } from "../../features/locations/components/LocationEditor";
@@ -124,44 +126,48 @@ export function LocationsPage() {
   };
   return (
     <main className="locations">
-      <header className="locations__header">
-        <div>
-          <h1>{t("Locations")}<span className="brand__dot">.</span></h1>
-          <p>{t("Explore where your photos were taken.")}</p>
+      <ScrollProgressProvider>
+        <div className="locations__scroll-track" aria-hidden="true">
+          <ScrollProgress mode="scaleX" className="locations__scroll-progress" />
         </div>
-      </header>
-      <p className="locations__hint">{t("Mapbox requires internet access and receives map coordinates. Photos stay on this server.")}</p>
-      {homePicking && (
-        <div className="locations__notice" role="status">
-          <span>{t("Click the map or search for a place to set your home location.")}</span>
-          <Button type="button" variant="secondary" disabled={home.save.isPending}
-            onClick={() => setHomePicking(false)}>{t("Cancel")}</Button>
-        </div>
-      )}
-      {scanning && (
-        <p className="locations__notice" role="status">
-          {t("Scanned {count} photos.", { count: scanProgress })}
-        </p>
-      )}
-      {scanError && <ErrorState message={scanError} />}
-      {scanResult && (
-        <p className="locations__notice locations__notice--done" role="status">
-          {t("Scanned {count} photos; found {located} locations.", { count: scanResult.scanned, located: scanResult.located })}
-        </p>
-      )}
-      {!!scanResult?.failedMediaIds.length && (
-        <div className="locations__notice locations__notice--error" role="alert">
-          <p>{t("{count} photos could not be scanned. Check the files and retry.", { count: scanResult.failedMediaIds.length })}</p>
-          <ul>{scanResult.failedMediaIds.map((id) => (
-            <li key={id}>{media.find((item) => item.id === id)?.originalFilename ?? id}</li>
-          ))}</ul>
-        </div>
-      )}
-      {query.isLoading ? <Spinner /> : query.isError && !media.length ? (
-        <ErrorState message="Could not load photos." onRetry={() => void query.refetch()} />
-      ) : (
-        <>
-          <div ref={workspaceRef} className={`locations__workspace${showDetails ? "" : " locations__workspace--map-only"}`}>
+        <ScrollProgressContainer className="locations__content">
+          <div className="locations__inner">
+            <header className="locations__header">
+              <p className="locations__eyebrow">{t("Your library")}</p>
+              <h1>{t("Travel")}<span className="brand__dot">.</span></h1>
+              <p>{t("Browse photos and videos with locations in your library.")}</p>
+            </header>
+            {homePicking && (
+              <div className="locations__notice" role="status">
+                <span>{t("Click the map or search for a place to set your home location.")}</span>
+                <Button type="button" variant="secondary" disabled={home.save.isPending}
+                  onClick={() => setHomePicking(false)}>{t("Cancel")}</Button>
+              </div>
+            )}
+            {scanning && (
+              <p className="locations__notice" role="status">
+                {t("Scanned {count} photos.", { count: scanProgress })}
+              </p>
+            )}
+            {scanError && <ErrorState message={scanError} />}
+            {scanResult && (
+              <p className="locations__notice locations__notice--done" role="status">
+                {t("Scanned {count} photos; found {located} locations.", { count: scanResult.scanned, located: scanResult.located })}
+              </p>
+            )}
+            {!!scanResult?.failedMediaIds.length && (
+              <div className="locations__notice locations__notice--error" role="alert">
+                <p>{t("{count} photos could not be scanned. Check the files and retry.", { count: scanResult.failedMediaIds.length })}</p>
+                <ul>{scanResult.failedMediaIds.map((id) => (
+                  <li key={id}>{media.find((item) => item.id === id)?.originalFilename ?? id}</li>
+                ))}</ul>
+              </div>
+            )}
+          {query.isLoading ? <Spinner /> : query.isError && !media.length ? (
+            <ErrorState message="Could not load photos." onRetry={() => void query.refetch()} />
+          ) : (
+            <>
+              <div ref={workspaceRef} className={`locations__workspace${showDetails ? "" : " locations__workspace--map-only"}`}>
             <div className="locations__map-panel">
               <LocationMap media={media} selected={selected} focused={focused} draft={draft} editable={canEdit && !saving}
                 homeLocation={home.query.data ?? null} homeLocationReady={home.query.isFetched}
@@ -211,35 +217,44 @@ export function LocationsPage() {
                 ) : <p className="locations__hint">{t("Only the uploader or an administrator can change this location.")}</p>}
               </aside>
             )}
-          </div>
-          {query.isFetchNextPageError && <ErrorState message="Could not load all photos." onRetry={() => void query.fetchNextPage()} />}
-          {query.isRefetchError && <ErrorState message="Could not refresh photos." onRetry={() => void query.refetch()} />}
-          {query.hasNextPage && !query.isFetchNextPageError && <Spinner label="Loading photos…" />}
-          {!isMobile && !!media.length && (
-            <>
-              <div className="locations__library-header">
-                <h2>{t("Photos")} <span>{t("{located} of {total} located", { located: locatedCount, total: query.data?.pages[0]?.total ?? 0 })}</span></h2>
-              </div>
-              <ul className="locations__photos">
-                {media.map((item) => (
-                  <li key={item.id}>
-                    <button type="button" className="locations__photo" aria-pressed={selectedId === item.id} disabled={saving}
-                      onClick={() => select(item, true)}>
-                      {!failedPreviews.has(item.id) && <img src={mediaPreviewUrl(item.id)} alt="" loading="lazy"
-                        onError={() => setFailedPreviews((previous) => new Set(previous).add(item.id))} />}
-                      <span>{item.originalFilename}</span>
-                      <span className={`locations__status${item.location ? " locations__status--located" : ""}`}>
-                        <span className="locations__status-dot" aria-hidden="true" />
-                        {t(item.location ? "Located" : "No location")}
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
+            </div>
+              {query.isFetchNextPageError && <ErrorState message="Could not load all photos." onRetry={() => void query.fetchNextPage()} />}
+              {query.isRefetchError && <ErrorState message="Could not refresh photos." onRetry={() => void query.refetch()} />}
+              {query.hasNextPage && !query.isFetchNextPageError && <Spinner label="Loading photos…" />}
+              {!isMobile && !!media.length && (
+                <>
+                  <div className="locations__library-header">
+                    <h2>{t("Photos")} <span>{t("{located} of {total} located", { located: locatedCount, total: query.data?.pages[0]?.total ?? 0 })}</span></h2>
+                  </div>
+                  <ul className="locations__photos">
+                    {media.map((item) => (
+                      <li key={item.id}>
+                        <button type="button" className="locations__photo" aria-label={item.originalFilename}
+                          aria-pressed={selectedId === item.id} disabled={saving}
+                          onClick={() => select(item, true)}>
+                          {!failedPreviews.has(item.id) && <img src={mediaPreviewUrl(item.id)} alt="" loading="lazy"
+                            onError={() => setFailedPreviews((previous) => new Set(previous).add(item.id))} />}
+                          <span className={`locations__status${item.location ? " locations__status--located" : ""}`}>
+                            <span className="locations__status-dot" aria-hidden="true" />
+                            {t(item.location ? "Located" : "No location")}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
             </>
           )}
-        </>
-      )}
+          </div>
+        </ScrollProgressContainer>
+      </ScrollProgressProvider>
+
+      <HomeLocationPhotoConfirmation
+        location={home.photosHomeLocation}
+        onConfirm={(location) => home.applyToPhotos.mutateAsync(location)}
+        onClose={home.dismissPhotosConfirmation}
+      />
     </main>
   );
 }

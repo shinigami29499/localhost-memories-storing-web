@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState, useMemo, type CSSProperties } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo, type CSSProperties } from "react";
+import { ScrollProgress, ScrollProgressContainer, ScrollProgressProvider } from "@animate-ui/react/primitives/scroll-progress";
 import {
   Button,
   ConfirmationDialog,
@@ -11,9 +12,11 @@ import { useLocale } from "../../context/LocaleContext";
 import { useAuthStore } from "../../store/authStore";
 import { ApiError } from "../../services/api";
 import { useHomeLocation } from "../../features/locations/hooks/useHomeLocation";
+import { HomeLocationPhotoConfirmation } from "../../features/locations/components/HomeLocationPhotoConfirmation";
 import { mediaPreviewUrl } from "../../utils/media";
 import { FoodMap } from "../../features/food/components/FoodMap";
 import { FoodPlaceDialog } from "../../features/food/components/FoodPlaceDialog";
+import { FoodPlaceVisitHistory } from "../../features/food/components/FoodPlaceVisitHistory";
 import { FoodVisitHistory } from "../../features/food/components/FoodVisitHistory";
 import {
   FoodPlaceEditor,
@@ -23,6 +26,7 @@ import { StarRating } from "../../features/food/components/StarRating";
 import {
   useCheckInFoodPlace,
   useDeleteFoodPlace,
+  useDeleteFoodPlaceVisit,
   useFoodPlaceVisitHistory,
   useFoodPlaces,
   useSaveFoodPlace,
@@ -38,7 +42,6 @@ import "./food.css";
 interface EditorState {
   id?: string;
   coordinate: FoodCoordinate | null;
-  previousCoordinate?: FoodCoordinate;
   values: FoodPlaceFormValues;
 }
 
@@ -77,12 +80,15 @@ export function FoodPage() {
   const save = useSaveFoodPlace();
   const remove = useDeleteFoodPlace();
   const checkInMutation = useCheckInFoodPlace();
+  const removeVisitMutation = useDeleteFoodPlaceVisit();
   const [editor, setEditor] = useState<EditorState | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [view, setView] = useState<"map" | "history">("map");
   const visitHistory = useFoodPlaceVisitHistory(view === "history");
   const [formError, setFormError] = useState<string | null>(null);
   const [placeToDelete, setPlaceToDelete] = useState<FoodPlace | null>(null);
+  const [placeToMove, setPlaceToMove] = useState<{ place: FoodPlace; coordinate: FoodCoordinate } | null>(null);
+  const workspaceRef = useRef<HTMLDivElement>(null);
   const [manualHomePick, setManualHomePick] = useState(false);
   const [homeDialogOpen, setHomeDialogOpen] = useState(false);
   const [confirmHomeRemoval, setConfirmHomeRemoval] = useState(false);
@@ -91,9 +97,12 @@ export function FoodPage() {
   const homePicking = manualHomePick;
   const selected = places.find((place) => place.id === selectedId);
   const canEdit = (place: FoodPlace) => place.owner.id === user?.id || isAdmin;
+  const canChangeMarker = (place: FoodPlace) => canEdit(place) && !editor && !homePicking
+    && !placeToMove && !placeToDelete && !save.isPending && !remove.isPending;
   const mapPlaces = useMemo(
-    () => editor?.id && editor.coordinate ? places.filter((place) => place.id !== editor.id) : places,
-    [places, editor?.id, editor?.coordinate],
+    () => places.filter((place) => place.id !== placeToMove?.place.id
+      && !(editor?.id === place.id && editor.coordinate)),
+    [places, editor?.id, editor?.coordinate, placeToMove?.place.id],
   );
   const rated = places.filter((place) => place.rating > 0).length;
   const clearPreview = useCallback(() => {
@@ -152,6 +161,15 @@ export function FoodPage() {
     }
   };
 
+  const removeVisit = async (visit: { id: string }) => {
+    try {
+      await removeVisitMutation.mutateAsync(visit.id);
+      showToast.success(t("Check in removed."));
+    } catch (error) {
+      showToast.error(error instanceof ApiError ? error.message : t("Could not remove this check in."));
+    }
+  };
+
   const startEdit = (place: FoodPlace) => {
     setSelectedId(place.id);
     setFormError(null);
@@ -164,9 +182,9 @@ export function FoodPage() {
   };
 
   /** Moves a draft marker or starts a new place at the selected map point. */
-  const pickOnMap = (coordinate: FoodCoordinate, placeName?: string) => {
+  const pickOnMap = (coordinate: FoodCoordinate, placeName?: string, source?: "search") => {
     if (!editor) {
-      if (selectedId) {
+      if (selectedId && source !== "search") {
         clearPreview();
         return;
       }
@@ -178,18 +196,62 @@ export function FoodPage() {
     setEditor((current) => {
       if (!current) return current;
       const name = !current.values.name.trim() && placeName ? placeName : current.values.name;
-      return { ...current, coordinate, previousCoordinate: undefined, values: { ...current.values, name } };
+      return { ...current, coordinate, values: { ...current.values, name } };
     });
   };
 
   const cancelMapPick = () => {
-    setEditor((current) => {
-      if (!current) return current;
-      if (current.previousCoordinate)
-        return { ...current, coordinate: current.previousCoordinate, previousCoordinate: undefined };
-      return null;
-    });
+    setEditor(null);
     setFormError(null);
+  };
+
+  useEffect(() => {
+    const cancel = () => {
+      if (save.isPending || remove.isPending || home.save.isPending) return;
+      cancelMapPick();
+      setManualHomePick(false);
+      clearPreview();
+    };
+    const escape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || event.defaultPrevented
+        || document.querySelector('[role="dialog"], [role="alertdialog"], .food__scenes[open]')) return;
+      cancel();
+    };
+    const outside = (event: PointerEvent) => {
+      if (!(event.target instanceof Node)
+        || document.querySelector('[role="dialog"], [role="alertdialog"]')
+        || workspaceRef.current?.contains(event.target)
+        || (event.target instanceof Element && event.target.closest(".food__notice"))) return;
+      if (editor || manualHomePick) cancel();
+    };
+    window.addEventListener("keydown", escape);
+    document.addEventListener("pointerdown", outside);
+    return () => {
+      window.removeEventListener("keydown", escape);
+      document.removeEventListener("pointerdown", outside);
+    };
+  }, [editor, manualHomePick, save.isPending, remove.isPending, home.save.isPending, clearPreview]);
+
+  const movePlace = (place: FoodPlace, coordinate: FoodCoordinate) => {
+    if (!canChangeMarker(place)) return;
+    clearPreview();
+    setPlaceToMove({ place, coordinate });
+  };
+
+  const deletePlace = (place: FoodPlace) => {
+    if (!canChangeMarker(place)) return;
+    clearPreview();
+    setPlaceToDelete(place);
+  };
+
+  const confirmMove = async () => {
+    if (!placeToMove) return;
+    const { place, coordinate } = placeToMove;
+    await save.mutateAsync({
+      id: place.id,
+      input: { ...toEditorState(place).values, ...coordinate },
+    });
+    showToast.success(t("Food place updated."));
   };
 
   const submit = async () => {
@@ -231,295 +293,324 @@ export function FoodPage() {
 
   return (
     <main className="food">
-      <header className="food__header">
-        <div>
-          <h1>{t("Food")}<span className="brand__dot">.</span></h1>
-          <p>{t("Save the places you ate at, rate them, and keep your notes on the map.")}</p>
+      <ScrollProgressProvider>
+        <div className="food__scroll-track" aria-hidden="true">
+          <ScrollProgress mode="scaleX" className="food__scroll-progress" />
         </div>
-      </header>
-      <div className="food__view-switch" role="group" aria-label={t("Food place view")}>
-        <Button
-          type="button"
-          variant={view === "map" ? "primary" : "secondary"}
-          aria-pressed={view === "map"}
-          onClick={() => setView("map")}
-        >
-          {t("Map")}
-        </Button>
-        <Button
-          type="button"
-          variant={view === "history" ? "primary" : "secondary"}
-          aria-pressed={view === "history"}
-          onClick={() => setView("history")}
-        >
-          {t("History")}
-        </Button>
-      </div>
-      {view === "map" && (
-        <p className="food__hint">{t("Mapbox requires internet access and receives map coordinates. Your notes stay on this server.")}</p>
-      )}
-      {editor && !editor.coordinate && (
-        <div className="food__notice" role="status">
-          <span>{t("Click the map, use your current location, or select a place label to set the marker.")}</span>
-          <Button type="button" variant="secondary" onClick={cancelMapPick}>
-            {t(editor.previousCoordinate ? "Cancel location change" : "Cancel")}
-          </Button>
-        </div>
-      )}
-      {manualHomePick && (
-        <div className="food__notice" role="status">
-          <span>{t("Click the map to set your home location.")}</span>
-          <Button type="button" variant="secondary" disabled={home.save.isPending} onClick={cancelHomePick}>
-            {t("Cancel")}
-          </Button>
-        </div>
-      )}
-
-      {view === "history" ? (
-        visitHistory.isError ? (
-          <ErrorState
-            message={t("Could not load visit history.")}
-            onRetry={() => void visitHistory.refetch()}
-          />
-        ) : visitHistory.isLoading ? <Spinner /> : visitHistory.data?.length ? (
-          <FoodVisitHistory visits={visitHistory.data} />
-        ) : (
-          <EmptyState title={t("No visits yet")} hint={t("Check in at a food place to start your history.")} />
-        )
-      ) : query.isLoading ? <Spinner /> : query.isError && !places.length ? (
-        <ErrorState message="Could not load food places." onRetry={() => void query.refetch()} />
-      ) : (
-        <>
-          <div className="food__workspace">
-            <div className="food__map-panel">
-              <FoodMap
-                places={mapPlaces}
-                selectedId={selectedId}
-                draft={editor?.coordinate ?? null}
-                draftIcon={editor?.values.markerIcon ?? DEFAULT_FOOD_MARKER_ICON}
-                draftColor={editor?.values.markerColor ?? DEFAULT_FOOD_MARKER_COLOR}
-                picking={!!editor}
-                homeLocation={home.query.data ?? null}
-                homeLocationReady={home.query.isFetched}
-                homeActionDisabled={save.isPending || remove.isPending || home.save.isPending}
-                homePicking={homePicking}
-                onSelect={selectPlace}
-                onPickHome={(coordinate) => void pickHome(coordinate)}
-                onHomeClick={() => {
-                  setSelectedId(null);
-                  setEditor(null);
-                  setFormError(null);
-                  setManualHomePick(false);
-                  if (!home.query.data) openHomeDialog();
-                }}
-                onPick={pickOnMap}
-              />
-            </div>
-          </div>
-          {!places.length ? (
-            <EmptyState title="No food places yet" hint="Click the map or use your current location to add your first place." />
-          ) : (
-            <>
-              <div className="food__library-header">
-                <h2>{t("Places")} <span>{t("{rated} of {total} rated", { rated, total: places.length })}</span></h2>
+        <ScrollProgressContainer className="food__content">
+          <div className="food__scroll-inner">
+            <header className="food__header">
+              <div>
+                <p className="food__eyebrow">{t("Travel")}</p>
+                <h1>{t("Food")}<span className="brand__dot">.</span></h1>
+                <p>{t("Save the places you ate at, rate them, and keep your notes on the map.")}</p>
               </div>
-              <ul className="food__list">
-                {places.map((place) => (
-                  <li key={place.id}>
-                    <button
-                      type="button"
-                      className="food__card"
-                      aria-pressed={selectedId === place.id}
-                      disabled={!!editor && editor.id !== place.id}
-                      onClick={() => selectPlace(place)}
-                    >
-                      <span
-                        className="food__chip"
-                        style={{ "--marker-color": place.markerColor } as CSSProperties}
-                        aria-hidden="true"
-                      >
-                        {place.markerIcon}
-                      </span>
-                      <span className="food__card-body">
-                        <strong>{place.name}</strong>
-                        {place.address && <small>{place.address}</small>}
-                        <StarRating value={place.rating} size="sm" />
-                        {place.note && <small>{place.note}</small>}
-                        <small className="food__card-owner">{place.owner.username}</small>
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
-        </>
-      )}
-
-      {editor?.coordinate && (
-        <FoodPlaceDialog
-          title={t(editor.id ? "Edit food place" : "New food place")}
-          closeDisabled={save.isPending}
-          onClose={() => {
-            if (!save.isPending) {
-              setEditor(null);
-              setFormError(null);
-            }
-          }}
-        >
-          <FoodPlaceEditor
-            values={editor.values}
-            coordinate={editor.coordinate}
-            saving={save.isPending}
-            isNew={!editor.id}
-            error={formError}
-            onChange={(values) => setEditor((current) => current ? { ...current, values } : current)}
-            onSubmit={() => void submit()}
-            onCancel={() => { setEditor(null); setFormError(null); }}
-            onChangeLocation={() => setEditor((current) => current?.coordinate
-              ? { ...current, previousCoordinate: current.coordinate, coordinate: null }
-              : current)}
-          />
-        </FoodPlaceDialog>
-      )}
-
-      {selected && !editor && (
-        <FoodPlaceDialog
-          title={selected.name}
-          onClose={() => setSelectedId(null)}
-        >
-          <div>
-            <div className="food__details-head">
-              <span
-                className="food__chip"
-                style={{ "--marker-color": selected.markerColor } as CSSProperties}
-                aria-hidden="true"
-              >
-                {selected.markerIcon}
-              </span>
-              <h2>{selected.name}</h2>
-            </div>
-            {selected.address && <p className="food__address">{selected.address}</p>}
-            <StarRating value={selected.rating} />
-            {selected.mediaIds.length > 0 && (
-              <ul className="food__gallery" aria-label={t("Photos")}>
-                {selected.mediaIds.map((mediaId) => (
-                  <li key={mediaId}>
-                    <img src={mediaPreviewUrl(mediaId)} alt="" loading="lazy" />
-                  </li>
-                ))}
-              </ul>
-            )}
-            {selected.note
-              ? <p className="food__note">{selected.note}</p>
-              : <p className="food__hint">{t("No note yet.")}</p>}
-            <p className="food__coordinate-readout">
-              {selected.latitude.toFixed(6)}, {selected.longitude.toFixed(6)}
-            </p>
-            <p className="food__hint">{t("Added by {username}", { username: selected.owner.username })}</p>
-            <div className="food__form-actions">
+            </header>
+            <div className="food__view-switch" role="group" aria-label={t("Food place view")}>
               <Button
                 type="button"
-                variant="secondary"
-                busy={checkInMutation.isPending}
-                onClick={() => void checkIn(selected)}
+                variant={view === "map" ? "primary" : "secondary"}
+                aria-pressed={view === "map"}
+                onClick={() => setView("map")}
               >
-                {t("Check in")}
+                {t("Map")}
               </Button>
-              {canEdit(selected) && (
-                <>
-                  <Button variant="secondary" onClick={() => startEdit(selected)}>{t("Edit")}</Button>
-                  <Button variant="danger" onClick={() => {
-                    setPlaceToDelete(selected);
-                    setSelectedId(null);
-                  }}>{t("Delete")}</Button>
-                </>
-              )}
+              <Button
+                type="button"
+                variant={view === "history" ? "primary" : "secondary"}
+                aria-pressed={view === "history"}
+                onClick={() => setView("history")}
+              >
+                {t("History")}
+              </Button>
             </div>
-            {!canEdit(selected) && (
-              <p className="food__hint">{t("Only the owner or an administrator can change this food place.")}</p>
+            {editor && !editor.coordinate && (
+              <div className="food__notice" role="status">
+                <span>{t("Click the map, use your current location, or select a place label to set the marker.")}</span>
+                <Button type="button" variant="secondary" onClick={cancelMapPick}>
+                  {t("Cancel")}
+                </Button>
+              </div>
             )}
-          </div>
-        </FoodPlaceDialog>
-      )}
+            {manualHomePick && (
+              <div className="food__notice" role="status">
+                <span>{t("Click the map to set your home location.")}</span>
+                <Button type="button" variant="secondary" disabled={home.save.isPending} onClick={cancelHomePick}>
+                  {t("Cancel")}
+                </Button>
+              </div>
+            )}
 
-      {homeDialogOpen && (
-        <FoodPlaceDialog
-          title={t("Home location")}
-          onClose={() => setHomeDialogOpen(false)}
-        >
-          <div className="food__home-dialog">
-            {home.query.isPending || home.query.isFetching ? (
-              <Spinner />
-            ) : home.query.isError ? (
-              <>
-                <p role="alert">{t("Could not load your home location. Add it manually or retry.")}</p>
-                <div className="food__form-actions">
-                  <Button type="button" onClick={startHomePick}>{t("Add manually")}</Button>
-                  <Button type="button" variant="secondary" onClick={() => void home.query.refetch()}>
-                    {t("Retry")}
-                  </Button>
-                </div>
-              </>
-            ) : home.query.data ? (
-              <>
-                <p className="food__coordinate-readout">
-                  {home.query.data.latitude.toFixed(6)}, {home.query.data.longitude.toFixed(6)}
-                </p>
-                <div className="food__form-actions">
-                  <Button
-                    variant="secondary"
-                    onClick={startHomePick}
-                  >
-                    {t("Change home location")}
-                  </Button>
-                  <Button
-                    variant="danger"
-                    onClick={() => {
-                      setHomeDialogOpen(false);
-                      setConfirmHomeRemoval(true);
-                    }}
-                  >
-                    {t("Remove home marker")}
-                  </Button>
-                </div>
-              </>
+            {view === "history" ? (
+              <div className="food__history-panel">
+                {visitHistory.isError ? (
+                  <ErrorState
+                    message={t("Could not load visit history.")}
+                    onRetry={() => void visitHistory.refetch()}
+                  />
+                ) : visitHistory.isPending ? <Spinner /> : visitHistory.data?.length ? (
+                  <FoodVisitHistory
+                    visits={visitHistory.data}
+                    onRemove={(visit) => void removeVisit(visit)}
+                    removingVisitId={removeVisitMutation.isPending ? removeVisitMutation.variables : null}
+                  />
+                ) : (
+                  <EmptyState title={t("No visits yet")} hint={t("Check in at a food place to start your history.")} />
+                )}
+              </div>
+            ) : query.isLoading ? <Spinner /> : query.isError && !places.length ? (
+              <ErrorState message="Could not load food places." onRetry={() => void query.refetch()} />
             ) : (
               <>
-                <p>{t("Home not set.")}</p>
-                <div className="food__form-actions">
-                  <Button
-                    onClick={startHomePick}
-                  >
-                    {t("Add now")}
-                  </Button>
+                <div ref={workspaceRef} className="food__workspace">
+                  <div className="food__map-panel">
+                    <FoodMap
+                      places={mapPlaces}
+                      selectedId={selectedId}
+                      draft={placeToMove?.coordinate ?? editor?.coordinate ?? null}
+                      draftIcon={placeToMove?.place.markerIcon ?? editor?.values.markerIcon ?? DEFAULT_FOOD_MARKER_ICON}
+                      draftColor={placeToMove?.place.markerColor ?? editor?.values.markerColor ?? DEFAULT_FOOD_MARKER_COLOR}
+                      picking={!!editor}
+                      homeLocation={home.query.data ?? null}
+                      homeLocationReady={home.query.isFetched}
+                      homeActionDisabled={save.isPending || remove.isPending || home.save.isPending}
+                      homePicking={homePicking}
+                      onSelect={selectPlace}
+                      canChange={canChangeMarker}
+                      onMove={movePlace}
+                      onDelete={deletePlace}
+                      onPickHome={(coordinate) => void pickHome(coordinate)}
+                      onHomeClick={() => {
+                        setSelectedId(null);
+                        setEditor(null);
+                        setFormError(null);
+                        setManualHomePick(false);
+                        if (!home.query.data) openHomeDialog();
+                      }}
+                      onPick={pickOnMap}
+                    />
+                  </div>
                 </div>
+                {!places.length ? (
+                  <EmptyState title="No food places yet" hint="Click the map or use your current location to add your first place." />
+                ) : (
+                  <>
+                    <div className="food__library-header">
+                      <h2>{t("Places")} <span>{t("{rated} of {total} rated", { rated, total: places.length })}</span></h2>
+                    </div>
+                    <ul className="food__list">
+                      {places.map((place) => (
+                        <li key={place.id}>
+                          <button
+                            type="button"
+                            className="food__card"
+                            aria-pressed={selectedId === place.id}
+                            disabled={!!editor && editor.id !== place.id}
+                            onClick={() => selectPlace(place)}
+                          >
+                            <span
+                              className="food__chip"
+                              style={{ "--marker-color": place.markerColor } as CSSProperties}
+                              aria-hidden="true"
+                            >
+                              {place.markerIcon}
+                            </span>
+                            <span className="food__card-body">
+                              <strong>{place.name}</strong>
+                              {place.address && <small>{place.address}</small>}
+                              <StarRating value={place.rating} size="sm" />
+                              {place.note && <small>{place.note}</small>}
+                              <small className="food__card-owner">{place.owner.username}</small>
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
               </>
             )}
-          </div>
-        </FoodPlaceDialog>
-      )}
 
-      {placeToDelete && (
-        <ConfirmationDialog
-          title="Delete this food place?"
-          danger
-          onConfirm={confirmDelete}
-          onClose={() => setPlaceToDelete(null)}
-        >
-          <p>{t("{name} will be removed from the map.", { name: placeToDelete.name })}</p>
-        </ConfirmationDialog>
-      )}
-      {confirmHomeRemoval && (
-        <ConfirmationDialog
-          title="Remove your home location?"
-          danger
-          onConfirm={removeHomeLocation}
-          onClose={() => setConfirmHomeRemoval(false)}
-        >
-          <p>{t("The home marker will be removed. You can set it again later.")}</p>
-        </ConfirmationDialog>
-      )}
+            {editor?.coordinate && (
+              <FoodPlaceDialog
+                title={t(editor.id ? "Edit food place" : "New food place")}
+                closeDisabled={save.isPending}
+                onClose={() => {
+                  if (!save.isPending) {
+                    setEditor(null);
+                    setFormError(null);
+                  }
+                }}
+              >
+                <FoodPlaceEditor
+                  values={editor.values}
+                  coordinate={editor.coordinate}
+                  saving={save.isPending}
+                  isNew={!editor.id}
+                  error={formError}
+                  onChange={(values) => setEditor((current) => current ? { ...current, values } : current)}
+                  onSubmit={() => void submit()}
+                  onCancel={() => { setEditor(null); setFormError(null); }}
+                />
+              </FoodPlaceDialog>
+            )}
+
+            {selected && !editor && (
+              <FoodPlaceDialog
+                title={selected.name}
+                icon={
+                  <span
+                    className="food__chip"
+                    style={{ "--marker-color": selected.markerColor } as CSSProperties}
+                    aria-hidden="true"
+                  >
+                    {selected.markerIcon}
+                  </span>
+                }
+                onClose={() => setSelectedId(null)}
+              >
+                <div>
+                  {selected.address && <p className="food__address">{selected.address}</p>}
+                  <div className="food__details-rating">
+                    <StarRating value={selected.rating} />
+                    {selected.rating > 0 && (
+                      <span className="food__details-rating-value" aria-hidden="true">
+                        {`${selected.rating}/5`}
+                      </span>
+                    )}
+                  </div>
+                  {selected.mediaIds.length > 0 && (
+                    <ul className="food__gallery" aria-label={t("Photos")}>
+                      {selected.mediaIds.map((mediaId) => (
+                        <li key={mediaId}>
+                          <img src={mediaPreviewUrl(mediaId)} alt="" loading="lazy" />
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {selected.note
+                    ? <p className="food__note">{selected.note}</p>
+                    : <p className="food__hint">{t("No note yet.")}</p>}
+                  <p className="food__hint">{t("Added by {username}", { username: selected.owner.username })}</p>
+                  <div className="food__form-actions">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      busy={checkInMutation.isPending}
+                      onClick={() => void checkIn(selected)}
+                    >
+                      {t("Check in")}
+                    </Button>
+                    {canEdit(selected) && (
+                      <Button variant="secondary" onClick={() => startEdit(selected)}>{t("Edit")}</Button>
+                    )}
+                  </div>
+                  {!canEdit(selected) && (
+                    <p className="food__hint">{t("Only the owner or an administrator can change this food place.")}</p>
+                  )}
+                  <FoodPlaceVisitHistory foodPlaceId={selected.id} />
+                </div>
+              </FoodPlaceDialog>
+            )}
+
+            {homeDialogOpen && (
+              <FoodPlaceDialog
+                title={t("Home location")}
+                onClose={() => setHomeDialogOpen(false)}
+              >
+                <div className="food__home-dialog">
+                  {home.query.isPending || home.query.isFetching ? (
+                    <Spinner />
+                  ) : home.query.isError ? (
+                    <>
+                      <p role="alert">{t("Could not load your home location. Add it manually or retry.")}</p>
+                      <div className="food__form-actions">
+                        <Button type="button" onClick={startHomePick}>{t("Add manually")}</Button>
+                        <Button type="button" variant="secondary" onClick={() => void home.query.refetch()}>
+                          {t("Retry")}
+                        </Button>
+                      </div>
+                    </>
+                  ) : home.query.data ? (
+                    <>
+                      <p className="food__coordinate-readout">
+                        {home.query.data.latitude.toFixed(6)}, {home.query.data.longitude.toFixed(6)}
+                      </p>
+                      <div className="food__form-actions">
+                        <Button
+                          variant="secondary"
+                          onClick={startHomePick}
+                        >
+                          {t("Change home location")}
+                        </Button>
+                        <Button
+                          variant="danger"
+                          onClick={() => {
+                            setHomeDialogOpen(false);
+                            setConfirmHomeRemoval(true);
+                          }}
+                        >
+                          {t("Remove home marker")}
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <p>{t("Home not set.")}</p>
+                      <div className="food__form-actions">
+                        <Button
+                          onClick={startHomePick}
+                        >
+                          {t("Add now")}
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </FoodPlaceDialog>
+            )}
+
+            {placeToMove && (
+              <ConfirmationDialog
+                title="Move this food place?"
+                onConfirm={confirmMove}
+                onClose={() => setPlaceToMove(null)}
+              >
+                <p>{t("{name} will move to {latitude}, {longitude}.", {
+                  name: placeToMove.place.name,
+                  latitude: placeToMove.coordinate.latitude.toFixed(6),
+                  longitude: placeToMove.coordinate.longitude.toFixed(6),
+                })}</p>
+              </ConfirmationDialog>
+            )}
+            {placeToDelete && (
+              <ConfirmationDialog
+                title="Delete this food place?"
+                danger
+                onConfirm={confirmDelete}
+                onClose={() => setPlaceToDelete(null)}
+              >
+                <p>{t("{name} will be removed from the map.", { name: placeToDelete.name })}</p>
+              </ConfirmationDialog>
+            )}
+            {confirmHomeRemoval && (
+              <ConfirmationDialog
+                title="Remove your home location?"
+                danger
+                onConfirm={removeHomeLocation}
+                onClose={() => setConfirmHomeRemoval(false)}
+              >
+                <p>{t("The home marker will be removed. You can set it again later.")}</p>
+              </ConfirmationDialog>
+            )}
+            <HomeLocationPhotoConfirmation
+              location={home.photosHomeLocation}
+              onConfirm={(location) => home.applyToPhotos.mutateAsync(location)}
+              onClose={home.dismissPhotosConfirmation}
+            />
+          </div>
+        </ScrollProgressContainer>
+      </ScrollProgressProvider>
     </main>
   );
 }

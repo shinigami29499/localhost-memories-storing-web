@@ -8,7 +8,9 @@ import {
 import { Suspense, lazy, useEffect, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AnimateUIProvider } from "@animate-ui/react/provider";
+import { Click } from "@animate-ui/react/primitives/effects/click";
 import { useAuthStore } from "./store/authStore";
+import { useClickAnimationStore } from "./store/clickAnimationStore";
 import { AuthenticatedLayout } from "./components/layout/AuthenticatedLayout";
 import { LoginPage } from "./pages/login/LoginPage";
 import { RegisterPage } from "./pages/register/RegisterPage";
@@ -116,6 +118,8 @@ function LegacyAlbumRedirect() {
 }
 
 export function App() {
+  const clickAnimation = useClickAnimationStore((state) => state.effect);
+
   useEffect(() => {
     const preventTouchContextMenu = (event: MouseEvent) => {
       if (window.matchMedia("(hover: none) and (pointer: coarse)").matches) {
@@ -133,6 +137,11 @@ export function App() {
         <QueryClientProvider client={queryClient}>
           <AnimateUIProvider tempo={1}>
             <ToastProvider>
+              {clickAnimation === "ripple" ? (
+                <Click variant="ripple" color="var(--accent-strong)" size={100} duration={400} />
+              ) : clickAnimation !== "off" ? (
+                <Click variant={clickAnimation} color="var(--accent-strong)" size={100} duration={400} />
+              ) : null}
               <RouterProvider router={router} future={{ v7_startTransition: true }} />
             </ToastProvider>
           </AnimateUIProvider>

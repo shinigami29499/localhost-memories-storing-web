@@ -5,6 +5,7 @@ import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "../../context/LocaleContext";
+import { showToast } from "../../components/ui/Toast";
 import { albumService } from "../../features/albums/services/albumService";
 import { mediaService } from "../../features/media/services/mediaService";
 import type { MediaFile, PagedMedia } from "../../features/media/types";
@@ -377,6 +378,107 @@ describe("GalleryPage", () => {
     expect(mediaService.favorite).toHaveBeenCalledWith(image.id);
     expect(mediaService.unfavorite).not.toHaveBeenCalled();
     expect(container.querySelector("dialog")).toBeNull();
+  });
+
+  it("refreshes cached gallery and album views after favoriting and undoing", async () => {
+    const favorite = vi.spyOn(mediaService, "favorite").mockResolvedValue();
+    const unfavorite = vi.spyOn(mediaService, "unfavorite").mockResolvedValue();
+    const success = vi.spyOn(showToast, "success");
+    const favoriteKey = ["media", "favorites", "image", 20] as const;
+    const albumKey = ["albums", "detail", "cached-album"] as const;
+    const favorites = { pages: [page([])], pageParams: [0] };
+    const album = { id: "cached-album" };
+
+    await renderPage();
+    await vi.waitFor(() => expect(container.querySelector(".media-tile")).not.toBeNull());
+    client.setQueryData(favoriteKey, favorites);
+    client.setQueryData(albumKey, album);
+
+    await act(async () => container.querySelector(".media-tile")!.dispatchEvent(
+      new MouseEvent("dblclick", { bubbles: true, detail: 2 }),
+    ));
+    await vi.waitFor(() => expect(success).toHaveBeenCalled());
+    expect(favorite).toHaveBeenCalledExactlyOnceWith(image.id);
+    expect(client.getQueryState(favoriteKey)?.isInvalidated).toBe(true);
+    expect(client.getQueryState(albumKey)?.isInvalidated).toBe(true);
+
+    client.setQueryData(favoriteKey, favorites);
+    client.setQueryData(albumKey, album);
+    const options = success.mock.calls.at(-1)?.[1];
+    const undo = typeof options === "object" ? options.undo : undefined;
+    if (!undo) throw new Error("Missing favorite undo action.");
+    await act(async () => { await undo(); });
+
+    expect(unfavorite).toHaveBeenCalledExactlyOnceWith(image.id);
+    expect(client.getQueryState(favoriteKey)?.isInvalidated).toBe(true);
+    expect(client.getQueryState(albumKey)?.isInvalidated).toBe(true);
+  });
+
+  it("offers undo for successful removals when a bulk favorite update partly fails", async () => {
+    const second = { ...image, id: "second-id", isFavorited: true };
+    vi.mocked(mediaService.list).mockResolvedValue(page([{ ...image, isFavorited: true }, second]));
+    const unfavorite = vi.spyOn(mediaService, "unfavorite").mockImplementation(async (mediaId) => {
+      if (mediaId === second.id) throw new Error("offline");
+    });
+    const favorite = vi.spyOn(mediaService, "favorite").mockResolvedValue();
+    const success = vi.spyOn(showToast, "success");
+    const error = vi.spyOn(showToast, "error");
+
+    await renderPage();
+    await vi.waitFor(() => expect(container.querySelectorAll(".media-tile")).toHaveLength(2));
+    const tiles = container.querySelectorAll<HTMLButtonElement>(".media-tile");
+    await act(async () => tiles[0].dispatchEvent(new KeyboardEvent("keydown", {
+      key: " ", shiftKey: true, bubbles: true,
+    })));
+    await act(async () => tiles[1].click());
+    await act(async () => container.querySelector<HTMLButtonElement>('button[aria-label="Remove from favorites"]')!.click());
+
+    await vi.waitFor(() => expect(success).toHaveBeenCalled());
+    expect(unfavorite).toHaveBeenCalledTimes(2);
+    expect(error).toHaveBeenCalledWith("Could not update favorites.");
+    const options = success.mock.calls.at(-1)?.[1];
+    const undo = typeof options === "object" ? options.undo : undefined;
+    if (!undo) throw new Error("Missing bulk favorite undo action.");
+    await act(async () => { await undo(); });
+
+    expect(favorite).toHaveBeenCalledExactlyOnceWith(image.id);
+    expect(container.querySelector('button[aria-label="Remove from favorites"]')?.getAttribute("aria-pressed"))
+      .toBe("true");
+  });
+
+  it("refreshes and retains failed selections after a partial bulk undo", async () => {
+    const second = { ...image, id: "second-id", isFavorited: true };
+    vi.mocked(mediaService.list).mockResolvedValue(page([{ ...image, isFavorited: true }, second]));
+    vi.spyOn(mediaService, "unfavorite").mockResolvedValue();
+    vi.spyOn(mediaService, "favorite").mockImplementation(async (mediaId) => {
+      if (mediaId === second.id) throw new Error("offline");
+    });
+    const success = vi.spyOn(showToast, "success");
+    const invalidate = vi.spyOn(client, "invalidateQueries");
+
+    await renderPage();
+    await vi.waitFor(() => expect(container.querySelectorAll(".media-tile")).toHaveLength(2));
+    const tiles = container.querySelectorAll<HTMLButtonElement>(".media-tile");
+    await act(async () => tiles[0].dispatchEvent(new KeyboardEvent("keydown", {
+      key: " ", shiftKey: true, bubbles: true,
+    })));
+    await act(async () => tiles[1].click());
+    await act(async () => container.querySelector<HTMLButtonElement>('button[aria-label="Remove from favorites"]')!.click());
+
+    await vi.waitFor(() => expect(success).toHaveBeenCalled());
+    const options = success.mock.calls.at(-1)?.[1];
+    const undo = typeof options === "object" ? options.undo : undefined;
+    if (!undo) throw new Error("Missing bulk favorite undo action.");
+    invalidate.mockClear();
+    await act(async () => {
+      await expect(undo()).rejects.toThrow("Could not update favorites.");
+    });
+
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ["media"] });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ["albums"] });
+    await act(async () => container.querySelector<HTMLButtonElement>(`[data-media-id="${image.id}"]`)!.click());
+    expect(container.querySelector('button[aria-label="Add to favorites"]')?.getAttribute("aria-pressed"))
+      .toBe("false");
   });
 
   it("keeps selected media and updates the heart after favoriting", async () => {

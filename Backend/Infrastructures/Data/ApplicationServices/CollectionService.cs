@@ -15,7 +15,8 @@ public sealed class CollectionService(
     IMediaRepository mediaRepository,
     IUnitOfWork unitOfWork,
     IMapper mapper,
-    IMediaStorage mediaStorage) : ICollectionService
+    IMediaStorage mediaStorage,
+    IUserRepository userRepository) : ICollectionService
 {
     public async Task<IReadOnlyList<CollectionDto>> GetCollectionsAsync(
         Guid viewerId, CollectionListRequest request, CancellationToken cancellationToken = default)
@@ -209,6 +210,7 @@ public sealed class CollectionService(
             await using var transaction = await unitOfWork.BeginTransactionAsync(cancellationToken);
             var collection = await FindOwnedCollectionAsync(collectionId, ownerId, cancellationToken);
             var mediaFile = mapper.Map(stored, ownerId, originalFilename);
+            await MediaHomeLocation.ApplyAsync(mediaFile, userRepository, cancellationToken);
             mediaRepository.AddMediaFile(mediaFile);
             repository.AddCollectionMedia(new CollectionMedia
             {

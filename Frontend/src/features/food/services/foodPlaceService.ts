@@ -36,6 +36,10 @@ export const foodPlaceService = {
     return api(`/api/location/food/${foodPlaceId}/visits`, { method: "POST" });
   },
 
+  removeVisit(visitId: string): Promise<void> {
+    return api(`/api/location/food/visits/${visitId}`, { method: "DELETE" });
+  },
+
   create(input: SaveFoodPlaceInput): Promise<FoodPlace> {
     return api("/api/location/food", { method: "POST", body: toBody(input) });
   },

@@ -48,6 +48,19 @@ public sealed partial class FoodPlaceService(
         await unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task DeleteFoodPlaceVisitAsync(
+        Guid visitId, Guid userId, CancellationToken cancellationToken = default)
+    {
+        var visit = await repository.FindFoodPlaceVisitAsync(visitId, cancellationToken)
+            ?? throw new NotFoundException($"Food place visit '{visitId}' was not found.");
+        if (visit.UserId != userId)
+            throw new ForbiddenException("You can only remove your own food place visits.");
+
+        visit.DeletedAt = DateTime.UtcNow;
+        visit.DeletedBy = userId;
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task<FoodPlaceDto> CreateFoodPlaceAsync(
         Guid ownerId, SaveFoodPlaceRequest request, CancellationToken cancellationToken = default)
     {

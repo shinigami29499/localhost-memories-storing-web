@@ -7,6 +7,8 @@ const globalStyles = readFileSync(resolve("src", "styles", "global.css"), "utf8"
 const sidebarStyles = readFileSync(resolve("src", "styles", "sidebar.css"), "utf8");
 const usersStyles = readFileSync(resolve("src", "pages", "users", "users.css"), "utf8");
 const galleryStyles = readFileSync(resolve("src", "pages", "gallery", "gallery.css"), "utf8");
+const mediaStyles = readFileSync(resolve("src", "features", "media", "components", "media.css"), "utf8");
+const toastStyles = readFileSync(resolve("src", "components", "ui", "toast.css"), "utf8");
 const loginStyles = readFileSync(resolve("src", "pages", "login", "login.css"), "utf8");
 const foodStyles = readFileSync(resolve("src", "pages", "food", "food.css"), "utf8");
 
@@ -75,6 +77,62 @@ describe("Global styles", () => {
     expect(Number(panelRule?.style.zIndex)).toBeGreaterThan(Number(dividerRule?.style.zIndex || 0));
   });
 
+  it("keeps the toast layer above app and click-effect overlays", () => {
+    const toastStyle = document.createElement("style");
+    toastStyle.textContent = toastStyles;
+    document.head.append(toastStyle);
+    const layer = document.createElement("div");
+    layer.className = "toast-layer";
+    const toast = document.createElement("div");
+    toast.className = "toast-root";
+    layer.append(toast);
+    card.append(layer);
+
+    try {
+      expect(Number(getComputedStyle(layer).zIndex)).toBeGreaterThan(9999999999);
+      expect(getComputedStyle(layer).pointerEvents).toBe("none");
+      expect(getComputedStyle(toast).pointerEvents).toBe("auto");
+    } finally {
+      toastStyle.remove();
+    }
+  });
+
+  it("positions phone toasts below the top safe area without moving desktop toasts", () => {
+    const toastStyle = document.createElement("style");
+    toastStyle.textContent = toastStyles;
+    document.head.append(toastStyle);
+
+    try {
+      const rules = Array.from(toastStyle.sheet!.cssRules);
+      const desktop = rules.find(
+        (rule): rule is CSSStyleRule => rule instanceof CSSStyleRule && rule.selectorText === ".toast-viewport",
+      );
+      const viewportAt = (maxWidth: string) => {
+        const media = rules.find(
+          (rule): rule is CSSMediaRule =>
+            rule instanceof CSSMediaRule && rule.conditionText === `(max-width: ${maxWidth})`,
+        );
+        return Array.from(media?.cssRules ?? []).find(
+          (rule): rule is CSSStyleRule => rule instanceof CSSStyleRule && rule.selectorText === ".toast-viewport",
+        );
+      };
+      const mobile = viewportAt("640px");
+      const narrow = viewportAt("560px");
+
+      expect(desktop?.style.bottom).toBe("24px");
+      expect(desktop?.style.top).toBe("");
+      expect(toastStyles).toMatch(
+        /@media\s*\(max-width:\s*640px\)\s*\{\s*\.toast-viewport\s*\{[^}]*top:\s*calc\(12px\s*\+\s*env\(safe-area-inset-top\)\)/,
+      );
+      expect(mobile?.style.bottom).toBe("auto");
+      expect(narrow?.style.bottom).toBe("");
+      expect(narrow?.style.left).toBe("12px");
+      expect(narrow?.style.right).toBe("12px");
+    } finally {
+      toastStyle.remove();
+    }
+  });
+
   it("contains page scrolling below the transparent header", () => {
     const rules = Array.from(style.sheet!.cssRules)
       .filter((rule): rule is CSSStyleRule => rule instanceof CSSStyleRule);
@@ -93,6 +151,24 @@ describe("Global styles", () => {
     const contentRule = rules.find((rule) => rule.selectorText === ".gallery-page__content");
     expect(contentRule?.style.overflow).toBe("auto");
     expect(contentRule?.style.minHeight).toBe("0px");
+  });
+
+  it("uses square tiles in dated gallery grids", () => {
+    const mediaStyle = document.createElement("style");
+    mediaStyle.textContent = mediaStyles;
+    document.head.append(mediaStyle);
+    const grid = document.createElement("div");
+    grid.className = "gallery-date-grid";
+    const tile = document.createElement("button");
+    tile.className = "media-tile";
+    grid.append(tile);
+    card.append(grid);
+
+    try {
+      expect(getComputedStyle(tile).getPropertyValue("aspect-ratio")).toBe("1 / 1");
+    } finally {
+      mediaStyle.remove();
+    }
   });
 
   it("keeps phone header controls touch-sized and panels below the shared header", () => {

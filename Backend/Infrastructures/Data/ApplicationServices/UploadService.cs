@@ -23,6 +23,7 @@ public sealed class UploadService(
     IMediaStorage storage,
     MediaStorageOptions storageOptions,
     IMapper mapper,
+    IUserRepository userRepository,
     ILogger<UploadService> logger) : IUploadService
 {
     private readonly IUploadRepository _repository = repository;
@@ -292,7 +293,9 @@ public sealed class UploadService(
             if (item.Status != UploadItemStatus.Uploading || item.Revision != registered.Revision)
                 throw new ConflictException("This upload was cancelled or changed before it could finish.");
 
-            _repository.AddMediaFile(_mapper.Map(stored, ownerId, item.OriginalFilename));
+            var media = _mapper.Map(stored, ownerId, item.OriginalFilename);
+            await MediaHomeLocation.ApplyAsync(media, userRepository, cancellationToken);
+            _repository.AddMediaFile(media);
             item.StoredFilename = stored.StoredFilename;
             item.RelativePath = stored.RelativePath;
             item.MimeType = stored.MimeType;

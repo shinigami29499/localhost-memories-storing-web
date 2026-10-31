@@ -6,10 +6,14 @@ export const homeLocationService = {
     return api("/api/location/food/home-location");
   },
 
-  set(location: HomeLocation): Promise<HomeLocation> {
+  set(location: HomeLocation, applyToUnlocatedPhotos = false): Promise<HomeLocation> {
     return api("/api/location/food/home-location", {
       method: "PUT",
-      body: { latitude: location.latitude, longitude: location.longitude },
+      body: {
+        latitude: location.latitude,
+        longitude: location.longitude,
+        applyToUnlocatedPhotos,
+      },
     });
   },
 

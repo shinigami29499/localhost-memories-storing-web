@@ -1,11 +1,26 @@
 using Microsoft.EntityFrameworkCore;
 using Domains.Entities;
 using Infrastructures.Data.Interfaces;
+using Services.Models.Media;
 
 namespace Infrastructures.Data.Implementations;
 
 public sealed class MediaRepository(ApplicationDbContext db) : IMediaRepository
 {
+    public async Task AssignHomeToUnlocatedPhotosAsync(
+        Guid ownerId, MediaLocationDto location, CancellationToken cancellationToken = default)
+    {
+        var patch = MediaLocationMetadata.Write(null, location);
+        // Merge atomically so concurrent pins and unrelated metadata are preserved.
+        await db.Database.ExecuteSqlInterpolatedAsync($$"""
+            UPDATE media_files
+            SET metadata = COALESCE(metadata, '{}'::jsonb) || {{patch}}::jsonb,
+                updated_at = {{DateTime.UtcNow}}, updated_by = {{ownerId}}
+            WHERE owner_id = {{ownerId}} AND media_kind = 'image' AND deleted_at IS NULL
+                AND metadata->>'location' IS NULL
+            """, cancellationToken);
+    }
+
     public async Task<IReadOnlyList<MediaFile>> GetLocationScanBatchAsync(
         Guid actorId, bool isAdmin, int offset, int limit, CancellationToken cancellationToken)
         => await db.MediaFiles.AsNoTracking()
@@ -111,7 +126,13 @@ public sealed class MediaRepository(ApplicationDbContext db) : IMediaRepository
     {
         var query = db.MediaFavorites.AsQueryable();
         if (includeDeleted)
-            query = query.IgnoreQueryFilters();
+        {
+            // Older deleted favorites can coexist with an active one.
+            query = query.IgnoreQueryFilters()
+                .OrderBy(favorite => favorite.DeletedAt != null)
+                .ThenByDescending(favorite => favorite.DeletedAt)
+                .ThenBy(favorite => favorite.Id);
+        }
         return query.FirstOrDefaultAsync(
             favorite => favorite.UserId == userId && favorite.MediaFileId == mediaId,
             cancellationToken);

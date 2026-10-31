@@ -67,7 +67,6 @@ export function MediaCard({
         )
       )}
       <footer className="media-card__footer">
-        <span className="media-card__name" title={media.originalFilename}>{media.originalFilename}</span>
         {onToggleFavorite ? (
           <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
             <button

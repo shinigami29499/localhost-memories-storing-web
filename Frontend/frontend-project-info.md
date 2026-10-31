@@ -43,7 +43,7 @@ shared `Suspense` fallback for them.
 | `/library/gallery/trash` | `src/pages/gallery/TrashPage.tsx` | `features/media/services/mediaService.ts` |
 | `/sync/upload` | `src/pages/uploads/UploadManagementPage.tsx` | `features/uploads/components/UploadBatchCard.tsx`, `features/uploads/components/UploadActivityDialog.tsx`, `features/uploads/services/uploadService.ts` |
 | `/location/travel` | `src/pages/locations/LocationsPage.tsx` | `features/locations/hooks/useLocations.ts`, `features/locations/components/LocationMap.tsx`, `features/locations/components/LocationEditor.tsx` |
-| `/location/food` | `src/pages/food/FoodPage.tsx` | `features/food/hooks/useFoodPlaces.ts`, `features/locations/hooks/useHomeLocation.ts`, `features/food/components/FoodMap.tsx`, `features/food/components/FoodVisitHistory.tsx`, `features/food/components/FoodPlaceDialog.tsx`, `features/food/components/FoodPlaceEditor.tsx`, `features/food/components/FoodImagePicker.tsx`, `features/food/components/StarRating.tsx` |
+| `/location/food` | `src/pages/food/FoodPage.tsx` | `features/food/hooks/useFoodPlaces.ts`, `features/locations/hooks/useHomeLocation.ts`, `features/food/components/FoodMap.tsx`, `features/food/components/FoodVisitHistory.tsx`, `features/food/components/FoodPlaceVisitHistory.tsx`, `features/food/components/FoodPlaceDialog.tsx`, `features/food/components/FoodPlaceEditor.tsx`, `features/food/components/StarRating.tsx` |
 | `/users` | `src/pages/users/UsersPage.tsx` | `features/users/services/userService.ts` |
 | `/profile` | `src/pages/profile/ProfilePage.tsx` | `features/users/components/AvatarPicker.tsx`, `features/users/services/userService.ts` |
 | `/login`, `/register` | `src/pages/login/LoginPage.tsx`, `src/pages/register/RegisterPage.tsx` | `features/auth/services/authService.ts`, `components/ui/PasswordInput.tsx` |
@@ -64,8 +64,8 @@ and `/admin/users` redirect to `/sync/upload` and `/users`.
 | Media tiles, preview retries, fullscreen carousel | `src/features/media/components/MediaTile.tsx`, `MediaRetryProvider.tsx`, `MediaPreviewDialog.tsx` in the same folder |
 | Album pickers and bulk saving | `src/features/albums/components/SaveToAlbumButton.tsx`, `SaveToAlbumDialog.tsx`, `BulkSaveToAlbumDialog.tsx` in the same folder |
 | Location edits and GPS backfill | `src/features/locations/services/locationService.ts`; `PUT /api/location/travel/{mediaId}`, `POST /api/location/travel/scan` |
-| Shared map location search and account home location | `src/features/locations/components/LocationSearch.tsx`, `HomeLocationMarker.tsx`, `locationSearchService.ts`, `src/features/locations/hooks/useHomeLocation.ts`, `homeLocationService.ts`; Mapbox Geocoding API and `GET`/`PUT`/`DELETE /api/location/food/home-location`. On both maps, press and drag the home marker to request a move. Holding still opens removal confirmation at 600 ms without waiting for release; starting a drag before that threshold cancels removal. Right-click or Delete/Backspace while focused also requests removal. Both actions use the shared confirmation dialog; cancel keeps the saved position. Normal click keeps the existing home controls. |
-| Food place list, check-ins, current-user visit history, optional addresses, rating, notes, custom markers, linked library photos | `src/features/food/services/foodPlaceService.ts`, `src/features/food/hooks/useFoodPlaces.ts`; `/api/location/food`, `/api/location/food/visits`, `/api/location/food/{id}/visits` |
+| Shared map location search and account home location | `src/features/locations/components/LocationSearch.tsx`, `HomeLocationMarker.tsx`, `locationSearchService.ts`, `src/features/locations/hooks/useLocationSearch.ts`, `useHomeLocation.ts`, `homeLocationService.ts`; typing at least three characters searches Photon / OpenStreetMap after a 500 ms pause, without an API key. Up to five results appear inside the app and pass selected coordinates and names to the existing photo, food, or Home draft workflow. Requests time out after 10 seconds; errors support manual retry. Searches are cached for 60 seconds and canceled when the query changes, the control closes, or search is disabled. Only search text goes to the public Photon demo, which permits reasonable usage but may throttle requests and has no availability guarantee. Map display still uses Mapbox. Home uses `GET`/`PUT`/`DELETE /api/location/food/home-location`. On both maps, press and drag the home marker to request a move. Holding still opens removal confirmation at 600 ms without waiting for release; starting a drag before that threshold cancels removal. Right-click or Delete/Backspace while focused also requests removal. Both actions use the shared confirmation dialog; cancel keeps the saved position. Normal click keeps the existing home controls. |
+| Food place list, check-ins, current-user visit history globally and per place, optional addresses, rating, notes, custom markers, linked library photos | `src/features/food/services/foodPlaceService.ts`, `src/features/food/hooks/useFoodPlaces.ts`; `/api/location/food`, `/api/location/food/visits`, `/api/location/food/{id}/visits` |
 | Upload submission, progress, recovery | `src/features/uploads/services/uploadService.ts`, `uploadRuntime.ts`, `uploadFileStore.ts` in the same folder; `/api/sync/upload` |
 | Mounted upload runtime and query invalidation | `src/features/uploads/components/UploadRuntime.tsx`, `src/features/uploads/hooks/useUploadRuntime.ts`; invalidates media, albums, and uploads |
 | Local notification UI | `src/components/layout/NotificationBell.tsx`, `src/features/notifications/uploadNotificationStore.ts` |
@@ -89,6 +89,8 @@ client has no SignalR subscription. The upload runtime refreshes local query sta
   icons, and home above geolocation at bottom right. Search expands on hover
   (fine pointers) or focus; Settings reveals its label on hover and opens on click.
   Touch controls expand on tap, and both maps retain Mapbox Standard/street styles.
+  Photo and food markers within 46 screen pixels form groups at the first marker's
+  coordinate. Activate a food group's count to spiderfy its markers, then select one.
 - Opening a home-marker confirmation ends the active gesture on both maps.
   Cancel and successful confirmation discard pending drag callbacks and release clicks;
   another action requires a fresh press or explicit keyboard activation.
@@ -131,7 +133,9 @@ client has no SignalR subscription. The upload runtime refreshes local query sta
   selected for retry. The heart removes
   favorites when all selected items are favorited; otherwise it favorites the
   unfavorited items. Heart and save actions preserve selection, including items
-  removed from the Favorites results. Inactive icons have white outlines; the
+  removed from the Favorites results. Favorite changes refresh gallery and album
+  caches. If a bulk change partially fails, Undo applies to the successful items.
+  Inactive icons have white outlines; the
   active heart is filled red, and the bookmark is filled yellow when any selected
   media belongs to at least one owned album. Saving keeps the album picker open
   for more album changes; Done or Close dismisses it. Escape cancels selection
@@ -172,7 +176,8 @@ client has no SignalR subscription. The upload runtime refreshes local query sta
   photos for GPS in batches of up to 25. Scan failures retain failed-media counts
   and expose errors; finishing a scan invalidates media queries.
   `LocationEditor` sets or clears coordinates through `locationService`. Coordinates
-  come only from the map: clicking the map or dragging the draft pin picks the point,
+  come from clicking the map, dragging the draft pin, or selecting a Photon /
+  OpenStreetMap result through the shared search control,
   and the editor shows that point read-only. Saving and removing both require a
   confirmation dialog and report the result through a toast.
   Save, Remove location, and Cancel stay side by side with icons. Their labels hide
@@ -208,6 +213,22 @@ client has no SignalR subscription. The upload runtime refreshes local query sta
   and show localized "By {username}" attribution. Travel previews omit filenames
   and coordinates; paged gallery media includes an optional `ownerUsername`.
   Food previews retain place details and ratings.
+  Food-place details show the marker beside a single dialog title, a numeric
+  score beside the stars (or an unrated label), and compact visit-history rows
+  with emphasized dates and secondary times. The global history keeps its cards.
+  The food-place editor centers larger rating stars, keeps notes in an animated
+  collapsible section, and selects marker icons through a searchable combobox.
+  Save and Cancel follow the rating at the bottom of the form. The editor no longer
+  offers photo selection; previously linked photos remain visible and can be
+  removed or set as the cover.
+  Coordinates and the Change location button are omitted from the editor;
+  existing markers can still be moved directly on the map.
+  Owners and administrators can drag food pins more than 8 pixels to request
+  relocation, or hold still for 600 ms to request deletion. Expanded food groups
+  support the same gestures. Right-click and focused Delete/Backspace also request
+  deletion. Both actions require confirmation; outside click or Escape cancels
+  without changing the saved place. Escape or window blur also cancels an active
+  pin gesture. Outside the map or Escape cancels manual map picking.
   Street view stays flat; 3D view tilts toward the selected marker.
   The Home control clears marker focus and editing, closes map settings, switches
   to Street map, and returns to the saved home location at zoom 14 with no tilt.
@@ -288,6 +309,9 @@ and returns focus to its toggle when closed. A localized skip link bypasses navi
 
 Shared error states show a persistent inline message and retry action without also
 emitting a toast. Pagination and refresh failures show only their matching retry action.
+Toasts appear above application overlays and remain visible in the fullscreen media viewer.
+Clicking a toast dismisses it; Close remains available at every width, while Undo actions
+appear only above 640px.
 Failed gallery, album, and trash previews show a centered retry icon. Activating a
 failed tile retries it first, then other failed tiles in display order from the start,
 one request at a time. Successful previews are not reloaded. Selection gestures remain
@@ -295,7 +319,7 @@ available on failed tiles.
 Upload history loading and errors retain the page heading and upload form. Mobile gallery and album-detail tile grids use three columns. Coarse-pointer album
 actions use 44px targets.
 
-Gallery, album-detail, and trash grids use portrait tiles with a 4:5 aspect ratio.
+Gallery, album-detail, and trash grids use square tiles.
 Selection borders follow the tiles' rounded corners. Tiles keep fixed bounds on hover and press.
 Only their clipped image/video previews zoom smoothly without overshoot; selection markers
 and video badges stay fixed. Reduced-motion settings disable this interaction animation.
@@ -313,10 +337,19 @@ Looping requires at least five desktop slides or three phone slides.
 Shorter lists stop at their ends. Native video controls retain seeking gestures, and
 videos pause when their slide stops being selected. The preview has no arrow buttons or
 title, and it hides the dots for lists longer than ten items. Double-clicking the
-selected image adds it to favorites. The heart button toggles favorite status. The
+selected image or video toggles its favorite status, except in Trash. The heart
+button uses the same toggle. Removing the last Favorites item closes the preview;
+Undo restores it to the grid. Successfully favoriting media pops the local heart icon
+and bursts red particles around the button; opening an existing favorite does not
+replay the effect. Reduced-motion preferences disable the pop and particles. The
 bookmark button opens the save-to-album dialog inside the viewer. Each icon is filled
 in its color when active and drawn as a white outline otherwise. The actions sit beside
 the close button on desktop and at the bottom center on phones.
+
+The image copy action uses Animate UI's controlled copy button and icon swap.
+It writes PNG image data, shows a spinner while copying, and swaps to a tick only
+after the clipboard write succeeds. The tick resets after three seconds or when
+the selected media changes. Failed writes keep the copy icon and show an error toast.
 
 Gallery, Favorites, and Trash previews use the API's filtered total for their
 counter and slide labels. Swiping beyond loaded items fetches the next gallery

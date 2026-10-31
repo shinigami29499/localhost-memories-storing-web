@@ -391,7 +391,7 @@
 }
 
 .sidebar__link[href="/library/gallery/trash"] > svg {
-  stroke: #fff;
+  stroke: var(--text-strong);
 }
 
 .sidebar__sub-link:hover {
@@ -774,14 +774,33 @@
   }
 
   .notification-bar {
-    padding: 2px;
+    isolation: isolate;
+    gap: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .notification-bar::before {
+    position: absolute;
+    inset: 3px 2px;
+    z-index: -1;
+    border: 1px solid var(--border);
+    border-radius: inherit;
+    background: var(--sidebar-bg);
+    box-shadow: var(--shadow-popover);
+    content: "";
+    pointer-events: none;
   }
 
   .notification-bar__trigger,
   .notification-bar .theme-toggler,
   .notification-bar .language-toggler {
-    width: 44px;
+    width: 40px;
     height: 44px;
+    padding: 4px;
+    background-clip: content-box;
   }
 
   .notification-bar__trigger svg,

@@ -27,6 +27,9 @@ const maps = vi.hoisted(() => ({
     project: vi.fn(([lng, lat]: [number, number]) => ({ x: lng * 100, y: lat * 100 })),
     unproject: vi.fn(() => ({ wrap: () => ({ lat: 21, lng: 105 }) })),
     getContainer: vi.fn(() => maps.container ?? document.body),
+    isStyleLoaded: vi.fn(() => true),
+    getConfig: vi.fn(() => ({})),
+    setConfig: vi.fn(),
   },
 }));
 vi.mock("react-map-gl/mapbox", () => ({
@@ -62,7 +65,11 @@ vi.mock("react-map-gl/mapbox", () => ({
     </div>
   ),
 }));
-vi.mock("@animate-ui/react/utils/motion", () => ({ useShouldReduceMotion: () => false }));
+vi.mock("@animate-ui/react/utils/motion", () => ({
+  useShouldReduceMotion: () => false,
+  useTempoTransition: () => ({ duration: 0, ease: [] }),
+  motionTokens: { transition: { reveal: {} } },
+}));
 vi.mock("../../components/animate-ui/icons/map-pin", () => ({
   MapPin: () => <svg aria-hidden="true" />,
 }));
@@ -203,8 +210,8 @@ describe("Locations", () => {
         removeEventListener: vi.fn(),
       }));
       await render(entry);
-      expect(container.querySelector(".locations__header h1")?.textContent).toBe("Locations.");
-      expect(container.querySelector(".locations__header p")?.textContent).toBe("Explore where your photos were taken.");
+      expect(container.querySelector(".locations__header h1")?.textContent).toBe("Travel.");
+      expect(container.querySelector(".locations__header p")?.textContent).toBe("Browse images and videos in your library.");
       expect(container.querySelector(".locations__hint")?.textContent)
         .toBe("Mapbox requires internet access and receives map coordinates. Photos stay on this server.");
       expect(container.querySelector(".locations__photos")).toBeNull();
@@ -433,6 +440,8 @@ describe("Locations", () => {
   it("shows all photos without a location filter", async () => {
     await render();
     expect(container.querySelectorAll(".locations__photo")).toHaveLength(3);
+    expect(container.querySelector(".locations__photo")?.getAttribute("aria-label")).toBe("gps.jpg");
+    expect(container.querySelector(".locations__photos")?.textContent).not.toContain("gps.jpg");
     expect(container.querySelector('input[type="checkbox"]')).toBeNull();
   });
 
@@ -631,12 +640,12 @@ describe("Locations", () => {
       .toBe("mapbox://styles/mapbox/streets-v12");
     expect(settings.open).toBe(false);
     expect(maps.viewport.easeTo).toHaveBeenLastCalledWith({
-      center: [105, 21], zoom: 14, pitch: 0, bearing: 0,
+      center: [105, 21], zoom: 18, pitch: 0, bearing: 0,
       padding: { top: 0, bottom: 0, left: 0, right: 0 }, duration: 400,
     });
     await act(async () => container.querySelector<HTMLButtonElement>(".locations__map-home-control")!.click());
     expect(maps.viewport.easeTo).toHaveBeenLastCalledWith({
-      center: [105, 21], zoom: 14, pitch: 0, bearing: 0,
+      center: [105, 21], zoom: 18, pitch: 0, bearing: 0,
       padding: { top: 0, bottom: 0, left: 0, right: 0 }, duration: 400,
     });
   });

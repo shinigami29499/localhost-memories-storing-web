@@ -1,12 +1,14 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useInView } from "motion/react";
+import { CopyButton, CopyButtonIcon } from "@animate-ui/react/primitives/buttons/copy";
 import useEmblaCarousel, {
   CarouselCounter,
   CarouselDots,
 } from "@animate-ui/react/primitives/carousel";
 import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { Bookmark } from "@/components/animate-ui/icons/bookmark";
-import { Heart } from "@/components/animate-ui/icons/heart";
+import { Check } from "@/components/animate-ui/icons/check";
+import { Copy } from "@/components/animate-ui/icons/copy";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import { MapPin } from "@/components/animate-ui/icons/map-pin";
 import { RotateCcw } from "@/components/animate-ui/icons/rotate-ccw";
@@ -20,6 +22,7 @@ import { useAlbums } from "../../albums/hooks/useAlbums";
 import { mediaPreviewUrl, mediaUrl } from "../../../utils/media";
 import type { MediaFile } from "../types";
 import { DownloadButton } from "../../downloads/components/DownloadButton";
+import { MediaFavoriteButton } from "./MediaFavoriteButton";
 
 const SaveToAlbumDialog = lazy(() =>
   import("../../albums/components/SaveToAlbumDialog").then((module) => ({ default: module.SaveToAlbumDialog })),
@@ -101,6 +104,10 @@ function PreviewSlide({ media, active, includeDeleted, onFavorite }: SlideProps)
           preload={active ? "metadata" : "none"}
           tabIndex={active ? 0 : -1}
           aria-label={media.originalFilename}
+          onDoubleClick={active && !includeDeleted ? (event) => {
+            event.preventDefault();
+            onFavorite();
+          } : undefined}
           onError={() => setFailedUrl(url)}
         />
       ) : (
@@ -137,6 +144,7 @@ export function MediaPreviewDialog({
   const selectedSnap = useRef(initialIndex);
   const [albumDialogOpen, setAlbumDialogOpen] = useState(false);
   const [copyingImage, setCopyingImage] = useState(false);
+  const [copyResult, setCopyResult] = useState<{ mediaId: string } | null>(null);
   const isMobile = useMediaQuery("(max-width: 640px)");
   const hasMore = Boolean(onLoadMore) && media.length < total;
   const slideCount = media.length + (hasMore ? 1 : 0);
@@ -152,10 +160,25 @@ export function MediaPreviewDialog({
   const current = media[Math.min(selectedIndex, slideCount - 1)];
   const albums = useAlbums("mine", Boolean(current) && !trashActions, current?.id);
   const inAlbum = albums.data?.some((album) => album.containsMedia) ?? false;
+  const imageCopied = copyResult !== null && copyResult.mediaId === current?.id;
+
+  useEffect(() => {
+    if (!copyResult) return;
+    if (copyResult.mediaId !== current?.id) {
+      setCopyResult(null);
+      return;
+    }
+    const timeout = window.setTimeout(() => setCopyResult(null), 3_000);
+    return () => window.clearTimeout(timeout);
+  }, [copyResult, current?.id]);
 
   useEffect(() => {
     if (current) lastViewedId.current = current.id;
   }, [current]);
+
+  useEffect(() => {
+    if (media.length === 0) onClose(lastViewedId.current);
+  }, [media.length, onClose]);
 
   useEffect(() => {
     if (hasMore && selectedIndex >= media.length && !loadingMore && !loadMoreError) {
@@ -192,15 +215,17 @@ export function MediaPreviewDialog({
   if (media.length === 0) return null;
 
   const close = () => onClose(lastViewedId.current);
-  const addFavorite = () => {
-    if (current && !favoriteBusy && !current.isFavorited) onToggleFavorite?.(current.id, false);
+  const toggleFavorite = () => {
+    if (current && !favoriteBusy) onToggleFavorite?.(current.id, current.isFavorited);
   };
   const copyImage = async () => {
     if (!current || current.mediaKind !== "image" || copyingImage) return;
+    setCopyResult(null);
     setCopyingImage(true);
     try {
       const image = loadImageAsPng(mediaUrl(current.id));
       await navigator.clipboard.write([new ClipboardItem({ "image/png": image })]);
+      if (current.id === lastViewedId.current) setCopyResult({ mediaId: current.id });
       showToast.success(t("Image copied"));
     } catch (error) {
       showToast.error(
@@ -277,61 +302,38 @@ export function MediaPreviewDialog({
           </AnimateIcon>
         </> : <>
         {current.mediaKind === "image" ? (
-          <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
-            <button
-              type="button"
-              className="viewer-icon-btn media-preview-dialog__action"
-              aria-label={t("Copy image")}
-              title={t("Copy image")}
-              aria-busy={copyingImage || undefined}
-              disabled={copyingImage}
-              onClick={() => void copyImage()}
-            >
-              {copyingImage ? (
-                <LoaderCircle size={20} className="spinner__wheel" aria-hidden="true" />
-              ) : (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <rect x="8" y="8" width="13" height="13" rx="2" />
-                  <path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" />
-                </svg>
-              )}
-            </button>
-          </AnimateIcon>
-        ) : null}
-        <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
-          <button
+          <CopyButton
+            content={mediaUrl(current.id)}
+            copied={imageCopied}
             type="button"
             className="viewer-icon-btn media-preview-dialog__action"
-            aria-label={t(current.isFavorited ? "Remove from favorites" : "Add to favorites")}
-            title={t(current.isFavorited ? "Remove from favorites" : "Add to favorites")}
-            aria-pressed={current.isFavorited}
-            aria-busy={favoriteBusy || undefined}
-            disabled={favoriteBusy}
-            onClick={() => onToggleFavorite?.(current.id, current.isFavorited)}
+            aria-label={t(imageCopied ? "Image copied" : "Copy image")}
+            title={t(imageCopied ? "Image copied" : "Copy image")}
+            aria-busy={copyingImage || undefined}
+            disabled={copyingImage}
+            onClick={(event) => {
+              // Image copying replaces the primitive's default text write.
+              event.preventDefault();
+              void copyImage();
+            }}
           >
-            {favoriteBusy ? (
-              <LoaderCircle size={20} className="spinner__wheel" aria-hidden="true" />
-            ) : (
-              <Heart
-                size={20}
-                stroke={current.isFavorited ? "var(--danger)" : "currentColor"}
-                fill={current.isFavorited ? "var(--danger)" : "none"}
-                aria-hidden="true"
-              />
-            )}
-          </button>
-        </AnimateIcon>
+            <CopyButtonIcon
+              icon={copyingImage ? (
+                <LoaderCircle size={20} animate={false} className="spinner__wheel" aria-hidden="true" />
+              ) : (
+                <Copy size={20} animate={false} aria-hidden="true" />
+              )}
+              copiedIcon={<Check size={20} animate={false} aria-hidden="true" />}
+              aria-hidden="true"
+            />
+          </CopyButton>
+        ) : null}
+        <MediaFavoriteButton
+          key={current.id}
+          isFavorited={current.isFavorited}
+          busy={favoriteBusy}
+          onToggle={toggleFavorite}
+        />
         <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
           <button
             ref={albumButtonRef}
@@ -393,7 +395,7 @@ export function MediaPreviewDialog({
                 aria-roledescription="slide"
                 aria-label={t("Media {current} of {total}", { current: index + 1, total })}
               >
-                <PreviewSlide media={item} active={item.id === current?.id} includeDeleted={Boolean(trashActions)} onFavorite={addFavorite} />
+                <PreviewSlide media={item} active={item.id === current?.id} includeDeleted={Boolean(trashActions)} onFavorite={toggleFavorite} />
               </div>
             ))}
             {hasMore ? (

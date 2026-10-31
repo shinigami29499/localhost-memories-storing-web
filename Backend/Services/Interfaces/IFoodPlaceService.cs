@@ -18,4 +18,6 @@ public interface IFoodPlaceService
         CancellationToken cancellationToken = default);
     Task DeleteFoodPlaceAsync(
         Guid foodPlaceId, Guid actorId, bool isAdmin, CancellationToken cancellationToken = default);
+    Task DeleteFoodPlaceVisitAsync(
+        Guid visitId, Guid actorId, CancellationToken cancellationToken = default);
 }

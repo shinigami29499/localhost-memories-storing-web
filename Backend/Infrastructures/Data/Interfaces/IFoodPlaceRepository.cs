@@ -10,6 +10,7 @@ public interface IFoodPlaceRepository
     Task<IReadOnlyList<FoodPlaceVisitSource>> GetFoodPlaceVisitHistoryAsync(
         Guid userId, CancellationToken cancellationToken = default);
     Task<FoodPlace?> FindFoodPlaceAsync(Guid foodPlaceId, CancellationToken cancellationToken = default);
+    Task<FoodPlaceVisit?> FindFoodPlaceVisitAsync(Guid visitId, CancellationToken cancellationToken = default);
     void AddFoodPlace(FoodPlace foodPlace);
     void AddFoodPlaceVisit(FoodPlaceVisit visit);
 

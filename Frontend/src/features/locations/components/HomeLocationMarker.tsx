@@ -116,7 +116,8 @@ export function HomeLocationMarker({ location, variant, onClick }: Props) {
           <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
             <button
               type="button"
-              className={variant === "food" ? "food__pin food__home-pin" : "locations__home-pin"}
+              className={variant === "food" ? "food__home-pin" : "locations__home-pin"}
+              style={variant === "food" ? { color: "#fff" } : undefined}
               aria-label={t("Home location")}
               title={t("Drag to move home. Hold or right-click to remove.")}
               aria-haspopup="dialog"
