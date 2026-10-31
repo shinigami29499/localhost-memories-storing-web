@@ -2,12 +2,11 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Collapsible } from "@animate-ui/react/primitives/base-ui/collapsible";
 import { Progress } from "@animate-ui/react/primitives/base-ui/progress";
-import { ChevronDown } from "@/components/animate-ui/icons/chevron-down";
+import { motionTokens } from "@animate-ui/react/utils/motion";
 import { Image } from "@/components/animate-ui/icons/image";
 import { Video } from "@/components/animate-ui/icons/video";
 import { FileText } from "@/components/animate-ui/icons/file-text";
 import { formatBytes } from "../../uploads/components/UploadBatchCard";
-import { BatchItemFilters, batchFileType } from "../../uploads/components/BatchItemFilters";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import { RotateCcw } from "@/components/animate-ui/icons/rotate-ccw";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
@@ -16,13 +15,14 @@ import { Play } from "@/components/animate-ui/icons/play";
 import { Button } from "../../../components/ui/Button";
 import { Pagination } from "../../../components/ui/Pagination";
 import { ConfirmationDialog } from "../../../components/ui/ConfirmationDialog";
+import { UserAvatar } from "../../../components/common/UserAvatar";
 import { showToast } from "../../../components/ui/Toast";
 import { useLocale } from "../../../context/LocaleContext";
 import { pauseDownloadBatch, pauseDownloadItem, resumeDownloadBatch, resumeDownloadItem, removeDownloadRecord, retryDownload, retryHistoryDownload, useDownloadStore, type DownloadBatch } from "../services/downloadQueue";
 
 const ITEMS_PER_PAGE = 5;
 
-export function DownloadBatchCard({ batch, displayId, showUsername = false, canRetry = true }: { batch: DownloadBatch; displayId: number; showUsername?: boolean; canRetry?: boolean }) {
+export function DownloadBatchCard({ batch, showUsername = false, avatarSeed, canRetry = true }: { batch: DownloadBatch; displayId: number; showUsername?: boolean; avatarSeed?: string | null; canRetry?: boolean }) {
   const { t, language } = useLocale();
   const queryClient = useQueryClient();
   const [deleting, setDeleting] = useState(false);
@@ -41,9 +41,7 @@ export function DownloadBatchCard({ batch, displayId, showUsername = false, canR
     : "Completed";
   const [expanded, setExpanded] = useState(active);
   const [page, setPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState("");
-  const [typeFilter, setTypeFilter] = useState("");
-  const filteredItems = batch.items.filter((item) => (!statusFilter || item.status === statusFilter) && (!typeFilter || batchFileType(item.originalFilename) === typeFilter));
+  const filteredItems = batch.items;
   const currentPage = Math.min(page, Math.max(1, Math.ceil(filteredItems.length / ITEMS_PER_PAGE)));
   const panelId = `download-batch-${batch.id}`;
   const toggleLabel = t(expanded ? "Hide files" : "View files");
@@ -68,19 +66,25 @@ export function DownloadBatchCard({ batch, displayId, showUsername = false, canR
 
   return (
     <Collapsible.Root render={<article />} className="upload-batch" open={expanded} onOpenChange={setExpanded}>
-      <div className={`upload-batch__summary${showUsername ? " upload-batch__summary--admin" : ""}`}>
+      <div
+        className={`upload-batch__summary${showUsername ? " upload-batch__summary--admin" : ""}`}
+        onClick={(event) => {
+          if ((event.target as HTMLElement).closest("button, input, a, select, [role='combobox']")) return;
+          setExpanded((current) => !current);
+        }}
+      >
         <Collapsible.Trigger type="button" className="upload-batch__toggle" aria-label={toggleLabel} title={toggleLabel} aria-controls={panelId}>
-          <ChevronDown size={18} aria-hidden="true" />
+          <span className="upload-batch__toggle-label">{toggleLabel}</span>
         </Collapsible.Trigger>
-        <div className="upload-batch__field upload-batch__ordinal-field">
-          <span className="upload-batch__label">{t("ID")}</span>
-          <span className="upload-batch__value">{displayId}</span>
-        </div>
+        {canRetry ? <input className="upload-item__select upload-batch__select-all" type="checkbox" aria-label={t("Select all files")} title={t("Select all files")} disabled={filteredItems.length === 0} checked={filteredItems.length > 0 && selectedItems.length === filteredItems.length} ref={(element) => { if (element) element.indeterminate = selectedItems.length > 0 && selectedItems.length < filteredItems.length; }} onChange={(event) => setSelectedIds(event.target.checked ? new Set(filteredItems.map((item) => item.id)) : new Set())} /> : null}
+        {showUsername ? <UserAvatar user={{ id: batch.userId ?? batch.id, avatarSeed }} className="upload-batch__owner-avatar" /> : null}
         {showUsername ? <div className="upload-batch__field upload-batch__username-field"><span className="upload-batch__label">{t("Username")}</span><span className="upload-batch__value">{batch.username ?? "--"}</span></div> : null}
         <div className="upload-batch__field upload-batch__created-field">
-          <span className="upload-batch__label">{t("Created")}</span>
+          <span className="upload-batch__label upload-batch__date-label">{t("Date & Time")}</span>
+          <span className="upload-batch__label upload-batch__date-label-mobile">{t("Date")}</span>
           <time className="upload-batch__value" dateTime={batch.createdAt}>
-            {new Date(batch.createdAt).toLocaleString(language)}
+            <span className="upload-batch__date-time">{new Date(batch.createdAt).toLocaleString(language)}</span>
+            <span className="upload-batch__date-only">{new Date(batch.createdAt).toLocaleDateString(language)}</span>
           </time>
         </div>
         <div className="upload-batch__field upload-batch__status-field">
@@ -98,9 +102,7 @@ export function DownloadBatchCard({ batch, displayId, showUsername = false, canR
             <span className="upload-progress__value">{sent}/{batch.items.length}</span>
           </div>
         </div>
-        <BatchItemFilters statuses={[...new Set(batch.items.map((item) => item.status))]} types={[...new Set(batch.items.map((item) => batchFileType(item.originalFilename)))]} status={statusFilter} type={typeFilter} onStatusChange={(value) => { setStatusFilter(value); setPage(1); }} onTypeChange={(value) => { setTypeFilter(value); setPage(1); }} />
         <div className="upload-batch__footer">
-            {canRetry ? <input className="upload-item__select upload-batch__select-all" type="checkbox" aria-label={t("Select all files")} title={t("Select all files")} checked={batch.items.length > 0 && selectedItems.length === batch.items.length} ref={(element) => { if (element) element.indeterminate = selectedItems.length > 0 && selectedItems.length < batch.items.length; }} onChange={(event) => setSelectedIds(event.target.checked ? new Set(batch.items.map((item) => item.id)) : new Set())} /> : null}
             <Button type="button" variant="ghost" className="upload-item__action" aria-label={t("Retry all failed")} title={t("Retry all failed")} disabled={!canRetry || actionItems.filter((item) => item.status === "Failed").length < 1} onClick={() => actionItems.filter((item) => item.status === "Failed").forEach((item) => retry(item.id))}>
               <RotateCcw size={18} aria-hidden="true" />
             </Button>
@@ -112,9 +114,8 @@ export function DownloadBatchCard({ batch, displayId, showUsername = false, canR
 
         </div>
       </div>
-      <Collapsible.Panel id={panelId} className="upload-batch__panel">
+      <Collapsible.Panel id={panelId} className="upload-batch__panel" keepMounted transition={motionTokens.transition.reveal}>
         <div className="upload-batch__items">
-          {filteredItems.length === 0 ? <p className="upload-batch__empty">{t("No files match these filters.")}</p> : null}
           {filteredItems.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map((item) => {
             const busy = item.status === "Pending" || item.status === "Downloading";
             const percent = item.status === "Sent to browser" ? 100
@@ -125,7 +126,10 @@ export function DownloadBatchCard({ batch, displayId, showUsername = false, canR
             const FileTypeIcon = /\.(mp4|webm|mov|m4v|avi|mkv)$/i.test(item.originalFilename) ? Video
               : /\.(png|jpe?g|gif|webp|avif|heic|bmp)$/i.test(item.originalFilename) ? Image : FileText;
             return (
-              <section key={item.id} className="upload-item" aria-label={item.originalFilename}>
+              <section key={item.id} className={`upload-item${canRetry ? " upload-item--selectable" : ""}${showUsername ? " upload-item--admin" : ""}`} aria-label={item.originalFilename} onClick={(event) => {
+                if (!canRetry || (event.target as HTMLElement).closest("button, input, a, select")) return;
+                setSelectedIds((current) => { const next = new Set(current); if (next.has(item.id)) next.delete(item.id); else next.add(item.id); return next; });
+              }}>
                 {canRetry ? <input className="upload-item__select" type="checkbox" aria-label={t("Select {name}", { name: item.originalFilename })} checked={selectedIds.has(item.id)} onChange={(event) => setSelectedIds((current) => { const next = new Set(current); if (event.target.checked) next.add(item.id); else next.delete(item.id); return next; })} /> : null}
                 <span className="upload-item__file-type" aria-hidden="true">
                   {item.status === "Downloading"
@@ -137,9 +141,20 @@ export function DownloadBatchCard({ batch, displayId, showUsername = false, canR
                     <strong className="upload-item__name" title={item.originalFilename}>{item.originalFilename}</strong>
                     <div className="upload-item__meta-row">
                       {item.fileSizeBytes > 0 ? <span className="upload-item__meta">{formatBytes(item.fileSizeBytes)}</span> : null}
-                      <span className={`upload-status upload-status--${itemStatusClass} upload-item__status`}>{t(itemStatus)}</span>
                     </div>
                   </div>
+                </div>
+                <div className="upload-item__date upload-batch__field">
+                  <span className="upload-batch__label upload-batch__date-label">{t("Date & Time")}</span>
+                  <span className="upload-batch__label upload-batch__date-label-mobile">{t("Date")}</span>
+                  <time className="upload-batch__value" dateTime={batch.createdAt}>
+                    <span className="upload-batch__date-time">{new Date(batch.createdAt).toLocaleString(language)}</span>
+                    <span className="upload-batch__date-only">{new Date(batch.createdAt).toLocaleDateString(language)}</span>
+                  </time>
+                </div>
+                <div className="upload-item__status-field upload-batch__field">
+                  <span className="upload-batch__label">{t("Status")}</span>
+                  <span className={`upload-status upload-status--${itemStatusClass}`} aria-label={t(itemStatus)}>{t(itemStatus)}</span>
                 </div>
                 <div className="upload-item__controls">
                   {canRetry ? <div className="upload-item__actions">
@@ -148,7 +163,8 @@ export function DownloadBatchCard({ batch, displayId, showUsername = false, canR
                     <Button type="button" variant="ghost" className="upload-item__action upload-item__action--delete" disabled={deleting || item.status === "Sent to browser"} aria-label={t("Delete record: {filename}", { filename: item.originalFilename })} title={t("Delete record: {filename}", { filename: item.originalFilename })} onClick={() => setDeleteTarget({ id: item.id, filename: item.originalFilename })}><Trash2 size={18} aria-hidden="true" /></Button>
                   </div> : null}
                 </div>
-                <div className="upload-item__progress-row">
+                <div className="upload-item__progress-row upload-batch__field">
+                  <span className="upload-batch__label">{t("Progress")}</span>
                   <Progress.Root value={percent} aria-label={t("Progress for {name}", { name: item.originalFilename })} aria-valuetext={`${percent}%`} className="upload-progress">
                     <Progress.Track className="upload-progress__track"><Progress.Indicator className="upload-progress__indicator" /></Progress.Track>
                   </Progress.Root>

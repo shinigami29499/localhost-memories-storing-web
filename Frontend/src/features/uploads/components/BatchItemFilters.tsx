@@ -1,4 +1,5 @@
 import { Select } from "@animate-ui/react/primitives/base-ui/select";
+import { Check } from "../../../components/animate-ui/icons/check";
 import { ChevronDown } from "../../../components/animate-ui/icons/chevron-down";
 import { useLocale } from "../../../context/LocaleContext";
 
@@ -32,6 +33,7 @@ export function BatchItemFilters({ statuses, types, status, type, onStatusChange
                   {[{ value: "__all", label: filter.all }, ...filter.options.map((value) => ({ value, label: value === "Sent to browser" ? "Success" : value }))].map((option) => (
                     <Select.Item key={option.value} value={option.value} className="upload-batch__filter-option">
                       <Select.ItemText>{t(option.label)}</Select.ItemText>
+                      <Select.ItemIndicator className="upload-batch__filter-indicator"><Check size={16} aria-hidden="true" /></Select.ItemIndicator>
                     </Select.Item>
                   ))}
                 </Select.List>

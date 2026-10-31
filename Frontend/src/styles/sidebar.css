@@ -371,10 +371,15 @@
   overflow: hidden;
 }
 
+.sidebar__sub-panel[data-open]:not([data-starting-style]):not([data-ending-style]) {
+  overflow: visible;
+}
+
 .sidebar__sub-nav {
   display: flex;
   flex-direction: column;
   margin-left: 22px;
+  margin-right: 12px;
   padding: 4px 0 4px 14px;
   border-left: 1px solid var(--border);
   gap: 2px;
@@ -847,4 +852,60 @@
     width: 44px;
     height: 44px;
   }
+}
+
+:root:not(.dark) :is(.sidebar__toggle:hover, .sidebar__toggle:focus-visible, .sidebar__link:not(.sidebar__link--danger):hover, .sidebar__link--active, .sidebar__group-toggle:hover, .sidebar__account-trigger:hover, .sidebar__account-trigger[aria-expanded="true"]) {
+  background: #303236;
+  color: #fff;
+}
+
+:root:not(.dark) :is(.sidebar__link:hover .sidebar__home-icon, .sidebar__link--active .sidebar__home-icon, .sidebar__account-trigger:hover .sidebar__account-name, .sidebar__account-trigger:hover .sidebar__account-role, .sidebar__account-trigger[aria-expanded="true"] .sidebar__account-name, .sidebar__account-trigger[aria-expanded="true"] .sidebar__account-role) {
+  color: #fff;
+}
+
+:root:not(.dark) :is(.sidebar__link[href="/library/gallery/trash"]:hover, .sidebar__link[href="/library/gallery/trash"].sidebar__link--active) > svg {
+  stroke: #fff;
+}
+
+.dark :is(.sidebar__toggle:hover, .sidebar__toggle:focus-visible, .sidebar__link:not(.sidebar__link--danger):hover, .sidebar__link--active, .sidebar__group-toggle:hover, .sidebar__account-trigger:hover, .sidebar__account-trigger[aria-expanded="true"]) {
+  background: #ebeced;
+  color: #17191d;
+}
+
+.dark :is(.sidebar__link:hover .sidebar__home-icon, .sidebar__link--active .sidebar__home-icon, .sidebar__account-trigger:hover .sidebar__account-name, .sidebar__account-trigger:hover .sidebar__account-role, .sidebar__account-trigger[aria-expanded="true"] .sidebar__account-name, .sidebar__account-trigger[aria-expanded="true"] .sidebar__account-role) {
+  color: #17191d;
+}
+
+.dark :is(.sidebar__link[href="/library/gallery/trash"]:hover, .sidebar__link[href="/library/gallery/trash"].sidebar__link--active) > svg {
+  stroke: #17191d;
+}
+
+.sidebar__link--active {
+  position: relative;
+  isolation: isolate;
+}
+
+.sidebar__link--active::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  border-radius: inherit;
+  content: "";
+}
+
+:root:not(.dark) .sidebar__link--active::before {
+  background: #303236;
+}
+
+.dark .sidebar__link--active::before {
+  background: #ebeced;
+}
+
+.sidebar__link--active,
+.sidebar__home-link.sidebar__link--active {
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.3), var(--shadow-popover);
+}
+
+.sidebar__sub-link.sidebar__link--active {
+  box-shadow: none;
 }

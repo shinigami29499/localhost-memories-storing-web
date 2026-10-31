@@ -1,21 +1,19 @@
 import { useState } from "react";
-import { motion } from "motion/react";
 import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { Collapsible } from "@animate-ui/react/primitives/base-ui/collapsible";
 import { Progress } from "@animate-ui/react/primitives/base-ui/progress";
-import { motionTokens, useShouldReduceMotion, useTempoTransition } from "@animate-ui/react/utils/motion";
+import { motionTokens } from "@animate-ui/react/utils/motion";
 import { Button } from "../../../components/ui/Button";
 import { Pagination } from "../../../components/ui/Pagination";
-import { BatchItemFilters, batchFileType } from "./BatchItemFilters";
 import { ConfirmationDialog } from "../../../components/ui/ConfirmationDialog";
 import { RotateCcw } from "../../../components/animate-ui/icons/rotate-ccw";
 import { Trash2 } from "../../../components/animate-ui/icons/trash-2";
 import { Pause } from "../../../components/animate-ui/icons/pause";
 import { Play } from "../../../components/animate-ui/icons/play";
-import { ChevronDown } from "../../../components/animate-ui/icons/chevron-down";
 import { Image } from "../../../components/animate-ui/icons/image";
 import { Video } from "../../../components/animate-ui/icons/video";
 import { FileText } from "../../../components/animate-ui/icons/file-text";
+import { UserAvatar } from "../../../components/common/UserAvatar";
 import { useLocale } from "../../../context/LocaleContext";
 import type { UploadBatch, UploadBatchStatus, UploadItem, UploadItemStatus } from "../types";
 
@@ -43,6 +41,7 @@ interface UploadBatchCardProps {
   batch: UploadBatch;
   displayId?: number;
   showUsername: boolean;
+  avatarSeed?: string | null;
   busyItemIds: ReadonlySet<string>;
   onRetry: (batch: UploadBatch, item: UploadItem) => void;
   onRetryAll?: (batch: UploadBatch) => void;
@@ -53,8 +52,8 @@ interface UploadBatchCardProps {
 
 export function UploadBatchCard({
   batch,
-  displayId,
   showUsername,
+  avatarSeed,
   busyItemIds,
   onRetry,
   onRetryAll,
@@ -62,9 +61,7 @@ export function UploadBatchCard({
   onDeleteMany,
   onPause,
 }: UploadBatchCardProps) {
-  const { t } = useLocale();
-  const shouldReduceMotion = useShouldReduceMotion();
-  const chevronTransition = useTempoTransition(motionTokens.transition.reveal);
+  const { t, language } = useLocale();
   const active = batch.status === "Uploading" || batch.status === "Pending";
   const [expanded, setExpanded] = useState(active);
   const [itemPage, setItemPage] = useState(1);
@@ -72,9 +69,7 @@ export function UploadBatchCard({
   const selectedItems = batch.items.filter((item) => selectedIds.has(item.id));
   const actionItems = selectedItems.length ? selectedItems : batch.items;
   const [deleteTarget, setDeleteTarget] = useState<UploadItem | "batch" | null>(null);
-  const [statusFilter, setStatusFilter] = useState("");
-  const [typeFilter, setTypeFilter] = useState("");
-  const filteredItems = batch.items.filter((item) => (!statusFilter || item.status === statusFilter) && (!typeFilter || batchFileType(item.originalFilename, item.contentType) === typeFilter));
+  const filteredItems = batch.items;
   const totalItemPages = Math.max(1, Math.ceil(filteredItems.length / ITEMS_PER_PAGE));
   const currentItemPage = Math.min(itemPage, totalItemPages);
   const visibleItems = filteredItems.slice(
@@ -96,7 +91,13 @@ export function UploadBatchCard({
       open={expanded}
       onOpenChange={setExpanded}
     >
-      <div className={`upload-batch__summary${showUsername ? " upload-batch__summary--admin" : ""}`}>
+      <div
+        className={`upload-batch__summary${showUsername ? " upload-batch__summary--admin" : ""}`}
+        onClick={(event) => {
+          if ((event.target as HTMLElement).closest("button, input, a, select, [role='combobox']")) return;
+          setExpanded((current) => !current);
+        }}
+      >
         <Collapsible.Trigger
           type="button"
           className="upload-batch__toggle"
@@ -104,22 +105,10 @@ export function UploadBatchCard({
           title={toggleLabel}
           aria-controls={panelId}
         >
-          <motion.span
-            className="upload-batch__chevron"
-            aria-hidden="true"
-            initial={false}
-            animate={{ rotate: expanded ? 180 : 0 }}
-            transition={shouldReduceMotion ? { duration: 0 } : chevronTransition}
-          >
-            <ChevronDown size={18} aria-hidden="true" />
-          </motion.span>
+          <span className="upload-batch__toggle-label">{toggleLabel}</span>
         </Collapsible.Trigger>
-        {displayId !== undefined ? (
-          <div className="upload-batch__field upload-batch__ordinal-field">
-            <span className="upload-batch__label">{t("ID")}</span>
-            <span className="upload-batch__value">{displayId}</span>
-          </div>
-        ) : null}
+        {batch.canManage ? <input className="upload-item__select upload-batch__select-all" type="checkbox" aria-label={t("Select all files")} title={t("Select all files")} disabled={filteredItems.length === 0} checked={filteredItems.length > 0 && selectedItems.length === filteredItems.length} ref={(element) => { if (element) element.indeterminate = selectedItems.length > 0 && selectedItems.length < filteredItems.length; }} onChange={(event) => setSelectedIds(event.target.checked ? new Set(filteredItems.map((item) => item.id)) : new Set())} /> : null}
+        {showUsername ? <UserAvatar user={{ id: batch.username ?? batch.id, avatarSeed }} className="upload-batch__owner-avatar" /> : null}
         {showUsername ? (
           <div className="upload-batch__field upload-batch__username-field">
             <span className="upload-batch__label">{t("Username")}</span>
@@ -127,14 +116,16 @@ export function UploadBatchCard({
           </div>
         ) : null}
         <div className="upload-batch__field upload-batch__created-field">
-          <span className="upload-batch__label">{t("Created")}</span>
+          <span className="upload-batch__label upload-batch__date-label">{t("Date & Time")}</span>
+          <span className="upload-batch__label upload-batch__date-label-mobile">{t("Date")}</span>
           <time className="upload-batch__value" dateTime={batch.createdAt}>
-            {new Date(batch.createdAt).toLocaleDateString()}
+            <span className="upload-batch__date-time">{new Date(batch.createdAt).toLocaleString(language)}</span>
+            <span className="upload-batch__date-only">{new Date(batch.createdAt).toLocaleDateString(language)}</span>
           </time>
         </div>
         <div className="upload-batch__field upload-batch__status-field">
           <span className="upload-batch__label">{t("Status")}</span>
-          <span className={`upload-status upload-status--${batch.status.toLowerCase()}`}>
+          <span className={`upload-status upload-status--${batch.status.toLowerCase()}`} aria-label={t(batchStatusLabels[batch.status])}>
             {t(batchStatusLabels[batch.status])}
           </span>
         </div>
@@ -156,10 +147,8 @@ export function UploadBatchCard({
             </span>
           </div>
         </div>
-        <BatchItemFilters statuses={[...new Set(batch.items.map((item) => item.status))]} types={[...new Set(batch.items.map((item) => batchFileType(item.originalFilename, item.contentType)))]} status={statusFilter} type={typeFilter} onStatusChange={(value) => { setStatusFilter(value); setItemPage(1); }} onTypeChange={(value) => { setTypeFilter(value); setItemPage(1); }} />
         {batch.canManage ? (
           <div className="upload-batch__footer">
-            <input className="upload-item__select upload-batch__select-all" type="checkbox" aria-label={t("Select all files")} title={t("Select all files")} checked={batch.items.length > 0 && selectedItems.length === batch.items.length} ref={(element) => { if (element) element.indeterminate = selectedItems.length > 0 && selectedItems.length < batch.items.length; }} onChange={(event) => setSelectedIds(event.target.checked ? new Set(batch.items.map((item) => item.id)) : new Set())} />
             {onRetryAll ? (
             <Button type="button" variant="ghost" className="upload-item__action" aria-label={t("Retry all failed")} title={t("Retry all failed")} disabled={actionItems.filter((item) => item.status === "Failed").length < 1 || actionItems.filter((item) => item.status === "Failed").every((item) => busyItemIds.has(item.id))} onClick={() => onRetryAll({ ...batch, items: actionItems })}>
               <RotateCcw size={18} aria-hidden="true" />
@@ -179,7 +168,6 @@ export function UploadBatchCard({
         transition={motionTokens.transition.reveal}
       >
         <div className="upload-batch__items">
-          {visibleItems.length === 0 ? <p className="upload-batch__empty">{t("No files match these filters.")}</p> : null}
           {visibleItems.map((item) => {
             const busy = busyItemIds.has(item.id);
             const indeterminate = item.status === "Uploading" && item.progressPercent === 0;
@@ -190,7 +178,10 @@ export function UploadBatchCard({
                 ? Video
                 : FileText;
             return (
-              <section key={item.id} className="upload-item" aria-label={item.originalFilename}>
+              <section key={item.id} className={`upload-item${batch.canManage ? " upload-item--selectable" : ""}${showUsername ? " upload-item--admin" : ""}`} aria-label={item.originalFilename} onClick={(event) => {
+                if (!batch.canManage || (event.target as HTMLElement).closest("button, input, a, select")) return;
+                setSelectedIds((current) => { const next = new Set(current); if (next.has(item.id)) next.delete(item.id); else next.add(item.id); return next; });
+              }}>
                 {batch.canManage ? <input className="upload-item__select" type="checkbox" aria-label={t("Select {name}", { name: item.originalFilename })} checked={selectedIds.has(item.id)} onChange={(event) => setSelectedIds((current) => { const next = new Set(current); if (event.target.checked) next.add(item.id); else next.delete(item.id); return next; })} /> : null}
                 <span className="upload-item__file-type" aria-hidden="true">
                   <FileTypeIcon size={18} />
@@ -202,13 +193,20 @@ export function UploadBatchCard({
                     </strong>
                     <div className="upload-item__meta-row">
                       <span className="upload-item__meta">
-                        {item.contentType} · {formatBytes(item.fileSizeBytes)}
-                      </span>
-                      <span className={`upload-status upload-status--${item.status.toLowerCase()} upload-item__status`}>
-                        {t(itemStatusLabels[item.status])}
+                        <span className="upload-item__meta-type">{item.contentType} · </span>
+                        <span>{formatBytes(item.fileSizeBytes)}</span>
                       </span>
                     </div>
                   </div>
+                </div>
+                <div className="upload-item__date upload-batch__field">
+                  <span className="upload-batch__label upload-batch__date-label">{t("Date & Time")}</span>
+                  <span className="upload-batch__label upload-batch__date-label-mobile">{t("Date")}</span>
+                  {item.completedAt ? <time className="upload-batch__value" dateTime={item.completedAt}><span className="upload-batch__date-time">{new Date(item.completedAt).toLocaleString(language)}</span><span className="upload-batch__date-only">{new Date(item.completedAt).toLocaleDateString(language)}</span></time> : <span className="upload-batch__value">?</span>}
+                </div>
+                <div className="upload-item__status-field upload-batch__field">
+                  <span className="upload-batch__label">{t("Status")}</span>
+                  <span className={`upload-status upload-status--${item.status.toLowerCase()}`} aria-label={t(itemStatusLabels[item.status])}>{t(itemStatusLabels[item.status])}</span>
                 </div>
                 <div className="upload-item__controls">
                   <div className="upload-item__actions">
@@ -219,7 +217,8 @@ export function UploadBatchCard({
                     </> : null}
                   </div>
                 </div>
-                <div className="upload-item__progress-row">
+                <div className="upload-item__progress-row upload-batch__field">
+                  <span className="upload-batch__label">{t("Progress")}</span>
                   <Progress.Root
                     value={indeterminate ? null : itemProgress}
                     aria-label={t("Progress for {name}", { name: item.originalFilename })}

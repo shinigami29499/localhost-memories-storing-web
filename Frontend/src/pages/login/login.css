@@ -11,6 +11,7 @@
 .login__header,
 .login__footer {
   max-width: 1280px;
+  width: 100%;
   margin: 0 auto;
   padding: 28px 48px;
   display: flex;
@@ -25,10 +26,18 @@
   font-size: 0.85rem;
 }
 
+.login__header-note {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
 .login__header-actions {
   display: flex;
   align-items: center;
   gap: 16px;
+  margin-left: auto;
 }
 
 .login {

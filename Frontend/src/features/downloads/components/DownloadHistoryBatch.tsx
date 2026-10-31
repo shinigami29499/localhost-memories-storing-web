@@ -12,7 +12,7 @@ import { Pagination } from "../../../components/ui/Pagination";
 import { useLocale } from "../../../context/LocaleContext";
 import type { DownloadRecord } from "../services/downloadHistory";
 
-export function DownloadHistoryBatch({ records, displayId, showUsername }: { records: DownloadRecord[]; displayId: number; showUsername: boolean }) {
+export function DownloadHistoryBatch({ records, showUsername }: { records: DownloadRecord[]; displayId: number; showUsername: boolean }) {
   const { t, language } = useLocale();
   const [expanded, setExpanded] = useState(false);
   const [page, setPage] = useState(1);
@@ -25,9 +25,8 @@ export function DownloadHistoryBatch({ records, displayId, showUsername }: { rec
         <Collapsible.Trigger type="button" className="upload-batch__toggle" aria-label={label} title={label} aria-controls={panelId}>
           <ChevronDown size={18} aria-hidden="true" />
         </Collapsible.Trigger>
-        <div className="upload-batch__field upload-batch__ordinal-field"><span className="upload-batch__label">{t("ID")}</span><span className="upload-batch__value">{displayId}</span></div>
         {showUsername ? <div className="upload-batch__field upload-batch__username-field"><span className="upload-batch__label">{t("Username")}</span><span className="upload-batch__value">{first.username}</span></div> : null}
-        <div className="upload-batch__field upload-batch__created-field"><span className="upload-batch__label">{t("Created")}</span><time className="upload-batch__value" dateTime={first.createdAt}>{new Date(first.createdAt).toLocaleString(language)}</time></div>
+        <div className="upload-batch__field upload-batch__created-field"><span className="upload-batch__label">{t("Date & Time")}</span><time className="upload-batch__value" dateTime={first.createdAt}>{new Date(first.createdAt).toLocaleString(language)}</time></div>
         <div className="upload-batch__field upload-batch__status-field"><span className="upload-batch__label">{t("Status")}</span><span className="upload-status">{t("Recorded")}</span></div>
         <div className="upload-batch__field upload-batch__progress-field"><span className="upload-batch__label">{t("Files")}</span><span className="upload-batch__value">{records.length}</span></div>
       </div>

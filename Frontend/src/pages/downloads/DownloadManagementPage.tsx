@@ -13,13 +13,24 @@ import { DownloadBatchCard } from "../../features/downloads/components/DownloadB
 import { useDownloadStore, type DownloadBatch } from "../../features/downloads/services/downloadQueue";
 import { listAllDownloadBatches, listAllDownloadHistory } from "../../features/downloads/services/downloadHistory";
 import { useAuthStore } from "../../store/authStore";
+import { userService } from "../../features/users/services/userService";
 import "../../features/uploads/uploads.css";
 import "./downloads.css";
 
 export function DownloadManagementPage() {
   const { t } = useLocale();
   const user = useAuthStore((state) => state.user);
+  const isAdmin = user?.role.toLowerCase() === "admin";
   const batches = useDownloadStore((state) => state.batches);
+  const usersQuery = useQuery({
+    queryKey: ["users", "upload-avatars"],
+    queryFn: userService.list,
+    enabled: isAdmin,
+    staleTime: 5 * 60 * 1000,
+  });
+  const avatarSeedsByUsername = new Map(
+    (usersQuery.data ?? []).map((account) => [account.username.toLowerCase(), account.avatarSeed] as const),
+  );
   const [page, setPage] = useState(1);
   const [selectedDate, setSelectedDate] = useState("");
   const [activityOpen, setActivityOpen] = useState(false);
@@ -98,13 +109,13 @@ export function DownloadManagementPage() {
         <div className="upload-page__toolbar">
           <div className="upload-page__actions">
             <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
-              <Link className="btn btn--primary upload-page__upload-button download-page__gallery-link" to="/library/gallery"><Image size={18} aria-hidden="true" />{t("Browse gallery")}</Link>
+              <Link className="btn btn--primary upload-page__upload-button download-page__gallery-link" to="/library/gallery"><Image size={18} aria-hidden="true" /><span className="upload-page__button-label">{t("Browse gallery")}</span></Link>
             </AnimateIcon>
           </div>
           <div className="upload-page__filters">
-            <DatePicker className="upload-page__date-filter" label={t("Created date")} value={selectedDate} onChange={(date) => { setSelectedDate(date); setPage(1); }} />
+            <DatePicker className="upload-page__date-filter" compactOnMobile label={t("Created date")} value={selectedDate} onChange={(date) => { setSelectedDate(date); setPage(1); }} />
             <Button type="button" variant="ghost" className="upload-page__activity-button" title={t("Download activity")} onClick={() => setActivityOpen(true)}>
-              <ChartColumnIcon size={18} aria-hidden="true" />{t("Activity")}
+              <ChartColumnIcon size={18} aria-hidden="true" /><span className="upload-page__button-label">{t("Activity")}</span>
             </Button>
           </div>
         </div>
@@ -117,7 +128,7 @@ export function DownloadManagementPage() {
           ) : (
             <div className="upload-list" aria-live="polite">
               {visibleBatches.map((batch, index) => (
-                <DownloadBatchCard key={`${batch.userId}:${batch.id}`} batch={batch} displayId={(page - 1) * limit + index + 1} showUsername canRetry={!batch.userId || batch.userId === user?.id} />
+                <DownloadBatchCard key={`${batch.userId}:${batch.id}`} batch={batch} displayId={(page - 1) * limit + index + 1} showUsername avatarSeed={batch.username ? avatarSeedsByUsername.get(batch.username.toLowerCase()) : undefined} canRetry={!batch.userId || batch.userId === user?.id} />
               ))}
             </div>
           )}

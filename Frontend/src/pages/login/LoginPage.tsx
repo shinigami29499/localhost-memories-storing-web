@@ -38,10 +38,10 @@ export function LoginPage() {
       <header className="login__header">
         <Brand />
         <div className="login__header-actions">
-          <span className="login__header-note">{t("Your world. Your community.")}</span>
           <LanguageToggleButton />
           <ThemeTogglerButton />
         </div>
+        <span className="login__header-note">{t("Your world. Your community.")}</span>
       </header>
       <main className="login">
         <CommunityIntro variant="login" />

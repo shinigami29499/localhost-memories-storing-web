@@ -30,6 +30,8 @@
 }
 
 .toast-root {
+  --toast-success: #75d99a;
+  --toast-success-wash: rgba(117, 217, 154, 0.12);
   position: absolute;
   bottom: 0;
   right: 0;
@@ -43,6 +45,11 @@
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
   color: var(--text-strong, #dedede);
   overflow: hidden;
+}
+
+:root:not(.dark) .toast-root {
+  --toast-success: #19733d;
+  --toast-success-wash: rgba(25, 115, 61, 0.12);
 }
 
 .toast-content {
@@ -65,11 +72,11 @@
 }
 
 .toast-icon--success {
-  color: var(--accent-soft);
+  color: var(--toast-success);
 }
 
 .toast-icon-wrapper:has(.toast-icon--success) {
-  background: var(--accent-wash);
+  background: var(--toast-success-wash);
 }
 
 .toast-icon--error {

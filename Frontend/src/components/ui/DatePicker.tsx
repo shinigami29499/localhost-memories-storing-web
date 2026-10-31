@@ -14,6 +14,7 @@ type DatePickerProps = {
   label: string;
   placeholder?: string;
   className?: string;
+  compactOnMobile?: boolean;
 };
 
 const DAYS_PER_WEEK = 7;
@@ -47,7 +48,7 @@ function isSameDay(a: Date | null, b: Date | null) {
   return !!a && !!b && toIsoDate(a) === toIsoDate(b);
 }
 
-export function DatePicker({ value, onChange, label, placeholder, className }: DatePickerProps) {
+export function DatePicker({ value, onChange, label, placeholder, className, compactOnMobile = false }: DatePickerProps) {
   const { t, language } = useLocale();
   const locale = language === "vi" ? "vi-VN" : "en-US";
   const weekStart = language === "vi" ? 1 : 0;
@@ -126,7 +127,7 @@ export function DatePicker({ value, onChange, label, placeholder, className }: D
     >
       <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
         <Popover.Trigger
-          className={`date-picker__trigger${selected ? " date-picker__trigger--active" : ""}${className ? ` ${className}` : ""}`}
+          className={`date-picker__trigger${compactOnMobile ? " date-picker__trigger--compact-mobile" : ""}${selected ? " date-picker__trigger--active" : ""}${className ? ` ${className}` : ""}`}
           aria-label={selected ? `${label}: ${dayLabelFormatter.format(selected)}` : label}
         >
           <CalendarDaysIcon size={18} aria-hidden="true" />

@@ -1,9 +1,7 @@
 import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import * as PaginationPrimitive from "@animate-ui/react/primitives/pagination";
 import { Select } from "@animate-ui/react/primitives/base-ui/select";
-import { ChevronDown } from "@/components/animate-ui/icons/chevron-down";
-import { ChevronLeft } from "@/components/animate-ui/icons/chevron-left";
-import { ChevronRight } from "@/components/animate-ui/icons/chevron-right";
+import { Check } from "@/components/animate-ui/icons/check";
 import "./Pagination.css";
 import { useLocale } from "../../context/LocaleContext";
 
@@ -45,7 +43,6 @@ export function Pagination({
               disabled={page === 1 || isFetching}
               aria-label={t("Previous page")}
             >
-              <ChevronLeft size={18} aria-hidden="true" />
               <span>{t("Previous")}</span>
             </button>
           </AnimateIcon>
@@ -84,7 +81,6 @@ export function Pagination({
               aria-label={t("Next page")}
             >
               <span>{t("Next")}</span>
-              <ChevronRight size={18} aria-hidden="true" />
             </button>
           </AnimateIcon>
         </li>
@@ -100,9 +96,6 @@ export function Pagination({
             aria-label={t("Items per page")}
           >
             <Select.Value />
-            <Select.Icon asChild>
-              <ChevronDown size={16} className="pagination__select-icon" aria-hidden="true" />
-            </Select.Icon>
           </Select.Trigger>
           <Select.Portal>
             <Select.Positioner
@@ -115,6 +108,9 @@ export function Pagination({
                   {PAGE_SIZE_OPTIONS.map((size) => (
                     <Select.Item key={size} value={String(size)} className="pagination__select-item">
                       <Select.ItemText>{size}</Select.ItemText>
+                      <Select.ItemIndicator className="pagination__select-indicator">
+                        <Check size={14} aria-hidden="true" />
+                      </Select.ItemIndicator>
                     </Select.Item>
                   ))}
                 </Select.List>

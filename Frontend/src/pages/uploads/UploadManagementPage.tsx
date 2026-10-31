@@ -12,6 +12,7 @@ import { useAuthStore } from "../../store/authStore";
 import { useLocale } from "../../context/LocaleContext";
 import { cancelRunningUpload, requestUploadRetry, setUploadPaused } from "../../features/uploads/services/uploadRuntime";
 import { uploadService } from "../../features/uploads/services/uploadService";
+import { userService } from "../../features/users/services/userService";
 import { removeUploadFile, saveUploadFile } from "../../features/uploads/services/uploadFileStore";
 import { UploadActivityDialog } from "../../features/uploads/components/UploadActivityDialog";
 import { UploadBatchCard } from "../../features/uploads/components/UploadBatchCard";
@@ -38,6 +39,15 @@ export function UploadManagementPage() {
   const retryTargets = useRef<{ batch: UploadBatch; item: UploadItem }[]>([]);
   const retryInput = useRef<HTMLInputElement>(null);
   const uploadInput = useRef<HTMLInputElement>(null);
+  const usersQuery = useQuery({
+    queryKey: ["users", "upload-avatars"],
+    queryFn: userService.list,
+    enabled: isAdmin,
+    staleTime: 5 * 60 * 1000,
+  });
+  const avatarSeedsByUsername = new Map(
+    (usersQuery.data ?? []).map((account) => [account.username.toLowerCase(), account.avatarSeed] as const),
+  );
   const query = useQuery({
     queryKey: ["uploads", isAdmin, offset, limit, selectedDate, user?.id],
     queryFn: () => (isAdmin
@@ -230,7 +240,7 @@ export function UploadManagementPage() {
               onClick={() => uploadInput.current?.click()}
             >
               <PaperclipIcon size={18} aria-hidden="true" />
-              {t("Select files")}
+              <span className="upload-page__button-label">{t("Select files")}</span>
             </Button>
             <Button
               type="button"
@@ -240,29 +250,27 @@ export function UploadManagementPage() {
               onClick={() => void submitFiles()}
             >
               {submitting ? null : <UploadIcon size={18} aria-hidden="true" />}
-              {submitting ? t("Starting upload…") : t("Upload media")}
+              <span className="upload-page__button-label">{submitting ? t("Starting upload…") : t("Upload media")}</span>
             </Button>
             {selectedFiles.length > 0 ? (
-              <span className="upload-page__selection">
-                <span role="status">{t("{count} files selected", { count: selectedFiles.length })}</span>
-                <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
-                  <button
-                    type="button"
-                    className="upload-page__selection-clear"
-                    aria-label={t("Clear selection")}
-                    title={t("Clear selection")}
-                    disabled={submitting}
-                    onClick={clearSelection}
-                  >
-                    <XIcon size={14} aria-hidden="true" />
-                  </button>
-                </AnimateIcon>
-              </span>
+              <Button
+                type="button"
+                variant="secondary"
+                className="upload-page__selection-button"
+                aria-label={t("Clear selection")}
+                title={t("Clear selection")}
+                disabled={submitting}
+                onClick={clearSelection}
+              >
+                <XIcon size={18} aria-hidden="true" />
+                <span>{t("{count} files selected", { count: selectedFiles.length })}</span>
+              </Button>
             ) : null}
           </div>
           <div className="upload-page__filters">
             <DatePicker
               className="upload-page__date-filter"
+              compactOnMobile
               label={t("Created date")}
               value={selectedDate}
               onChange={(nextDate) => {
@@ -278,7 +286,7 @@ export function UploadManagementPage() {
               onClick={() => setActivityOpen(true)}
             >
               <ChartColumnIcon size={18} aria-hidden="true" />
-              {t("Activity")}
+              <span className="upload-page__button-label">{t("Activity")}</span>
             </Button>
           </div>
         </div>
@@ -298,9 +306,10 @@ export function UploadManagementPage() {
             {batches.map((batch, index) => (
               <UploadBatchCard
                 key={batch.id}
-                batch={batch}
+                batch={isAdmin ? batch : { ...batch, username: batch.username ?? user?.username }}
                 displayId={offset + index + 1}
-                showUsername={isAdmin}
+                showUsername
+                avatarSeed={isAdmin && batch.username ? avatarSeedsByUsername.get(batch.username.toLowerCase()) : user?.avatarSeed}
                 busyItemIds={busyItemIds}
                 onRetry={(batch, item) => retryItems(batch, [item])}
                 onDelete={(batch, item) => removeRecord(batch, item)}

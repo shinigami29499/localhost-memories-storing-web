@@ -30,11 +30,17 @@ const TOAST_CLICK_MOVE_THRESHOLD = 8;
 
 export const toastManager = AnimateToast.createToastManager();
 
+function normalizeToastMessage(message: string) {
+  return message.trim().replace(/[.!?…]+$/u, '').trim().toLocaleLowerCase();
+}
+
 function addToast(type: 'success' | 'error' | 'info', title: string, details?: string | ToastOptions) {
   const options: ToastOptions = typeof details === 'string' ? { description: details } : details ?? {};
   return toastManager.add<ToastData>({
     title,
-    description: options.description,
+    description: options.description && normalizeToastMessage(options.description) !== normalizeToastMessage(title)
+      ? options.description
+      : undefined,
     type,
     timeout: options.timeout ?? (options.undo ? UNDOABLE_TOAST_TIMEOUT : undefined),
     data: options.undo ? { undo: options.undo, undoLabel: options.undoLabel } : undefined,

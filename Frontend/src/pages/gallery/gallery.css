@@ -147,6 +147,18 @@
   color: var(--text-strong);
 }
 
+:root:not(.dark) .gallery-page__filters :is(.gallery-page__filter[role="tab"], .gallery-page__filter[aria-pressed]):is(:hover, :focus-visible, [aria-selected="true"], [aria-pressed="true"]) {
+  background: #303236;
+  color: #fff;
+}
+
+.dark .gallery-page__filters :is(.gallery-page__filter[role="tab"], .gallery-page__filter[aria-pressed]):is(:hover, :focus-visible, [aria-selected="true"], [aria-pressed="true"]) {
+  background: #ebeced;
+  color: #17191d;
+}
+.gallery-page__filters .gallery-page__filter:is([aria-pressed="true"], [aria-selected="true"], :hover, :focus-visible) {
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.3), var(--shadow-popover);
+}
 .gallery-page__filter-note {
   color: var(--text-muted);
   font-size: 0.8125rem;
