@@ -15,7 +15,7 @@ export default defineConfig(({ command }) => ({
   },
   server: {
     port: 3000,
-    allowedHosts: ["redeem-typing-valium-peace.trycloudflare.com"],
+    allowedHosts: ["atomic-stop-petition-collection.trycloudflare.com"],
     watch: {
       ignored: ["**/dist/**"],
     },

@@ -7,7 +7,13 @@ import { useAuthStore } from "../store/authStore";
  */
 export function mediaUrl(mediaId: string, includeDeleted = false): string {
   const configuredBase = import.meta.env.VITE_API_URL?.trim();
-  const base = (configuredBase || "http://localhost:8000").replace(/\/$/, "");
+  const configuredUrl = configuredBase ? new URL(configuredBase, "http://localhost").hostname : "";
+  const browserHost = typeof window !== "undefined" ? window.location.hostname : "";
+  const localApiHost = configuredUrl === "localhost" || configuredUrl === "127.0.0.1" || configuredUrl === "[::1]";
+  // A production build can inherit the local .env value. On a phone, that
+  // would point media requests at the phone itself instead of the PWA host.
+  const useSameOrigin = localApiHost && browserHost && !["localhost", "127.0.0.1", "[::1]"].includes(browserHost);
+  const base = (useSameOrigin ? "" : configuredBase ?? "http://localhost:8000").replace(/\/$/, "");
   const token = useAuthStore.getState().accessToken ?? "";
   return `${base}/api/library/gallery/${mediaId}/file?accessToken=${encodeURIComponent(token)}${includeDeleted ? "&includeDeleted=true" : ""}`;
 }
