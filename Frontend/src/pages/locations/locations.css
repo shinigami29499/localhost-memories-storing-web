@@ -590,7 +590,7 @@
   width: 100%;
   align-content: start;
 }
-.locations__photo:hover:not(:disabled) { background: var(--surface-hover); }
+.locations__photo:hover:not(:disabled) { background: var(--surface-hover); border-color: var(--accent-soft); }
 .locations__photo:disabled { cursor: default; opacity: 0.6; }
 .locations__photo[aria-pressed="true"] { border-color: var(--accent-strong); background: var(--accent-wash); }
 .locations__photo img { aspect-ratio: 1; object-fit: cover; width: 100%; border-radius: 4px; }

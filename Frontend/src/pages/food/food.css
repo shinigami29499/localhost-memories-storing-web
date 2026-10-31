@@ -141,6 +141,25 @@
 .food__place-history .food__hint { margin: 8px 0 0; }
 .food__place-history .error-state { margin-top: 12px; }
 
+.food__history-scroll {
+  margin-top: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    black 8px,
+    black calc(100% - 8px),
+    transparent
+  );
+}
+
+.food__history-scroll .food__history { margin-top: 0; }
+
+.food__history-sentinel { height: 1px; }
+
 .food__history-remove {
   background: transparent;
   border: 1px solid var(--border-control);

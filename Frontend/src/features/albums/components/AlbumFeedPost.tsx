@@ -173,7 +173,6 @@ export function AlbumFeedPost({ album, canDelete }: Props) {
       ) : null}
 
       <div className="album-feed-post__body">
-        <h2><Link to={albumPath}>{album.name}</Link></h2>
         {album.caption ? (
           <>
             <motion.div
