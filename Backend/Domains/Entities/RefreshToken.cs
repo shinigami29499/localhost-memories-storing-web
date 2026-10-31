@@ -3,6 +3,7 @@ namespace Domains.Entities;
 public class RefreshToken : AuditableEntity
 {
     public Guid UserId { get; set; }
+    public Guid? SessionId { get; set; }
     public User User { get; set; } = null!;
 
     // Only the SHA-256 hash is persisted, never the raw token.

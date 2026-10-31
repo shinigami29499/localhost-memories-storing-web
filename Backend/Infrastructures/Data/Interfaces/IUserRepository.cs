@@ -9,6 +9,7 @@ public interface IUserRepository
     Task<IReadOnlyList<UserMentionCandidateDto>> FindMentionCandidatesAsync(
         string usernamePrefix, int limit, CancellationToken cancellationToken = default);
     Task<User?> FindUserAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<User>> FindOnlineUsersAsync(DateTime sinceUtc, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<RefreshToken>> FindActiveRefreshTokensAsync(
         Guid userId, DateTime utcNow, CancellationToken cancellationToken = default);
 }

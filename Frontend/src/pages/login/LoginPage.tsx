@@ -24,7 +24,7 @@ export function LoginPage() {
     try {
       const session = await authService.login(username.trim(), password);
       useAuthStore.getState().setSession(session);
-      showToast.success(t("Login as {username} successfully", { username: session.user.username }));
+      showToast.success(t("Login as {username} successfully", { username: session.user.username }), { highlight: [session.user.username] });
       navigate("/", { replace: true });
     } catch (err) {
       showToast.error(t("Authentication failed"), err instanceof Error ? err.message : t("Login failed."));

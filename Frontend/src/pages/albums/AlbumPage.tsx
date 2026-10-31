@@ -4,7 +4,9 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import * as Tabs from "@radix-ui/react-tabs";
 import { ScrollProgress, ScrollProgressContainer, ScrollProgressProvider } from "@animate-ui/react/primitives/scroll-progress";
 import { AnimateIcon } from "@/components/animate-ui/icons/icon";
-import { Globe } from "@/components/animate-ui/icons/globe";
+import { ExternalLink } from "@/components/animate-ui/icons/external-link";
+import { Check } from "@/components/animate-ui/icons/check";
+import { CopyButton, CopyButtonIcon } from "@animate-ui/react/primitives/buttons/copy";
 import { PencilLine } from "@/components/animate-ui/icons/pencil-line";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
 import { X } from "@/components/animate-ui/icons/x";
@@ -45,6 +47,7 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
   const pageTransition = readPageTransitionEffect();
   const navigate = useNavigate();
   const me = useAuthStore((s) => s.user);
+  const [copied, setCopied] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editingCaption, setEditingCaption] = useState(false);
   const [captionDraft, setCaptionDraft] = useState("");
@@ -93,6 +96,12 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
     setPreviewMediaId(null);
   }, [mediaKind]);
 
+  useEffect(() => {
+    if (!copied) return;
+    const timeout = window.setTimeout(() => setCopied(false), 3000);
+    return () => window.clearTimeout(timeout);
+  }, [copied]);
+
   const removeMedia = async (mediaId: string) => {
     if (!albumId || removingMediaId) return;
     setRemovingMediaId(mediaId);
@@ -124,7 +133,8 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
   const copyLink = async () => {
     try {
       await navigator.clipboard.writeText(window.location.href);
-      showToast.success(t("Link copied"));
+      setCopied(true);
+      showToast.success(t("Link copy success"));
     } catch {
       showToast.error(t("Could not copy the link."));
     }
@@ -193,10 +203,23 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
               {isOwner || data.isPublic ? (
                 <div className="album-hero__actions">
                   {data.isPublic ? (
-                    <Button type="button" variant="secondary" onClick={() => void copyLink()}>
-                      <Globe size={16} aria-hidden="true" />
-                      {t("Copy share link")}
-                    </Button>
+                    <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
+                      <CopyButton
+                        type="button"
+                        content={window.location.href}
+                        copied={copied}
+                        className="btn btn--secondary album-hero__icon-button"
+                        aria-label={t("Copy share link")}
+                        title={t("Copy share link")}
+                        onClick={(event) => { event.preventDefault(); void copyLink(); }}
+                      >
+                        <CopyButtonIcon
+                          aria-hidden="true"
+                          icon={<ExternalLink size={18} />}
+                          copiedIcon={<Check size={18} />}
+                        />
+                      </CopyButton>
+                    </AnimateIcon>
                   ) : null}
                   {data.isPublic && !isOwner ? (
                     <Button

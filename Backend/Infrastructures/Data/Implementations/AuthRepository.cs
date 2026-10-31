@@ -6,6 +6,17 @@ namespace Infrastructures.Data.Implementations;
 
 public sealed class AuthRepository(ApplicationDbContext db) : IAuthRepository
 {
+    public async Task<User?> LockUserAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var user = await db.Users.FromSqlInterpolated($"SELECT * FROM users WHERE id = {userId} FOR UPDATE")
+            .FirstOrDefaultAsync(cancellationToken);
+        if (user is not null) await db.Entry(user).ReloadAsync(cancellationToken);
+        return user;
+    }
+
+    public Task ReloadTokenAsync(RefreshToken token, CancellationToken cancellationToken = default)
+        => db.Entry(token).ReloadAsync(cancellationToken);
+
     // Username comparisons are case-insensitive in PostgreSQL via lower(), matching the
     // trimmed input supplied by the application layer.
     public Task<bool> UsernameExistsAsync(string username, CancellationToken cancellationToken = default)

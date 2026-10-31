@@ -2,6 +2,7 @@ import { ApiError } from "../../../services/api";
 import { showToast } from "../../../components/ui";
 import { showBrowserNotification } from "../../notifications/browserNotifications";
 import { useUploadNotificationStore } from "../../notifications/uploadNotificationStore";
+import { uploadMessage } from "../../notifications/uploadMessage";
 import { getUploadFile, removeUploadFile } from "./uploadFileStore";
 import { uploadService } from "./uploadService";
 import type { UploadBatch, UploadItem } from "../types";
@@ -83,15 +84,17 @@ export function startUploadRuntime(
       cancelled: batch.cancelledFiles,
     });
     if (batch.status === "Completed") {
+      const images = batch.items.filter((item) => item.status === "Success" && item.contentType.startsWith("image/")).length;
+      const videos = batch.items.filter((item) => item.status === "Success" && item.contentType.startsWith("video/")).length;
+      const title = uploadMessage(translate, images, videos);
       void showBrowserNotification(
-        translate("Upload batch completed"),
+        title,
         summary,
       ).catch((error: unknown) => {
         console.error("Could not show upload notification.", error);
       });
-      if (window.location.pathname === "/") {
-        showToast.success(translate("Upload batch completed"), summary);
-      } else {
+      showToast.success(title, summary);
+      if (window.location.pathname !== "/") {
         useUploadNotificationStore.getState().add(userId, batch);
       }
     } else if (batch.status === "Cancelled") {

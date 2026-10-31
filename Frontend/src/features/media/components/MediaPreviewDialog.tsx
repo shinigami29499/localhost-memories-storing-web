@@ -1,5 +1,6 @@
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
-import { useInView } from "motion/react";
+import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { animate, useInView, type TargetAndTransition } from "motion/react";
+import { flushSync } from "react-dom";
 import { CopyButton, CopyButtonIcon } from "@animate-ui/react/primitives/buttons/copy";
 import useEmblaCarousel, {
   CarouselCounter,
@@ -23,6 +24,8 @@ import { mediaPreviewUrl, mediaUrl } from "../../../utils/media";
 import type { MediaFile } from "../types";
 import { DownloadButton } from "../../downloads/components/DownloadButton";
 import { MediaFavoriteButton } from "./MediaFavoriteButton";
+import { mediaViewerTransition } from "../../../components/layout/PageTransition";
+import { readPageTransitionEffect } from "../../../utils/pageTransition";
 
 const SaveToAlbumDialog = lazy(() =>
   import("../../albums/components/SaveToAlbumDialog").then((module) => ({ default: module.SaveToAlbumDialog })),
@@ -134,6 +137,8 @@ export function MediaPreviewDialog({
   const navigate = useNavigate();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const closingRef = useRef(false);
+  const entranceRef = useRef<TargetAndTransition | null>(null);
   const albumButtonRef = useRef<HTMLButtonElement>(null);
   const lastViewedId = useRef(initialMediaId);
   const [initialIndex] = useState(() => {
@@ -186,12 +191,17 @@ export function MediaPreviewDialog({
     }
   }, [hasMore, selectedIndex, media.length, loadingMore, loadMoreError, onLoadMore]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
     dialog.showModal();
     closeRef.current?.focus();
-    return () => dialog.close();
+    const { enter } = mediaViewerTransition(dialog, readPageTransitionEffect(), window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+    entranceRef.current = enter;
+    const { transition, ...target } = enter;
+    const animation = animate(dialog, target, transition);
+    dialog.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 250, pseudoElement: "::backdrop" });
+    return () => { animation.stop(); dialog.close(); };
   }, []);
 
   useEffect(() => {
@@ -214,7 +224,17 @@ export function MediaPreviewDialog({
 
   if (media.length === 0) return null;
 
-  const close = () => onClose(lastViewedId.current);
+  const close = async () => {
+    const dialog = dialogRef.current;
+    if (!dialog || closingRef.current) return;
+    closingRef.current = true;
+    const { transition, ...target } = entranceRef.current ?? mediaViewerTransition(dialog, readPageTransitionEffect(), false).enter;
+    const reversed = Object.fromEntries(Object.entries(target).map(([key, value]) => [key, Array.isArray(value) ? [...value].reverse() : value]));
+    const duration = typeof transition?.duration === "number" ? transition.duration * 1000 : 300;
+    dialog.animate([{ opacity: 1 }, { opacity: 0 }], { duration, fill: "forwards", pseudoElement: "::backdrop" });
+    await animate(dialog, reversed, transition);
+    flushSync(() => onClose(lastViewedId.current));
+  };
   const toggleFavorite = () => {
     if (current && !favoriteBusy) onToggleFavorite?.(current.id, current.isFavorited);
   };
@@ -275,6 +295,7 @@ export function MediaPreviewDialog({
         <DownloadButton
           media={[current]}
           includeDeleted={Boolean(trashActions)}
+          beforeNavigate={close}
           className="viewer-icon-btn media-preview-dialog__action"
         />
         {trashActions ? <>

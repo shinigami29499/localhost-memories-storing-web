@@ -553,6 +553,11 @@
   justify-content: center;
 }
 
+.admin-users__avatar.user-avatar--fallback {
+  background-color: var(--user-avatar-color);
+  color: #fff;
+}
+
 .admin-users__username {
   color: var(--text-strong);
   font-weight: 600;

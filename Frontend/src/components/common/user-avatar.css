@@ -3,5 +3,32 @@
   width: 100%;
   height: 100%;
   border-radius: inherit;
-  zoom: 1;
+  overflow: hidden;
+}
+
+.user-avatar--fallback {
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background-color: var(--user-avatar-color, #ff1744);
+  font-size: 0.42em;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.user-avatar--fallback[style*="--user-avatar-color-index"] {
+  --user-avatar-color: #ff1744;
+}
+
+.user-avatar--fallback[style*="--user-avatar-color-index: 1"] { --user-avatar-color: #ff9d00; }
+.user-avatar--fallback[style*="--user-avatar-color-index: 2"] { --user-avatar-color: #00bd82; }
+.user-avatar--fallback[style*="--user-avatar-color-index: 3"] { --user-avatar-color: #08a9e8; }
+.user-avatar--fallback[style*="--user-avatar-color-index: 4"] { --user-avatar-color: #8c4dff; }
+.user-avatar--fallback[style*="--user-avatar-color-index: 5"] { --user-avatar-color: #df20e9; }
+
+.user-avatar__image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
 }

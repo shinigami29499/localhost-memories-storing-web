@@ -20,6 +20,7 @@ import { Spinner } from "./components/ui/Status";
 import { ThemeProvider } from "./context/ThemeContext";
 import { LocaleProvider } from "./context/LocaleContext";
 import { ToastProvider } from "./components/ui";
+import { SessionReplacedDialog } from "./features/auth/SessionReplacedDialog";
 
 const GalleryPage = lazy(() => import("./pages/gallery/GalleryPage").then((module) => ({ default: module.GalleryPage })));
 const TrashPage = lazy(() => import("./pages/gallery/TrashPage").then((module) => ({ default: module.TrashPage })));
@@ -143,6 +144,7 @@ export function App() {
                 <Click variant={clickAnimation} color="var(--accent-strong)" size={100} duration={400} />
               ) : null}
               <RouterProvider router={router} future={{ v7_startTransition: true }} />
+              <SessionReplacedDialog />
             </ToastProvider>
           </AnimateUIProvider>
         </QueryClientProvider>

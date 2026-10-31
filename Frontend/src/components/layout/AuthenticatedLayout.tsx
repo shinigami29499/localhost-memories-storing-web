@@ -10,6 +10,7 @@ import { DownloadRuntime } from "../../features/downloads/components/DownloadRun
 import { useLocale } from "../../context/LocaleContext";
 import { PageTransition } from "./PageTransition";
 import { readPageTransitionEffect } from "../../utils/pageTransition";
+import { PresenceRuntime } from "../../features/users/components/PresenceRuntime";
 
 export const MOBILE_QUERY = "(max-width: 640px)";
 
@@ -84,6 +85,7 @@ export function AuthenticatedLayout() {
         <div className="sidebar-backdrop" aria-hidden="true" onClick={() => setSidebarCollapsed(true)} />
       ) : null}
       <div ref={mainRef} className="app-shell__main" inert={drawerOpen}>
+        <PresenceRuntime />
         <UploadRuntime />
         <DownloadRuntime />
         <header className="app-topbar">

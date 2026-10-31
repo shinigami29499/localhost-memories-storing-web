@@ -5,3 +5,4 @@
 @media (max-width: 600px) { .download-history-item { grid-template-columns: 1fr; gap: 12px; } }
 
 .download-page__gallery-link { text-decoration: none; }
+.download-page__batch { border-radius: var(--radius); }

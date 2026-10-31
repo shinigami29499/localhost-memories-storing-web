@@ -28,6 +28,7 @@ export function RegisterPage() {
     try {
       // Accounts start pending approval; the admin approves before the first sign in.
       await authService.register(username.trim(), password);
+      showToast.success(t("Account created successfully"));
       setCreated(true);
     } catch (err) {
       showToast.error(err instanceof Error ? err.message : t("Registration failed."));

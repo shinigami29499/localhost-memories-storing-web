@@ -73,6 +73,8 @@ public class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Exception
         };
         if (errors is not null)
             payload["errors"] = errors;
+        if (exception is SessionReplacedException)
+            payload["code"] = "session_replaced";
 
         context.Response.StatusCode = status;
         context.Response.ContentType = "application/problem+json";

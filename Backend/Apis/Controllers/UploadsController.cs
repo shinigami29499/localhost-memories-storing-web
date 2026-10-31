@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Apis.Authorization;
 using Apis.Interfaces;
 using Apis.Realtime;
 using Services.Interfaces;
+using Services.Core;
 using Services.Models.Uploads;
 using Services.Requests.Uploads;
 using Services.Responses.Uploads;
@@ -131,6 +133,23 @@ public sealed class UploadsController(
         {
             // Storage failures can persist a failed item even when the request is aborted.
             await notificationsHub.NotifyUploadsChangedAsync(ownerId, logger, CancellationToken.None);
+        }
+        try
+        {
+            var batch = await _uploadService.GetBatchAsync(ownerId, false, batchId, CancellationToken.None);
+            if (batch.Status == "Completed")
+            {
+                var images = batch.Items.Count(item => item.Status == "Success" && item.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase));
+                var videos = batch.Items.Count(item => item.Status == "Success" && item.ContentType.StartsWith("video/", StringComparison.OrdinalIgnoreCase));
+                await notificationsHub.Clients.All.SendAsync("UploadBatchCompleted", new
+                {
+                    batchId, ownerId, username = User.FindFirstValue(Constants.Auth.UsernameClaim) ?? "User", images, videos, createdAt = batch.CompletedAt,
+                }, CancellationToken.None);
+            }
+        }
+        catch (Exception exception)
+        {
+            logger.LogWarning(exception, "Could not notify users about completed upload batch {BatchId}", batchId);
         }
         return Ok(result.Item);
     }

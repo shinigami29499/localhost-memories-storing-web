@@ -7,6 +7,8 @@ using Services.Models.Media;
 using Services.Requests.Collections;
 using Services.Requests.Media;
 using Services.Responses.Media;
+using Apis.Realtime;
+using Microsoft.AspNetCore.SignalR;
 
 namespace Apis.Controllers;
 
@@ -16,7 +18,9 @@ namespace Apis.Controllers;
 [Authorize]
 public class CollectionsController(
     ICollectionService collectionService,
-    ICurrentUserContext currentUser) : ControllerBase
+    ICurrentUserContext currentUser,
+    IHubContext<NotificationsHub> notificationsHub,
+    ILogger<CollectionsController> logger) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<CollectionDto>>> GetCollectionsAsync(
@@ -40,14 +44,39 @@ public class CollectionsController(
     {
         var created = await collectionService.CreateCollectionAsync(
             currentUser.RequireUserId(), request, cancellationToken);
+        if (created.IsPublic)
+            await NotifyPublicAlbumAsync(created, true);
         return Created($"/api/library/album/{created.Id}", created);
     }
 
     [HttpPut("{collectionId:guid}")]
     public async Task<ActionResult<CollectionDto>> UpdateCollectionAsync(
         Guid collectionId, UpdateCollectionRequest request, CancellationToken cancellationToken)
-        => Ok(await collectionService.UpdateCollectionAsync(
-            collectionId, currentUser.RequireUserId(), request, cancellationToken));
+    {
+        var userId = currentUser.RequireUserId();
+        var previous = await collectionService.GetCollectionAsync(collectionId, userId, cancellationToken);
+        var updated = await collectionService.UpdateCollectionAsync(collectionId, userId, request, cancellationToken);
+        if (!previous.IsPublic && updated.IsPublic)
+            await NotifyPublicAlbumAsync(updated, false);
+        return Ok(updated);
+    }
+
+    private async Task NotifyPublicAlbumAsync(CollectionDto album, bool created)
+    {
+        try
+        {
+            await notificationsHub.Clients.All.SendAsync("PublicAlbumPublished", new
+            {
+                eventId = Guid.NewGuid(), albumId = album.Id, albumName = album.Name,
+                ownerId = album.Owner.Id, username = album.Owner.Username, created,
+                createdAt = DateTime.UtcNow,
+            });
+        }
+        catch (Exception exception)
+        {
+            logger.LogWarning(exception, "Could not notify users about public album {AlbumId}", album.Id);
+        }
+    }
 
     [HttpPut("{collectionId:guid}/caption")]
     public async Task<ActionResult<CollectionDto>> UpdateCollectionCaptionAsync(

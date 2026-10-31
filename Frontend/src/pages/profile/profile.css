@@ -30,9 +30,9 @@
 
 .profile-page__card {
   padding: 20px;
-  border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--surface);
+  box-shadow: var(--shadow-popover);
 }
 
 .profile-page__identity {
@@ -100,3 +100,18 @@
     gap: 16px;
   }
 }
+
+.profile-password { margin-top: 20px; }
+.profile-password h2 { margin: 0; font-size: 1.1rem; color: var(--text-strong); }
+.profile-password form { display: grid; gap: 8px; max-width: 400px; }
+.profile-password label { margin-top: 8px; color: var(--text-strong); }
+.profile-password p { margin: 0; color: var(--text-muted); font-size: 0.875rem; }
+.profile-password button[type="submit"] { justify-self: start; margin-top: 12px; }
+
+.profile-password__toggle { display: flex; align-items: center; justify-content: space-between; gap: 16px; width: 100%; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.profile-password__toggle:focus-visible { outline: 2px solid var(--text-strong); outline-offset: 4px; border-radius: 4px; }
+.profile-password__toggle svg { transition: transform 0.2s ease; }
+.profile-password__toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
+.profile-password__panel { overflow: hidden; }
+.profile-password__panel form { padding-top: 20px; }
+@media (prefers-reduced-motion: reduce) { .profile-password__toggle svg { transition: none; } }

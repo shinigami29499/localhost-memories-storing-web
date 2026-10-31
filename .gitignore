@@ -1,6 +1,8 @@
 # .NET build outputs
 [Bb]in/
 [Oo]bj/
+.tmp/
+.tmp-buildDebug/
 .vs/
 *.user
 *.suo

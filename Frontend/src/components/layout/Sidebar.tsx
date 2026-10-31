@@ -20,6 +20,7 @@ import { Utensils } from "@/components/animate-ui/icons/utensils";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
 import { authService } from "../../features/auth";
+import { userService } from "../../features/users/services/userService";
 import { showToast } from "../ui";
 import { Brand } from "./Brand";
 import { Container, Gap, Highlight } from "@animate-ui/react/primitives/sidebar";
@@ -100,6 +101,7 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
   const logout = async () => {
     const { accessToken, refreshToken, clear } = useAuthStore.getState();
     try {
+      if (accessToken) await userService.offline();
       if (accessToken && refreshToken) {
         await authService.logout(refreshToken, { Authorization: `Bearer ${accessToken}` });
       }

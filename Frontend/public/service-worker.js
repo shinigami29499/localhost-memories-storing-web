@@ -51,10 +51,10 @@ self.addEventListener("notificationclick", (event) => {
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
       for (const client of clients) {
         if ("focus" in client && "navigate" in client) {
-          return client.navigate("/sync/upload").then(() => client.focus());
+          return client.navigate(url).then(() => client.focus());
         }
       }
-      return self.clients.openWindow("/sync/upload");
+      return self.clients.openWindow(url);
     }),
   );
 });

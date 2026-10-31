@@ -21,6 +21,7 @@ public class TokenService(IOptions<JwtOptions> options) : ITokenService
         var claims = new List<Claim>
         {
             new(Constants.Auth.SubClaim, user.Id.ToString()),
+            new(Constants.Auth.SessionClaim, user.SessionId?.ToString() ?? ""),
             new(Constants.Auth.UsernameClaim, user.Username),
             new(Constants.Auth.RoleClaim, user.Role == Domains.Enums.UserRole.Admin
                 ? Constants.Roles.Admin

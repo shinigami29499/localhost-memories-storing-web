@@ -58,7 +58,7 @@ export function BulkSaveToAlbumDialog({ mediaIds, onSaved, onClose }: Props) {
       showToast.error(t("{failed} of {total} media items could not be saved.", { failed, total: selectedMediaIds.length }));
       return false;
     }
-    showToast.success(t("Successfully saved to album {name}", { name: albumName }), { undo });
+    showToast.success(t("Successfully saved to album {name}", { name: albumName }), { undo, highlight: [albumName] });
     onSaved?.();
     return true;
   };
@@ -84,7 +84,7 @@ export function BulkSaveToAlbumDialog({ mediaIds, onSaved, onClose }: Props) {
       } else if (remove) {
         showToast.success(t("Removed from album"), { undo });
       } else {
-        showToast.success(t("Successfully saved to album {name}", { name: album.name }), { undo });
+        showToast.success(t("Successfully saved to album {name}", { name: album.name }), { undo, highlight: [album.name] });
         onSaved?.();
       }
     } catch (error) {

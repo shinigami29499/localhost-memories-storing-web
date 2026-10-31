@@ -524,6 +524,23 @@
   padding-top: 10px;
 }
 
+@media (min-width: 641px) {
+  .admin-users__table {
+    table-layout: fixed;
+  }
+
+  .admin-users__table th:nth-child(4) {
+    width: 180px;
+  }
+
+  .admin-users__table th:nth-child(2),
+  .admin-users__table th:nth-child(3),
+  .admin-users__table td:nth-child(2),
+  .admin-users__table td:nth-child(3) {
+    text-align: center;
+  }
+}
+
 .admin-users .admin-table-wrap {
   margin: 0 auto;
   max-width: 1600px;
@@ -544,6 +561,10 @@
   min-width: 0;
 }
 
+.admin-users__expand {
+  display: none;
+}
+
 .admin-users__avatar {
   align-items: center;
   background: color-mix(in srgb, var(--accent-soft) 18%, var(--surface-raised));
@@ -558,6 +579,11 @@
   justify-content: center;
 }
 
+.admin-users__avatar.user-avatar--fallback {
+  background-color: var(--user-avatar-color);
+  color: #fff;
+}
+
 .admin-users__username {
   color: var(--text-strong);
   font-weight: 600;
@@ -565,13 +591,22 @@
 }
 
 .admin-users__role {
+  align-items: center;
   background: var(--surface-raised);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   color: var(--text);
-  display: inline-block;
+  display: inline-flex;
   font-size: 0.75rem;
   padding: 2px 6px;
+}
+
+.admin-users__role--button {
+  cursor: pointer;
+}
+
+.admin-users__role--button:hover:not(:disabled) {
+  background: var(--surface-hover);
 }
 
 .admin-users .admin-users__table td {
@@ -1145,44 +1180,64 @@
     background: var(--surface-raised);
   }
 
-  .admin-users__table td:first-child {
-    width: 100%;
+  .admin-users__table .admin-users__identity {
+    justify-content: flex-start;
   }
 
-  .admin-users__table .admin-users__identity {
-    justify-content: flex-end;
+  .admin-users .admin-table-wrap {
+    overflow-x: visible;
+  }
+
+  .admin-users__table {
+    min-width: 0;
+  }
+
+  .admin-users__table thead {
+    display: block;
+    position: static;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+    clip: auto;
   }
 
   .admin-users__table tr {
     padding: 4px 10px;
-  }
-
-  .admin-users__table tr {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    column-gap: 12px;
+    grid-auto-flow: column;
+    grid-template-columns: minmax(0, 1fr) 64px 48px;
+    align-items: center;
+    gap: 10px;
+    background: transparent;
   }
 
-  .admin-users__table td:first-child {
-    grid-column: 1 / -1;
+  .admin-users__table thead tr {
+    border-color: transparent;
+    border-radius: 0;
+    background: transparent;
   }
 
-  .admin-users__table td:nth-child(2),
-  .admin-users__table td:nth-child(4) {
-    grid-column: 1;
+  .admin-users__table th {
+    padding: 4px 0;
   }
 
-  .admin-users__table td:nth-child(3),
-  .admin-users__table td:nth-child(5) {
-    grid-column: 2;
+  .admin-users__table th:nth-child(2),
+  .admin-users__table th:nth-child(3) {
+    text-align: center;
   }
+
+  .admin-users__table th:nth-child(4),
+  .admin-users__table th:nth-child(5),
+  .admin-users__table th:nth-child(6) {
+    display: none;
+  }
+
+  .admin-users__table th:nth-child(1) { grid-column: 1; grid-row: 1; }
+  .admin-users__table th:nth-child(3) { grid-column: 2; grid-row: 1; }
+  .admin-users__table th:nth-child(2) { grid-column: 3; grid-row: 1; }
 
   .admin-users__table tr + tr {
     margin-top: 8px;
-  }
-
-  .admin-users__table td {
-    padding: 6px 0;
   }
 
   .admin-users > .empty-state {
@@ -1202,8 +1257,94 @@
     overflow-wrap: anywhere;
   }
 
-  .admin-users__table td {
-    padding: 6px 0;
+  .admin-users .admin-users__table td {
+    width: auto;
+    padding: 4px 0;
+    border: 0;
+    white-space: nowrap;
+  }
+
+  .admin-users__table .admin-users__username {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .admin-users .admin-users__table td::before {
+    content: none;
+  }
+
+  .admin-users .admin-users__table td:nth-child(4),
+  .admin-users .admin-users__table td:nth-child(5),
+  .admin-users .admin-users__table .admin-table__actions {
+    display: none;
+  }
+
+  .admin-users .admin-users__table .admin-users__row--expanded td:nth-child(4),
+  .admin-users .admin-users__table .admin-users__row--expanded td:nth-child(5) {
+    display: flex;
+    grid-column: 1 / -1;
+  }
+
+  .admin-users .admin-users__table .admin-users__row--expanded td:nth-child(4) {
+    grid-row: 2;
+    border-top: 1px solid var(--border);
+    padding-top: 10px;
+  }
+
+  .admin-users .admin-users__table .admin-users__row--expanded td:nth-child(5) {
+    grid-row: 3;
+  }
+
+  .admin-users .admin-users__table .admin-users__row--expanded td:nth-child(4)::before,
+  .admin-users .admin-users__table .admin-users__row--expanded td:nth-child(5)::before {
+    content: attr(data-label);
+  }
+
+  .admin-users .admin-users__table .admin-users__row--expanded .admin-table__actions:not(:empty) {
+    display: flex;
+    grid-column: 1 / -1;
+    grid-row: 4;
+    justify-content: flex-end;
+  }
+
+  .admin-users__table td:nth-child(1),
+  .admin-users__table td:nth-child(3),
+  .admin-users__table td:nth-child(2) {
+    grid-row: 1;
+  }
+
+  .admin-users__table td:nth-child(1) { grid-column: 1; }
+  .admin-users__table td:nth-child(3) { grid-column: 2; }
+  .admin-users__table td:nth-child(2) { grid-column: 3; }
+
+  .admin-users__identity--desktop {
+    display: none;
+  }
+
+  .admin-users__expand {
+    display: flex;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .admin-users .admin-users__table td:nth-child(2),
+  .admin-users .admin-users__table td:nth-child(3) {
+    justify-content: center;
+  }
+
+  .admin-users__table .user-presence__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
   }
 
   .admin-users__table .admin-table__actions {
@@ -1237,20 +1378,39 @@
 
 }
 
-@media (max-width: 380px) {
-  .admin-users__table tr {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .admin-users__table td:first-child,
-  .admin-users__table td:nth-child(n + 2) {
-    grid-column: 1;
-  }
-}
-
 @media (pointer: coarse) {
   .admin-icon-btn {
     width: 40px;
     height: 40px;
   }
+}
+.user-presence {
+  align-items: center;
+  color: #f87171;
+  display: inline-flex;
+  gap: 7px;
+  white-space: nowrap;
+}
+
+.user-presence > span:first-child {
+  background: #dc2626;
+  border-radius: 50%;
+  height: 8px;
+  width: 8px;
+}
+
+.user-presence--online {
+  color: #4ade80;
+}
+
+.user-presence--online > span:first-child {
+  background: #16a34a;
+}
+
+.user-presence--pending > span:first-child {
+  background: #f59e0b;
+}
+
+.user-presence--disabled > span:first-child {
+  background: #9ca3af;
 }

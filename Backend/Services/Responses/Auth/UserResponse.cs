@@ -6,4 +6,5 @@ public record UserResponse(
     string Role,
     string Status,
     DateTime CreatedAt,
-    string? AvatarSeed = null);
+    string? AvatarSeed = null,
+    DateTime? LastSeenAt = null);

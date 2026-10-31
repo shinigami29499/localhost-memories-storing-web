@@ -7,6 +7,7 @@ export interface AuthUser {
   role: string;
   status: AccountStatus;
   createdAt: string;
+  lastSeenAt?: string | null;
 }
 
 export interface AuthSession {

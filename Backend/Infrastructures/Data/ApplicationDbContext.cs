@@ -41,6 +41,7 @@ public class ApplicationDbContext(
             entity.Property(u => u.Username).HasMaxLength(64).IsRequired();
             entity.Property(u => u.Password).HasMaxLength(128).IsRequired();
             entity.Property(u => u.AvatarSeed).HasMaxLength(128);
+            entity.HasIndex(u => u.LastSeenAt);
 
             entity.HasQueryFilter(u => u.DeletedAt == null);
         });

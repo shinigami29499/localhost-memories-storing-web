@@ -27,5 +27,6 @@ internal static class AuthMappings
             _ => "active",
         },
         user.CreatedAt,
-        user.AvatarSeed);
+        user.AvatarSeed,
+        user.LastSeenAt);
 }

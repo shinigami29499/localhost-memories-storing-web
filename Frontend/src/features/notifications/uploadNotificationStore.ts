@@ -8,11 +8,15 @@ export interface UploadNotification {
   notificationType: "UploadCompleted";
   createdAt: string;
   readAt: string | null;
+  username?: string;
+  images?: number;
+  videos?: number;
 }
 
 interface UploadNotificationState {
   items: UploadNotification[];
   add: (userId: string, batch: UploadBatch) => void;
+  addRemote: (userId: string, event: { batchId: string; ownerId: string; username: string; images: number; videos: number; createdAt: string }) => void;
   markRead: (userId: string, id?: string) => void;
 }
 
@@ -27,6 +31,8 @@ export const useUploadNotificationStore = create<UploadNotificationState>()(
           id,
           userId,
           notificationType: "UploadCompleted",
+          images: batch.items.filter((item) => item.status === "Success" && item.contentType.startsWith("image/")).length,
+          videos: batch.items.filter((item) => item.status === "Success" && item.contentType.startsWith("video/")).length,
           createdAt: batch.completedAt ?? new Date().toISOString(),
           readAt: null,
         };
@@ -37,6 +43,11 @@ export const useUploadNotificationStore = create<UploadNotificationState>()(
             ...state.items.filter((item) => item.userId !== userId),
           ],
         };
+      }),
+      addRemote: (userId, event) => set((state) => {
+        const id = `upload:${event.ownerId}:${event.batchId}`;
+        if (state.items.some((item) => item.id === id && item.userId === userId)) return state;
+        return { items: [{ id, userId, notificationType: "UploadCompleted", createdAt: event.createdAt, readAt: null, username: event.username, images: event.images, videos: event.videos }, ...state.items.filter((item) => item.userId === userId).slice(0, 49), ...state.items.filter((item) => item.userId !== userId)] };
       }),
       markRead: (userId, id) => set((state) => ({
         items: state.items.map((item) =>

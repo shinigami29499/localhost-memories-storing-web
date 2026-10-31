@@ -13,7 +13,7 @@ export async function requestBrowserNotificationPermission(): Promise<Notificati
   return Notification.requestPermission();
 }
 
-export async function showBrowserNotification(title: string, body: string): Promise<void> {
+export async function showBrowserNotification(title: string, body: string, url = "/sync/upload"): Promise<void> {
   if (
     !areBrowserNotificationsEnabled()
     || !("Notification" in window)
@@ -21,7 +21,7 @@ export async function showBrowserNotification(title: string, body: string): Prom
     || document.visibilityState === "visible"
   ) return;
 
-  const options = { body, icon: "/pwa-icon-192.png" };
+  const options = { body, icon: "/pwa-icon-192.png", data: { url } };
   const registration = "serviceWorker" in navigator
     ? await navigator.serviceWorker.getRegistration()
     : undefined;
@@ -34,7 +34,7 @@ export async function showBrowserNotification(title: string, body: string): Prom
   const notification = new Notification(title, options);
   notification.onclick = () => {
     window.focus();
-    window.location.assign("/sync/upload");
+    window.location.assign(url);
     notification.close();
   };
 }

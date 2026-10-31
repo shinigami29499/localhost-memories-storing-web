@@ -1,5 +1,6 @@
 import { useAuthStore } from "../store/authStore";
 import type { AuthSession } from "../features/auth/types";
+import { endReplacedSession } from "../features/auth/sessionReplacement";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
@@ -64,18 +65,21 @@ export async function downloadBlob(
 
 async function requestResponse(path: string, options: RequestOptions): Promise<Response> {
   const { skipAuthRefresh, headers: extraHeaders, body, ...rest } = options;
+  const requestToken = useAuthStore.getState().accessToken;
 
   let response = await performRequest(path, extraHeaders, rest, body);
 
   if (response.status === 401 && !skipAuthRefresh) {
-    const refreshed = await refreshSession();
+    const problem = await response.clone().json().catch(() => null) as { code?: string } | null;
+    if (problem?.code === "session_replaced") endReplacedSession(requestToken);
+    const refreshed = problem?.code !== "session_replaced" && requestToken === useAuthStore.getState().accessToken && await refreshSession();
     if (refreshed) {
       response = await performRequest(path, extraHeaders, rest, body);
     }
   }
 
   if (!response.ok) {
-    if (response.status === 401) {
+    if (response.status === 401 && !skipAuthRefresh && requestToken === useAuthStore.getState().accessToken) {
       useAuthStore.getState().clear();
     }
     throw await toError(response);
@@ -114,6 +118,7 @@ export function uploadWithProgress<T>(
       }
 
       xhr = new XMLHttpRequest();
+      const requestToken = useAuthStore.getState().accessToken;
       xhr.open("POST", `${API_URL}${path}`);
       for (const [name, value] of Object.entries(sessionHeader())) {
         xhr.setRequestHeader(name, value);
@@ -125,11 +130,18 @@ export function uploadWithProgress<T>(
       xhr.onabort = () => finish(() => reject(new DOMException("Upload cancelled.", "AbortError")));
       xhr.onload = async () => {
         if (xhr?.status === 401 && !retried) {
+          try {
+            if ((JSON.parse(xhr.responseText) as { code?: string }).code === "session_replaced") {
+              endReplacedSession(requestToken);
+              finish(() => reject(toXhrError(xhr!)));
+              return;
+            }
+          } catch { /* Ignore non-JSON responses. */ }
           if (await refreshSession()) {
             await send(true);
             return;
           }
-          useAuthStore.getState().clear();
+          if (requestToken === useAuthStore.getState().accessToken) useAuthStore.getState().clear();
         }
 
         if (xhr!.status < 200 || xhr!.status >= 300) {
@@ -250,8 +262,13 @@ async function doRefresh(): Promise<boolean> {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refreshToken: current.refreshToken }),
     });
-    if (!response.ok) return false;
+    if (!response.ok) {
+      const problem = await response.json().catch(() => null) as { code?: string } | null;
+      if (problem?.code === "session_replaced") endReplacedSession(current.accessToken);
+      return false;
+    }
     const session = (await response.json()) as AuthSession;
+    if (useAuthStore.getState().refreshToken !== current.refreshToken) return false;
     current.setSession(session);
     return true;
   } catch {

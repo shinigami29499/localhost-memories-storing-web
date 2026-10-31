@@ -1,6 +1,8 @@
 import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { Download } from "@/components/animate-ui/icons/download";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
+import { useNavigate } from "react-router-dom";
+import { startTransition } from "react";
 import { showToast } from "../../../components/ui/Toast";
 import { useLocale } from "../../../context/LocaleContext";
 import type { MediaFile } from "../../media/types";
@@ -11,10 +13,12 @@ interface Props {
   className: string;
   includeDeleted?: boolean;
   disabled?: boolean;
+  beforeNavigate?: () => Promise<void>;
 }
 
-export function DownloadButton({ media, className, includeDeleted = false, disabled = false }: Props) {
+export function DownloadButton({ media, className, includeDeleted = false, disabled = false, beforeNavigate }: Props) {
   const { t } = useLocale();
+  const navigate = useNavigate();
   const busy = useDownloadStore((state) => state.batches.some((batch) => batch.items.some((item) =>
     (item.status === "Pending" || item.status === "Downloading")
     && media.some((file) => file.id === item.mediaId),
@@ -31,8 +35,11 @@ export function DownloadButton({ media, className, includeDeleted = false, disab
         aria-busy={busy || undefined}
         onClick={() => {
           try {
-            enqueueDownloads(media, includeDeleted);
-            showToast.info(t("Download batch started"), t("Track downloads in Sync > Download."));
+            const batchId = enqueueDownloads(media, includeDeleted);
+            showToast.success(t("Download batch started"), { description: t("Track downloads in Sync > Download."), onClick: () => {
+              if (!beforeNavigate) { navigate("/sync/download", { state: { highlightBatchId: batchId } }); return; }
+              void beforeNavigate().then(() => startTransition(() => navigate("/sync/download", { state: { highlightBatchId: batchId } })));
+            } });
           } catch (error) {
             showToast.error(t("Could not start this download."), error instanceof Error ? error.message : undefined);
           }

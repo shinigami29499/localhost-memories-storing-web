@@ -62,7 +62,23 @@ public class AuthService(
         if (user.Status == AccountStatus.Disabled)
             throw new ForbiddenException("Account is disabled.");
 
-        return await IssueTokenPairAsync(user, cancellationToken);
+        await using var tx = await _unitOfWork.BeginTransactionAsync(cancellationToken);
+        user = await _repository.LockUserAsync(user.Id, cancellationToken)
+            ?? throw new UnauthorizedAccessException("Invalid username or password.");
+        if (user.Status != AccountStatus.Active)
+            throw new ForbiddenException("Account is not active.");
+        var now = DateTime.UtcNow;
+        var activeTokens = await _repository.FindActiveRefreshTokensAsync(user.Id, now, cancellationToken);
+        foreach (var active in activeTokens)
+        {
+            active.RevokedAt = now;
+            active.RevokedReason = Constants.Auth.RevocationReasons.Replaced;
+            active.RevokedBy = user.Id;
+        }
+        user.SessionId = Guid.NewGuid();
+        var session = await IssueTokenPairAsync(user, cancellationToken);
+        await tx.CommitAsync(cancellationToken);
+        return session;
     }
 
     public async Task<AuthResponse> RefreshAsync(string rawRefreshToken, CancellationToken cancellationToken = default)
@@ -71,6 +87,14 @@ public class AuthService(
         var token = await _repository.FindRefreshTokenAsync(tokenHash, cancellationToken);
 
         if (token is null)
+            throw new UnauthorizedAccessException("Invalid refresh token.");
+
+        await using var tx = await _unitOfWork.BeginTransactionAsync(cancellationToken);
+        var user = await _repository.LockUserAsync(token.UserId, cancellationToken);
+        await _repository.ReloadTokenAsync(token, cancellationToken);
+        if (user is not null && (token.SessionId is null || token.SessionId != user.SessionId))
+            throw new SessionReplacedException();
+        if (user is null || user.Status != AccountStatus.Active || token.SessionId is null)
             throw new UnauthorizedAccessException("Invalid refresh token.");
 
         var utcNow = DateTime.UtcNow;
@@ -92,12 +116,9 @@ public class AuthService(
             }
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await tx.CommitAsync(cancellationToken);
             throw new UnauthorizedAccessException("Invalid refresh token.");
         }
-
-        var user = await _repository.FindUserByIdAsync(token.UserId, cancellationToken);
-        if (user is null || user.Status != AccountStatus.Active)
-            throw new UnauthorizedAccessException("Invalid refresh token.");
 
         // Rotation: revoke the presented token and issue a successor.
         var (rawToken, newHash) = _tokenService.CreateRefreshToken();
@@ -112,6 +133,7 @@ public class AuthService(
         _repository.AddRefreshToken(new RefreshToken
         {
             UserId = user.Id,
+            SessionId = user.SessionId,
             TokenHash = newHash,
             ExpiresAt = now.AddDays(_jwtOptions.RefreshTokenDays),
             CreatedAt = now,
@@ -119,6 +141,8 @@ public class AuthService(
         });
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await tx.CommitAsync(cancellationToken);
 
         var (accessToken, accessTokenExpiresAt) = CreateAccessTokenFor(user);
         return new AuthResponse(accessToken, rawToken, accessTokenExpiresAt, mapper.Map(user));
@@ -154,6 +178,7 @@ public class AuthService(
         _repository.AddRefreshToken(new RefreshToken
         {
             UserId = user.Id,
+            SessionId = user.SessionId,
             TokenHash = tokenHash,
             ExpiresAt = utcNow.AddDays(_jwtOptions.RefreshTokenDays),
         });

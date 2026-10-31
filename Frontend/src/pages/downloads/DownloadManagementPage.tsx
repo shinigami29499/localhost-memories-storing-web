@@ -1,5 +1,7 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { motion, useReducedMotion } from "motion/react";
+import { motionTokens } from "@animate-ui/react/utils/motion";
 import { useQuery } from "@tanstack/react-query";
 import { EmptyState, ErrorState, Spinner } from "../../components/ui/Status";
 import { Pagination, DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS } from "../../components/ui/Pagination";
@@ -19,6 +21,10 @@ import "./downloads.css";
 
 export function DownloadManagementPage() {
   const { t } = useLocale();
+  const location = useLocation();
+  const reducedMotion = useReducedMotion();
+  const highlightBatchId = (location.state as { highlightBatchId?: string } | null)?.highlightBatchId;
+  const handledHighlight = useRef<string | null>(null);
   const user = useAuthStore((state) => state.user);
   const isAdmin = user?.role.toLowerCase() === "admin";
   const batches = useDownloadStore((state) => state.batches);
@@ -81,14 +87,22 @@ export function DownloadManagementPage() {
         ? { ...item, status: "Cancelled" as const, loaded: 0 }
         : item),
   }));
-  const allBatches = [...batches, ...savedBatches.filter((batch) => !batches.some((current) => current.id === batch.id)),
+  const mergedBatches = [...batches, ...savedBatches.filter((batch) => !batches.some((current) => current.id === batch.id)),
     ...history.filter((batch) => !batches.some((current) => current.id === batch.id) && !savedBatches.some((saved) => saved.id === batch.id))]
+    .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+  const highlightIndex = mergedBatches.findIndex((batch) => batch.id === highlightBatchId);
+  useEffect(() => {
+    if (!highlightBatchId || highlightIndex < 0 || handledHighlight.current === location.key) return;
+    handledHighlight.current = location.key;
+    setSelectedDate("");
+    setPage(Math.floor(highlightIndex / limit) + 1);
+  }, [highlightBatchId, highlightIndex, limit, location.key]);
+  const allBatches = mergedBatches
     .filter((batch) => {
       if (!selectedDate) return true;
       const date = new Date(batch.createdAt);
       return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}` === selectedDate;
-    })
-    .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+    });
   const totalItems = allBatches.length;
   const visibleBatches = allBatches.slice((page - 1) * limit, page * limit);
   useEffect(() => {
@@ -128,7 +142,9 @@ export function DownloadManagementPage() {
           ) : (
             <div className="upload-list" aria-live="polite">
               {visibleBatches.map((batch, index) => (
-                <DownloadBatchCard key={`${batch.userId}:${batch.id}`} batch={batch} displayId={(page - 1) * limit + index + 1} showUsername avatarSeed={batch.username ? avatarSeedsByUsername.get(batch.username.toLowerCase()) : undefined} canRetry={!batch.userId || batch.userId === user?.id} />
+                <motion.div key={`${batch.userId}:${batch.id}`} className="download-page__batch" initial={batch.id === highlightBatchId && !reducedMotion ? { boxShadow: "0 0 0 3px var(--upload-status-success-border, #2fa66a)" } : false} animate={{ boxShadow: "0 0 0 0px transparent" }} transition={{ ...motionTokens.transition.reveal, delay: 0.8 }}>
+                  <DownloadBatchCard batch={batch} displayId={(page - 1) * limit + index + 1} showUsername avatarSeed={batch.username ? avatarSeedsByUsername.get(batch.username.toLowerCase()) : undefined} canRetry={!batch.userId || batch.userId === user?.id} />
+                </motion.div>
               ))}
             </div>
           )}

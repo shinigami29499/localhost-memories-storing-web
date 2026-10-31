@@ -28,6 +28,22 @@ public class UserService(
         return mapper.Map(user);
     }
 
+    public async Task ChangePasswordAsync(Guid userId, ChangePasswordRequest request, CancellationToken cancellationToken = default)
+    {
+        var user = await _repository.FindUserAsync(userId, cancellationToken);
+        if (user is null || user.DeletedAt is not null)
+            throw new NotFoundException("User not found.");
+
+        if (!string.Equals(user.Password, request.CurrentPassword, StringComparison.Ordinal))
+            throw new ValidationException("Current password is incorrect.", new Dictionary<string, string[]>
+            {
+                ["currentPassword"] = ["Current password is incorrect."],
+            });
+
+        user.Password = request.NewPassword;
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task<UserResponse> SetAvatarAsync(
         Guid userId, SetAvatarRequest request, CancellationToken cancellationToken = default)
     {
@@ -54,6 +70,17 @@ public class UserService(
         return users.Select(mapper.Map).ToList();
     }
 
+    public async Task<DateTime> HeartbeatAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var user = await _repository.FindUserAsync(userId, cancellationToken);
+        if (user is null || user.DeletedAt is not null || user.Status != AccountStatus.Active)
+            throw new Services.Exceptions.NotFoundException("User not found.");
+
+        user.LastSeenAt = DateTime.UtcNow;
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        return user.LastSeenAt.Value;
+    }
+
     public Task<IReadOnlyList<UserMentionCandidateDto>> SearchMentionCandidatesAsync(
         string usernamePrefix, CancellationToken cancellationToken = default)
     {
@@ -72,6 +99,72 @@ public class UserService(
             throw new ConflictException("Only pending accounts can be approved.");
 
         user.Status = AccountStatus.Active;
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        return mapper.Map(user);
+    }
+
+    public async Task<UserResponse> DisableAsync(Guid userId, Guid disabledBy, CancellationToken cancellationToken = default)
+    {
+        if (userId == disabledBy)
+            throw new ConflictException("You cannot disable your own account.");
+
+        var user = await _repository.FindUserAsync(userId, cancellationToken);
+        if (user is null || user.DeletedAt is not null)
+            throw new NotFoundException("User not found.");
+        if (user.Status != AccountStatus.Active)
+            throw new ConflictException("Only active accounts can be disabled.");
+
+        user.Status = AccountStatus.Disabled;
+        var activeTokens = await _repository.FindActiveRefreshTokensAsync(userId, DateTime.UtcNow, cancellationToken);
+        foreach (var token in activeTokens)
+        {
+            token.RevokedAt = DateTime.UtcNow;
+            token.RevokedReason = Constants.Auth.RevocationReasons.UserDisabled;
+            token.RevokedBy = disabledBy;
+        }
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        return mapper.Map(user);
+    }
+
+    public async Task<UserResponse> ActivateAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var user = await _repository.FindUserAsync(userId, cancellationToken);
+        if (user is null || user.DeletedAt is not null)
+            throw new NotFoundException("User not found.");
+        if (user.Status != AccountStatus.Disabled)
+            throw new ConflictException("Only disabled accounts can be activated.");
+
+        user.Status = AccountStatus.Active;
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        return mapper.Map(user);
+    }
+
+    public async Task<UserResponse> UpdateRoleAsync(Guid userId, Guid updatedBy, UpdateUserRoleRequest request, CancellationToken cancellationToken = default)
+    {
+        if (userId == updatedBy)
+            throw new ConflictException("You cannot change your own role.");
+        var role = request.Role?.Trim().ToLowerInvariant() switch
+        {
+            "admin" => UserRole.Admin,
+            "user" => UserRole.User,
+            _ => throw new ConflictException("Role must be admin or user."),
+        };
+        var user = await _repository.FindUserAsync(userId, cancellationToken);
+        if (user is null || user.DeletedAt is not null)
+            throw new NotFoundException("User not found.");
+        if (user.Role == role)
+            return mapper.Map(user);
+
+        user.Role = role;
+        var utcNow = DateTime.UtcNow;
+        var activeTokens = await _repository.FindActiveRefreshTokensAsync(userId, utcNow, cancellationToken);
+        foreach (var token in activeTokens)
+        {
+            token.RevokedAt = utcNow;
+            token.RevokedReason = Constants.Auth.RevocationReasons.UserRoleChanged;
+            token.RevokedBy = updatedBy;
+        }
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return mapper.Map(user);
     }

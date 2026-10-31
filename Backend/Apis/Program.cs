@@ -17,6 +17,8 @@ using Infrastructures.Adapters.Implementations;
 using Infrastructures.Adapters.Interfaces;
 using Apis.Realtime;
 using Microsoft.Extensions.Options;
+using Microsoft.EntityFrameworkCore;
+using Infrastructures.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -96,8 +98,36 @@ builder.Services
                 {
                     context.Token = accessToken;
                 }
+                else if ((context.Request.Path.StartsWithSegments("/api/media") || context.Request.Path.StartsWithSegments("/api/library/gallery"))
+                    && context.Request.Path.Value?.EndsWith("/file", StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    var mediaToken = context.Request.Query["accessToken"];
+                    if (!string.IsNullOrEmpty(mediaToken)) context.Token = mediaToken;
+                }
 
                 return Task.CompletedTask;
+            },
+            OnTokenValidated = async context =>
+            {
+                var userId = context.Principal?.FindFirst(Constants.Auth.SubClaim)?.Value;
+                var sessionId = context.Principal?.FindFirst(Constants.Auth.SessionClaim)?.Value;
+                if (!Guid.TryParse(userId, out var id))
+                {
+                    context.Fail("Invalid session.");
+                    return;
+                }
+                if (!Guid.TryParse(sessionId, out var session))
+                {
+                    context.HttpContext.Items["session_replaced"] = true;
+                    context.Fail("Session replaced.");
+                    return;
+                }
+                var db = context.HttpContext.RequestServices.GetRequiredService<ApplicationDbContext>();
+                if (!await db.Users.AsNoTracking().AnyAsync(u => u.Id == id && u.SessionId == session, context.HttpContext.RequestAborted))
+                {
+                    context.HttpContext.Items["session_replaced"] = true;
+                    context.Fail("Session replaced.");
+                }
             },
             OnChallenge = async context =>
             {
@@ -115,6 +145,7 @@ builder.Services
                     title = "Unauthorized",
                     status = 401,
                     detail,
+                    code = context.HttpContext.Items.ContainsKey("session_replaced") ? "session_replaced" : null,
                 });
             },
         };

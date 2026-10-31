@@ -58,7 +58,7 @@ and `/admin/users` redirect to `/sync/upload` and `/users`.
 | Concern | Source and boundary |
 | --- | --- |
 | Session and token refresh | `src/store/authStore.ts`, `src/services/api.ts`; `/api/auth` |
-| Account avatars | `src/components/common/UserAvatar.tsx` renders `react-nice-avatar` locally from an account seed (user ID for existing accounts). The profile picker previews choices, cancels drafts, and saves through `PUT /api/users/me/avatar`. `GET /api/users/me` reloads the saved profile; login/refresh and user/owner responses also include `avatarSeed`. Saving updates the persisted session and invalidates user, album, and food-place caches. No avatar service receives account data. |
+| Account avatars | `src/components/common/UserAvatar.tsx` renders DiceBear Clay from the saved account seed. The profile picker previews choices, cancels drafts, and saves through `PUT /api/users/me/avatar`. `GET /api/users/me` reloads the saved profile; login/refresh and user/owner responses also include `avatarSeed`. Saving updates the persisted session and invalidates user, album, and food-place caches. DiceBear's HTTP API receives the avatar seed. |
 | Album queries, membership, captions, previews | `src/features/albums/hooks/useAlbums.ts`, `src/features/albums/services/albumService.ts`; `/api/library/album` |
 | Media queries, favorites, trash | `src/features/media/hooks/useMedia.ts`, `src/features/media/services/mediaService.ts`; `/api/library/gallery` |
 | Media tiles, preview retries, fullscreen carousel | `src/features/media/components/MediaTile.tsx`, `MediaRetryProvider.tsx`, `MediaPreviewDialog.tsx` in the same folder |

@@ -235,6 +235,12 @@ function frameOf(element: HTMLElement, point?: { x: number; y: number }): Frame 
   };
 }
 
+export function mediaViewerTransition(element: HTMLElement, effect: PageTransitionEffect, reduced: boolean) {
+  const selected = reduced ? "fade" : effect === "random" ? pickEffect() : effect;
+  const frame = frameOf(element);
+  return EFFECTS[selected](false, frame, frame);
+}
+
 function backgroundOf(element: HTMLElement) {
   for (
     let node: HTMLElement | null = element;

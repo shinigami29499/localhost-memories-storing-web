@@ -68,7 +68,7 @@ export function SaveToAlbumDialog({ mediaIds, onClose, portalContainer }: Props)
       } else if (removing) {
         showToast.success(t("Removed from album"), { undo });
       } else {
-        showToast.success(t("Successfully saved to album {name}", { name: album.name }), { undo });
+        showToast.success(t("Successfully saved to album {name}", { name: album.name }), { undo, highlight: [album.name] });
       }
     } catch (err) {
       showToast.error(describe(err));
@@ -92,6 +92,7 @@ export function SaveToAlbumDialog({ mediaIds, onClose, portalContainer }: Props)
         showToast.error(t("{count} media items could not be saved.", { count: failed }));
       } else {
         showToast.success(t("Successfully saved to album {name}", { name: album.name }), {
+          highlight: [album.name],
           undo: async () => {
             await albumService.remove(album.id);
             await invalidate();

@@ -676,6 +676,10 @@ namespace Infrastructures.Data.Migrations
                         .HasColumnType("character varying(64)")
                         .HasColumnName("revoked_reason");
 
+                    b.Property<Guid?>("SessionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("session_id");
+
                     b.Property<string>("TokenHash")
                         .IsRequired()
                         .HasMaxLength(128)
@@ -923,6 +927,10 @@ namespace Infrastructures.Data.Migrations
                         .HasColumnType("double precision")
                         .HasColumnName("home_longitude");
 
+                    b.Property<DateTime?>("LastSeenAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_seen_at");
+
                     b.Property<string>("Password")
                         .IsRequired()
                         .HasMaxLength(128)
@@ -932,6 +940,10 @@ namespace Infrastructures.Data.Migrations
                     b.Property<int>("Role")
                         .HasColumnType("integer")
                         .HasColumnName("role");
+
+                    b.Property<Guid?>("SessionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("session_id");
 
                     b.Property<int>("Status")
                         .ValueGeneratedOnAdd()
@@ -955,6 +967,9 @@ namespace Infrastructures.Data.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_users");
+
+                    b.HasIndex("LastSeenAt")
+                        .HasDatabaseName("ix_users_last_seen_at");
 
                     b.HasIndex("Username")
                         .IsUnique()

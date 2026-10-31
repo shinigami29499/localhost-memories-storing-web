@@ -35,6 +35,12 @@ public sealed class UserRepository(ApplicationDbContext db) : IUserRepository
     public Task<User?> FindUserAsync(Guid userId, CancellationToken cancellationToken = default)
         => db.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
 
+    public async Task<IReadOnlyList<User>> FindOnlineUsersAsync(
+        DateTime sinceUtc, CancellationToken cancellationToken = default)
+        => await db.Users.AsNoTracking()
+            .Where(user => user.LastSeenAt >= sinceUtc && user.Status == AccountStatus.Active)
+            .ToListAsync(cancellationToken);
+
     public async Task<IReadOnlyList<RefreshToken>> FindActiveRefreshTokensAsync(
         Guid userId, DateTime utcNow, CancellationToken cancellationToken = default)
         => await db.RefreshTokens

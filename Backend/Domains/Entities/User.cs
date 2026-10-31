@@ -11,4 +11,6 @@ public class User : AuditableEntity
     public UserRole Role { get; set; } = UserRole.User;
     public double? HomeLatitude { get; set; }
     public double? HomeLongitude { get; set; }
+    public DateTime? LastSeenAt { get; set; }
+    public Guid? SessionId { get; set; }
 }

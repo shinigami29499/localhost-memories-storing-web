@@ -6,6 +6,8 @@ public interface IAuthRepository
 {
     Task<bool> UsernameExistsAsync(string username, CancellationToken cancellationToken = default);
     Task<User?> FindUserByUsernameAsync(string username, CancellationToken cancellationToken = default);
+    Task<User?> LockUserAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task ReloadTokenAsync(RefreshToken token, CancellationToken cancellationToken = default);
     Task<User?> FindUserByIdAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<RefreshToken?> FindRefreshTokenAsync(string tokenHash, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<RefreshToken>> FindActiveRefreshTokensAsync(

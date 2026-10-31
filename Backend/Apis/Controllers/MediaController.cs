@@ -1,13 +1,7 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
 using Apis.Authorization;
 using Apis.Interfaces;
-using Services.Options;
 using Services.Exceptions;
 using Services.Interfaces;
 using Services.Models.Media;
@@ -23,12 +17,10 @@ namespace Apis.Controllers;
 public class MediaController(
     IMediaService mediaService,
     IDownloadHistoryService downloadHistory,
-    ICurrentUserContext currentUser,
-    IOptions<JwtOptions> jwtOptions) : ControllerBase
+    ICurrentUserContext currentUser) : ControllerBase
 {
     private readonly IMediaService _mediaService = mediaService;
     private readonly ICurrentUserContext _currentUser = currentUser;
-    private readonly JwtOptions _jwtOptions = jwtOptions.Value;
 
     /// <summary>Changes or clears a photo location; restricted to its owner or an administrator.</summary>
     [HttpPut("~/api/location/travel/{mediaId:guid}")]
@@ -76,14 +68,10 @@ public class MediaController(
 
     /// <summary>Streams originals or small JPEG previews; includeDeleted is restricted to admins.</summary>
     [HttpGet("{mediaId:guid}/file")]
-    [AllowAnonymous]
     public async Task<IActionResult> GetFileAsync(
         Guid mediaId, CancellationToken cancellationToken, [FromQuery] bool includeDeleted = false,
         [FromQuery] bool preview = false, [FromQuery] bool download = false, [FromQuery] Guid? batchId = null)
     {
-        var accessTokenQuery = (string?)Request.Query["accessToken"];
-        if (_currentUser.UserId is null && !TryResolveAccessTokenUser(accessTokenQuery))
-            throw new UnauthorizedAccessException("A valid access token (header or ?accessToken=) is required.");
 
         if (includeDeleted && !_currentUser.IsAdmin)
             throw new ForbiddenException("Only administrators may preview deleted media.");
@@ -128,43 +116,4 @@ public class MediaController(
         return NoContent();
     }
 
-    private bool TryResolveAccessTokenUser(string? accessTokenQuery)
-    {
-        if (string.IsNullOrWhiteSpace(accessTokenQuery))
-            return false;
-
-        try
-        {
-            var handler = new JwtSecurityTokenHandler
-            {
-                MapInboundClaims = false,
-            };
-            var principal = handler.ValidateToken(accessTokenQuery, new TokenValidationParameters
-            {
-                ValidateIssuer = true,
-                ValidIssuer = _jwtOptions.Issuer,
-                ValidateAudience = true,
-                ValidAudience = _jwtOptions.Audience,
-                ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtOptions.Key)),
-                ValidateLifetime = true,
-                ClockSkew = TimeSpan.FromSeconds(30),
-            }, out _);
-
-            var sub = principal.FindFirstValue("sub");
-            if (sub is null || !Guid.TryParse(sub, out _))
-                return false;
-
-            HttpContext.User = principal;
-            return true;
-        }
-        catch (SecurityTokenException)
-        {
-            return false;
-        }
-        catch (ArgumentException)
-        {
-            return false;
-        }
-    }
 }
