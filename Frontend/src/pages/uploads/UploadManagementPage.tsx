@@ -180,7 +180,8 @@ export function UploadManagementPage() {
         />
         <header className="upload-page__header">
           <div>
-            <h1 id="upload-page-title">{t("Upload management")}</h1>
+            <p className="upload-page__eyebrow">{t("Sync")}</p>
+            <h1 id="upload-page-title">{t("Upload management")}<span className="brand__dot">.</span></h1>
             <p>{t("Upload images and videos, then retry failed files here.")}</p>
           </div>
         </header>

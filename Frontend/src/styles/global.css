@@ -620,6 +620,28 @@ textarea::placeholder {
   padding-bottom: 40px;
 }
 
+.app-shell__content,
+.home-page__content,
+.gallery-page__content,
+.food__content,
+.locations__content,
+.upload-page__content,
+.admin-posts__content,
+.admin-users__content {
+  scrollbar-width: none;
+}
+
+.app-shell__content::-webkit-scrollbar,
+.home-page__content::-webkit-scrollbar,
+.gallery-page__content::-webkit-scrollbar,
+.food__content::-webkit-scrollbar,
+.locations__content::-webkit-scrollbar,
+.upload-page__content::-webkit-scrollbar,
+.admin-posts__content::-webkit-scrollbar,
+.admin-users__content::-webkit-scrollbar {
+  display: none;
+}
+
 .page-transition {
   min-height: 100%;
 }

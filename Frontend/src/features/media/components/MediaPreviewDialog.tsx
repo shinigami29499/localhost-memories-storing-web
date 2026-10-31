@@ -370,7 +370,6 @@ export function MediaPreviewDialog({
               <MapPin
                 size={20}
                 stroke="currentColor"
-                fill={current.location ? "var(--danger)" : "none"}
                 aria-hidden="true"
               />
             </button>

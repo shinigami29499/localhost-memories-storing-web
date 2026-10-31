@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { EmptyState } from "../../components/ui/Status";
 import { Pagination } from "../../components/ui/Pagination";
 import { useLocale } from "../../context/LocaleContext";
@@ -20,10 +19,10 @@ export function DownloadManagementPage() {
       <div className="upload-page__content">
         <header className="upload-page__header">
           <div>
-            <h1 id="download-page-title">{t("Download management")}</h1>
+            <p className="upload-page__eyebrow">{t("Sync")}</p>
+            <h1 id="download-page-title">{t("Download management")}<span className="brand__dot">.</span></h1>
             <p>{t("Download original images and videos, one file at a time.")}</p>
           </div>
-          <Link className="btn btn--secondary" to="/library/gallery">{t("Gallery")}</Link>
         </header>
         <aside className="download-page__hint">
           <p>{t("Keep this tab open. Downloads and history clear when you reload or sign out.")}</p>
@@ -40,7 +39,7 @@ export function DownloadManagementPage() {
           </div>
         )}
       </div>
-      {batches.length > BATCHES_PER_PAGE ? (
+      {batches.length > 0 ? (
         <footer className="upload-page__footer">
           <Pagination page={currentPage} pageSize={BATCHES_PER_PAGE} total={batches.length} onPageChange={setPage} itemLabel="batches" />
         </footer>

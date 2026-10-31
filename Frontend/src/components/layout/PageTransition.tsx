@@ -332,6 +332,12 @@ function markRoot() {
 export function PageTransition({ effect, transitionKey, children }: PageTransitionProps) {
   const location = useLocation();
   const key = transitionKey ?? location.pathname;
+  const currentKeyRef = useRef(key);
+  const hasChangedRef = useRef(false);
+  if (currentKeyRef.current !== key) {
+    currentKeyRef.current = key;
+    hasChangedRef.current = true;
+  }
   const reduce = usePrefersReducedMotion();
   const localRef = useRef<HTMLDivElement>(null);
   const styleRef = useRef<HTMLStyleElement>(null);
@@ -387,8 +393,8 @@ export function PageTransition({ effect, transitionKey, children }: PageTransiti
   return (
     <AnimateView
       key={key}
-      enter={(types) => animation(types).enter}
-      exit={(types) => animation(types).exit}
+      enter={(types) => transitionKey !== undefined && !hasChangedRef.current ? still(0) : animation(types).enter}
+      exit={(types) => transitionKey !== undefined && currentKeyRef.current === key ? still(0) : animation(types).exit}
     >
       <div ref={localRef} className={`page-transition ${className}`}>
         <style>{CLIP}</style>

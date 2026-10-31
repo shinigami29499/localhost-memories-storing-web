@@ -1,11 +1,11 @@
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { infiniteQueryOptions, useInfiniteQuery } from "@tanstack/react-query";
 import { mediaService } from "../services/mediaService";
 import type { MediaKindFilter, PagedMedia } from "../types";
 
 export type MediaSource = "all" | "favorites";
 
-export function useMedia(limit = 20, source: MediaSource = "all", mediaKind?: MediaKindFilter) {
-  return useInfiniteQuery({
+export function mediaQueryOptions(limit = 20, source: MediaSource = "all", mediaKind?: MediaKindFilter) {
+  return infiniteQueryOptions({
     queryKey: ["media", source, mediaKind ?? "all", limit],
     initialPageParam: 0,
     queryFn: async ({ pageParam }): Promise<PagedMedia> => (
@@ -18,4 +18,8 @@ export function useMedia(limit = 20, source: MediaSource = "all", mediaKind?: Me
       return nextOffset < lastPage.total ? nextOffset : undefined;
     },
   });
+}
+
+export function useMedia(limit = 20, source: MediaSource = "all", mediaKind?: MediaKindFilter) {
+  return useInfiniteQuery(mediaQueryOptions(limit, source, mediaKind));
 }

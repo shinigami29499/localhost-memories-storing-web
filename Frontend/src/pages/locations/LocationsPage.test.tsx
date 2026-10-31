@@ -591,7 +591,7 @@ describe("Locations", () => {
     expect(container.querySelector("[data-map]")).toBeNull();
   });
 
-  it("shows loading feedback until the map loads", async () => {
+  it("keeps the map visible while it loads", async () => {
     maps.status = "LOADING";
     await render();
     expect(container.textContent).toContain("Loading map…");

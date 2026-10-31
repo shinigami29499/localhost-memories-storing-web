@@ -590,6 +590,10 @@
     display: none;
   }
 
+  .sidebar--collapsed .sidebar__sub-panel {
+    display: none;
+  }
+
   .sidebar--collapsed .sidebar__nav .sidebar__link {
     justify-content: center;
     gap: 0;

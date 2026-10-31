@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { startTransition, useEffect, useMemo, useRef, useState } from "react";
 import * as Tabs from "@radix-ui/react-tabs";
 import { RotateCcw } from "@/components/animate-ui/icons/rotate-ccw";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
 import { X } from "@/components/animate-ui/icons/x";
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { infiniteQueryOptions, useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { ConfirmationDialog } from "../../components/ui/ConfirmationDialog";
-import { EmptyState, ErrorState, Spinner } from "../../components/ui";
+import { ErrorState, Spinner } from "../../components/ui";
 import { PageTransition } from "../../components/layout/PageTransition";
 import { showToast } from "../../components/ui/Toast";
 import { useLocale } from "../../context/LocaleContext";
@@ -27,6 +27,17 @@ const filters: { value: MediaKindFilter; label: string }[] = [
   { value: "video", label: "Videos" },
 ];
 
+function trashQueryOptions(filter: MediaKindFilter) {
+  return infiniteQueryOptions({
+    queryKey: ["media", "deleted", filter, TRASH_PAGE_SIZE],
+    initialPageParam: 0,
+    queryFn: ({ pageParam }) => mediaService.deleted(pageParam, TRASH_PAGE_SIZE, filter),
+    getNextPageParam: (lastPage) => {
+      const nextOffset = lastPage.offset + lastPage.items.length;
+      return nextOffset < lastPage.total ? nextOffset : undefined;
+    },
+  });
+}
 export function TrashPage() {
   const { t } = useLocale();
   const pageTransition = readPageTransitionEffect();
@@ -39,15 +50,10 @@ export function TrashPage() {
   const galleryRef = useRef<HTMLElement>(null);
   const returnToMediaId = useRef<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
-  const query = useInfiniteQuery({
-    queryKey: ["media", "deleted", filter, TRASH_PAGE_SIZE],
-    initialPageParam: 0,
-    queryFn: ({ pageParam }) => mediaService.deleted(pageParam, TRASH_PAGE_SIZE, filter),
-    getNextPageParam: (lastPage) => {
-      const nextOffset = lastPage.offset + lastPage.items.length;
-      return nextOffset < lastPage.total ? nextOffset : undefined;
-    },
-  });
+  const query = useInfiniteQuery(trashQueryOptions(filter));
+  const requestRef = useRef(0);
+  const [tabLoading, setTabLoading] = useState(false);
+  useEffect(() => () => { requestRef.current += 1; }, []);
   const media = useMemo(
     () => (query.data?.pages ?? []).flatMap((page) => page.items),
     [query.data],
@@ -176,8 +182,15 @@ export function TrashPage() {
               value={filter}
               onValueChange={(value) => {
                 if (value !== "image" && value !== "video") return;
-                cancelSelection();
-                setFilter(value);
+                const request = ++requestRef.current;
+                setTabLoading(true);
+                void queryClient.fetchInfiniteQuery(trashQueryOptions(value))
+                  .catch(() => undefined)
+                  .then(() => {
+                    if (request !== requestRef.current) return;
+                    setTabLoading(false);
+                    startTransition(() => { cancelSelection(); setFilter(value); });
+                  });
               }}
             >
               <div className="gallery-page__toolbar">
@@ -193,15 +206,13 @@ export function TrashPage() {
                   ))}
                 </Tabs.List>
               </div>
-              <Tabs.Content value={filter} className="gallery-page__tab-panel">
+              <Tabs.Content value={filter} className="gallery-page__tab-panel gallery-page__tab-panel--media" aria-busy={tabLoading || undefined}>
                 <PageTransition effect={pageTransition} transitionKey={filter}>
                   {query.isLoading ? <Spinner label={t("Loading media…")} /> : null}
                   {query.isError && media.length === 0 ? (
                     <ErrorState message={t("Could not load media.")} onRetry={() => void query.refetch()} />
                   ) : null}
-                  {!query.isLoading && !query.isError && media.length === 0 ? (
-                    <EmptyState title="Trash is empty" hint="Deleted media will appear here." />
-                  ) : null}
+
                   {media.length > 0 ? (
                     <MediaRetryProvider key={filter} order={media.map((item) => item.id)}>
                       <div className="gallery-date-grid">

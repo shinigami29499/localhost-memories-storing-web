@@ -9,7 +9,7 @@ import { Globe } from "../../../components/animate-ui/icons/globe";
 import { Home } from "../../../components/animate-ui/icons/home";
 import { Settings } from "../../../components/animate-ui/icons/settings";
 import { ChevronDown } from "../../../components/animate-ui/icons/chevron-down";
-import { Sun } from "../../../components/animate-ui/icons/sun";
+import { SlidersHorizontal } from "../../../components/animate-ui/icons/sliders-horizontal";
 import { Utensils } from "../../../components/animate-ui/icons/utensils";
 import { useLocale } from "../../../context/LocaleContext";
 import { useMediaQuery } from "../../../hooks/useMediaQuery";
@@ -135,6 +135,11 @@ function InitialLocationCenter({
         onResolved(false);
       }
     };
+
+    if (homeLocation) {
+      center(homeLocation);
+      return;
+    }
 
     if (!navigator.geolocation) {
       fallback();
@@ -514,6 +519,7 @@ function MapContent({
   const scenesRef = useRef<HTMLDetailsElement>(null);
   const appearanceRef = useRef<HTMLDetailsElement>(null);
   const [loaded, setLoaded] = useState(false);
+  const [initialViewReady, setInitialViewReady] = useState(false);
   const [failed, setFailed] = useState(false);
   const [navigationOpen, setNavigationOpen] = useState(false);
   const [initialLocationResolved, setInitialLocationResolved] = useState(false);
@@ -533,6 +539,14 @@ function MapContent({
     () => places.find((place) => place.id === selectedId),
     [places, selectedId],
   );
+
+  useEffect(() => {
+    if (!loaded || initialViewReady || !(initialLocationResolved || selected || homeRequest > 0)) return;
+    const frame = requestAnimationFrame(() => {
+      if (mapRef.current?.getMap().loaded()) setInitialViewReady(true);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [loaded, initialViewReady, initialLocationResolved, selected, homeRequest]);
 
   useEffect(() => {
     const closeOnOutsideClick = (event: PointerEvent) => {
@@ -577,7 +591,7 @@ function MapContent({
 
   return (
     <div className="food__map map-controls" role="region" aria-label={t("Food places map")}>
-      {!loaded && <div className="food__map-loading"><Spinner label="Loading map…" /></div>}
+      {!initialViewReady && <div className="food__map-loading"><Spinner label="Loading map…" /></div>}
       <Map
         style={{ minHeight: "inherit" }}
         ref={mapRef}
@@ -588,6 +602,9 @@ function MapContent({
         cursor={picking || homePicking ? "crosshair" : undefined}
         cooperativeGestures
         onLoad={() => setLoaded(true)}
+        onIdle={() => {
+          if (initialLocationResolved || selected || homeRequest > 0) setInitialViewReady(true);
+        }}
         onError={() => setFailed(true)}
         onClick={(event) => {
           if (navigationOpen) return;
@@ -775,7 +792,7 @@ function MapContent({
               if (scenesRef.current) scenesRef.current.open = false;
             }}
           >
-            <Sun size={20} animate={false} aria-hidden="true" />
+            <SlidersHorizontal size={20} aria-hidden="true" />
             <span>{t("Map appearance")}</span>
             <span className="food__scenes-chevron" aria-hidden="true">
               <ChevronDown size={16} animate={false} />

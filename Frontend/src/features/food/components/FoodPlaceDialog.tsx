@@ -7,13 +7,14 @@ import { useLocale } from "../../../context/LocaleContext";
 interface Props {
   title: string;
   icon?: ReactNode;
+  subtitle?: string;
   children: ReactNode;
   onClose: () => void;
   closeDisabled?: boolean;
   className?: string;
 }
 
-export function FoodPlaceDialog({ title, icon, children, onClose, closeDisabled = false, className = "" }: Props) {
+export function FoodPlaceDialog({ title, icon, subtitle, children, onClose, closeDisabled = false, className = "" }: Props) {
   const { t } = useLocale();
   const [open, setOpen] = useState(true);
   const handleOpenChange = (nextOpen: boolean) => {
@@ -30,7 +31,10 @@ export function FoodPlaceDialog({ title, icon, children, onClose, closeDisabled 
           <Dialog.Popup className={`food__dialog ${className}`}>
             <header className="food__dialog-header">
               {icon}
-              <Dialog.Title className="food__dialog-title">{title}</Dialog.Title>
+              <div className="food__dialog-heading">
+                <Dialog.Title className="food__dialog-title">{title}</Dialog.Title>
+                {subtitle && <p className="food__dialog-subtitle">{subtitle}</p>}
+              </div>
               <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
                 <Dialog.Close
                   className="food__dialog-close"

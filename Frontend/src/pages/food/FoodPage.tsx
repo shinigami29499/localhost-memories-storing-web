@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, useMemo, type CSSProperties } from "react";
+import { startTransition, useCallback, useEffect, useRef, useState, useMemo, type CSSProperties } from "react";
 import { ScrollProgress, ScrollProgressContainer, ScrollProgressProvider } from "@animate-ui/react/primitives/scroll-progress";
 import {
   Button,
@@ -8,6 +8,8 @@ import {
   Spinner,
   showToast,
 } from "../../components/ui";
+import { PageTransition } from "../../components/layout/PageTransition";
+import { readPageTransitionEffect } from "../../utils/pageTransition";
 import { useLocale } from "../../context/LocaleContext";
 import { useAuthStore } from "../../store/authStore";
 import { ApiError } from "../../services/api";
@@ -84,6 +86,10 @@ export function FoodPage() {
   const [editor, setEditor] = useState<EditorState | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [view, setView] = useState<"map" | "history">("map");
+  const viewRequestRef = useRef(0);
+  const [viewLoading, setViewLoading] = useState(false);
+  const pageTransition = readPageTransitionEffect();
+  useEffect(() => () => { viewRequestRef.current += 1; }, []);
   const visitHistory = useFoodPlaceVisitHistory(view === "history");
   const [formError, setFormError] = useState<string | null>(null);
   const [placeToDelete, setPlaceToDelete] = useState<FoodPlace | null>(null);
@@ -276,7 +282,7 @@ export function FoodPage() {
         },
       });
       setEditor(null);
-      setSelectedId(saved.id);
+      setSelectedId(editor.id ? saved.id : null);
       showToast.success(t(editor.id ? "Food place updated." : "Food place saved."));
     } catch (error) {
       setFormError(error instanceof ApiError ? error.message : t("Could not save this food place."));
@@ -290,6 +296,36 @@ export function FoodPage() {
     if (editor?.id === placeToDelete.id) setEditor(null);
     showToast.success(t("Food place deleted."));
   };
+
+  const viewSwitch = (
+    <div className="food__view-switch" role="group" aria-label={t("Food place view")}>
+              <Button
+                type="button"
+                variant={view === "map" ? "primary" : "secondary"}
+                aria-pressed={view === "map"}
+                onClick={() => { viewRequestRef.current += 1; setViewLoading(false); startTransition(() => setView("map")); }}
+              >
+                {t("Map")}
+              </Button>
+              <Button
+                type="button"
+                variant={view === "history" ? "primary" : "secondary"}
+                aria-pressed={view === "history"}
+                onClick={() => {
+                  if (view === "history") return;
+                  const request = ++viewRequestRef.current;
+                  setViewLoading(true);
+                  void visitHistory.refetch().then(() => {
+                    if (request !== viewRequestRef.current) return;
+                    setViewLoading(false);
+                    startTransition(() => setView("history"));
+                  });
+                }}
+              >
+                {t("History")}
+              </Button>
+            </div>
+  );
 
   return (
     <main className="food">
@@ -306,24 +342,6 @@ export function FoodPage() {
                 <p>{t("Save the places you ate at, rate them, and keep your notes on the map.")}</p>
               </div>
             </header>
-            <div className="food__view-switch" role="group" aria-label={t("Food place view")}>
-              <Button
-                type="button"
-                variant={view === "map" ? "primary" : "secondary"}
-                aria-pressed={view === "map"}
-                onClick={() => setView("map")}
-              >
-                {t("Map")}
-              </Button>
-              <Button
-                type="button"
-                variant={view === "history" ? "primary" : "secondary"}
-                aria-pressed={view === "history"}
-                onClick={() => setView("history")}
-              >
-                {t("History")}
-              </Button>
-            </div>
             {editor && !editor.coordinate && (
               <div className="food__notice" role="status">
                 <span>{t("Click the map, use your current location, or select a place label to set the marker.")}</span>
@@ -341,8 +359,11 @@ export function FoodPage() {
               </div>
             )}
 
+            <div className="food__view-content" aria-busy={viewLoading || undefined}>
+            <PageTransition effect={pageTransition} transitionKey={view}>
             {view === "history" ? (
               <div className="food__history-panel">
+                {viewSwitch}
                 {visitHistory.isError ? (
                   <ErrorState
                     message={t("Could not load visit history.")}
@@ -355,11 +376,11 @@ export function FoodPage() {
                     removingVisitId={removeVisitMutation.isPending ? removeVisitMutation.variables : null}
                   />
                 ) : (
-                  <EmptyState title={t("No visits yet")} hint={t("Check in at a food place to start your history.")} />
+                  null
                 )}
               </div>
-            ) : query.isLoading ? <Spinner /> : query.isError && !places.length ? (
-              <ErrorState message="Could not load food places." onRetry={() => void query.refetch()} />
+            ) : query.isLoading ? <><Spinner />{viewSwitch}</> : query.isError && !places.length ? (
+              <><ErrorState message="Could not load food places." onRetry={() => void query.refetch()} />{viewSwitch}</>
             ) : (
               <>
                 <div ref={workspaceRef} className="food__workspace">
@@ -391,6 +412,7 @@ export function FoodPage() {
                     />
                   </div>
                 </div>
+                {viewSwitch}
                 {!places.length ? (
                   <EmptyState title="No food places yet" hint="Click the map or use your current location to add your first place." />
                 ) : (
@@ -431,6 +453,9 @@ export function FoodPage() {
               </>
             )}
 
+            </PageTransition>
+            </div>
+
             {editor?.coordinate && (
               <FoodPlaceDialog
                 title={t(editor.id ? "Edit food place" : "New food place")}
@@ -458,7 +483,9 @@ export function FoodPage() {
 
             {selected && !editor && (
               <FoodPlaceDialog
+                className="food__dialog--details"
                 title={selected.name}
+                subtitle={t("Added by {username}", { username: selected.owner.username })}
                 icon={
                   <span
                     className="food__chip"
@@ -492,8 +519,7 @@ export function FoodPage() {
                   {selected.note
                     ? <p className="food__note">{selected.note}</p>
                     : <p className="food__hint">{t("No note yet.")}</p>}
-                  <p className="food__hint">{t("Added by {username}", { username: selected.owner.username })}</p>
-                  <div className="food__form-actions">
+                  <div className="food__form-actions food__details-actions">
                     <Button
                       type="button"
                       variant="secondary"

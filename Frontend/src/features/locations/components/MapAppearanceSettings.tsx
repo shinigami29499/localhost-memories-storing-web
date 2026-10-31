@@ -9,6 +9,8 @@ import {
 import { AnimateIcon } from "../../../components/animate-ui/icons/icon";
 import { Moon } from "../../../components/animate-ui/icons/moon";
 import { Sun } from "../../../components/animate-ui/icons/sun";
+import { Sunrise } from "../../../components/animate-ui/icons/sunrise";
+import { Sunset } from "../../../components/animate-ui/icons/sunset";
 import { useLocale } from "../../../context/LocaleContext";
 
 export type MapLighting = "dawn" | "day" | "dusk" | "night";
@@ -162,24 +164,12 @@ export function MapAppearanceConfig({
 }
 
 function LightingIcon({ value }: { value: MapLighting }) {
-  if (value === "night") return <Moon size={18} animate={false} aria-hidden="true" />;
-  if (value === "day") return <Sun size={18} animate={false} aria-hidden="true" />;
+  if (value === "night") return <Moon size={18} aria-hidden="true" />;
+  if (value === "day") return <Sun size={18} aria-hidden="true" />;
 
-  return (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d={value === "dawn" ? "M3 18h18M5 15a7 7 0 0 1 14 0M12 3v2m-6 2 1.4 1.4m11.2 0L20 7" : "M3 18h18M5 15a7 7 0 0 0 14 0M12 5v2m-6 2 1.4 1.4m11.2 0L20 9"} />
-    </svg>
-  );
+  return value === "dawn"
+    ? <Sunrise size={18} aria-hidden="true" />
+    : <Sunset size={18} aria-hidden="true" />;
 }
 
 export function MapAppearanceSettings({

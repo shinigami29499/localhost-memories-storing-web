@@ -1,10 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { startTransition, useEffect, useMemo, useRef, useState } from "react";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
 import * as Tabs from "@radix-ui/react-tabs";
 import { ScrollProgress, ScrollProgressContainer, ScrollProgressProvider } from "@animate-ui/react/primitives/scroll-progress";
 import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { Bookmark } from "@/components/animate-ui/icons/bookmark";
-import { Clock } from "@/components/animate-ui/icons/clock";
 import { Heart } from "@/components/animate-ui/icons/heart";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
@@ -22,7 +21,7 @@ import { MediaRetryProvider } from "../../features/media/components/MediaRetryPr
 import { MediaPreviewDialog } from "../../features/media/components/MediaPreviewDialog";
 import { useMediaSelectionDrag } from "../../features/media/hooks/useMediaSelectionDrag";
 import { mediaService } from "../../features/media/services/mediaService";
-import { useMedia } from "../../features/media/hooks/useMedia";
+import { mediaQueryOptions, useMedia } from "../../features/media/hooks/useMedia";
 import { DownloadButton } from "../../features/downloads/components/DownloadButton";
 import type { MediaFile, MediaKindFilter } from "../../features/media/types";
 import "./gallery.css";
@@ -50,18 +49,6 @@ const filters: { value: MediaKindFilter; label: string }[] = [
   { value: "video", label: "Videos" },
 ];
 
-function groupMediaByMinute(items: MediaFile[]) {
-  const grouped = new Map<string, { time: Date; items: MediaFile[] }>();
-  for (const item of items) {
-    const time = new Date(item.createdAt);
-    time.setSeconds(0, 0);
-    const key = String(time.getTime());
-    const group = grouped.get(key);
-    if (group) group.items.push(item);
-    else grouped.set(key, { time, items: [item] });
-  }
-  return [...grouped.entries()].sort(([, a], [, b]) => a.time.getTime() - b.time.getTime());
-}
 
 /** Applies favorite state in small batches and returns the media ids that failed. */
 async function applyFavorites(mediaIds: string[], favorite: boolean) {
@@ -84,6 +71,8 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
   const queryClient = useQueryClient();
   const [selectedFilter, setSelectedFilter] = useState<MediaKindFilter>(() => initialFilter ?? "image");
   const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const [tabLoading, setTabLoading] = useState(false);
+  const tabRequestRef = useRef(0);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedItems, setSelectedItems] = useState<Map<string, MediaFile>>(() => new Map());
   const selectedIds = [...selectedItems.keys()];
@@ -100,13 +89,13 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
   const [favoriteBusyId, setFavoriteBusyId] = useState<string | null>(null);
   const [bulkFavoriteBusy, setBulkFavoriteBusy] = useState(false);
   const [previewMediaId, setPreviewMediaId] = useState<string | null>(null);
-  const [timelineDay, setTimelineDay] = useState<string | null>(null);
-  const timelineRef = useRef<HTMLOListElement>(null);
   const galleryRef = useRef<HTMLElement>(null);
   const returnToMediaId = useRef<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const showingFavorites = view === "favorites" || favoritesOnly;
   const query = useMedia(20, showingFavorites ? "favorites" : "all", selectedFilter);
+
+  useEffect(() => () => { tabRequestRef.current += 1; }, [showingFavorites]);
   const media = useMemo(
     () => (query.data?.pages ?? []).flatMap((page) => page.items),
     [query.data],
@@ -123,13 +112,8 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
     }
     return [...byDate.entries()].sort(([, a], [, b]) => b.date.getTime() - a.date.getTime());
   }, [media]);
-  const visibleGroups = timelineDay === null ? groups : groups.filter(([key]) => key === timelineDay);
   const dateFormatter = useMemo(
     () => new Intl.DateTimeFormat(language, { year: "numeric", month: "long", day: "numeric" }),
-    [language],
-  );
-  const timeFormatter = useMemo(
-    () => new Intl.DateTimeFormat(language, { hour: "numeric", minute: "2-digit" }),
     [language],
   );
   const copy = viewCopy[view];
@@ -154,7 +138,6 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
     setSaveDialogOpen(false);
     setDeleteDialogOpen(false);
     setPreviewMediaId(null);
-    setTimelineDay(null);
   }, [view, initialFilter]);
 
   useEffect(() => {
@@ -180,13 +163,8 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
   }, [previewMediaId]);
 
   useEffect(() => {
-    if (timelineDay === null) return;
-    timelineRef.current?.scrollIntoView?.({ block: "center", inline: "center", behavior: "auto" });
-  }, [timelineDay]);
-
-  useEffect(() => {
     const sentinel = sentinelRef.current;
-    if (timelineDay !== null || previewMediaId || !sentinel || !query.hasNextPage || query.isFetching || query.isFetchNextPageError) return;
+    if (previewMediaId || !sentinel || !query.hasNextPage || query.isFetching || query.isFetchNextPageError) return;
 
     const observer = new IntersectionObserver((entries) => {
       if (entries.some((entry) => entry.isIntersecting)) {
@@ -196,7 +174,7 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
     }, { rootMargin: "0px 0px 400px 0px" });
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [previewMediaId, query.fetchNextPage, query.hasNextPage, query.isFetchNextPageError, query.isFetching, timelineDay]);
+  }, [previewMediaId, query.fetchNextPage, query.hasNextPage, query.isFetchNextPageError, query.isFetching]);
 
   const toggleFavorite = async (mediaId: string, isFavorited: boolean) => {
     if (favoriteBusy) return;
@@ -331,14 +309,11 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
     cancelSelection();
   };
 
-  const toggleTimelineDay = (key: string) => {
-    setTimelineDay((current) => current === key ? null : key);
-  };
-
   const toggleFavoritesOnly = () => {
+    tabRequestRef.current += 1;
+    setTabLoading(false);
     setFavoritesOnly((current) => !current);
     setPreviewMediaId(null);
-    setTimelineDay(null);
     setSelectionMode(false);
     setSelectedItems(new Map());
   };
@@ -349,16 +324,14 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
       {query.isError && media.length === 0 ? (
         <ErrorState message={t("Could not load media.")} onRetry={() => void query.refetch()} />
       ) : null}
-      {!query.isPending && !query.isError && media.length === 0 ? (
+      {view === "favorites" && !query.isPending && !query.isError && media.length === 0 ? (
         <EmptyState title={t(copy.emptyTitle)} hint={t(copy.emptyHint)} />
       ) : null}
       {media.length > 0 ? (
         <div className="gallery-groups" aria-busy={query.isFetching}>
           <MediaRetryProvider key={`${view}-${selectedFilter}`} order={groups.flatMap(([, group]) => group.items.map((item) => item.id))}>
-            {visibleGroups.map(([key, group]) => {
+            {groups.map(([key, group]) => {
               const dateLabel = dateFormatter.format(group.date);
-              const timelineOpen = timelineDay === key;
-              const toggleLabel = t(timelineOpen ? "Hide timeline for {date}" : "Show timeline for {date}", { date: dateLabel });
               return (
               <section key={key} aria-label={dateLabel}>
                 <div className="gallery-group__header">
@@ -367,51 +340,7 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
                       {dateLabel}
                     </time>
                   </h2>
-                  <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
-                    <button
-                      type="button"
-                      className="gallery-group__timeline-toggle"
-                      aria-pressed={timelineOpen}
-                      aria-controls={timelineOpen ? `gallery-timeline-${key}` : undefined}
-                      aria-label={toggleLabel}
-                      title={toggleLabel}
-                      onClick={() => toggleTimelineDay(key)}
-                    >
-                      <Clock size={18} aria-hidden="true" />
-                    </button>
-                  </AnimateIcon>
                 </div>
-                {timelineOpen ? (
-                  <ol ref={timelineRef} id={`gallery-timeline-${key}`} className="gallery-timeline" tabIndex={0} aria-label={t("Media timeline for {date}", { date: dateLabel })}>
-                    {groupMediaByMinute(group.items).map(([minute, minuteGroup], index) => (
-                      <li
-                        key={minute}
-                        className={`gallery-timeline__event${index % 2 === 0 ? " gallery-timeline__event--above" : " gallery-timeline__event--below"}`}
-                      >
-                        <span className="gallery-timeline__stem" aria-hidden="true" />
-                        <span className="gallery-timeline__node" aria-hidden="true" />
-                        <time className="gallery-timeline__time" dateTime={minuteGroup.time.toISOString()}>
-                          {timeFormatter.format(minuteGroup.time)}
-                        </time>
-                        <div className="gallery-timeline__media">
-                          {minuteGroup.items.map((item) => (
-                            <MediaTile
-                              key={item.id}
-                              media={item}
-                              selectionMode={selectionMode}
-                              selectionDragEnabled
-                              selected={selectedItems.has(item.id)}
-                              onSelect={toggleSelected}
-                              onFavorite={(mediaId) => void toggleFavorite(mediaId, false)}
-                              favoriteDisabled={favoriteBusy}
-                              onOpen={setPreviewMediaId}
-                            />
-                          ))}
-                        </div>
-                      </li>
-                    ))}
-                  </ol>
-                ) : (
                   <div
                     className="gallery-date-grid"
                   >
@@ -429,7 +358,6 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
                       />
                     ))}
                   </div>
-                )}
               </section>
               );
             })}
@@ -441,7 +369,7 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
         <ErrorState message={t("Could not load more media.")} onRetry={() => void query.fetchNextPage()} />
       ) : null}
       {query.isFetchingNextPage ? <Spinner label={t("Loading more media…")} /> : null}
-      {timelineDay === null ? <div ref={sentinelRef} aria-hidden="true" /> : null}
+      <div ref={sentinelRef} aria-hidden="true" />
       {query.isError && !query.isFetchNextPageError && media.length > 0 ? (
         <ErrorState message={t("Could not refresh media.")} onRetry={() => void query.refetch()} />
       ) : null}
@@ -472,11 +400,20 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
               value={selectedFilter}
               onValueChange={(value) => {
                 if (value !== "image" && value !== "video") return;
-                setSelectedFilter(value);
-                setPreviewMediaId(null);
-                setTimelineDay(null);
-                setSelectionMode(false);
-                setSelectedItems(new Map());
+                const request = ++tabRequestRef.current;
+                setTabLoading(true);
+                void queryClient.fetchInfiniteQuery(mediaQueryOptions(20, showingFavorites ? "favorites" : "all", value))
+                  .catch(() => undefined)
+                  .then(() => {
+                    if (request !== tabRequestRef.current) return;
+                    setTabLoading(false);
+                    startTransition(() => {
+                      setSelectedFilter(value);
+                      setPreviewMediaId(null);
+                                        setSelectionMode(false);
+                      setSelectedItems(new Map());
+                    });
+                  });
               }}
             >
               <div className="gallery-page__toolbar">
@@ -506,7 +443,7 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
                   </button>
                 ) : null}
               </div>
-              <Tabs.Content value={selectedFilter} className="gallery-page__tab-panel">
+              <Tabs.Content value={selectedFilter} className="gallery-page__tab-panel gallery-page__tab-panel--media" aria-busy={tabLoading || undefined}>
                 <PageTransition effect={pageTransition} transitionKey={selectedFilter}>
                   {galleryContent}
                 </PageTransition>

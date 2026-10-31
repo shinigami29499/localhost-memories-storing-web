@@ -9,6 +9,11 @@
   padding-bottom: 0;
 }
 
+.app-shell__content:has(.admin-page--users) > .page-transition {
+  height: 100%;
+  min-height: 0;
+}
+
 .admin-page--posts,
 .admin-page--users {
   display: flex;

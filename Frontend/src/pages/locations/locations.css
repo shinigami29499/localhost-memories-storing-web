@@ -180,7 +180,6 @@
 
 .locations__map { height: 100%; min-height: 360px; width: 100%; }
 .locations__map-message { padding: 24px; }
-.locations__map-loading { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; z-index: 4; }
 .locations__map-home-control {
   align-items: center;
   background: var(--surface-raised);
@@ -585,7 +584,7 @@
 
 @media (max-width: 640px) {
   .locations__content {
-    padding: 16px 8px 24px;
+    padding: 16px 12px 24px;
   }
 
   .locations__header {

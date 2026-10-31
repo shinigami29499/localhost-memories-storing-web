@@ -9,6 +9,11 @@
   min-height: 0;
 }
 
+:is(.food, .locations) .map-controls > .mapboxgl-map {
+  position: relative;
+  z-index: 0;
+}
+
 :is(.food, .locations) .map-controls :is(.food__scenes, .locations__scenes) {
   left: 8px;
   top: 8px;
@@ -131,6 +136,16 @@
   height: 9px;
   border-radius: 50%;
   background: var(--map-swatch, #4569f5);
+}
+
+:is(.food, .locations) .map-appearance__swatches {
+  transition: transform 140ms ease-out;
+}
+
+@media (hover: hover) {
+  :is(.food, .locations) .map-appearance__option:hover .map-appearance__swatches {
+    transform: translateY(-2px);
+  }
 }
 
 :is(.food, .locations) .map-appearance__swatches span:nth-child(2) {
@@ -306,6 +321,7 @@
 @media (prefers-reduced-motion: reduce) {
   :is(.food, .locations) .home-location-marker button { transition: none; }
   :is(.food, .locations) .map-appearance__option { transition: none; }
+  :is(.food, .locations) .map-appearance__swatches { transition: none; transform: none !important; }
   :is(.food, .locations) .map-controls .map-appearance-control > summary { transition: none; }
 }
 
@@ -346,6 +362,53 @@
 }
 
 @media (max-width: 640px) {
+  :is(.food, .locations) .map-controls :is(.food__scenes, .locations__scenes):not([open]),
+  :is(.food, .locations) .map-controls .food__location-search {
+    width: 44px;
+  }
+
+  :is(.food, .locations) .map-controls :is(.food__scenes, .locations__scenes)[open] {
+    width: min(220px, calc(100% - 62px));
+  }
+
+  :is(.food, .locations) .map-controls :is(.food__scenes, .locations__scenes)[open]:not(.map-appearance-control) {
+    width: max-content;
+    max-width: calc(100% - 62px);
+  }
+
+  :is(.food, .locations) .map-controls .map-appearance-control { top: 58px; }
+
+  :is(.food, .locations) .map-controls :is(.food__map-home-control, .locations__map-home-control) {
+    top: 108px;
+    width: 44px;
+    height: 44px;
+  }
+
+  :is(.food, .locations) .map-controls :is(.food__scenes-title, .locations__scenes-title) {
+    grid-template-columns: 34px minmax(0, 1fr) 16px;
+    gap: 8px;
+    justify-content: stretch;
+    height: 34px;
+    min-height: 34px;
+  }
+
+  :is(.food, .locations) .map-controls :is(.food__scenes, .locations__scenes):not([open]) summary {
+    grid-template-columns: 34px;
+  }
+
+  :is(.food, .locations) .map-controls :is(.food__scenes-title, .locations__scenes-title) > svg:first-of-type,
+  :is(.food, .locations) .map-controls :is(.food__map-home-control, .locations__map-home-control) svg,
+  :is(.food, .locations) .map-controls .food__location-search-icon svg,
+  :is(.food, .locations) .map-controls :is(.food__scene-icon, .locations__scene-icon) svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  :is(.food, .locations) .map-controls .food__location-search:not(:focus-within) .food__location-search-icon {
+    width: 44px;
+    height: 44px;
+  }
+
   :is(.food, .locations) .map-controls .food__location-search:focus-within {
     width: min(252px, calc(100% - 62px));
   }
@@ -356,8 +419,8 @@
   }
 
   :is(.food, .locations) .map-controls .food__location-search-input {
-    height: 44px;
-    min-height: 44px;
+    height: 34px;
+    min-height: 34px;
   }
 
   :is(.food, .locations) .map-appearance { gap: 6px; }
@@ -396,6 +459,7 @@
 
   :is(.food, .locations) .map-controls :is(.food__scene-copy, .locations__scene-copy) strong {
     font-size: 0.75rem;
+    white-space: nowrap;
   }
 
   :is(.food, .locations) .map-controls:has(.food__scenes[open]:not(.map-appearance-control), .locations__scenes[open]:not(.map-appearance-control)) .map-appearance-control {

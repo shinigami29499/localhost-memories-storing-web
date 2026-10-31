@@ -252,40 +252,6 @@ describe("GalleryPage", () => {
     expect(container.querySelector(".gallery-date-grid")?.children).toHaveLength(2);
   });
 
-  it("focuses one day timeline and hides other dates until closed", async () => {
-    vi.mocked(mediaService.list).mockResolvedValue(page([
-      { ...image, id: "older", createdAt: new Date(2026, 9, 27, 23, 59).toISOString() },
-      { ...image, id: "newer", createdAt: new Date(2026, 9, 28, 0, 1).toISOString() },
-    ]));
-    await renderPage();
-    await vi.waitFor(() => expect(container.querySelectorAll(".gallery-date-grid")).toHaveLength(2));
-    expect(container.querySelectorAll(".gallery-timeline")).toHaveLength(0);
-
-    const toggles = () => container.querySelectorAll<HTMLButtonElement>(".gallery-group__timeline-toggle");
-    const sections = () => container.querySelectorAll(".gallery-groups > section");
-    expect(toggles()).toHaveLength(2);
-
-    await act(async () => toggles()[0].click());
-    expect(sections()).toHaveLength(1);
-    expect(sections()[0].getAttribute("aria-label")).toBe("October 28, 2026");
-    expect(container.querySelectorAll(".gallery-timeline")).toHaveLength(1);
-    expect(sections()[0].querySelector(".gallery-timeline")).not.toBeNull();
-    expect(sections()[0].querySelector(".gallery-date-grid")).toBeNull();
-    expect(toggles()[0].getAttribute("aria-pressed")).toBe("true");
-
-    await act(async () => toggles()[0].click());
-    expect(container.querySelectorAll(".gallery-timeline")).toHaveLength(0);
-    expect(container.querySelectorAll(".gallery-date-grid")).toHaveLength(2);
-
-    await act(async () => toggles()[1].click());
-    expect(sections()).toHaveLength(1);
-    expect(sections()[0].getAttribute("aria-label")).toBe("October 27, 2026");
-    expect(container.querySelectorAll(".gallery-timeline")).toHaveLength(1);
-
-    await act(async () => toggles()[0].click());
-    expect(container.querySelectorAll(".gallery-date-grid")).toHaveLength(2);
-  });
-
   it("queues selected originals as a download batch without clearing selection", async () => {
     vi.mocked(mediaService.list).mockResolvedValue(page([image, video]));
     await renderPage();

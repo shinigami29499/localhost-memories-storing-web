@@ -218,7 +218,7 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
                   ) : null}
                   {isOwner ? (
                     <>
-                      <Button type="button" variant="secondary" onClick={() => setEditing(true)}>
+                      <Button type="button" variant="secondary" className="album-hero__edit" onClick={() => setEditing(true)}>
                         <PencilLine size={16} aria-hidden="true" />
                         {t("Edit")}
                       </Button>

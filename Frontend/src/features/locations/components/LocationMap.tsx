@@ -3,13 +3,13 @@ import Map, { GeolocateControl, Marker, useMap, type MapRef } from "react-map-gl
 import { useShouldReduceMotion } from "@animate-ui/react/utils/motion";
 import "mapbox-gl/dist/mapbox-gl.css";
 import "./mapControls.css";
-import { ErrorState, showToast, Spinner } from "../../../components/ui";
+import { ErrorState, showToast } from "../../../components/ui";
 import { AnimateIcon } from "../../../components/animate-ui/icons/icon";
 import { MapPin } from "../../../components/animate-ui/icons/map-pin";
 import { Globe } from "../../../components/animate-ui/icons/globe";
 import { Home } from "../../../components/animate-ui/icons/home";
 import { Settings } from "../../../components/animate-ui/icons/settings";
-import { Sun } from "../../../components/animate-ui/icons/sun";
+import { SlidersHorizontal } from "../../../components/animate-ui/icons/sliders-horizontal";
 import { ChevronDown } from "../../../components/animate-ui/icons/chevron-down";
 import {
   getMapAppearanceConfig,
@@ -116,6 +116,11 @@ function InitialLocationCenter({
         onResolved(false);
       }
     };
+
+    if (homeLocation) {
+      center(homeLocation);
+      return;
+    }
 
     if (!navigator.geolocation) {
       fallback();
@@ -469,7 +474,6 @@ function MapContent({
 
   return (
     <div className="locations__map map-controls" role="region" aria-label={t("Photo locations")}>
-      {!loaded && <div className="locations__map-loading"><Spinner label="Loading map…" /></div>}
       <Map
         style={{ minHeight: "inherit" }}
         ref={mapRef}
@@ -659,7 +663,7 @@ function MapContent({
               if (scenesRef.current) scenesRef.current.open = false;
             }}
           >
-            <Sun size={20} animate={false} aria-hidden="true" />
+            <SlidersHorizontal size={20} aria-hidden="true" />
             <span>{t("Map appearance")}</span>
             <span className="locations__scenes-chevron" aria-hidden="true">
               <ChevronDown size={16} animate={false} />

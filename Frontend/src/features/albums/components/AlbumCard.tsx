@@ -27,7 +27,7 @@ export function AlbumCard({ album, isOwner, showOwner = false, onEdit }: Props) 
 
   return (
     <article className="album-card">
-      <Link to={`/library/album/${album.id}`} className="album-card__link" aria-label={t("Open album {name}", { name: album.name })}>
+      <Link to={`/library/album/${album.id}`} className="album-card__link" aria-label={t("Open album {name}", { name: album.name })} aria-description={t("{count} media", { count: album.mediaCount })}>
         <span ref={previewRef} className="album-card__media">
           {showImage ? (
             inView ? <img src={mediaPreviewUrl(preview)} alt="" loading="lazy" decoding="async" onError={() => setFailedId(preview)} /> : null
@@ -35,15 +35,17 @@ export function AlbumCard({ album, isOwner, showOwner = false, onEdit }: Props) 
             <span className="album-card__placeholder" aria-hidden="true"><Bookmark size={32} /></span>
           )}
           <span className="album-card__badge">{t(album.isPublic ? "Public" : "Private")}</span>
-        </span>
-        <span className="album-card__body">
-          <span className="album-card__name">{album.name}</span>
-          {album.caption ? <span className="album-card__caption">{album.caption}</span> : null}
-          <span className="album-card__meta">
-            {t("{count} media", { count: album.mediaCount })}
-            {showOwner ? <> · <span className="album-card__owner">{t("by {owner}", { owner: ownerLabel })}</span></> : null}
+          <span className="album-card__body">
+            <span className="album-card__details">
+              <span className="album-card__name">{album.name}</span>
+              {showOwner ? <span className="album-card__owner">{t("by {owner}", { owner: ownerLabel })}</span> : null}
+            </span>
+            <span className="album-card__count" aria-hidden="true">
+              {album.mediaCount}
+            </span>
           </span>
         </span>
+        {album.caption ? <span className="album-card__caption">{album.caption}</span> : null}
       </Link>
       {isOwner && onEdit ? (
         <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>

@@ -220,6 +220,11 @@
   font-size: 0.875rem;
 }
 
+.food__view-content > .page-transition {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
 .food__workspace,
 .food__history-panel {
   margin-block: 24px;
@@ -237,7 +242,7 @@
 
 .food__map { height: 100%; min-height: 0; width: 100%; }
 .food__map-message { padding: 24px; }
-.food__map-loading { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; z-index: 4; }
+.food__map-loading { position: absolute; inset: 0; display: grid; place-items: center; background: var(--surface); z-index: 20; }
 .food__map-home-control {
   align-items: center;
   background: var(--surface-raised);
@@ -275,9 +280,14 @@
   width: 100%;
 }
 
+.food__dialog--details { border: 0; }
+.food__dialog--details .food__dialog-body { background: var(--bg); }
+
 .food__dialog--editor { max-width: min(346px, calc(100vw - 32px)); }
 
 .food__dialog-header { align-items: center; border-bottom: 1px solid var(--border); display: flex; flex: 0 0 auto; gap: 12px; justify-content: space-between; padding: 16px 20px; }
+.food__dialog-heading { flex: 1; min-width: 0; }
+.food__dialog-subtitle { color: var(--text-muted); font-size: 0.75rem; margin: 2px 0 0; overflow-wrap: anywhere; }
 .food__dialog-title { color: var(--text-strong); flex: 1; font-size: 1.125rem; margin: 0; min-width: 0; overflow-wrap: anywhere; }
 .food__dialog-close { align-items: center; background: transparent; border: 0; border-radius: 8px; color: var(--text-muted); cursor: pointer; display: inline-flex; flex: 0 0 40px; height: 40px; justify-content: center; width: 40px; }
 .food__dialog-close:hover { background: var(--surface-hover); color: var(--text-strong); }
@@ -1080,6 +1090,12 @@
   flex-direction: column;
   gap: 8px;
 }
+.food__details-actions button,
+.food__form-actions-primary button {
+  border: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
 .food__form-actions button {
   width: 100%;
 }
@@ -1163,7 +1179,7 @@
 }
 
 @media (max-width: 640px) {
-  .food__content { padding: 16px 8px 24px; }
+  .food__content { padding: 16px 12px 24px; }
   .food__header { margin-bottom: 16px; }
   .food__map-panel { height: max(360px, calc(100dvh - var(--app-topbar-height, 68px) - 220px)); }
   .food__pin {

@@ -40,14 +40,24 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
   const location = useLocation();
   const isAdmin = user?.role?.toLowerCase() === "admin";
 
-  const [libraryOpen, setLibraryOpen] = useState(true);
-  const [locationsOpen, setLocationsOpen] = useState(true);
-  const [syncOpen, setSyncOpen] = useState(true);
   const locationsActive = location.pathname.startsWith("/location/travel")
     || location.pathname.startsWith("/location/food");
   const libraryActive = location.pathname.startsWith("/library/gallery")
     || location.pathname.startsWith("/library/album")
     || location.pathname.startsWith("/saved");
+  const syncActive = location.pathname.startsWith("/sync/");
+  const [libraryOpen, setLibraryOpen] = useState(libraryActive);
+  const [locationsOpen, setLocationsOpen] = useState(locationsActive);
+  const [syncOpen, setSyncOpen] = useState(syncActive);
+
+  useEffect(() => {
+    if (collapsed) {
+      setLibraryOpen(libraryActive);
+      setLocationsOpen(locationsActive);
+      setSyncOpen(syncActive);
+    }
+  }, [collapsed, libraryActive, locationsActive, syncActive]);
+
   const libraryLinks = [
     { to: "/library/gallery", label: "Gallery", icon: Camera, active: location.pathname === "/library/gallery" },
     { to: "/library/album", label: "Album", icon: Bookmark, active: location.pathname.startsWith("/library/album") || location.pathname.startsWith("/saved") },
@@ -126,14 +136,14 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
             </AnimateIcon>
             <Collapsible.Root
               className={`sidebar__group${libraryActive ? " sidebar__group--active" : ""}`}
-              open={libraryOpen && !compact}
-              onOpenChange={(open) => setLibraryOpen(compact || open)}
+              open={libraryOpen}
+              onOpenChange={(open) => { if (!compact) setLibraryOpen(open); }}
             >
               <AnimateIcon animateOnTap completeOnStop asChild>
                 <Collapsible.Trigger
                   type="button"
                   className={`sidebar__link sidebar__group-toggle${libraryActive && compact ? " sidebar__link--active" : ""}`}
-                  onClick={() => { if (compact) onToggle(); }}
+                  onClick={() => { if (compact) { setLibraryOpen(true); setLocationsOpen(false); setSyncOpen(false); onToggle(); } }}
                   aria-label={t("Library")}
                   title={t("Library")}
                   data-sidebar="menu-button"
@@ -169,14 +179,14 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
             </Collapsible.Root>
             <Collapsible.Root
               className={`sidebar__group${locationsActive ? " sidebar__group--active" : ""}`}
-              open={locationsOpen && !compact}
-              onOpenChange={(open) => setLocationsOpen(open)}
+              open={locationsOpen}
+              onOpenChange={(open) => { if (!compact) setLocationsOpen(open); }}
             >
               <AnimateIcon animateOnTap completeOnStop asChild>
                 <Collapsible.Trigger
                   type="button"
                   className={`sidebar__link sidebar__group-toggle${locationsActive && compact ? " sidebar__link--active" : ""}`}
-                  onClick={() => { if (compact) onToggle(); }}
+                  onClick={() => { if (compact) { setLibraryOpen(false); setLocationsOpen(true); setSyncOpen(false); onToggle(); } }}
                   aria-label={t("Locations")}
                   title={t("Locations")}
                   data-sidebar="menu-button"
@@ -233,14 +243,14 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
             </AnimateIcon>
             <Collapsible.Root
               className={`sidebar__group${location.pathname.startsWith("/sync/") ? " sidebar__group--active" : ""}`}
-              open={syncOpen && !compact}
-              onOpenChange={(open) => setSyncOpen(open)}
+              open={syncOpen}
+              onOpenChange={(open) => { if (!compact) setSyncOpen(open); }}
             >
               <AnimateIcon animateOnTap completeOnStop asChild>
                 <Collapsible.Trigger
                   type="button"
                   className={`sidebar__link sidebar__group-toggle${location.pathname.startsWith("/sync/") && compact ? " sidebar__link--active" : ""}`}
-                  onClick={() => { if (compact) onToggle(); }}
+                  onClick={() => { if (compact) { setLibraryOpen(false); setLocationsOpen(false); setSyncOpen(true); onToggle(); } }}
                   aria-label={t("Sync")}
                   title={t("Sync")}
                   data-sidebar="menu-button"

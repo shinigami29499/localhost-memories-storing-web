@@ -1,9 +1,13 @@
-import { useState } from "react";
+import { startTransition, useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Plus } from "@/components/animate-ui/icons/plus";
-import { Button, EmptyState, ErrorState, Spinner } from "../../components/ui";
+import { Button, ErrorState, Spinner } from "../../components/ui";
+import { PageTransition } from "../../components/layout/PageTransition";
+import { readPageTransitionEffect } from "../../utils/pageTransition";
 import { useLocale } from "../../context/LocaleContext";
 import {
+  albumKeys,
   AlbumCard,
   AlbumFormDialog,
   albumService,
@@ -22,8 +26,13 @@ const scopes = [
 ] satisfies { value: AlbumScope; label: string }[];
 
 export function AlbumsPage() {
-  const { t } = useLocale();
+  const { t, language } = useLocale();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const requestRef = useRef(0);
+  const [loadingScope, setLoadingScope] = useState(false);
+  const pageTransition = readPageTransitionEffect();
+  useEffect(() => () => { requestRef.current += 1; }, []);
   const me = useAuthStore((s) => s.user);
   const [scope, setScope] = useState<AlbumScope>("mine");
   const [creating, setCreating] = useState(false);
@@ -31,6 +40,16 @@ export function AlbumsPage() {
   const albums = useAlbums(scope);
   const invalidate = useInvalidateAlbums();
   const items = albums.data ?? [];
+  const groups = new Map<string, { date: Date; items: Album[] }>();
+  for (const album of items) {
+    const date = new Date(album.createdAt);
+    const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+    const group = groups.get(key);
+    if (group) group.items.push(album);
+    else groups.set(key, { date, items: [album] });
+  }
+  const dateGroups = [...groups.entries()].sort(([, a], [, b]) => b.date.getTime() - a.date.getTime());
+  const dateFormatter = new Intl.DateTimeFormat(language, { year: "numeric", month: "long", day: "numeric" });
 
   return (
     <main className="gallery-page album-page" aria-label={t("Album")}>
@@ -50,7 +69,18 @@ export function AlbumsPage() {
                   type="button"
                   className="gallery-page__filter"
                   aria-pressed={scope === value}
-                  onClick={() => setScope(value)}
+                  onClick={() => {
+                    const request = ++requestRef.current;
+                    if (value === scope) { setLoadingScope(false); return; }
+                    setLoadingScope(true);
+                    void queryClient.fetchQuery({ queryKey: albumKeys.list(value), queryFn: () => albumService.list(value) })
+                      .catch(() => undefined)
+                      .then(() => {
+                        if (request !== requestRef.current) return;
+                        setLoadingScope(false);
+                        startTransition(() => setScope(value));
+                      });
+                  }}
                 >
                   {t(label)}
                 </button>
@@ -69,26 +99,38 @@ export function AlbumsPage() {
             </Button>
           </div>
 
+          <div className="gallery-page__tab-panel--media" aria-busy={loadingScope || undefined}>
+          <PageTransition effect={pageTransition} transitionKey={scope}>
           {albums.isPending ? <Spinner label={t("Loading albums…")} /> : albums.isError ? (
             <ErrorState message={t("Could not load albums.")} onRetry={() => void albums.refetch()} />
-          ) : items.length === 0 ? (
-            <EmptyState
-              title={scope === "mine" ? "No albums yet" : "No public albums yet"}
-              hint={scope === "mine" ? "Use Save on any image or video to start an album." : undefined}
-            />
-          ) : (
-            <div className="album-grid" aria-busy={albums.isFetching}>
-              {items.map((album) => (
-                <AlbumCard
-                  key={album.id}
-                  album={album}
-                  isOwner={album.owner.id === me?.id}
-                  showOwner={scope === "public"}
-                  onEdit={setEditing}
-                />
+          ) : items.length === 0 ? null : (
+            <div className="gallery-groups" aria-busy={albums.isFetching}>
+              {dateGroups.map(([key, group]) => (
+                <section key={key} aria-label={dateFormatter.format(group.date)}>
+                  <div className="gallery-group__header">
+                    <h2 className="gallery-group__title">
+                      <time dateTime={`${group.date.getFullYear()}-${String(group.date.getMonth() + 1).padStart(2, "0")}-${String(group.date.getDate()).padStart(2, "0")}`}>
+                        {dateFormatter.format(group.date)}
+                      </time>
+                    </h2>
+                  </div>
+                  <div className="album-grid">
+                    {group.items.map((album) => (
+                      <AlbumCard
+                        key={album.id}
+                        album={album}
+                        isOwner={album.owner.id === me?.id}
+                        showOwner={scope === "public"}
+                        onEdit={setEditing}
+                      />
+                    ))}
+                  </div>
+                </section>
               ))}
             </div>
           )}
+          </PageTransition>
+          </div>
         </div>
       </div>
       {editing ? (
