@@ -4,10 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { authService } from "../../features/auth";
 import { useAuthStore } from "../../store/authStore";
 import { Button, Input, PasswordInput, showToast } from "../../components/ui";
-import { Brand } from "../../components/layout/Brand";
-import { CommunityIntro } from "../../components/layout/CommunityIntro";
-import { ThemeTogglerButton } from "../../components/ui/ThemeTogglerButton";
-import { LanguageToggleButton } from "../../components/ui/LanguageToggleButton";
+import { AuthLayout } from "../../components/layout/AuthLayout";
 import { useLocale } from "../../context/LocaleContext";
 import "./login.css";
 
@@ -34,17 +31,7 @@ export function LoginPage() {
   };
 
   return (
-    <div className="login-shell">
-      <header className="login__header">
-        <Brand />
-        <div className="login__header-actions">
-          <LanguageToggleButton />
-          <ThemeTogglerButton />
-        </div>
-        <span className="login__header-note">{t("Your world. Your community.")}</span>
-      </header>
-      <main className="login">
-        <CommunityIntro variant="login" />
+    <AuthLayout>
         <form className="login__card" onSubmit={submit} aria-labelledby="login-title">
           <span className="login__badge">{t("LET'S CONNECT")}</span>
           <h2 id="login-title" className="login__title">{t("Welcome back")}<span className="brand__dot">.</span></h2>
@@ -78,11 +65,6 @@ export function LoginPage() {
           {t("New to ShinigaCim?")} <Link className="login__swap" to="/register">{t("Create an account")}</Link>
         </p>
         </form>
-      </main>
-      <footer className="login__footer">
-        <span>ShinigaCim</span>
-        <span>{t("Made for moments worth sharing.")}</span>
-      </footer>
-    </div>
+      </AuthLayout>
   );
 }

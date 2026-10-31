@@ -3,10 +3,7 @@ import { ArrowRight } from "@/components/animate-ui/icons/arrow-right";
 import { Link } from "react-router-dom";
 import { authService } from "../../features/auth";
 import { Button, Input, PasswordInput, showToast } from "../../components/ui";
-import { Brand } from "../../components/layout/Brand";
-import { CommunityIntro } from "../../components/layout/CommunityIntro";
-import { ThemeTogglerButton } from "../../components/ui/ThemeTogglerButton";
-import { LanguageToggleButton } from "../../components/ui/LanguageToggleButton";
+import { AuthLayout } from "../../components/layout/AuthLayout";
 import { useLocale } from "../../context/LocaleContext";
 import "../login/login.css";
 
@@ -39,17 +36,7 @@ export function RegisterPage() {
 
   if (created) {
     return (
-      <div className="login-shell">
-        <header className="login__header">
-          <Brand />
-          <div className="login__header-actions">
-            <LanguageToggleButton />
-            <ThemeTogglerButton />
-          </div>
-          <span className="login__header-note">{t("Your world. Your community.")}</span>
-        </header>
-        <main className="login">
-          <CommunityIntro variant="login" />
+      <AuthLayout>
           <section className="login__card" aria-labelledby="pending-title">
             <h2 id="pending-title" className="login__title">{t("Almost there")}<span className="brand__dot">.</span></h2>
             <p className="login__subtitle">
@@ -57,27 +44,12 @@ export function RegisterPage() {
             </p>
             <Link className="btn btn--primary login__swap" to="/login">{t("Sign in")}</Link>
           </section>
-        </main>
-        <footer className="login__footer">
-          <span>ShinigaCim</span>
-          <span>{t("Made for moments worth sharing.")}</span>
-        </footer>
-      </div>
+        </AuthLayout>
     );
   }
 
   return (
-    <div className="login-shell">
-      <header className="login__header">
-        <Brand />
-        <div className="login__header-actions">
-          <LanguageToggleButton />
-          <ThemeTogglerButton />
-        </div>
-        <span className="login__header-note">{t("Your world. Your community.")}</span>
-      </header>
-      <main className="login">
-        <CommunityIntro variant="login" />
+    <AuthLayout>
         <form className="login__card" onSubmit={submit} aria-labelledby="register-title">
           <span className="login__badge">{t("JOIN THE COMMUNITY")}</span>
           <h2 id="register-title" className="login__title">{t("Create account")}<span className="brand__dot">.</span></h2>
@@ -127,11 +99,6 @@ export function RegisterPage() {
             {t("Already have an account?")} <Link className="login__swap" to="/login">{t("Sign in")}</Link>
           </p>
         </form>
-      </main>
-      <footer className="login__footer">
-        <span>ShinigaCim</span>
-        <span>{t("Made for moments worth sharing.")}</span>
-      </footer>
-    </div>
+      </AuthLayout>
   );
 }
