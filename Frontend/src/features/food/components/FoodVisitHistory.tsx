@@ -1,4 +1,8 @@
-import { XIcon } from "../../../components/animate-ui/icons/x";
+import { useEffect, useState } from "react";
+import { Trash2 } from "../../../components/animate-ui/icons/trash-2";
+import { LoaderCircle } from "../../../components/animate-ui/icons/loader-circle";
+import { ConfirmationDialog } from "../../../components/ui";
+import { useAuthStore } from "../../../store/authStore";
 import { AnimateIcon } from "../../../components/animate-ui/icons/icon";
 import { useLocale } from "../../../context/LocaleContext";
 import type { FoodPlaceVisit } from "../types";
@@ -12,8 +16,31 @@ interface Props {
 
 export function FoodVisitHistory({ visits, showPlaceDetails = true, onRemove, removingVisitId }: Props) {
   const { language, t } = useLocale();
+  const isAdmin = useAuthStore((state) => state.user?.role?.toLowerCase() === "admin");
+  const [now, setNow] = useState(() => Date.now());
+  const [visitToRemove, setVisitToRemove] = useState<FoodPlaceVisit | null>(null);
+
+  useEffect(() => {
+    if (!onRemove) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [onRemove]);
+
+  const canRemove = (visit: FoodPlaceVisit, time: number) =>
+    isAdmin || time - new Date(visit.visitedAt).getTime() <= 24 * 60 * 60 * 1000;
+
+  const requestRemove = (visit: FoodPlaceVisit) => {
+    const time = Date.now();
+    if (!canRemove(visit, time)) {
+      setNow(time);
+      return;
+    }
+    if (time - new Date(visit.visitedAt).getTime() <= 5 * 60 * 1000) onRemove?.(visit);
+    else setVisitToRemove(visit);
+  };
 
   return (
+    <>
     <ol className="food__history">
       {visits.map((visit) => (
         <li className="food__history-item" key={visit.id}>
@@ -49,16 +76,30 @@ export function FoodVisitHistory({ visits, showPlaceDetails = true, onRemove, re
                 type="button"
                 className="food__history-remove"
                 aria-label={t("Remove this check in")}
-                title={t("Remove this check in")}
-                disabled={removingVisitId === visit.id}
-                onClick={() => onRemove(visit)}
+                title={t(canRemove(visit, now) ? "Remove this check in" : "Check ins older than one day cannot be removed.")}
+                disabled={removingVisitId === visit.id || !canRemove(visit, now)}
+                onClick={() => requestRemove(visit)}
               >
-                <XIcon size={16} aria-hidden="true" />
+                {removingVisitId === visit.id ? <LoaderCircle size={16} className="spinner__wheel" aria-hidden="true" /> : <Trash2 size={16} aria-hidden="true" />}
               </button>
             </AnimateIcon>
           )}
         </li>
       ))}
     </ol>
+    {visitToRemove && (
+      <ConfirmationDialog
+        title="Remove this check in?"
+        danger
+        onConfirm={async () => {
+          if (canRemove(visitToRemove, Date.now())) onRemove?.(visitToRemove);
+          else setNow(Date.now());
+        }}
+        onClose={() => setVisitToRemove(null)}
+      >
+        <p>{t("This check in will be removed from your visit history.")}</p>
+      </ConfirmationDialog>
+    )}
+    </>
   );
 }

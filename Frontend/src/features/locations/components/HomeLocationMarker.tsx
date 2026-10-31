@@ -6,6 +6,7 @@ import { ConfirmationDialog, showToast } from "../../../components/ui";
 import { useLocale } from "../../../context/LocaleContext";
 import { useAuthStore } from "../../../store/authStore";
 import { useHomeLocation } from "../hooks/useHomeLocation";
+import { useMarkerDrag } from "../hooks/useMarkerDrag";
 import type { HomeLocation } from "../types";
 
 interface Props {
@@ -90,6 +91,11 @@ export function HomeLocationMarker({ location, variant, onClick, onHoverChange }
     }
   };
   const position = action?.type === "move" ? action.location : location;
+  const drag = useMarkerDrag(position, (nextLocation) => {
+    cancelHold();
+    suppressClick.current = true;
+    openAction({ type: "move", location: nextLocation });
+  }, !blocked);
 
   return (
     <>
@@ -99,22 +105,10 @@ export function HomeLocationMarker({ location, variant, onClick, onHoverChange }
         longitude={position.longitude}
         anchor="bottom"
         style={{ zIndex: 21 }}
-        draggable={!blocked}
         onClick={(event) => event.originalEvent.stopPropagation()}
-        onDragStart={() => {
-          if (blocked || dialogOpen.current || markerVersion !== gestureVersion.current) return;
-          cancelHold();
-          suppressClick.current = true;
-        }}
-        onDragEnd={(event) => {
-          if (blocked || dialogOpen.current || markerVersion !== gestureVersion.current) return;
-          cancelHold();
-          suppressClick.current = true;
-          const point = event.lngLat.wrap();
-          openAction({ type: "move", location: { latitude: point.lat, longitude: point.lng } });
-        }}
       >
         <div className={`${variant}__marker home-location-marker`}
+          style={{ translate: `${drag.offset.x}px ${drag.offset.y}px` }}
           onPointerEnter={() => onHoverChange?.(true)}
           onPointerLeave={() => onHoverChange?.(false)}
           onFocus={() => onHoverChange?.(true)}
@@ -130,11 +124,16 @@ export function HomeLocationMarker({ location, variant, onClick, onHoverChange }
               onPointerDown={(event) => {
                 if (event.button !== 0 || !event.isPrimary || blocked
                   || dialogOpen.current || markerVersion !== gestureVersion.current) return;
+                drag.onPointerDown(event);
                 cancelHold();
                 suppressClick.current = false;
                 pointer.current = { id: event.pointerId, x: event.clientX, y: event.clientY };
                 holdTimer.current = setTimeout(requestRemoval, 600);
               }}
+              onPointerMove={drag.onPointerMove}
+              onPointerUp={drag.onPointerUp}
+              onPointerCancel={drag.onPointerCancel}
+              onLostPointerCapture={drag.onLostPointerCapture}
               onContextMenu={(event) => {
                 event.preventDefault();
                 event.stopPropagation();
@@ -152,7 +151,7 @@ export function HomeLocationMarker({ location, variant, onClick, onHoverChange }
               onClick={(event) => {
                 event.stopPropagation();
                 if (!blocked && !dialogOpen.current && markerVersion === gestureVersion.current
-                  && !suppressClick.current) onClick();
+                  && !suppressClick.current && !drag.suppressClick.current) onClick();
               }}
             >
               {variant === "food"

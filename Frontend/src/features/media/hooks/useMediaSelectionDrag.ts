@@ -49,10 +49,12 @@ export function useMediaSelectionDrag(
 
   useEffect(() => {
     if (!enabled) {
+      if (drag.current?.holdTimer !== null && drag.current?.holdTimer !== undefined) clearTimeout(drag.current.holdTimer);
       drag.current = null;
       clearSuppressClick();
     }
     return () => {
+      if (drag.current?.holdTimer !== null && drag.current?.holdTimer !== undefined) clearTimeout(drag.current.holdTimer);
       drag.current = null;
       clearSuppressClick();
     };
@@ -72,16 +74,14 @@ export function useMediaSelectionDrag(
       active: false,
       holdTimer: null,
     };
-    if (!selectionMode) {
-      drag.current.holdTimer = setTimeout(() => {
-        const current = drag.current;
-        if (!current || current.startMediaId !== mediaId) return;
-        current.holdTimer = null;
-        current.active = true;
-        suppressClick.current = true;
-        selectionChangeRef.current(mediaId, true);
-      }, 500);
-    }
+    drag.current.holdTimer = setTimeout(() => {
+      const current = drag.current;
+      if (!current || current.startMediaId !== mediaId) return;
+      current.holdTimer = null;
+      current.active = true;
+      suppressClick.current = true;
+      selectionChangeRef.current(mediaId, selectionMode ? !isSelectedRef.current(mediaId) : true);
+    }, 500);
   }, [enabled, selectionMode, clearSuppressClick]);
 
   const onPointerMove = useCallback((event: PointerEvent<HTMLElement>) => {
@@ -89,18 +89,9 @@ export function useMediaSelectionDrag(
     if (!enabled || !current || current.pointerId !== event.pointerId) return;
     if (!current.active) {
       if (Math.hypot(event.clientX - current.startX, event.clientY - current.startY) <= 8) return;
-      if (current.holdTimer !== null) {
-        clearTimeout(current.holdTimer);
-        current.holdTimer = null;
-        if (event.pointerType === "touch") {
-          suppressClick.current = true;
-          suppressClickTimer.current = setTimeout(clearSuppressClick, 0);
-          drag.current = null;
-          return;
-        }
-      }
-      current.active = true;
-      toggleForDrag(current, current.startMediaId);
+      if (current.holdTimer !== null) clearTimeout(current.holdTimer);
+      drag.current = null;
+      return;
     }
 
     const target = event.currentTarget.ownerDocument.elementFromPoint?.(event.clientX, event.clientY) ?? event.target;

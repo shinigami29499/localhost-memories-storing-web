@@ -153,6 +153,22 @@ button:focus-visible {
   color: var(--selection-text);
 }
 
+/* Animate UI portals the click effect to the body without a class or ref. */
+body > div[style*="position: fixed"][style*="inset: 0px"][style*="pointer-events: none"] {
+  view-transition-name: click-effects;
+}
+
+::view-transition-group(click-effects) {
+  z-index: 3;
+}
+
+::view-transition-old(click-effects) {
+  display: none;
+}
+
+::view-transition-new(click-effects) {
+  animation: none;
+}
 :root[data-theme-transition]::view-transition-old(root),
 :root[data-theme-transition]::view-transition-new(root) {
   display: block;

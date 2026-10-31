@@ -25,13 +25,11 @@ const statusLabels: Record<string, string> = {
   pending_approval: "Pending approval",
 };
 
-type UserFilter = "all" | "pending_approval" | "active" | "disabled";
+type UserFilter = "all" | "pending_approval";
 
 const userFilters: { value: UserFilter; label: string }[] = [
   { value: "all", label: "All users" },
   { value: "pending_approval", label: "Pending" },
-  { value: "active", label: "Active" },
-  { value: "disabled", label: "Disabled" },
 ];
 
 export function UsersPage() {
@@ -84,8 +82,6 @@ export function UsersPage() {
   });
 
   const allUsers = users.data ?? [];
-  const pendingCount = allUsers.filter((user) => user.status === "pending_approval").length;
-  const activeCount = allUsers.filter((user) => user.status === "active").length;
   const normalizedSearch = search.trim().toLocaleLowerCase();
   const visibleUsers = allUsers.filter((user) => {
     const matchesStatus = filter === "all" || user.status === filter;
@@ -112,21 +108,6 @@ export function UsersPage() {
             </div>
           </header>
 
-          <div className="admin-users__summary" aria-label={t("User account summary")}>
-            <div className="admin-users__stat">
-              <span>{t("Total accounts")}</span>
-              <strong>{allUsers.length}</strong>
-            </div>
-            <div className="admin-users__stat admin-users__stat--pending">
-              <span>{t("Awaiting approval")}</span>
-              <strong>{pendingCount}</strong>
-            </div>
-            <div className="admin-users__stat admin-users__stat--active">
-              <span>{t("Active accounts")}</span>
-              <strong>{activeCount}</strong>
-            </div>
-          </div>
-
           {users.isLoading ? <Spinner label={t("Loading users…")} /> : null}
           {users.isError ? (
             <ErrorState message={t("Could not load users.")} onRetry={() => void users.refetch()} />
@@ -140,7 +121,7 @@ export function UsersPage() {
             <Tabs.Root
               value={filter}
               onValueChange={(value) => {
-                if (value === "all" || value === "pending_approval" || value === "active" || value === "disabled") {
+                if (value === "all" || value === "pending_approval") {
                   setFilter(value);
                   setPage(1);
                 }

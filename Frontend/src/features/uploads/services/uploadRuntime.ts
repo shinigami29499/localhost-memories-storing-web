@@ -25,6 +25,14 @@ export function requestUploadRetry(batchId: string, itemId: string): void {
   wakeUploadRuntime();
 }
 
+export async function setUploadPaused(batchId: string, itemId: string | undefined, paused: boolean): Promise<void> {
+  const batch = await uploadService.setPaused(batchId, itemId, paused);
+  if (paused) for (const item of batch.items) {
+    if ((!itemId || item.id === itemId) && item.status === "Paused") { activeRequests.get(item.id)?.abort(); retryRequests.delete(item.id); }
+  }
+  wakeUploadRuntime();
+}
+
 export async function cancelRunningUpload(batchId: string, itemId: string): Promise<UploadItem> {
   const item = await uploadService.cancel(batchId, itemId);
   activeRequests.get(itemId)?.abort();

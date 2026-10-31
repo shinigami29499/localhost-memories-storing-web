@@ -135,6 +135,33 @@ public sealed class UploadsController(
         return Ok(result.Item);
     }
 
+    [HttpDelete("batches/{batchId:guid}")]
+    [HttpDelete("batches/{batchId:guid}/items/{itemId:guid}")]
+    public async Task<IActionResult> DeleteRecordAsync(Guid batchId, Guid? itemId, CancellationToken cancellationToken)
+    {
+        await _uploadService.DeleteRecordAsync(_currentUser.RequireUserId(), batchId, itemId, cancellationToken);
+        await notificationsHub.NotifyUploadsChangedAsync(_currentUser.RequireUserId(), logger, cancellationToken);
+        return NoContent();
+    }
+
+    [HttpPost("batches/{batchId:guid}/pause")]
+    [HttpPost("batches/{batchId:guid}/items/{itemId:guid}/pause")]
+    public async Task<ActionResult<UploadBatchDto>> PauseAsync(Guid batchId, Guid? itemId, CancellationToken cancellationToken)
+    {
+        var batch = await _uploadService.SetPausedAsync(_currentUser.RequireUserId(), batchId, itemId, true, cancellationToken);
+        await notificationsHub.NotifyUploadsChangedAsync(_currentUser.RequireUserId(), logger, cancellationToken);
+        return Ok(batch);
+    }
+
+    [HttpPost("batches/{batchId:guid}/resume")]
+    [HttpPost("batches/{batchId:guid}/items/{itemId:guid}/resume")]
+    public async Task<ActionResult<UploadBatchDto>> ResumeAsync(Guid batchId, Guid? itemId, CancellationToken cancellationToken)
+    {
+        var batch = await _uploadService.SetPausedAsync(_currentUser.RequireUserId(), batchId, itemId, false, cancellationToken);
+        await notificationsHub.NotifyUploadsChangedAsync(_currentUser.RequireUserId(), logger, cancellationToken);
+        return Ok(batch);
+    }
+
     [HttpPost("batches/{batchId:guid}/items/{itemId:guid}/cancel")]
     public async Task<ActionResult<UploadItemDto>> CancelItemAsync(
         Guid batchId,

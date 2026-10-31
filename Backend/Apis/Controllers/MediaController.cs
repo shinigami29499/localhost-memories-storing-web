@@ -22,6 +22,7 @@ namespace Apis.Controllers;
 [Authorize]
 public class MediaController(
     IMediaService mediaService,
+    IDownloadHistoryService downloadHistory,
     ICurrentUserContext currentUser,
     IOptions<JwtOptions> jwtOptions) : ControllerBase
 {
@@ -78,7 +79,7 @@ public class MediaController(
     [AllowAnonymous]
     public async Task<IActionResult> GetFileAsync(
         Guid mediaId, CancellationToken cancellationToken, [FromQuery] bool includeDeleted = false,
-        [FromQuery] bool preview = false)
+        [FromQuery] bool preview = false, [FromQuery] bool download = false, [FromQuery] Guid? batchId = null)
     {
         var accessTokenQuery = (string?)Request.Query["accessToken"];
         if (_currentUser.UserId is null && !TryResolveAccessTokenUser(accessTokenQuery))
@@ -91,6 +92,8 @@ public class MediaController(
             Response.Headers.CacheControl = "no-store";
 
         var media = await _mediaService.GetMediaFileAsync(mediaId, includeDeleted, cancellationToken, preview);
+        if (download && !preview)
+            await downloadHistory.RecordAsync(_currentUser.RequireUserId(), mediaId, media.OriginalFilename, batchId, cancellationToken);
         return File(
             media.Content,
             media.MimeType,

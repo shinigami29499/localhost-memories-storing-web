@@ -11,6 +11,8 @@ public class ApplicationDbContext(
     IAuditActorProvider? actorProvider = null) : DbContext(options)
 {
     public DbSet<User> Users => Set<User>();
+    public DbSet<DownloadBatchState> DownloadBatchStates => Set<DownloadBatchState>();
+    public DbSet<DownloadRecord> DownloadRecords => Set<DownloadRecord>();
     public DbSet<MediaFile> MediaFiles => Set<MediaFile>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<UploadBatch> UploadBatches => Set<UploadBatch>();
@@ -41,6 +43,23 @@ public class ApplicationDbContext(
             entity.Property(u => u.AvatarSeed).HasMaxLength(128);
 
             entity.HasQueryFilter(u => u.DeletedAt == null);
+        });
+
+        modelBuilder.Entity<DownloadBatchState>(entity =>
+        {
+            entity.Property(batch => batch.ItemsJson).HasColumnType("jsonb").IsRequired();
+            entity.HasOne(batch => batch.User).WithMany().HasForeignKey(batch => batch.UserId).OnDelete(DeleteBehavior.NoAction);
+            entity.HasIndex(batch => new { batch.UserId, batch.CreatedAt });
+            entity.HasQueryFilter(batch => batch.DeletedAt == null);
+        });
+
+        modelBuilder.Entity<DownloadRecord>(entity =>
+        {
+            entity.Property(record => record.OriginalFilename).HasMaxLength(260).IsRequired();
+            entity.HasOne(record => record.User).WithMany().HasForeignKey(record => record.UserId).OnDelete(DeleteBehavior.NoAction);
+            entity.HasIndex(record => new { record.UserId, record.CreatedAt });
+            entity.HasIndex(record => record.CreatedAt);
+            entity.HasQueryFilter(record => record.DeletedAt == null);
         });
 
         modelBuilder.Entity<MediaFile>(entity =>

@@ -1,9 +1,11 @@
 import { create } from "zustand";
+import { showToast } from "../../../components/ui/Toast";
+import { saveDownloadBatch } from "./downloadHistory";
 import { downloadBlob } from "../../../services/api";
 import { useAuthStore } from "../../../store/authStore";
 import type { MediaFile } from "../../media/types";
 
-export type DownloadStatus = "Pending" | "Downloading" | "Sent to browser" | "Failed" | "Cancelled";
+export type DownloadStatus = "Pending" | "Downloading" | "Sent to browser" | "Failed" | "Cancelled" | "Paused" | "Recorded";
 
 export interface DownloadItem {
   id: string;
@@ -19,6 +21,8 @@ export interface DownloadItem {
 export interface DownloadBatch {
   id: string;
   createdAt: string;
+  username?: string;
+  userId?: string;
   items: DownloadItem[];
 }
 
@@ -28,6 +32,24 @@ let running = false;
 let active: { itemId: string; controller: AbortController } | undefined;
 const objectUrls = new Map<string, ReturnType<typeof setTimeout>>();
 
+const pendingSaves = new Map<string, Promise<void>>();
+
+function persistBatch(batch: DownloadBatch) {
+  const snapshot = { ...batch, items: batch.items.map((item) => ({ ...item })) };
+  const ownerId = snapshot.userId;
+  const previous = pendingSaves.get(snapshot.id) ?? Promise.resolve();
+  const next = previous.catch(() => {}).then(async () => {
+    if (!ownerId || useAuthStore.getState().user?.id !== ownerId || !useAuthStore.getState().accessToken) return;
+    await saveDownloadBatch(snapshot);
+  });
+  pendingSaves.set(snapshot.id, next);
+  void next.catch((error: unknown) => {
+    showToast.error("Could not save download progress.", error instanceof Error ? error.message : undefined);
+  }).finally(() => {
+    if (pendingSaves.get(snapshot.id) === next) pendingSaves.delete(snapshot.id);
+  });
+}
+
 function updateItem(itemId: string, changes: Partial<DownloadItem>) {
   useDownloadStore.setState((state) => ({
     batches: state.batches.map((batch) => ({
@@ -35,6 +57,10 @@ function updateItem(itemId: string, changes: Partial<DownloadItem>) {
       items: batch.items.map((item) => item.id === itemId ? { ...item, ...changes } : item),
     })),
   }));
+  if (changes.status) {
+    const batch = useDownloadStore.getState().batches.find((entry) => entry.items.some((item) => item.id === itemId));
+    if (batch) persistBatch(batch);
+  }
 }
 
 function nextItem(): DownloadItem | undefined {
@@ -77,9 +103,12 @@ async function runQueue() {
       active = { itemId, controller };
       updateItem(itemId, { status: "Downloading", loaded: 0, error: undefined });
       try {
-        const query = item.includeDeleted ? "?includeDeleted=true" : "";
+        const batchId = useDownloadStore.getState().batches.find((batch) => batch.items.some((entry) => entry.id === itemId))?.id;
+        const query = new URLSearchParams({ download: "true" });
+        if (item.includeDeleted) query.set("includeDeleted", "true");
+        if (batchId) query.set("batchId", batchId);
         const blob = await downloadBlob(
-          `/api/library/gallery/${encodeURIComponent(item.mediaId)}/file${query}`,
+          `/api/library/gallery/${encodeURIComponent(item.mediaId)}/file?${query}`,
           controller.signal,
           (loaded) => {
             if (!controller.signal.aborted) updateItem(itemId, { loaded });
@@ -107,7 +136,7 @@ async function runQueue() {
   }
 }
 
-export function enqueueDownloads(media: readonly MediaFile[], includeDeleted = false): string {
+export function enqueueDownloads(media: readonly Pick<MediaFile, "id" | "originalFilename" | "fileSizeBytes">[], includeDeleted = false): string {
   if (!useAuthStore.getState().user || !useAuthStore.getState().accessToken) {
     throw new Error("Sign in to download media.");
   }
@@ -115,6 +144,8 @@ export function enqueueDownloads(media: readonly MediaFile[], includeDeleted = f
   const batch: DownloadBatch = {
     id: crypto.randomUUID(),
     createdAt: new Date().toISOString(),
+    username: useAuthStore.getState().user?.username,
+    userId: useAuthStore.getState().user?.id,
     items: [...new Map(media.map((item) => [item.id, item])).values()].map((item) => ({
       id: crypto.randomUUID(),
       mediaId: item.id,
@@ -126,14 +157,50 @@ export function enqueueDownloads(media: readonly MediaFile[], includeDeleted = f
     })),
   };
   useDownloadStore.setState((state) => ({ batches: [batch, ...state.batches] }));
+  persistBatch(batch);
   void runQueue();
   return batch.id;
+}
+
+export function retryHistoryDownload(batch: DownloadBatch, itemId: string) {
+  if (!useAuthStore.getState().user || !useAuthStore.getState().accessToken) {
+    throw new Error("Sign in to download media.");
+  }
+  useDownloadStore.setState((state) => ({
+    batches: state.batches.some((entry) => entry.id === batch.id)
+      ? state.batches
+      : [batch, ...state.batches],
+  }));
+  retryDownload(itemId);
+}
+
+export function pauseDownloadBatch(batchId: string) {
+  const batch = useDownloadStore.getState().batches.find((entry) => entry.id === batchId);
+  if (!batch) return;
+  for (const item of batch.items) {
+    if (item.status === "Pending" || item.status === "Downloading") {
+      updateItem(item.id, { status: "Paused", loaded: 0 });
+      if (active?.itemId === item.id) active.controller.abort();
+    }
+  }
+}
+
+export function resumeDownloadBatch(batch: DownloadBatch) {
+  if (!useAuthStore.getState().user || !useAuthStore.getState().accessToken) throw new Error("Sign in to download media.");
+  useDownloadStore.setState((state) => ({
+    batches: state.batches.some((entry) => entry.id === batch.id) ? state.batches : [batch, ...state.batches],
+  }));
+  const current = useDownloadStore.getState().batches.find((entry) => entry.id === batch.id);
+  for (const item of current?.items ?? []) {
+    if (item.status === "Paused") updateItem(item.id, { status: "Pending", loaded: 0, error: undefined });
+  }
+  void runQueue();
 }
 
 export function cancelDownload(itemId: string) {
   const item = useDownloadStore.getState().batches.flatMap((batch) => batch.items)
     .find((candidate) => candidate.id === itemId);
-  if (!item || (item.status !== "Pending" && item.status !== "Downloading")) return;
+  if (!item || (item.status !== "Pending" && item.status !== "Downloading" && item.status !== "Paused")) return;
   updateItem(itemId, { status: "Cancelled" });
   if (active?.itemId === itemId) active.controller.abort();
 }

@@ -257,6 +257,12 @@
   font-size: 0.8125rem;
 }
 
+.media-preview-dialog .media-preview-dialog__action,
+.media-preview-dialog .media-lightbox__close {
+  border: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
 .media-preview-dialog .media-lightbox__close {
   z-index: 201;
 }

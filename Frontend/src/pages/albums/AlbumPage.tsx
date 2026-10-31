@@ -1,16 +1,16 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { startTransition, useEffect, useRef, useState, type FormEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import * as Tabs from "@radix-ui/react-tabs";
 import { ScrollProgress, ScrollProgressContainer, ScrollProgressProvider } from "@animate-ui/react/primitives/scroll-progress";
 import { AnimateIcon } from "@/components/animate-ui/icons/icon";
-import { ArrowLeft } from "@/components/animate-ui/icons/arrow-left";
 import { Globe } from "@/components/animate-ui/icons/globe";
 import { PencilLine } from "@/components/animate-ui/icons/pencil-line";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
 import { X } from "@/components/animate-ui/icons/x";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import { Button, ConfirmationDialog, EmptyState, ErrorState, Spinner, showToast } from "../../components/ui";
+import { PageTransition } from "../../components/layout/PageTransition";
 import { useLocale } from "../../context/LocaleContext";
 import {
   AlbumFormDialog,
@@ -28,6 +28,7 @@ import "../../features/media/components/media.css";
 import { ApiError } from "../../services/api";
 import { useAuthStore } from "../../store/authStore";
 import { mediaPreviewUrl } from "../../utils/media";
+import { readPageTransitionEffect } from "../../utils/pageTransition";
 import { ALBUM_CAPTION_MAX_LENGTH } from "../../features/albums/types";
 import "../gallery/gallery.css";
 import "./albums.css";
@@ -41,6 +42,7 @@ export function AlbumPage() {
 
 function AlbumDetail({ albumId }: { albumId: string | undefined }) {
   const { t } = useLocale();
+  const pageTransition = readPageTransitionEffect();
   const navigate = useNavigate();
   const me = useAuthStore((s) => s.user);
   const [editing, setEditing] = useState(false);
@@ -175,13 +177,6 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
         </div>
         <ScrollProgressContainer className="gallery-page__content" ref={contentRef}>
         <div className="gallery-page__inner">
-          <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
-            <Link to="/library/album" className="btn btn--ghost album-page__back">
-              <ArrowLeft size={16} aria-hidden="true" />
-              {t("Back to Albums")}
-            </Link>
-          </AnimateIcon>
-
           <header className="album-hero">
             <div className="album-hero__preview" aria-hidden="true">
               {data.previewMediaId ? <img src={mediaPreviewUrl(data.previewMediaId)} alt="" /> : null}
@@ -265,7 +260,7 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
             value={mediaKind}
             onValueChange={(value) => {
               if (value !== "image" && value !== "video") return;
-              setMediaKind(value);
+              startTransition(() => setMediaKind(value));
             }}
           >
             <div className="gallery-page__toolbar">
@@ -274,10 +269,11 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
                 <Tabs.Trigger className="gallery-page__filter" value="video">{t("Videos")}</Tabs.Trigger>
               </Tabs.List>
             </div>
-            <Tabs.Content value={mediaKind} className="gallery-page__tab-panel">
+            <Tabs.Content value={mediaKind} className="gallery-page__tab-panel gallery-page__tab-panel--media">
+              <PageTransition effect={pageTransition} transitionKey={mediaKind}>
               {media.isPending ? <Spinner label={t("Loading media…")} /> : media.isError && items.length === 0 ? (
                 <ErrorState message={t("Could not load media.")} onRetry={() => void media.refetch()} />
-              ) : items.length === 0 ? (
+              ) : items.length === 0 && mediaKind === "video" ? null : items.length === 0 ? (
                 <EmptyState
                   title={data.mediaCount === 0 ? "This album is empty" : mediaKind === "image" ? "No images in this album" : "No videos in this album"}
                   hint={isOwner ? "Use Save on any image or video to add it here." : undefined}
@@ -330,6 +326,7 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
               {media.hasNextPage && !media.isFetchNextPageError ? (
                 <div ref={sentinelRef} className="album-page__sentinel" aria-hidden="true" />
               ) : null}
+              </PageTransition>
             </Tabs.Content>
           </Tabs.Root>
         </div>

@@ -7,4 +7,5 @@ public enum UploadBatchStatus
     Completed,
     Failed,
     Cancelled,
+    Paused,
 }

@@ -1,26 +1,7 @@
-.download-page__hint {
-  max-width: 1600px;
-  margin: 0 auto 24px;
-  padding: 12px 16px;
-  border: 1px solid var(--border-card);
-  border-radius: var(--radius);
-  background: var(--surface-card);
-  color: var(--text-muted);
-  font-size: 0.875rem;
-  overflow-wrap: anywhere;
-}
+.download-page__section + .download-page__section { margin-top: 24px; }
+.download-page__section h2 { margin: 0 0 12px; font-size: 1rem; }
+.download-history-item { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 24px; align-items: center; padding: 16px; }
+.download-history-item__name { display: flex; flex-direction: column; min-width: 0; gap: 4px; }
+@media (max-width: 600px) { .download-history-item { grid-template-columns: 1fr; gap: 12px; } }
 
-.download-page__hint p {
-  margin: 0;
-}
-
-.download-page__hint p + p {
-  margin-top: 8px;
-}
-
-.download-item__error {
-  margin: 0;
-  color: var(--danger);
-  font-size: 0.875rem;
-  overflow-wrap: anywhere;
-}
+.download-page__gallery-link { text-decoration: none; }

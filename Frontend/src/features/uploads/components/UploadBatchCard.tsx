@@ -7,6 +7,8 @@ import { motionTokens, useShouldReduceMotion, useTempoTransition } from "@animat
 import { Button } from "../../../components/ui/Button";
 import { Pagination } from "../../../components/ui/Pagination";
 import { RotateCcw } from "../../../components/animate-ui/icons/rotate-ccw";
+import { Pause } from "../../../components/animate-ui/icons/pause";
+import { Play } from "../../../components/animate-ui/icons/play";
 import { X } from "../../../components/animate-ui/icons/x";
 import { ChevronDown } from "../../../components/animate-ui/icons/chevron-down";
 import { Image } from "../../../components/animate-ui/icons/image";
@@ -23,6 +25,7 @@ const batchStatusLabels: Record<UploadBatchStatus, string> = {
   Cancelled: "Cancelled",
   Failed: "Failed",
   Completed: "Completed",
+  Paused: "Paused",
 };
 
 const itemStatusLabels: Record<UploadItemStatus, string> = {
@@ -31,6 +34,7 @@ const itemStatusLabels: Record<UploadItemStatus, string> = {
   Success: "Success",
   Failed: "Failed",
   Cancelled: "Cancelled",
+  Paused: "Paused",
 };
 
 interface UploadBatchCardProps {
@@ -39,6 +43,8 @@ interface UploadBatchCardProps {
   showUsername: boolean;
   busyItemIds: ReadonlySet<string>;
   onRetry: (batch: UploadBatch, item: UploadItem) => void;
+  onRetryAll?: (batch: UploadBatch) => void;
+  onPause?: (batch: UploadBatch, item: UploadItem | undefined, paused: boolean) => void;
   onCancel: (batch: UploadBatch, item: UploadItem) => void;
 }
 
@@ -48,6 +54,8 @@ export function UploadBatchCard({
   showUsername,
   busyItemIds,
   onRetry,
+  onRetryAll,
+  onPause,
   onCancel,
 }: UploadBatchCardProps) {
   const { t } = useLocale();
@@ -137,6 +145,19 @@ export function UploadBatchCard({
             </span>
           </div>
         </div>
+        {batch.canManage ? (
+          <div className="upload-batch__footer">
+            {onRetryAll ? (
+            <Button type="button" variant="ghost" className="upload-item__action" aria-label={t("Retry all failed")} title={t("Retry all failed")} disabled={batch.items.filter((item) => item.status === "Failed").length < 1 || batch.items.filter((item) => item.status === "Failed").every((item) => busyItemIds.has(item.id))} onClick={() => onRetryAll(batch)}>
+              <RotateCcw size={18} aria-hidden="true" />
+            </Button>
+            ) : null}
+            {onPause ? <Button type="button" variant="ghost" className="upload-item__action" aria-label={t(batch.items.some((item) => item.status === "Paused") ? "Resume batch" : "Pause batch")} title={t(batch.items.some((item) => item.status === "Paused") ? "Resume batch" : "Pause batch")} disabled={!batch.items.some((item) => item.status === "Pending" || item.status === "Uploading" || item.status === "Paused") || batch.items.some((item) => busyItemIds.has(item.id))} onClick={() => onPause(batch, undefined, !batch.items.some((item) => item.status === "Paused"))}>{batch.items.some((item) => item.status === "Paused") ? <Play size={18} aria-hidden="true" /> : <Pause size={18} aria-hidden="true" />}</Button> : null}
+              <Button type="button" variant="ghost" className="upload-item__action upload-item__action--cancel" aria-label={t("Cancel batch")} title={t("Cancel batch")} disabled={batch.items.filter((item) => item.status === "Pending" || item.status === "Uploading" || item.status === "Paused").every((item) => busyItemIds.has(item.id))} onClick={() => batch.items.filter((item) => (item.status === "Pending" || item.status === "Uploading" || item.status === "Paused") && !busyItemIds.has(item.id)).forEach((item) => onCancel(batch, item))}>
+                <X size={18} aria-hidden="true" />
+              </Button>
+          </div>
+        ) : null}
       </div>
 
       <Collapsible.Panel
@@ -180,13 +201,14 @@ export function UploadBatchCard({
                     {indeterminate ? t("Starting") : `${itemProgress}%`}
                   </span>
                   <div className="upload-item__actions">
-                    {item.status === "Failed" && batch.canManage ? (
+                    {onPause && batch.canManage ? <Button type="button" variant="ghost" className="upload-item__action" aria-label={t(item.status === "Paused" ? "Resume batch" : "Pause batch")} title={t(item.status === "Paused" ? "Resume batch" : "Pause batch")} disabled={busy || !["Pending", "Uploading", "Paused"].includes(item.status)} onClick={() => onPause(batch, item, item.status !== "Paused")}>{item.status === "Paused" ? <Play size={18} aria-hidden="true" /> : <Pause size={18} aria-hidden="true" />}</Button> : null}
+                    {item.status !== "Pending" && item.status !== "Uploading" && batch.canManage ? (
                       <Button
                         type="button"
                         variant="ghost"
                         className="upload-item__action"
                         busy={busy}
-                        disabled={busy}
+                        disabled={busy || item.status !== "Failed"}
                         aria-label={t("Retry {name}", { name: item.originalFilename })}
                         title={t("Retry")}
                         onClick={() => onRetry(batch, item)}
@@ -194,7 +216,7 @@ export function UploadBatchCard({
                         {busy ? null : <RotateCcw size={18} aria-hidden="true" />}
                       </Button>
                     ) : null}
-                    {(item.status === "Pending" || item.status === "Uploading") && batch.canManage ? (
+                    {(item.status === "Pending" || item.status === "Uploading" || item.status === "Paused") && batch.canManage ? (
                       <Button
                         type="button"
                         variant="ghost"

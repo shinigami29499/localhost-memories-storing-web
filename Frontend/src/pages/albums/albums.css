@@ -450,7 +450,7 @@
 }
 
 .album-page .album-page__create-button,
-.album-hero .album-hero__edit {
+.album-hero__actions .btn--secondary {
   border: 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }

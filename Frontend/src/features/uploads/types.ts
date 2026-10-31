@@ -1,5 +1,5 @@
-export type UploadItemStatus = "Pending" | "Uploading" | "Success" | "Failed" | "Cancelled";
-export type UploadBatchStatus = "Pending" | "Uploading" | "Cancelled" | "Failed" | "Completed";
+export type UploadItemStatus = "Pending" | "Uploading" | "Success" | "Failed" | "Cancelled" | "Paused";
+export type UploadBatchStatus = "Pending" | "Uploading" | "Cancelled" | "Failed" | "Completed" | "Paused";
 
 export interface UploadItem {
   id: string;

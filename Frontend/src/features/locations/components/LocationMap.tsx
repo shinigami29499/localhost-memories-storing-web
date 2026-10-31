@@ -3,7 +3,7 @@ import Map, { GeolocateControl, Marker, useMap, type MapRef } from "react-map-gl
 import { useShouldReduceMotion } from "@animate-ui/react/utils/motion";
 import "mapbox-gl/dist/mapbox-gl.css";
 import "./mapControls.css";
-import { ErrorState, showToast } from "../../../components/ui";
+import { ErrorState, showToast, Spinner } from "../../../components/ui";
 import { AnimateIcon } from "../../../components/animate-ui/icons/icon";
 import { MapPin } from "../../../components/animate-ui/icons/map-pin";
 import { Globe } from "../../../components/animate-ui/icons/globe";
@@ -19,6 +19,7 @@ import {
 } from "./MapAppearanceSettings";
 import { LocationSearch } from "./LocationSearch";
 import { useHomeMarkerHover } from "../hooks/useHomeMarkerHover";
+import { useMarkerDrag } from "../hooks/useMarkerDrag";
 import { HomeLocationMarker } from "./HomeLocationMarker";
 import type { LocationSearchResult } from "../services/locationSearchService";
 import { useLocale } from "../../../context/LocaleContext";
@@ -210,6 +211,7 @@ interface PhotoCluster {
 }
 
 const MAX_FANNED_PHOTOS = 8;
+const MARKER_DRAG_HOLD_MS = 250;
 
 function PhotoPin({ item, selected, movable, onSelect, onMove }: {
   item: MediaFile;
@@ -219,7 +221,7 @@ function PhotoPin({ item, selected, movable, onSelect, onMove }: {
   onMove: Props["onMove"];
 }) {
   const { current: map } = useMap();
-  const gesture = useRef<{ id: number; x: number; y: number; dragging: boolean } | null>(null);
+  const gesture = useRef<{ id: number; x: number; y: number; startedAt: number; dragging: boolean; cancelled: boolean } | null>(null);
   const suppressClick = useRef(false);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   return (
@@ -232,14 +234,21 @@ function PhotoPin({ item, selected, movable, onSelect, onMove }: {
         if (!movable || !map || event.button !== 0 || !event.isPrimary) return;
         event.preventDefault();
         event.stopPropagation();
-        gesture.current = { id: event.pointerId, x: event.clientX, y: event.clientY, dragging: false };
+        gesture.current = { id: event.pointerId, x: event.clientX, y: event.clientY, startedAt: performance.now(), dragging: false, cancelled: false };
         event.currentTarget.setPointerCapture(event.pointerId);
       }}
       onPointerMove={(event) => {
         const start = gesture.current;
         if (!start || start.id !== event.pointerId) return;
         const x = event.clientX - start.x, y = event.clientY - start.y;
-        if (Math.hypot(x, y) > 8) start.dragging = true;
+        if (Math.hypot(x, y) > 8 && !start.dragging) {
+          if (performance.now() - start.startedAt < MARKER_DRAG_HOLD_MS) {
+            start.cancelled = true;
+            suppressClick.current = true;
+          } else if (!start.cancelled) {
+            start.dragging = true;
+          }
+        }
         if (start.dragging) setOffset({ x, y });
       }}
       onPointerUp={(event) => {
@@ -277,6 +286,22 @@ function PhotoPin({ item, selected, movable, onSelect, onMove }: {
       }}>
       <img src={mediaPreviewUrl(item.id)} alt="" loading="lazy" draggable={false} />
     </button>
+  );
+}
+
+function DraftMarker({ location, onPick }: { location: PickedLocation; onPick: Props["onPick"] }) {
+  const { t } = useLocale();
+  const drag = useMarkerDrag(location, onPick);
+  return (
+    <Marker latitude={location.latitude} longitude={location.longitude} style={{ zIndex: 3 }}
+      onClick={(event) => event.originalEvent.stopPropagation()}>
+      <span className="locations__pin locations__pin--draft" title={t("Drag to adjust location")}
+        aria-label={t("Drag to adjust location")}
+        style={{ translate: `${drag.offset.x}px ${drag.offset.y}px`, touchAction: "none" }}
+        onPointerDown={drag.onPointerDown} onPointerMove={drag.onPointerMove}
+        onPointerUp={drag.onPointerUp} onPointerCancel={drag.onPointerCancel}
+        onLostPointerCapture={drag.onLostPointerCapture}>+</span>
+    </Marker>
   );
 }
 
@@ -410,6 +435,7 @@ function MapContent({
   const scenesRef = useRef<HTMLDetailsElement>(null);
   const appearanceRef = useRef<HTMLDetailsElement>(null);
   const [loaded, setLoaded] = useState(false);
+  const [initialViewReady, setInitialViewReady] = useState(false);
   const [failed, setFailed] = useState(false);
   const [navigationOpen, setNavigationOpen] = useState(false);
   const [mapStyle, setMapStyle] = useState<MapScene>("3d");
@@ -427,6 +453,12 @@ function MapContent({
     setHasInitialCenter(hasCenter);
     setInitialLocationResolved(true);
   }, []);
+  useEffect(() => {
+    if (loaded && !initialViewReady && (initialLocationResolved || cameraTarget?.location || homeRequest > 0)) {
+      mapRef.current?.getMap().triggerRepaint();
+    }
+  }, [loaded, initialViewReady, initialLocationResolved, cameraTarget?.location, homeRequest]);
+
   const styleUrl = mapStyle === "3d"
     ? "mapbox://styles/mapbox/standard"
     : "mapbox://styles/mapbox/streets-v12";
@@ -474,6 +506,7 @@ function MapContent({
 
   return (
     <div className="locations__map map-controls" role="region" aria-label={t("Photo locations")}>
+      {!initialViewReady && <div className="locations__map-loading"><Spinner label="Loading map?" /></div>}
       <Map
         style={{ minHeight: "inherit" }}
         ref={mapRef}
@@ -484,6 +517,9 @@ function MapContent({
         cursor={!navigationOpen && (editable || homePicking) ? "crosshair" : undefined}
         cooperativeGestures
         onLoad={() => setLoaded(true)}
+        onIdle={() => {
+          if (initialLocationResolved || cameraTarget?.location || homeRequest > 0) setInitialViewReady(true);
+        }}
         onError={() => setFailed(true)}
         onClick={(event) => {
           if (navigationOpen) return;
@@ -551,20 +587,7 @@ function MapContent({
             onSelect(item);
           }} canMove={(item) => !navigationOpen && canMove(item)} onMove={onMove} />}
         {editable && draft && !navigationOpen && (
-          <Marker
-            latitude={draft.latitude}
-            longitude={draft.longitude}
-            draggable
-            style={{ zIndex: 3 }}
-            onClick={(event) => event.originalEvent.stopPropagation()}
-            onDragEnd={(event) => {
-              const point = event.lngLat.wrap();
-              onPick({ latitude: point.lat, longitude: point.lng });
-            }}
-          >
-            <span className="locations__pin locations__pin--draft" title={t("Drag to adjust location")}
-              aria-label={t("Drag to adjust location")}>+</span>
-          </Marker>
+          <DraftMarker location={draft} onPick={onPick} />
         )}
       </Map>
       <LocationSearch

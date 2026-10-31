@@ -10,7 +10,7 @@ import { UploadIcon } from "../../components/animate-ui/icons/upload";
 import { XIcon } from "../../components/animate-ui/icons/x";
 import { useAuthStore } from "../../store/authStore";
 import { useLocale } from "../../context/LocaleContext";
-import { cancelRunningUpload, requestUploadRetry } from "../../features/uploads/services/uploadRuntime";
+import { cancelRunningUpload, requestUploadRetry, setUploadPaused } from "../../features/uploads/services/uploadRuntime";
 import { uploadService } from "../../features/uploads/services/uploadService";
 import { saveUploadFile } from "../../features/uploads/services/uploadFileStore";
 import { UploadActivityDialog } from "../../features/uploads/components/UploadActivityDialog";
@@ -35,7 +35,7 @@ export function UploadManagementPage() {
   const page = Math.floor(offset / limit) + 1;
   const [busyItemIds, setBusyItemIds] = useState<Set<string>>(() => new Set());
   const busyTimeouts = useRef(new Map<string, number>());
-  const retryTarget = useRef<{ batch: UploadBatch; item: UploadItem } | null>(null);
+  const retryTargets = useRef<{ batch: UploadBatch; item: UploadItem }[]>([]);
   const retryInput = useRef<HTMLInputElement>(null);
   const uploadInput = useRef<HTMLInputElement>(null);
   const query = useQuery({
@@ -116,32 +116,52 @@ export function UploadManagementPage() {
     busyTimeouts.current.set(itemId, timeout);
   };
 
-  const retry = (batch: UploadBatch, item: UploadItem) => {
-    if (item.errorDetails?.includes("no longer available")) {
-      retryTarget.current = { batch, item };
-      retryInput.current?.click();
-      return;
+  const retryItems = (batch: UploadBatch, items: UploadItem[]) => {
+    const missing: { batch: UploadBatch; item: UploadItem }[] = [];
+    for (const item of items) {
+      if (busyItemIds.has(item.id)) continue;
+      if (item.errorDetails?.includes("no longer available")) {
+        missing.push({ batch, item });
+      } else {
+        markBusy(item.id);
+        requestUploadRetry(batch.id, item.id);
+      }
     }
-    markBusy(item.id);
-    requestUploadRetry(batch.id, item.id);
+    if (missing.length > 0) {
+      retryTargets.current = missing;
+      if (missing.length > 1) showToast.info(t("Select the original files to retry the remaining uploads."));
+      retryInput.current?.click();
+    }
   };
 
-  const replaceMissingFile = async (file: File | undefined) => {
-    const target = retryTarget.current;
-    retryTarget.current = null;
-    if (!target || !file) return;
-    if (file.name !== target.item.originalFilename || file.size !== target.item.fileSizeBytes) {
-      showToast.error(t("Choose the same file name and size to retry."));
-      return;
+  const replaceMissingFiles = async (files: File[]) => {
+    const targets = retryTargets.current;
+    retryTargets.current = [];
+    if (!files.length) return;
+    let unmatched = false;
+    for (const target of targets) {
+      const file = files.find((candidate) => candidate.name === target.item.originalFilename && candidate.size === target.item.fileSizeBytes);
+      if (!file) {
+        unmatched = true;
+        continue;
+      }
+      try {
+        await saveUploadFile(target.item.id, file);
+        markBusy(target.item.id);
+        requestUploadRetry(target.batch.id, target.item.id);
+      } catch (error) {
+        showToast.error(t("Could not save this file for retry."), error instanceof Error ? error.message : undefined);
+      }
     }
+    if (unmatched) showToast.error(t("Choose the same file name and size to retry."));
+  };
 
-    try {
-      await saveUploadFile(target.item.id, file);
-      markBusy(target.item.id);
-      requestUploadRetry(target.batch.id, target.item.id);
-    } catch (error) {
-      showToast.error(t("Could not save this file for retry."), error instanceof Error ? error.message : undefined);
-    }
+  const togglePause = async (batch: UploadBatch, item: UploadItem | undefined, paused: boolean) => {
+    const affected = item ? [item] : batch.items.filter((entry) => paused ? entry.status === "Pending" || entry.status === "Uploading" : entry.status === "Paused");
+    for (const entry of affected) markBusy(entry.id);
+    try { await setUploadPaused(batch.id, item?.id, paused); await queryClient.invalidateQueries({ queryKey: ["uploads"] }); }
+    catch (error) { showToast.error(t("Could not change upload pause state."), error instanceof Error ? error.message : undefined); }
+    finally { setBusyItemIds((current) => { const next = new Set(current); for (const entry of affected) next.delete(entry.id); return next; }); }
   };
 
   const cancel = async (batch: UploadBatch, item: UploadItem) => {
@@ -172,9 +192,10 @@ export function UploadManagementPage() {
           ref={retryInput}
           hidden
           type="file"
+          multiple
           aria-label={t("Select replacement file")}
           onChange={(event) => {
-            void replaceMissingFile(event.currentTarget.files?.[0]);
+            void replaceMissingFiles(Array.from(event.currentTarget.files ?? []));
             event.currentTarget.value = "";
           }}
         />
@@ -279,7 +300,9 @@ export function UploadManagementPage() {
                 displayId={offset + index + 1}
                 showUsername={isAdmin}
                 busyItemIds={busyItemIds}
-                onRetry={retry}
+                onRetry={(batch, item) => retryItems(batch, [item])}
+                onPause={(batch, item, paused) => void togglePause(batch, item, paused)}
+                onRetryAll={(batch) => retryItems(batch, batch.items.filter((item) => item.status === "Failed"))}
                 onCancel={(itemBatch, item) => void cancel(itemBatch, item)}
               />
             ))}

@@ -31,7 +31,7 @@ export function ThemeTogglerButton({ className = "" }: { className?: string }) {
   };
 
   return (
-    <AnimateIcon asChild>
+    <AnimateIcon asChild speed={2}>
       <motion.button
         type="button"
         className={`theme-toggler${className ? ` ${className}` : ""}`}

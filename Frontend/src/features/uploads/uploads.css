@@ -361,6 +361,7 @@
   grid-area: footer;
   gap: 8px;
   min-width: 0;
+  flex-wrap: wrap;
 }
 
 .upload-batch__items {

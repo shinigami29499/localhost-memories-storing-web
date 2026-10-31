@@ -7,4 +7,5 @@ public enum UploadItemStatus
     Success,
     Failed,
     Cancelled,
+    Paused,
 }
