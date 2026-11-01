@@ -152,7 +152,7 @@
   transition: background-color var(--animate-ui-sidebar-color-duration) var(--animate-ui-sidebar-color-easing), scale 140ms ease-out;
 }
 
-.control-bar > .notification-bar__trigger:hover:not(:focus-visible),
+.control-bar > button.notification-bar__trigger:hover:not(:focus-visible):not(:disabled),
 .control-bar > .notification-bar__trigger:focus-visible {
   color: #facc15;
 }

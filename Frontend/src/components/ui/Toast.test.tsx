@@ -50,6 +50,19 @@ describe("ToastProvider", () => {
     expect(consoleError).not.toHaveBeenCalled();
   });
 
+  it("renders the default progress bar for presence toasts", async () => {
+    await act(async () => {
+      root.render(<ToastProvider><main>Application content</main></ToastProvider>);
+    });
+    await act(async () => {
+      showToast.success("User is online", { timeout: 5000, highlight: ["User"] });
+    });
+
+    const toasts = Array.from(document.querySelectorAll<HTMLElement>(".toast-root"));
+    const presence = toasts.find((toast) => toast.textContent?.includes("User is online"));
+    expect(presence?.querySelectorAll("[data-animate-ui-toast-progress]")).toHaveLength(1);
+  });
+
   it.each([
     ["title", ".toast-title"],
     ["description", ".toast-description"],

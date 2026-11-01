@@ -56,7 +56,7 @@ export function PresenceRuntime() {
         presence.set(event.userId, event.online);
         if (previous === event.online) return;
         const message = t(event.online ? "{username} is online" : "{username} went offline", { username: event.username });
-        const options = { progress: true, timeout: 5000, highlight: [event.username] };
+        const options = { timeout: 5000, highlight: [event.username] };
         if (event.online) showToast.success(message, options);
         else showToast.error(message, options);
       });

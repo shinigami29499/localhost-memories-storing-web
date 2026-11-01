@@ -74,33 +74,6 @@
   flex-shrink: 0;
 }
 
-.toast-root[data-presence-progress]::after {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 3px;
-  background: var(--toast-accent);
-  transform-origin: left;
-  animation: presence-toast-progress 5s linear forwards;
-}
-
-.toast-viewport:hover .toast-root[data-presence-progress]::after,
-.toast-viewport:focus-within .toast-root[data-presence-progress]::after {
-  animation-play-state: paused;
-}
-
-@keyframes presence-toast-progress {
-  to { transform: scaleX(0); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .toast-root[data-presence-progress]::after {
-    animation: none;
-  }
-}
-
 .toast-text {
   flex: 1;
   min-width: 0;

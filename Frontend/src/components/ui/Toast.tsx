@@ -20,7 +20,6 @@ export interface ToastOptions {
   undo?: ToastUndoHandler;
   undoLabel?: string;
   timeout?: number;
-  progress?: boolean;
   onClick?: () => void;
   highlight?: string[];
   icon?: 'calendar-check';
@@ -29,7 +28,6 @@ export interface ToastOptions {
 interface ToastData {
   undo?: ToastUndoHandler;
   undoLabel?: string;
-  progress?: boolean;
   onClick?: () => void;
   highlight?: string[];
   icon?: 'calendar-check';
@@ -57,8 +55,8 @@ function addToast(type: 'success' | 'error' | 'info' | 'warning' | 'delete', tit
       : undefined,
     type,
     timeout: options.timeout ?? (options.undo ? UNDOABLE_TOAST_TIMEOUT : undefined),
-    data: options.undo || options.progress || options.onClick || options.highlight?.length || options.icon
-      ? { undo: options.undo, undoLabel: options.undoLabel, progress: options.progress, onClick: options.onClick, highlight: options.highlight, icon: options.icon }
+    data: options.undo || options.onClick || options.highlight?.length || options.icon
+      ? { undo: options.undo, undoLabel: options.undoLabel, onClick: options.onClick, highlight: options.highlight, icon: options.icon }
       : undefined,
   });
 }
@@ -209,7 +207,6 @@ export function Toaster() {
             toast={toast}
             className="toast-root"
             data-toast-type={toast.type}
-            data-presence-progress={toast.data?.progress ? toast.type : undefined}
             onPointerDown={(event) => {
               if (event.button !== 0) return;
               pointers.current.set(event.currentTarget, {
