@@ -548,6 +548,10 @@
   color: var(--danger);
 }
 
+.gallery-selection-bar__action--danger svg {
+  color: var(--heart);
+}
+
 .gallery-selection-bar__action--danger:hover:not(:disabled) {
   background: var(--danger-wash);
   color: var(--danger);
@@ -594,8 +598,8 @@
   opacity: 0.4;
 }
 
-.gallery-selection-bar--compact .gallery-selection-bar__action--favorite[aria-pressed="true"] {
-  color: var(--danger);
+.gallery-selection-bar__action--favorite[aria-pressed="true"] svg {
+  color: var(--heart);
 }
 
 .gallery-selection-bar--compact .gallery-selection-bar__action--save[aria-pressed="true"] {
@@ -668,6 +672,10 @@
   .gallery-date-grid {
     gap: 4px;
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .gallery-date-grid[data-media-kind="video"] {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .gallery-date-grid .media-tile {

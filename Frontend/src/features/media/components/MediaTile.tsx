@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useInView } from "motion/react";
+import { AnimateIcon } from "@/components/animate-ui/icons/icon";
+import { Clapperboard } from "@/components/animate-ui/icons/clapperboard";
+import { Play } from "@/components/animate-ui/icons/play";
 import { RotateCcw } from "@/components/animate-ui/icons/rotate-ccw";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import { useLocale } from "../../../context/LocaleContext";
@@ -98,6 +101,7 @@ export function MediaTile({
   };
 
   return (
+    <AnimateIcon asChild animateOnHover animateOnTap completeOnStop>
       <button
         ref={tileRef}
         type="button"
@@ -199,6 +203,13 @@ export function MediaTile({
           <img key={attempt} className="media-tile__preview" src={previewUrl} onLoad={() => finishPreview(false)} onError={() => finishPreview(true)} alt="" loading={retrying ? "eager" : "lazy"} decoding="async" draggable={false} />
         )}
       </span>
+      {media.mediaKind === "video" && !failed && !retrying ? (
+        <>
+          <span className="media-tile__video-fade" aria-hidden="true" />
+          <span className="media-tile__video-indicator" aria-hidden="true"><Clapperboard size={16} /></span>
+          <span className="media-tile__play" aria-hidden="true"><Play size={24} /></span>
+        </>
+      ) : null}
       {failed || retrying ? (
         <span className="media-tile__retry" aria-hidden="true">
           {retrying
@@ -207,5 +218,6 @@ export function MediaTile({
         </span>
       ) : null}
       </button>
+    </AnimateIcon>
   );
 }

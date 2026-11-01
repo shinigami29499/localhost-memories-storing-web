@@ -17,6 +17,8 @@ import { Pagination } from "../../../components/ui/Pagination";
 import { ConfirmationDialog } from "../../../components/ui/ConfirmationDialog";
 import { UserAvatar } from "../../../components/common/UserAvatar";
 import { showToast } from "../../../components/ui/Toast";
+import { useAuthStore } from "../../../store/authStore";
+import { downloadCategory, downloadReadKey, useDownloadReadStore } from "../hooks/useUnreadDownloads";
 import { useLocale } from "../../../context/LocaleContext";
 import { pauseDownloadBatch, pauseDownloadItem, resumeDownloadBatch, resumeDownloadItem, removeDownloadRecord, retryDownload, retryHistoryDownload, useDownloadStore, type DownloadBatch } from "../services/downloadQueue";
 
@@ -24,6 +26,10 @@ const ITEMS_PER_PAGE = 5;
 
 export function DownloadBatchCard({ batch, showUsername = false, avatarSeed, canRetry = true }: { batch: DownloadBatch; displayId: number; showUsername?: boolean; avatarSeed?: string | null; canRetry?: boolean }) {
   const { t, language } = useLocale();
+  const userId = useAuthStore((state) => state.user?.id) ?? "";
+  const read = useDownloadReadStore((state) => state.read);
+  const markRead = useDownloadReadStore((state) => state.markRead);
+  const unreadItems = batch.items.filter((item) => { const category = downloadCategory(item); return category && read[downloadReadKey(userId, batch, item)] !== category; });
   const queryClient = useQueryClient();
   const [deleting, setDeleting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -67,7 +73,9 @@ export function DownloadBatchCard({ batch, showUsername = false, avatarSeed, can
   return (
     <Collapsible.Root render={<article />} className="upload-batch" open={expanded} onOpenChange={setExpanded}>
       <div
-        className={`upload-batch__summary${showUsername ? " upload-batch__summary--admin" : ""}`}
+        className={`upload-batch__summary${showUsername ? " upload-batch__summary--admin" : ""}${unreadItems.length ? " upload-batch__summary--unread" : ""}`}
+        onMouseEnter={() => { if (unreadItems.length) markRead(userId, batch, unreadItems); }}
+        onFocus={() => { if (unreadItems.length) markRead(userId, batch, unreadItems); }}
         onClick={(event) => {
           if ((event.target as HTMLElement).closest("button, input, a, select, [role='combobox']")) return;
           setExpanded((current) => !current);

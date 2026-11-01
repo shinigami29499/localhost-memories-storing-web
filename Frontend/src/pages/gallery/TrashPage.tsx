@@ -244,7 +244,7 @@ export function TrashPage() {
                                 </time>
                               </h2>
                             </div>
-                            <div className="gallery-date-grid">
+                            <div className="gallery-date-grid" data-media-kind={filter}>
                               {group.items.map((item) => (
                                 <MediaTile
                                   key={item.id}

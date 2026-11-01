@@ -242,6 +242,12 @@ export function mediaViewerTransition(element: HTMLElement, effect: PageTransiti
   return EFFECTS[selected](false, frame, frame);
 }
 
+export function fullPageTransition(effect: PageTransitionEffect, point: { x: number; y: number }) {
+  const selected = effect === "random" ? pickEffect() : effect;
+  const frame = { width: window.innerWidth, top: 0, bottom: window.innerHeight, ...point };
+  return EFFECTS[selected](false, frame, frame);
+}
+
 function backgroundOf(element: HTMLElement) {
   for (
     let node: HTMLElement | null = element;

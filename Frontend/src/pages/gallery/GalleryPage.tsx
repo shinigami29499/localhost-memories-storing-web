@@ -14,7 +14,7 @@ import { X } from "@/components/animate-ui/icons/x";
 import { BulkSaveToAlbumDialog } from "../../features/albums/components/BulkSaveToAlbumDialog";
 import { albumKeys } from "../../features/albums/hooks/useAlbums";
 import { albumService } from "../../features/albums/services/albumService";
-import { ConfirmationDialog, EmptyState, ErrorState, Spinner } from "../../components/ui";
+import { ConfirmationDialog, ErrorState, Spinner } from "../../components/ui";
 import { PageTransition } from "../../components/layout/PageTransition";
 import { showToast } from "../../components/ui/Toast";
 import { useLocale } from "../../context/LocaleContext";
@@ -335,7 +335,7 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
         <ErrorState message={t("Could not load media.")} onRetry={() => void query.refetch()} />
       ) : null}
       {view === "favorites" && !query.isPending && !query.isError && media.length === 0 ? (
-        <EmptyState title={t(copy.emptyTitle)} hint={t(copy.emptyHint)} />
+        null
       ) : null}
       {media.length > 0 ? (
         <div className="gallery-groups" aria-busy={query.isFetching}>
@@ -352,7 +352,7 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
                   </h2>
                 </div>
                   <div
-                    className="gallery-date-grid"
+                    className="gallery-date-grid" data-media-kind={selectedFilter}
                   >
                     {group.items.map((item) => (
                       <MediaTile

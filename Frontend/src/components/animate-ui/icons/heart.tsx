@@ -59,6 +59,7 @@ function IconComponent({ size, ...props }: HeartProps) {
       height={size}
       viewBox="0 0 24 24"
       fill="none"
+      color="var(--heart)"
       stroke="currentColor"
       strokeWidth={2}
       strokeLinecap="round"

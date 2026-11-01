@@ -349,10 +349,7 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
               {media.isPending ? <Spinner label={t("Loading media…")} /> : media.isError && items.length === 0 ? (
                 <ErrorState message={t("Could not load media.")} onRetry={() => void media.refetch()} />
               ) : items.length === 0 && mediaKind === "video" ? null : items.length === 0 ? (
-                <EmptyState
-                  title={data.mediaCount === 0 ? "This album is empty" : mediaKind === "image" ? "No images in this album" : "No videos in this album"}
-                  hint={isOwner ? "Use Save on any image or video to add it here." : undefined}
-                />
+                null
               ) : (
                 <MediaRetryProvider key={mediaKind} order={dateGroups.flatMap(([, group]) => group.items.map((item) => item.id))}>
                   <div className="gallery-groups" aria-busy={media.isFetching}>
@@ -361,7 +358,7 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
                         <div className="gallery-group__header"><h2 className="gallery-group__title">
                           <time dateTime={`${group.date.getFullYear()}-${String(group.date.getMonth() + 1).padStart(2, "0")}-${String(group.date.getDate()).padStart(2, "0")}`}>{dateFormatter.format(group.date)}</time>
                         </h2></div>
-                        <div className="gallery-date-grid">
+                        <div className="gallery-date-grid" data-media-kind={mediaKind}>
                         {group.items.map((item) => (
                         <MediaTile
                           key={item.id}

@@ -114,7 +114,7 @@ export function AlbumsPage() {
           <header className="gallery-page__header">
             <p className="gallery-page__eyebrow">{t("Keep what matters")}</p>
             <h1>{t("Album")}<span className="brand__dot">.</span></h1>
-            <p>{t("Organize images and videos into albums and revisit them anytime.")}</p>
+            <p>{t("Your memories, organized into albums.")}</p>
           </header>
 
           <div className="gallery-page__media-toolbar">

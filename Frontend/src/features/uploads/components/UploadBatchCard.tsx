@@ -15,6 +15,8 @@ import { Video } from "../../../components/animate-ui/icons/video";
 import { FileText } from "../../../components/animate-ui/icons/file-text";
 import { UserAvatar } from "../../../components/common/UserAvatar";
 import { useLocale } from "../../../context/LocaleContext";
+import { useAuthStore } from "../../../store/authStore";
+import { uploadCategory, useUploadReadStore } from "../hooks/useUnreadUploads";
 import type { UploadBatch, UploadBatchStatus, UploadItem, UploadItemStatus } from "../types";
 
 const ITEMS_PER_PAGE = 5;
@@ -62,6 +64,10 @@ export function UploadBatchCard({
   onPause,
 }: UploadBatchCardProps) {
   const { t, language } = useLocale();
+  const userId = useAuthStore((state) => state.user?.id) ?? "";
+  const read = useUploadReadStore((state) => state.read);
+  const markRead = useUploadReadStore((state) => state.markRead);
+  const unreadItems = batch.items.filter((item) => { const category = uploadCategory(item); return category && read[`${userId}:${item.id}`] !== category; });
   const active = batch.status === "Uploading" || batch.status === "Pending";
   const [expanded, setExpanded] = useState(active);
   const [itemPage, setItemPage] = useState(1);
@@ -92,7 +98,9 @@ export function UploadBatchCard({
       onOpenChange={setExpanded}
     >
       <div
-        className={`upload-batch__summary${showUsername ? " upload-batch__summary--admin" : ""}`}
+        className={`upload-batch__summary${showUsername ? " upload-batch__summary--admin" : ""}${unreadItems.length ? " upload-batch__summary--unread" : ""}`}
+        onMouseEnter={() => { if (unreadItems.length) markRead(userId, unreadItems); }}
+        onFocus={() => { if (unreadItems.length) markRead(userId, unreadItems); }}
         onClick={(event) => {
           if ((event.target as HTMLElement).closest("button, input, a, select, [role='combobox']")) return;
           setExpanded((current) => !current);

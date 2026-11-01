@@ -25,6 +25,8 @@ import { Container, Gap, Highlight } from "@animate-ui/react/primitives/sidebar"
 import { Collapsible } from "@animate-ui/react/primitives/base-ui/collapsible";
 import { useLocale } from "../../context/LocaleContext";
 import { UserAvatar } from "../common/UserAvatar";
+import { useUnreadDownloads } from "../../features/downloads/hooks/useUnreadDownloads";
+import { useUnreadUploads } from "../../features/uploads/hooks/useUnreadUploads";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -34,6 +36,8 @@ interface SidebarProps {
 
 export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps) {
   const { t } = useLocale();
+  const uploadCounts = useUnreadUploads();
+  const downloadCounts = useUnreadDownloads();
   const user = useAuthStore((s) => s.user);
   const navigate = useNavigate();
   const location = useLocation();
@@ -228,7 +232,7 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
                   </AnimateIcon>
                   <AnimateIcon animateOnTap completeOnStop asChild>
                     <NavLink to="/location/saved" className={`sidebar__link sidebar__sub-link${location.pathname === "/location/saved" ? " sidebar__link--active" : ""}`} data-sidebar="menu-sub-button" aria-label={t("Saved")} title={t("Saved")}>
-                      <Bookmark size={16} aria-hidden="true" />
+                      <Bookmark size={16} fill="currentColor" aria-hidden="true" />
                       <span>{t("Saved")}</span>
                     </NavLink>
                   </AnimateIcon>
@@ -282,6 +286,9 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
                     >
                       <Upload size={16} aria-hidden="true" />
                       <span>{t("Upload")}</span>
+                      {(uploadCounts.success > 0 || uploadCounts.pending > 0 || uploadCounts.failed > 0) && <span className="sidebar__upload-counts">
+                        {(["success", "pending", "failed"] as const).map((status) => <span key={status} className={`sidebar__upload-count sidebar__upload-count--${status}`} aria-label={`${t(status === "success" ? "Success" : status === "pending" ? "Pending upload" : "Failed")}: ${uploadCounts[status]}`} title={t(status === "success" ? "Success" : status === "pending" ? "Pending upload" : "Failed")}>{uploadCounts[status]}</span>)}
+                      </span>}
                     </NavLink>
                   </AnimateIcon>
                   <AnimateIcon animateOnTap completeOnStop asChild>
@@ -294,6 +301,9 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
                     >
                       <Download size={16} aria-hidden="true" />
                       <span>{t("Download")}</span>
+                      {(downloadCounts.success > 0 || downloadCounts.pending > 0 || downloadCounts.failed > 0) && <span className="sidebar__upload-counts">
+                        {(["success", "pending", "failed"] as const).map((status) => <span key={status} className={`sidebar__upload-count sidebar__upload-count--${status}`} aria-label={`${t(status === "success" ? "Success" : status === "pending" ? "Pending download" : "Failed")}: ${downloadCounts[status]}`} title={t(status === "success" ? "Success" : status === "pending" ? "Pending download" : "Failed")}>{downloadCounts[status]}</span>)}
+                      </span>}
                     </NavLink>
                   </AnimateIcon>
                 </div>

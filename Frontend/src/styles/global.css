@@ -29,6 +29,8 @@
   --community-art-ground: linear-gradient(25deg, #2b2b2b, #4d4d4d);
   --selection-text: #17191d;
   --text-on-accent: #17191d;
+  --heart: #e32424;
+  --trash: #e32424;
   --danger: #ff8e9b;
   --danger-wash: rgba(255, 142, 155, 0.12);
   --text-on-danger: #17191d;
@@ -78,6 +80,11 @@
 
 * {
   box-sizing: border-box;
+  scrollbar-width: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
 }
 
 .lucide {
@@ -179,6 +186,13 @@ body > div[style*="position: fixed"][style*="inset: 0px"][style*="pointer-events
 :root[data-theme-transition] body,
 :root[data-theme-transition] body * {
   view-transition-name: none !important;
+}
+
+:root[data-theme-transition],
+:root[data-theme-transition] *,
+:root[data-theme-transition] *::before,
+:root[data-theme-transition] *::after {
+  transition: none !important;
 }
 
 .brand {
@@ -458,6 +472,10 @@ body > div[style*="position: fixed"][style*="inset: 0px"][style*="pointer-events
 .btn--danger {
   background: var(--danger);
   color: var(--text-on-danger);
+}
+
+.btn--danger [data-trash-icon] {
+  color: inherit;
 }
 
 .btn--danger:focus-visible {
@@ -1652,7 +1670,7 @@ textarea::placeholder {
 
 .reaction-icon--heart {
   flex-shrink: 0;
-  color: var(--danger);
+  color: var(--heart);
 }
 
 .reactions {

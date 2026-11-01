@@ -395,12 +395,13 @@
   fill: var(--notification-icon) !important;
 }
 
-.sidebar__link:is([href="/library/album"], [href="/location/saved"]) > svg { stroke: light-dark(#000, #fff); }
-.sidebar__link:is([href="/library/album"], [href="/location/saved"]) > svg > path { fill: none !important; }
-.sidebar__link:is([href="/library/album"], [href="/location/saved"]):is(:hover, .sidebar__link--active) > svg { stroke: light-dark(#fff, #000); }
+.sidebar__link:is([href="/library/album"], [href="/location/saved"]) > svg { stroke: currentColor; }
+.sidebar__link:is([href="/library/album"], [href="/location/saved"]) > svg > path { fill: currentColor !important; }
+.sidebar__link:is([href="/library/album"], [href="/location/saved"]):is(:hover, .sidebar__link--active) > svg { stroke: currentColor; }
+.sidebar__link:is([href="/library/album"], [href="/location/saved"]).sidebar__link--active > svg > path { fill: currentColor !important; }
 
 .sidebar__link[href="/library/gallery/trash"] > svg {
-  stroke: var(--text-strong);
+  stroke: var(--heart);
 }
 
 .sidebar__sub-link:hover {
@@ -569,12 +570,12 @@
 
 .sidebar__account-menu .sidebar__link--danger,
 .sidebar__account-menu .sidebar__link--danger:hover {
-  color: var(--danger);
+  color: var(--heart);
 }
 
 .dark .sidebar__account-menu .sidebar__link--danger,
 .dark .sidebar__account-menu .sidebar__link--danger:hover {
-  color: var(--danger);
+  color: var(--heart);
 }
 
 .sidebar--collapsed .sidebar__account-trigger {
@@ -874,7 +875,7 @@
 }
 
 :root:not(.dark) :is(.sidebar__link[href="/library/gallery/trash"]:hover, .sidebar__link[href="/library/gallery/trash"].sidebar__link--active) > svg {
-  stroke: #fff;
+  stroke: var(--heart);
 }
 
 .dark :is(.sidebar__toggle:hover, .sidebar__toggle:focus-visible, .sidebar__link:not(.sidebar__link--danger):hover, .sidebar__link--active, .sidebar__group-toggle:hover, .sidebar__account-trigger:hover, .sidebar__account-trigger[aria-expanded="true"]) {
@@ -887,7 +888,29 @@
 }
 
 .dark :is(.sidebar__link[href="/library/gallery/trash"]:hover, .sidebar__link[href="/library/gallery/trash"].sidebar__link--active) > svg {
-  stroke: #17191d;
+  stroke: var(--heart);
+}
+
+.sidebar .sidebar__link[href="/library/gallery/trash"],
+.sidebar .sidebar__link[href="/library/gallery/trash"]:hover,
+.sidebar .sidebar__link[href="/library/gallery/trash"].sidebar__link--active {
+  color: var(--heart);
+}
+
+:root:not(.dark) .sidebar .sidebar__link[href="/library/gallery/trash"]:is(:hover, .sidebar__link--active) {
+  color: var(--heart);
+}
+
+.sidebar .sidebar__link:is([href="/library/album"], [href="/location/saved"]) {
+  color: light-dark(#805b0b, #e6bf69);
+}
+
+.sidebar .sidebar__link:is([href="/library/album"], [href="/location/saved"]):is(:hover, .sidebar__link--active) {
+  color: light-dark(#e6bf69, #805b0b);
+}
+
+:root:not(.dark) .sidebar .sidebar__link:is([href="/library/album"], [href="/location/saved"]):is(:hover, .sidebar__link--active) {
+  color: #e6bf69;
 }
 
 .sidebar__link--active {
@@ -919,3 +942,8 @@
 .sidebar__sub-link.sidebar__link--active {
   box-shadow: none;
 }
+
+.sidebar__upload-counts { display: inline-flex; gap: 6px; margin-left: auto; font-size: 0.75rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.sidebar__upload-count--success { color: light-dark(#176b40, #72d59e); }
+.sidebar__upload-count--pending { color: light-dark(#805500, #efba57); }
+.sidebar__upload-count--failed { color: light-dark(#b22e42, #ff9ba9); }

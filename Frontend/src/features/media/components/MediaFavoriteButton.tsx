@@ -55,8 +55,7 @@ export function MediaFavoriteButton({ isFavorited, busy, onToggle }: Props) {
             <Heart
               size={20}
               animate={false}
-              stroke={isFavorited ? "var(--danger)" : "currentColor"}
-              fill={isFavorited ? "var(--danger)" : "none"}
+              fill={isFavorited ? "currentColor" : "none"}
               aria-hidden="true"
             />
           )}

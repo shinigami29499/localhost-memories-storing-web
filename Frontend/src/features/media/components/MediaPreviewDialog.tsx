@@ -1,6 +1,8 @@
 import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { animate, useInView, type TargetAndTransition } from "motion/react";
 import { flushSync } from "react-dom";
+import { Particles, ParticlesEffect } from "@animate-ui/react/primitives/effects/particles";
+import { useShouldReduceMotion } from "@animate-ui/react/utils/motion";
 import { CopyButton, CopyButtonIcon } from "@animate-ui/react/primitives/buttons/copy";
 import useEmblaCarousel, {
   CarouselCounter,
@@ -24,6 +26,7 @@ import { useAlbums } from "../../albums/hooks/useAlbums";
 import { mediaPreviewUrl, mediaUrl } from "../../../utils/media";
 import type { MediaFile } from "../types";
 import { DownloadButton } from "../../downloads/components/DownloadButton";
+import { VideoPlayer } from "./VideoPlayer";
 import { MediaFavoriteButton } from "./MediaFavoriteButton";
 import { mediaViewerTransition } from "../../../components/layout/PageTransition";
 import { readPageTransitionEffect } from "../../../utils/pageTransition";
@@ -87,39 +90,22 @@ function PreviewSlide({ media, active, includeDeleted, onFavorite }: SlideProps)
   const { t } = useLocale();
   const stageRef = useRef<HTMLDivElement>(null);
   const inView = useInView(stageRef, { margin: "200px 0px" });
-  const videoRef = useRef<HTMLVideoElement>(null);
   const url = active ? mediaUrl(media.id, includeDeleted) : mediaPreviewUrl(media.id, includeDeleted);
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const [burst, setBurst] = useState(0);
+  const reduceMotion = useShouldReduceMotion();
   const favorite = () => {
     setBurst((value) => value + 1);
     onFavorite();
   };
 
-  useEffect(() => {
-    if (!active) videoRef.current?.pause();
-  }, [active]);
-
-  return (
+return (
     <div ref={stageRef} className="media-preview-dialog__stage" data-active={active}>
       {!active && !inView ? null : failedUrl === url ? (
         <p role={active ? "alert" : undefined}>{t("Could not load this media.")}</p>
       ) : media.mediaKind === "video" && active ? (
-        <video
-          ref={videoRef}
-          key={url}
-          src={url}
-          controls={active}
-          preload={active ? "metadata" : "none"}
-          tabIndex={active ? 0 : -1}
-          aria-label={media.originalFilename}
-          onLoadedMetadata={(event) => event.currentTarget.style.setProperty("--media-aspect", String(event.currentTarget.videoWidth / event.currentTarget.videoHeight))}
-          onDoubleClick={active && !includeDeleted ? (event) => {
-            event.preventDefault();
-            favorite();
-          } : undefined}
-          onError={() => setFailedUrl(url)}
-        />
+        <VideoPlayer key={url} src={url} name={media.originalFilename} onError={() => setFailedUrl(url)}
+          onDoubleClick={!includeDeleted ? favorite : undefined} />
       ) : (
         <img
           key={url}
@@ -137,7 +123,10 @@ function PreviewSlide({ media, active, includeDeleted, onFavorite }: SlideProps)
         <span key={burst} className="media-preview-dialog__heart-burst" aria-hidden="true" onAnimationEnd={(event) => {
           if (event.target === event.currentTarget) setBurst(0);
         }}>
-          <Heart size={96} fill="currentColor" animate={false} />
+          <Particles animate={!reduceMotion}>
+            <span className="media-preview-dialog__heart-burst-icon"><Heart size={96} fill="currentColor" animate={false} /></span>
+            <ParticlesEffect style={{ top: "50%", left: "50%" }} className="media-preview-dialog__favorite-particle" />
+          </Particles>
         </span>
       ) : null}
     </div>
@@ -175,7 +164,7 @@ export function MediaPreviewDialog({
     containScroll: false,
     scale: 0.8,
     visible: isMobile || slideCount === 1 ? 1 : 3,
-    watchDrag: (_api, event) => !(event.target instanceof Element && event.target.closest("video")),
+    watchDrag: (_api, event) => !(event.target instanceof Element && event.target.closest(".video-player")),
   });
   const current = media[Math.min(selectedIndex, slideCount - 1)];
   const albums = useAlbums("mine", Boolean(current) && !trashActions, current?.id);
@@ -286,7 +275,7 @@ export function MediaPreviewDialog({
       }}
       onKeyDown={(event) => {
         if (albumDialogOpen) return;
-        if (event.target instanceof Element && event.target.closest("video, input, textarea")) return;
+        if (event.target instanceof Element && event.target.closest(".video-player, input, textarea")) return;
         if (event.key === "ArrowLeft" && slideCount > 1) {
           event.preventDefault();
           api?.scrollPrev();
@@ -374,7 +363,7 @@ export function MediaPreviewDialog({
           <button
             ref={albumButtonRef}
             type="button"
-            className="viewer-icon-btn media-preview-dialog__action"
+            className="viewer-icon-btn media-preview-dialog__action media-preview-dialog__album-action"
             aria-label={t("Save to album")}
             title={t("Save to album")}
             aria-pressed={inAlbum}
@@ -383,6 +372,7 @@ export function MediaPreviewDialog({
           >
             <Bookmark
               size={20}
+              fill={inAlbum ? "currentColor" : "none"}
               style={{ color: "inherit" }}
               aria-hidden="true"
             />

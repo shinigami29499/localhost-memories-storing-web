@@ -6,7 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { userService } from "../../features/users";
 import { ApiError } from "../../services/api";
 import { useAuthStore } from "../../store/authStore";
-import { EmptyState, ErrorState, Spinner } from "../../components/ui/Status";
+import { ErrorState, Spinner } from "../../components/ui/Status";
 import { showToast } from "../../components/ui/Toast";
 import { Check } from "@/components/animate-ui/icons/check";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
@@ -190,7 +190,7 @@ export function UsersPage() {
           ) : null}
 
           {!users.isLoading && !users.isError && allUsers.length === 0 ? (
-            <EmptyState title={t("No members yet")} hint={t("New accounts appear here once they register.")} />
+            null
           ) : null}
 
           {allUsers.length > 0 ? (
@@ -227,7 +227,7 @@ export function UsersPage() {
 
               <Tabs.Panel value={filter}>
                 {visibleUsers.length === 0 ? (
-                  <EmptyState title={t("No matching users")} hint={t("Try another status filter.")} />
+                  null
                 ) : (
                   <div className="admin-table-wrap">
                     <table className="admin-table admin-users__table">

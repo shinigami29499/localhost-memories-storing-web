@@ -1,4 +1,4 @@
-import { EmptyState, ErrorState, Spinner } from "../../components/ui";
+import { ErrorState, Spinner } from "../../components/ui";
 import { useLocale } from "../../context/LocaleContext";
 import { ScrollProgress, ScrollProgressContainer, ScrollProgressProvider } from "@animate-ui/react/primitives/scroll-progress";
 import { useAlbums, type Album } from "../../features/albums";
@@ -40,10 +40,7 @@ export function HomePage() {
                 }}
               />
             ) : albums.length === 0 ? (
-              <EmptyState
-                title={t("No viewable albums yet")}
-                hint={t("Create an album or browse public albums to get started.")}
-              />
+              null
             ) : (
               <div className="home-feed" aria-busy={mine.isFetching || publicAlbums.isFetching}>
                 {albums.map((album) => {

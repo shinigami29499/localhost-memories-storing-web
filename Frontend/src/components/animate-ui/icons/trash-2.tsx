@@ -80,6 +80,8 @@ function IconComponent({ size, ...props }: Trash2Props) {
       height={size}
       viewBox="0 0 24 24"
       fill="none"
+      data-trash-icon=""
+      color="var(--trash)"
       stroke="currentColor"
       strokeWidth={2}
       strokeLinecap="round"

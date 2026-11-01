@@ -6,7 +6,9 @@
 
 :is(.place, .locations) :is(.place__map, .locations__map) {
   height: 100%;
+  isolation: isolate;
   min-height: 0;
+  position: relative;
 }
 
 :is(.place, .locations) .map-controls > .mapboxgl-map {

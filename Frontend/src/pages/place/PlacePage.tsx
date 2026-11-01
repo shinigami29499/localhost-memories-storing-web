@@ -5,7 +5,6 @@ import { ScrollProgress, ScrollProgressContainer, ScrollProgressProvider } from 
 import {
   Button,
   ConfirmationDialog,
-  EmptyState,
   ErrorState,
   Spinner,
   showToast,
@@ -432,7 +431,7 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
             ) : (
               <>
                 {!places.length ? (
-                  <EmptyState title="No places yet" hint="Click the map or use your current location to add your first place." />
+                  null
                 ) : (
                   <>
                     <ul className="place__list">
