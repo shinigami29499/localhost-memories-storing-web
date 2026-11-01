@@ -25,18 +25,25 @@ public class CollectionsController(
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<CollectionDto>>> GetCollectionsAsync(
         [FromQuery] CollectionListRequest request, CancellationToken cancellationToken)
-        => Ok(await collectionService.GetCollectionsAsync(currentUser.RequireUserId(), request, cancellationToken));
+    {
+        if (string.Equals(request.Scope.Trim(), CollectionListRequest.AdminScope, StringComparison.OrdinalIgnoreCase)
+            && !currentUser.IsAdmin)
+            return Forbid();
+        return Ok(await collectionService.GetCollectionsAsync(
+            currentUser.RequireUserId(), request, currentUser.IsAdmin, cancellationToken));
+    }
 
     [HttpGet("{collectionId:guid}")]
     public async Task<ActionResult<CollectionDto>> GetCollectionAsync(
         Guid collectionId, CancellationToken cancellationToken)
-        => Ok(await collectionService.GetCollectionAsync(collectionId, currentUser.RequireUserId(), cancellationToken));
+        => Ok(await collectionService.GetCollectionAsync(
+            collectionId, currentUser.RequireUserId(), currentUser.IsAdmin, cancellationToken));
 
     [HttpGet("{collectionId:guid}/media")]
     public async Task<ActionResult<PagedMediaResponse<MediaFileDto>>> GetCollectionMediaAsync(
         Guid collectionId, [FromQuery] MediaPageRequest request, CancellationToken cancellationToken)
         => Ok(await collectionService.GetCollectionMediaAsync(
-            collectionId, currentUser.RequireUserId(), request, cancellationToken));
+            collectionId, currentUser.RequireUserId(), request, currentUser.IsAdmin, cancellationToken));
 
     [HttpPost]
     public async Task<ActionResult<CollectionDto>> CreateCollectionAsync(

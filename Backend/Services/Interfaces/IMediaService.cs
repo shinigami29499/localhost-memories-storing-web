@@ -15,6 +15,9 @@ public interface IMediaService
     Task<MediaFileContent> GetMediaFileAsync(
         Guid mediaId, bool includeDeleted, CancellationToken cancellationToken = default, bool preview = false,
         Guid? viewerId = null);
+    Task<MediaFileContent> GetMediaFileAsync(
+        Guid mediaId, bool includeDeleted, bool isAdmin, CancellationToken cancellationToken = default,
+        bool preview = false, Guid? viewerId = null);
     Task DeleteMediaAsync(Guid mediaId, Guid actorId, bool isAdmin, CancellationToken cancellationToken = default);
     Task RestoreMediaAsync(Guid mediaId, Guid actorId, bool isAdmin, CancellationToken cancellationToken = default);
     Task PermanentlyDeleteMediaAsync(

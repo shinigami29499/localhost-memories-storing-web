@@ -85,10 +85,11 @@ export function PhotoPicker({
   const { dialogProps, close } = useCustomDialog(onClose, { blocked: busy });
   const full = selectedIds.length >= maxImages && !initialImage.data?.isPreviewOnly;
   const pageImages = query.data?.pages.flatMap((page) => page.items) ?? [];
+  const availableImages = [...(source === "preview" ? uploaded : []), ...pageImages];
   const images = [...new Map([
-    ...(source === "preview" ? uploaded : []),
-    ...(picked && Boolean(picked.isPreviewOnly) === (source === "preview") ? [picked] : []),
-    ...pageImages,
+    ...(picked && Boolean(picked.isPreviewOnly) === (source === "preview")
+      && !availableImages.some((image) => image.id === picked.id) ? [picked] : []),
+    ...availableImages,
   ].map((image) => [image.id, image])).values()];
 
   useEffect(() => {

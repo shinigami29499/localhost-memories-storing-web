@@ -1,4 +1,4 @@
-export type AlbumScope = "mine" | "public";
+export type AlbumScope = "mine" | "public" | "all";
 
 export const ALBUM_NAME_MAX_LENGTH = 100;
 export const ALBUM_CAPTION_MAX_LENGTH = 4000;

@@ -237,11 +237,16 @@
 .album-hero__preview {
   aspect-ratio: 1;
   background: var(--surface-raised);
-  border: 1px solid var(--border);
+  border: 0;
   border-radius: var(--radius);
   flex-shrink: 0;
   overflow: hidden;
-  width: 160px;
+  width: 200px;
+}
+
+:root:not(.dark) .album-hero__preview:not(:has(img)) {
+  background: #fff;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 16%);
 }
 
 .album-hero__preview img {
@@ -270,11 +275,111 @@
   margin: 8px 0 0;
 }
 
+.album-hero__caption {
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin: 8px 0 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 640px) {
+  .album-hero__caption {
+    flex-basis: 100%;
+    margin-top: 0;
+  }
+}
+
+.confirmation-dialog.album-caption-dialog {
+  max-height: calc(100dvh - 32px);
+  max-width: min(420px, calc(100vw - 32px));
+  overflow: hidden;
+  padding: 0;
+  background: #101112;
+  border: 0;
+  box-shadow: var(--shadow-popover);
+}
+
+.album-caption-dialog__header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+  background: #1c1f23;
+}
+
+.album-caption-dialog__title {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.album-caption-dialog__content {
+  padding: 24px;
+  background: #101112;
+}
+
+.album-caption-dialog__field {
+  display: block;
+}
+
+.album-caption-dialog__field textarea {
+  box-sizing: border-box;
+  background: #1c1f23;
+  border: 1px solid var(--border-control);
+  border-radius: 8px;
+  color: var(--text-strong);
+  font: inherit;
+  line-height: 1.6;
+  min-height: 8rem;
+  padding: 10px 12px;
+  resize: vertical;
+  width: 100%;
+}
+
+.album-caption-dialog__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 24px 16px;
+  background: #101112;
+}
+
+.album-caption-dialog__actions > button {
+  width: 100%;
+  border: 0;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 20%);
+}
+
+.album-caption-dialog__actions > button:first-child {
+  background: #f0f0f0;
+  color: #17191d;
+}
+
+.album-caption-dialog__actions > .btn--danger {
+  background: #b42335;
+  color: #fff;
+}
+
+:root:not(.dark) .album-caption-dialog,
+:root:not(.dark) .album-caption-dialog__content,
+:root:not(.dark) .album-caption-dialog__actions {
+  background: #eef0f2;
+}
+
+:root:not(.dark) .album-caption-dialog__header {
+  background: #fafafa;
+}
+
+:root:not(.dark) .album-caption-dialog__field textarea {
+  background: #fafafa;
+  color: #17191d;
+}
+
 .album-hero__actions {
   display: flex;
+  flex: 1 0 100%;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 16px;
+  margin-top: 0;
 }
 
 .btn.album-hero__icon-button {
@@ -330,39 +435,16 @@
   outline-offset: 4px;
 }
 
-.album-caption-editor textarea {
-  background: transparent;
-  display: block;
-  line-height: 1.7;
-  min-height: 10rem;
-  resize: vertical;
-  width: 100%;
-}
-
-.album-caption-editor__footer {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  justify-content: space-between;
-  margin-top: 12px;
-}
-
-.album-caption-editor__count {
-  color: var(--text-muted);
-  font-variant-numeric: tabular-nums;
-}
-
-.album-caption-editor__actions {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-  margin-left: auto;
+.btn.album-hero__delete {
+  background: #e32424;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 20%);
+  color: #fff;
 }
 
 .btn.album-hero__delete:hover:not(:disabled) {
-  background: var(--danger-wash);
-  color: var(--danger);
+  background: #bf1e1e;
+  color: #fff;
 }
 
 .album-item {
@@ -452,6 +534,11 @@
 
   .album-hero__preview {
     width: 112px;
+  }
+
+  .album-hero__text {
+    flex: 1 1 0;
+    min-width: 0;
   }
 
   .album-caption {

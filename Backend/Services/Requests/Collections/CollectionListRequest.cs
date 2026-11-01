@@ -4,8 +4,9 @@ public record CollectionListRequest
 {
     public const string MineScope = "mine";
     public const string PublicScope = "public";
+    public const string AdminScope = "all";
 
-    /// <summary>"mine" (default) or "public" for other users' public collections.</summary>
+    /// <summary>"mine" (default), "public" for shared collections, or admin-only "all".</summary>
     public string Scope { get; init; } = MineScope;
 
     /// <summary>When set, each result reports whether it contains this media file.</summary>

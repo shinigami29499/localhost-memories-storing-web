@@ -10,12 +10,18 @@ public interface ICollectionService
 {
     Task<IReadOnlyList<CollectionDto>> GetCollectionsAsync(
         Guid viewerId, CollectionListRequest request, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<CollectionDto>> GetCollectionsAsync(
+        Guid viewerId, CollectionListRequest request, bool isAdmin, CancellationToken cancellationToken = default);
     Task<CollectionDto> GetCollectionAsync(
         Guid collectionId, Guid viewerId, CancellationToken cancellationToken = default);
+    Task<CollectionDto> GetCollectionAsync(
+        Guid collectionId, Guid viewerId, bool isAdmin, CancellationToken cancellationToken = default);
     Task<PagedMediaResponse<MediaFileDto>> GetCollectionMediaAsync(
         Guid collectionId, Guid viewerId, int offset, int limit, CancellationToken cancellationToken = default);
     Task<PagedMediaResponse<MediaFileDto>> GetCollectionMediaAsync(
         Guid collectionId, Guid viewerId, MediaPageRequest request, CancellationToken cancellationToken = default);
+    Task<PagedMediaResponse<MediaFileDto>> GetCollectionMediaAsync(
+        Guid collectionId, Guid viewerId, MediaPageRequest request, bool isAdmin, CancellationToken cancellationToken = default);
     Task<CollectionDto> CreateCollectionAsync(
         Guid ownerId, CreateCollectionRequest request, CancellationToken cancellationToken = default);
     Task<CollectionDto> UpdateCollectionAsync(

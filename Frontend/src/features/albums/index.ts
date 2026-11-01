@@ -1,5 +1,6 @@
 export { AlbumCard } from "./components/AlbumCard";
 export { AlbumFormDialog } from "./components/AlbumFormDialog";
+export { AlbumCaptionDialog } from "./components/AlbumCaptionDialog";
 export { AlbumChooserDialog } from "./components/AlbumChooserDialog";
 export { SaveToAlbumMenu } from "./components/SaveToAlbumMenu";
 export {

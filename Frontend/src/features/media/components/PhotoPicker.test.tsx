@@ -112,6 +112,16 @@ describe("PhotoPicker", () => {
     expect(document.querySelector('[aria-label="cover.jpg"]')).toBeNull();
   });
 
+  it("keeps gallery images in place when selecting one", async () => {
+    const secondImage = { ...galleryImage, id: "second-image", originalFilename: "second.jpg" };
+    vi.mocked(mediaService.list).mockResolvedValue({ offset: 0, limit: 48, total: 2, items: [galleryImage, secondImage] });
+    await render(null);
+    await click(document.querySelector<HTMLButtonElement>('[aria-label="second.jpg"]')!);
+    const images = [...document.querySelectorAll<HTMLButtonElement>('.place-picker__grid button[aria-pressed]')];
+    expect(images.map((image) => image.getAttribute("aria-label"))).toEqual(["gallery.jpg", "second.jpg"]);
+    expect(images[1].getAttribute("aria-pressed")).toBe("true");
+  });
+
   it("uses shared popup/backdrop fades and closes through the exit lifecycle", async () => {
     await render(null);
     expect(document.querySelector(".place-picker")?.classList.contains("custom-dialog--animated")).toBe(true);

@@ -505,7 +505,7 @@
 .place__dialog--visit .place__dialog-actions svg { height: 20px; width: 20px; }
 .place__dialog--visit .place__dialog-subtitle:last-child { white-space: nowrap; }
 .place__dialog-subtitle { color: var(--text-muted); font-size: 0.75rem; margin: 2px 0 0; overflow-wrap: anywhere; }
-.place__dialog-title { color: var(--text-strong); flex: 1; font-size: 1.125rem; margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.place__dialog-title { color: var(--text-strong); flex: 1; font-size: 1.125rem; font-weight: 600; margin: 0; min-width: 0; overflow-wrap: anywhere; }
 .place__dialog-close { align-items: center; background: transparent; border: 0; border-radius: 8px; color: var(--text-muted); cursor: pointer; display: inline-flex; flex: 0 0 40px; height: 40px; justify-content: center; width: 40px; }
 .place__dialog-close:hover { background: var(--surface-hover); color: var(--text-strong); }
 .place__dialog-close:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 3px; }

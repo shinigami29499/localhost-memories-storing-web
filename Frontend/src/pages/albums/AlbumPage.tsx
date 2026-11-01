@@ -1,4 +1,4 @@
-import { startTransition, useEffect, useRef, useState, type FormEvent } from "react";
+import { startTransition, useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import * as Tabs from "@radix-ui/react-tabs";
@@ -10,6 +10,7 @@ import { ExternalLink } from "@/components/animate-ui/icons/external-link";
 import { Check } from "@/components/animate-ui/icons/check";
 import { CopyButton, CopyButtonIcon } from "@animate-ui/react/primitives/buttons/copy";
 import { PencilLine } from "@/components/animate-ui/icons/pencil-line";
+import { NotebookPen } from "@/components/animate-ui/icons/notebook-pen";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
 import { X } from "@/components/animate-ui/icons/x";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
@@ -18,6 +19,7 @@ import { Button, ConfirmationDialog, EmptyState, ErrorState, Spinner, showToast 
 import { PageTransition } from "../../components/layout/PageTransition";
 import { useLocale } from "../../context/LocaleContext";
 import {
+  AlbumCaptionDialog,
   AlbumFormDialog,
   albumService,
   useAlbum,
@@ -36,7 +38,6 @@ import { ApiError } from "../../services/api";
 import { useAuthStore } from "../../store/authStore";
 import { mediaPreviewUrl } from "../../utils/media";
 import { readPageTransitionEffect } from "../../utils/pageTransition";
-import { ALBUM_CAPTION_MAX_LENGTH } from "../../features/albums/types";
 import "../gallery/gallery.css";
 import "./albums.css";
 
@@ -53,8 +54,6 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
   const [copied, setCopied] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editingCaption, setEditingCaption] = useState(false);
-  const [captionDraft, setCaptionDraft] = useState("");
-  const [savingCaption, setSavingCaption] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedItems, setSelectedItems] = useState<Map<string, MediaFile>>(() => new Map());
@@ -188,19 +187,10 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
     }
   };
 
-  const saveCaption = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!albumId || savingCaption) return;
-    setSavingCaption(true);
-    try {
-      await albumService.updateCaption(albumId, captionDraft.trim());
-      await invalidate();
-      setEditingCaption(false);
-    } catch (err) {
-      showToast.error(t("Could not update album caption."), err instanceof ApiError ? err.message : undefined);
-    } finally {
-      setSavingCaption(false);
-    }
+  const saveCaption = async (caption: string) => {
+    if (!albumId) return;
+    await albumService.updateCaption(albumId, caption);
+    await invalidate();
   };
 
   if (album.isPending) {
@@ -245,87 +235,69 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
                 {t("by {owner}", { owner: isOwner ? t("You") : data.owner.username })}
               </p>
               <h1>{data.name}<span className="brand__dot">.</span></h1>
-              {data.caption ? <p className="album-hero__caption">{data.caption}</p> : null}
-              <p>{t("{count} media", { count: data.mediaCount })}</p>
-              {isOwner || data.isPublic ? (
-                <div className="album-hero__actions">
-                  {data.isPublic ? (
-                    <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
-                      <CopyButton
-                        type="button"
-                        content={window.location.href}
-                        copied={copied}
-                        className="btn btn--secondary album-hero__icon-button"
-                        aria-label={t("Copy share link")}
-                        title={t("Copy share link")}
-                        onClick={(event) => { event.preventDefault(); void copyLink(); }}
-                      >
-                        <CopyButtonIcon
-                          aria-hidden="true"
-                          icon={<ExternalLink size={18} />}
-                          copiedIcon={<Check size={18} />}
-                        />
-                      </CopyButton>
-                    </AnimateIcon>
-                  ) : null}
-                  {data.isPublic && !isOwner ? (
+              {!editingCaption && data.caption ? <p className="album-hero__caption">{data.caption}</p> : null}
+            </div>
+            {editingCaption ? (
+              <AlbumCaptionDialog caption={data.caption} onSave={saveCaption} onClose={() => setEditingCaption(false)} />
+            ) : null}
+            {isOwner || data.isPublic ? (
+              <div className="album-hero__actions">
+                {data.isPublic ? (
+                  <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
+                    <CopyButton
+                      type="button"
+                      content={window.location.href}
+                      copied={copied}
+                      className="btn btn--secondary album-hero__icon-button"
+                      aria-label={t("Copy share link")}
+                      title={t("Copy share link")}
+                      onClick={(event) => { event.preventDefault(); void copyLink(); }}
+                    >
+                      <CopyButtonIcon
+                        aria-hidden="true"
+                        icon={<ExternalLink size={18} />}
+                        copiedIcon={<Check size={18} />}
+                      />
+                    </CopyButton>
+                  </AnimateIcon>
+                ) : null}
+                {isOwner ? (
+                  <>
                     <Button
                       type="button"
                       variant="secondary"
-                      onClick={() => {
-                        setCaptionDraft(data.caption);
-                        setEditingCaption(true);
-                      }}
+                      className="album-hero__icon-button"
+                      aria-label={t("Edit caption")}
+                      title={t("Edit caption")}
+                      onClick={() => setEditingCaption(true)}
+                    >
+                      <NotebookPen size={16} aria-hidden="true" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="album-hero__icon-button album-hero__edit"
+                      aria-label={t("Edit")}
+                      title={t("Edit")}
+                      onClick={() => setEditing(true)}
                     >
                       <PencilLine size={16} aria-hidden="true" />
-                      {t("Edit caption")}
                     </Button>
-                  ) : null}
-                  {isOwner ? (
-                    <>
-                      <Button type="button" variant="secondary" className="album-hero__edit" onClick={() => setEditing(true)}>
-                        <PencilLine size={16} aria-hidden="true" />
-                        {t("Edit")}
-                      </Button>
-                      <Button type="button" variant="ghost" className="album-hero__delete" onClick={() => setDeleting(true)}>
-                        <Trash2 size={16} aria-hidden="true" />
-                        {t("Delete")}
-                      </Button>
-                    </>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
-          </header>
-          {editingCaption ? (
-            <form className="album-caption-editor" onSubmit={(event) => void saveCaption(event)}>
-              <label className="album-form__field">
-                <span>{t("Album caption")}</span>
-                <textarea
-                  value={captionDraft}
-                  onChange={(event) => setCaptionDraft(event.target.value)}
-                  maxLength={ALBUM_CAPTION_MAX_LENGTH}
-                  rows={3}
-                  autoFocus
-                  disabled={savingCaption}
-                />
-              </label>
-              <div className="album-caption-editor__actions">
-                <button
-                  type="button"
-                  className="btn btn--secondary"
-                  disabled={savingCaption}
-                  onClick={() => setEditingCaption(false)}
-                >
-                  {t("Cancel")}
-                </button>
-                <Button type="submit" busy={savingCaption} disabled={savingCaption}>
-                  {t("Save caption")}
-                </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="album-hero__icon-button album-hero__delete"
+                      aria-label={t("Delete")}
+                      title={t("Delete")}
+                      onClick={() => setDeleting(true)}
+                    >
+                      <Trash2 size={16} aria-hidden="true" />
+                    </Button>
+                  </>
+                ) : null}
               </div>
-            </form>
-          ) : null}
-
+            ) : null}
+          </header>
           <Tabs.Root
             className="gallery-page__fixed-tabs"
             value={mediaKind}

@@ -84,7 +84,7 @@ public class MediaController(
             Response.Headers.CacheControl = "no-store";
 
         var media = await _mediaService.GetMediaFileAsync(
-            mediaId, includeDeleted, cancellationToken, preview, _currentUser.RequireUserId());
+            mediaId, includeDeleted, _currentUser.IsAdmin, cancellationToken, preview, _currentUser.RequireUserId());
         if (download && !preview)
             await downloadHistory.RecordAsync(_currentUser.RequireUserId(), mediaId, media.OriginalFilename, batchId, cancellationToken);
         return File(

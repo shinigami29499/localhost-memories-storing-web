@@ -10,6 +10,8 @@ public interface ICollectionRepository
     /// <summary>Public collections owned by other users; the viewer's own appear only in the "mine" scope.</summary>
     Task<IReadOnlyList<CollectionSource>> GetPublicCollectionsAsync(
         Guid excludedOwnerId, Guid? mediaId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<CollectionSource>> GetAllCollectionsAsync(
+        Guid? mediaId, CancellationToken cancellationToken = default);
     Task<CollectionSource?> GetCollectionSourceAsync(Guid collectionId, CancellationToken cancellationToken = default);
     Task<Collection?> FindCollectionAsync(Guid collectionId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Guid>> GetCollectionMediaIdsPageAsync(

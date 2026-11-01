@@ -20,6 +20,10 @@ public sealed class CollectionService(
 {
     public async Task<IReadOnlyList<CollectionDto>> GetCollectionsAsync(
         Guid viewerId, CollectionListRequest request, CancellationToken cancellationToken = default)
+        => await GetCollectionsAsync(viewerId, request, isAdmin: false, cancellationToken);
+
+    public async Task<IReadOnlyList<CollectionDto>> GetCollectionsAsync(
+        Guid viewerId, CollectionListRequest request, bool isAdmin, CancellationToken cancellationToken = default)
     {
         var scope = request.Scope.Trim().ToLowerInvariant();
         var sources = scope switch
@@ -28,9 +32,11 @@ public sealed class CollectionService(
                 viewerId, request.MediaId, cancellationToken),
             CollectionListRequest.PublicScope => await repository.GetPublicCollectionsAsync(
                 viewerId, request.MediaId, cancellationToken),
+            CollectionListRequest.AdminScope when isAdmin => await repository.GetAllCollectionsAsync(
+                request.MediaId, cancellationToken),
             _ => throw new ValidationException(
                 "Invalid collection scope.",
-                new Dictionary<string, string[]> { ["scope"] = ["Must be 'mine' or 'public'."] }),
+                new Dictionary<string, string[]> { ["scope"] = [isAdmin ? "Must be 'mine', 'public', or 'all'." : "Must be 'mine' or 'public'."] }),
         };
         var collections = sources.Select(mapper.Map).ToList();
         var previewIds = collections.Select(collection => collection.PreviewMediaId)
@@ -45,8 +51,12 @@ public sealed class CollectionService(
 
     public async Task<CollectionDto> GetCollectionAsync(
         Guid collectionId, Guid viewerId, CancellationToken cancellationToken = default)
+        => await GetCollectionAsync(collectionId, viewerId, isAdmin: false, cancellationToken);
+
+    public async Task<CollectionDto> GetCollectionAsync(
+        Guid collectionId, Guid viewerId, bool isAdmin, CancellationToken cancellationToken = default)
     {
-        var collection = mapper.Map(await GetViewableSourceAsync(collectionId, viewerId, cancellationToken));
+        var collection = mapper.Map(await GetViewableSourceAsync(collectionId, viewerId, isAdmin, cancellationToken));
         if (collection.PreviewMediaId is not { } previewId)
             return collection;
         var favoritedIds = await mediaRepository.GetFavoritedMediaIdsAsync(
@@ -61,6 +71,10 @@ public sealed class CollectionService(
 
     public async Task<PagedMediaResponse<MediaFileDto>> GetCollectionMediaAsync(
         Guid collectionId, Guid viewerId, MediaPageRequest request, CancellationToken cancellationToken = default)
+        => await GetCollectionMediaAsync(collectionId, viewerId, request, isAdmin: false, cancellationToken);
+
+    public async Task<PagedMediaResponse<MediaFileDto>> GetCollectionMediaAsync(
+        Guid collectionId, Guid viewerId, MediaPageRequest request, bool isAdmin, CancellationToken cancellationToken = default)
     {
         var (offset, limit) = (request.Offset, request.Limit);
         ValidatePage(offset, limit);
@@ -68,7 +82,7 @@ public sealed class CollectionService(
             throw new ValidationException(
                 "Invalid media page.",
                 new Dictionary<string, string[]> { ["mediaKind"] = ["Must be 'image' or 'video'."] });
-        await GetViewableSourceAsync(collectionId, viewerId, cancellationToken);
+        await GetViewableSourceAsync(collectionId, viewerId, isAdmin, cancellationToken);
 
         var mediaIds = await repository.GetCollectionMediaIdsPageAsync(
             collectionId, offset, limit, request.MediaKind, cancellationToken);
@@ -133,7 +147,7 @@ public sealed class CollectionService(
     {
         var collection = await repository.FindCollectionAsync(collectionId, cancellationToken)
             ?? throw new NotFoundException($"Collection '{collectionId}' was not found.");
-        if (collection.OwnerId != editorId && !collection.IsPublic)
+        if (collection.OwnerId != editorId)
             throw new NotFoundException($"Collection '{collectionId}' was not found.");
 
         collection.Caption = NormalizeCaption(request.Caption);
@@ -246,10 +260,14 @@ public sealed class CollectionService(
 
     private async Task<CollectionSource> GetViewableSourceAsync(
         Guid collectionId, Guid viewerId, CancellationToken cancellationToken)
+        => await GetViewableSourceAsync(collectionId, viewerId, isAdmin: false, cancellationToken);
+
+    private async Task<CollectionSource> GetViewableSourceAsync(
+        Guid collectionId, Guid viewerId, bool isAdmin, CancellationToken cancellationToken)
     {
         var source = await repository.GetCollectionSourceAsync(collectionId, cancellationToken);
         // Private collections are reported as missing so their existence is not disclosed.
-        if (source is null || (source.Collection.OwnerId != viewerId && !source.Collection.IsPublic))
+        if (source is null || (!isAdmin && source.Collection.OwnerId != viewerId && !source.Collection.IsPublic))
             throw new NotFoundException($"Collection '{collectionId}' was not found.");
         return source;
     }

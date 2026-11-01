@@ -26,12 +26,19 @@ public partial class MediaService(
     public async Task<MediaFileContent> GetMediaFileAsync(
         Guid mediaId, bool includeDeleted, CancellationToken cancellationToken = default, bool preview = false,
         Guid? viewerId = null)
+        => await GetMediaFileAsync(mediaId, includeDeleted, isAdmin: false, cancellationToken, preview, viewerId);
+
+    public async Task<MediaFileContent> GetMediaFileAsync(
+        Guid mediaId, bool includeDeleted, bool isAdmin, CancellationToken cancellationToken = default,
+        bool preview = false, Guid? viewerId = null)
     {
         var media = includeDeleted
             ? await _repository.FindMediaIncludingDeletedAsync(mediaId, cancellationToken)
-            : await _repository.FindOwnedMediaAsync(mediaId, cancellationToken);
+            : isAdmin
+                ? await _repository.FindMediaIncludingDeletedAsync(mediaId, cancellationToken)
+                : await _repository.FindOwnedMediaAsync(mediaId, cancellationToken);
 
-        if (media is null)
+        if (media is null || (!includeDeleted && media.IsDeleted))
             throw new NotFoundException($"Media '{mediaId}' was not found.");
         if (media.IsPreviewOnly && (media.IsDeleted
             || (media.OwnerId != viewerId && !await previews.IsReferencedAsync(mediaId, cancellationToken))))

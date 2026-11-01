@@ -10,13 +10,16 @@ import "./home.css";
 export function HomePage() {
   const { t } = useLocale();
   const user = useAuthStore((state) => state.user);
-  const mine = useAlbums("mine");
-  const publicAlbums = useAlbums("public");
-  const albums: Album[] = Array.from(
+  const isAdmin = user?.role.toLowerCase() === "admin";
+  const mine = useAlbums("mine", !isAdmin);
+  const publicAlbums = useAlbums("public", !isAdmin);
+  const allAlbums = useAlbums("all", isAdmin);
+  const albums: Album[] = isAdmin ? (allAlbums.data ?? []) : Array.from(
     new Map([...(mine.data ?? []), ...(publicAlbums.data ?? [])].map((album) => [album.id, album])).values(),
   );
-  const isPending = mine.isPending || publicAlbums.isPending;
-  const isError = mine.isError || publicAlbums.isError;
+  const isPending = isAdmin ? allAlbums.isPending : mine.isPending || publicAlbums.isPending;
+  const isError = isAdmin ? allAlbums.isError : mine.isError || publicAlbums.isError;
+  const isFetching = isAdmin ? allAlbums.isFetching : mine.isFetching || publicAlbums.isFetching;
 
   return (
     <main className="home-page">
@@ -28,21 +31,24 @@ export function HomePage() {
           <div className="home-page__inner">
             <header className="home-page__header">
               <h1>{t("Home")}<span className="brand__dot">.</span></h1>
-              <p>{t("Browse albums you own and albums shared publicly.")}</p>
+              <p>{t(isAdmin ? "Browse all albums, including private albums." : "Browse albums you own and albums shared publicly.")}</p>
             </header>
 
             {isPending ? <Spinner label={t("Loading albums…")} /> : isError ? (
               <ErrorState
                 message={t("Could not load albums.")}
                 onRetry={() => {
-                  void mine.refetch();
-                  void publicAlbums.refetch();
+                  if (isAdmin) void allAlbums.refetch();
+                  else {
+                    void mine.refetch();
+                    void publicAlbums.refetch();
+                  }
                 }}
               />
             ) : albums.length === 0 ? (
               null
             ) : (
-              <div className="home-feed" aria-busy={mine.isFetching || publicAlbums.isFetching}>
+              <div className="home-feed" aria-busy={isFetching}>
                 {albums.map((album) => {
                   const isOwner = album.owner.id === user?.id;
                   return (

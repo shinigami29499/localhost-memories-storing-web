@@ -28,6 +28,15 @@ public sealed class CollectionRepository(ApplicationDbContext db) : ICollectionR
                 mediaId)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<CollectionSource>> GetAllCollectionsAsync(
+        Guid? mediaId, CancellationToken cancellationToken = default)
+        => await Project(
+                db.Collections.AsNoTracking()
+                    .OrderByDescending(collection => collection.CreatedAt)
+                    .ThenByDescending(collection => collection.Id),
+                mediaId)
+            .ToListAsync(cancellationToken);
+
     public Task<CollectionSource?> GetCollectionSourceAsync(
         Guid collectionId, CancellationToken cancellationToken = default)
         => Project(db.Collections.AsNoTracking().Where(collection => collection.Id == collectionId), null)
