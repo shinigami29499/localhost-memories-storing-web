@@ -25,6 +25,8 @@ const LocaleContext = createContext<LocaleContextValue>({
 });
 
 const vietnamese: Record<string, string> = {
+  "Toast notifications": "Thông báo nhanh",
+  "Show temporary notifications throughout the app.": "Hiển thị thông báo tạm thời trong ứng dụng.",
   "Signed out": "Đã đăng xuất",
   "Your account was signed in on another device. You have been signed out.": "Tài khoản của bạn đã đăng nhập trên thiết bị khác. Bạn đã được đăng xuất.",
   "{username} created public album {album}.": "{username} đã tạo album công khai {album}.",
@@ -721,6 +723,7 @@ const vietnamese: Record<string, string> = {
   "Choose another date or remove the filter.": "Chọn ngày khác hoặc xóa bộ lọc.",
   "Upload activity": "Hoạt động tải lên",
   "Activity": "Hoạt động",
+  "Mark all as read": "Đánh dấu tất cả đã đọc",
   "Upload activity heatmap": "Bản đồ nhiệt hoạt động tải lên",
   "The heatmap shows 36 weeks on desktop and 12 weeks on mobile.": "Bản đồ nhiệt hiển thị 36 tuần trên máy tính và 12 tuần trên điện thoại.",
   "Loading upload activity…": "Đang tải hoạt động tải lên…",

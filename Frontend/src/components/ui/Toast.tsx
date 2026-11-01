@@ -9,6 +9,7 @@ import { ShieldCheck } from '@/components/animate-ui/icons/shield-check';
 import { X } from '@/components/animate-ui/icons/x';
 import './toast.css';
 import { useLocale } from "../../context/LocaleContext";
+import { useToastPreferencesStore } from "../../store/toastPreferencesStore";
 
 export type ToastUndoHandler = () => void | Promise<void>;
 
@@ -46,6 +47,7 @@ function normalizeToastMessage(message: string) {
 }
 
 function addToast(type: 'success' | 'error' | 'info' | 'warning' | 'delete', title: string, details?: string | ToastOptions) {
+  if (!useToastPreferencesStore.getState().enabled) return '';
   const options: ToastOptions = typeof details === 'string' ? { description: details } : details ?? {};
   return toastManager.add<ToastData>({
     id: options.id,

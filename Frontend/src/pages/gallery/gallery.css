@@ -492,6 +492,10 @@
   pointer-events: auto;
 }
 
+.dark .gallery-selection-bar {
+  background: #292e33;
+}
+
 .gallery-selection-bar__count {
   color: var(--text-strong);
   font-size: 0.8125rem;

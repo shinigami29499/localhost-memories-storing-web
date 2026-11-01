@@ -9,6 +9,8 @@ import { Button, DatePicker } from "../../components/ui";
 import { AnimateIcon } from "../../components/animate-ui/icons/icon";
 import { Image } from "../../components/animate-ui/icons/image";
 import { ChartColumnIcon } from "../../components/animate-ui/icons/chart-column";
+import { CheckCheckIcon } from "../../components/animate-ui/icons/check-check";
+import { useUnreadDownloads } from "../../features/downloads/hooks/useUnreadDownloads";
 import { DownloadActivityDialog } from "../../features/downloads/components/DownloadActivityDialog";
 import { useLocale } from "../../context/LocaleContext";
 import { DownloadBatchCard } from "../../features/downloads/components/DownloadBatchCard";
@@ -20,6 +22,7 @@ import "./downloads.css";
 
 export function DownloadManagementPage() {
   const { t } = useLocale();
+  const unread = useUnreadDownloads();
   const location = useLocation();
   const reducedMotion = useReducedMotion();
   const highlightBatchId = (location.state as { highlightBatchId?: string } | null)?.highlightBatchId;
@@ -81,6 +84,9 @@ export function DownloadManagementPage() {
             </AnimateIcon>
           </div>
           <div className="upload-page__filters">
+            <AnimateIcon animateOnHover animateOnTap completeOnStop asChild><Button type="button" variant="ghost" className="upload-page__activity-button" aria-label={t("Mark all as read")} title={t("Mark all as read")} disabled={!unread.success && !unread.pending && !unread.failed} onClick={unread.markAllRead}>
+              <CheckCheckIcon size={18} aria-hidden="true" /><span className="upload-page__button-label">{t("Mark all as read")}</span>
+            </Button></AnimateIcon>
             <DatePicker className="upload-page__date-filter" compactOnMobile label={t("Created date")} value={selectedDate} onChange={(date) => { setSelectedDate(date); setPage(1); }} />
             <Button type="button" variant="ghost" className="upload-page__activity-button" title={t("Download activity")} onClick={() => setActivityOpen(true)}>
               <ChartColumnIcon size={18} aria-hidden="true" /><span className="upload-page__button-label">{t("Activity")}</span>

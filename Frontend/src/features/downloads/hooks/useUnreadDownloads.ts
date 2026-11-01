@@ -45,5 +45,9 @@ export function useUnreadDownloads() {
       if (category && read[downloadReadKey(userId, batch, item)] !== category) counts[category]++;
     }
   }
-  return counts;
+  const markAllRead = () => {
+    if (!userId) return;
+    for (const batch of mergedBatches) useDownloadReadStore.getState().markRead(userId, batch, batch.items);
+  };
+  return { ...counts, markAllRead };
 }

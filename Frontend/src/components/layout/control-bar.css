@@ -1,0 +1,58 @@
+.control-bar {
+  --control-bar-bg: #fff;
+  --control-bar-fg: #000;
+  --control-bar-hover: #e6e8eb;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--control-bar-bg);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+:root:not(.dark) .control-bar {
+  --control-bar-bg: #000;
+  --control-bar-fg: #fff;
+  --control-bar-hover: #343434;
+}
+
+.control-bar > button {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--control-bar-fg);
+  box-shadow: none;
+  opacity: 1;
+  cursor: pointer;
+}
+
+.control-bar > button:first-child {
+  border-radius: 999px 0 0 999px;
+}
+
+.control-bar > .control-bar__action {
+  border-radius: 0 999px 999px 0;
+}
+
+.control-bar > button:is(:hover, :focus-visible) {
+  background: var(--control-bar-hover);
+  color: var(--control-bar-fg);
+}
+
+.control-bar .theme-toggler[data-theme="light"] .theme-toggler__icon {
+  color: #f59e0b;
+  opacity: 1;
+}
+
+.control-bar .theme-toggler[data-theme="dark"] .theme-toggler__icon {
+  color: #2563eb;
+  opacity: 1;
+}

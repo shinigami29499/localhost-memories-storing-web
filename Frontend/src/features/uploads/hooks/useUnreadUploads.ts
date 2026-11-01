@@ -56,5 +56,8 @@ export function useUnreadUploads() {
       if (category && read[`${user?.id}:${item.id}`] !== category) counts[category]++;
     }
   }
-  return counts;
+  const markAllRead = () => {
+    if (user?.id && query.data) useUploadReadStore.getState().markRead(user.id, query.data.flatMap((batch) => batch.items));
+  };
+  return { ...counts, markAllRead };
 }

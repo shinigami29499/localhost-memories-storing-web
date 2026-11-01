@@ -5,6 +5,8 @@ import { ErrorState, Spinner } from "../../components/ui/Status";
 import { Button, DatePicker, showToast } from "../../components/ui";
 import { AnimateIcon } from "../../components/animate-ui/icons/icon";
 import { ChartColumnIcon } from "../../components/animate-ui/icons/chart-column";
+import { CheckCheckIcon } from "../../components/animate-ui/icons/check-check";
+import { useUnreadUploads } from "../../features/uploads/hooks/useUnreadUploads";
 import { PaperclipIcon } from "../../components/animate-ui/icons/paperclip";
 import { UploadIcon } from "../../components/animate-ui/icons/upload";
 import { XIcon } from "../../components/animate-ui/icons/x";
@@ -21,6 +23,7 @@ import "../../features/uploads/uploads.css";
 
 export function UploadManagementPage() {
   const { t } = useLocale();
+  const unread = useUnreadUploads();
   const queryClient = useQueryClient();
   const user = useAuthStore((state) => state.user);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -268,6 +271,9 @@ export function UploadManagementPage() {
             ) : null}
           </div>
           <div className="upload-page__filters">
+            <AnimateIcon animateOnHover animateOnTap completeOnStop asChild><Button type="button" variant="ghost" className="upload-page__activity-button" aria-label={t("Mark all as read")} title={t("Mark all as read")} disabled={!unread.success && !unread.pending && !unread.failed} onClick={unread.markAllRead}>
+              <CheckCheckIcon size={18} aria-hidden="true" /><span className="upload-page__button-label">{t("Mark all as read")}</span>
+            </Button></AnimateIcon>
             <DatePicker
               className="upload-page__date-filter"
               compactOnMobile

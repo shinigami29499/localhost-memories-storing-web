@@ -2,7 +2,6 @@ export const PAGE_TRANSITION_EFFECTS = [
   "fade",
   "slide",
   "push",
-  "zoom",
   "iris",
   "wipe",
   "bands",

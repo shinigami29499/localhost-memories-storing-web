@@ -531,10 +531,6 @@
   width: 38%;
 }
 
-.admin-users__table tbody tr:hover {
-  background: var(--surface-hover);
-}
-
 .admin-users__identity {
   align-items: center;
   display: flex;
@@ -665,6 +661,8 @@
 }
 
 .admin-icon-btn {
+  border: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
   height: 34px;
   padding: 8px;
   width: 34px;
@@ -1385,3 +1383,8 @@
 .user-presence--disabled > span:first-child {
   background: #9ca3af;
 }
+.admin-icon-btn.btn--danger {
+  background: var(--trash);
+  color: #fff;
+}
+

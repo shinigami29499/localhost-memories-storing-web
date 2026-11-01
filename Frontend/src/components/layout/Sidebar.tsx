@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { Bookmark } from "@/components/animate-ui/icons/bookmark";
 import { Camera } from "@/components/animate-ui/icons/camera";
@@ -38,6 +38,10 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
   const { t } = useLocale();
   const uploadCounts = useUnreadUploads();
   const downloadCounts = useUnreadDownloads();
+  const countColumnWidths = (["success", "pending", "failed"] as const)
+    .map((status) => `${Math.max(String(uploadCounts[status]).length, String(downloadCounts[status]).length, 2) + 1.5}ch`)
+    .join(" ");
+  const countStyle = { gridTemplateColumns: countColumnWidths } satisfies CSSProperties;
   const user = useAuthStore((s) => s.user);
   const navigate = useNavigate();
   const location = useLocation();
@@ -286,8 +290,8 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
                     >
                       <Upload size={16} aria-hidden="true" />
                       <span>{t("Upload")}</span>
-                      {(uploadCounts.success > 0 || uploadCounts.pending > 0 || uploadCounts.failed > 0) && <span className="sidebar__upload-counts">
-                        {(["success", "pending", "failed"] as const).map((status) => <span key={status} className={`sidebar__upload-count sidebar__upload-count--${status}`} aria-label={`${t(status === "success" ? "Success" : status === "pending" ? "Pending upload" : "Failed")}: ${uploadCounts[status]}`} title={t(status === "success" ? "Success" : status === "pending" ? "Pending upload" : "Failed")}>{uploadCounts[status]}</span>)}
+                      {(uploadCounts.success > 0 || uploadCounts.pending > 0 || uploadCounts.failed > 0) && <span className="sidebar__upload-counts" style={countStyle}>
+                        {(["success", "pending", "failed"] as const).map((status) => <span key={status} className={`sidebar__upload-count sidebar__upload-count--${status}${String(uploadCounts[status]).length < String(downloadCounts[status]).length ? " sidebar__upload-count--right" : ""}`} aria-label={`${t(status === "success" ? "Success" : status === "pending" ? "Pending upload" : "Failed")}: ${uploadCounts[status]}`} title={t(status === "success" ? "Success" : status === "pending" ? "Pending upload" : "Failed")}>{uploadCounts[status]}</span>)}
                       </span>}
                     </NavLink>
                   </AnimateIcon>
@@ -301,8 +305,8 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
                     >
                       <Download size={16} aria-hidden="true" />
                       <span>{t("Download")}</span>
-                      {(downloadCounts.success > 0 || downloadCounts.pending > 0 || downloadCounts.failed > 0) && <span className="sidebar__upload-counts">
-                        {(["success", "pending", "failed"] as const).map((status) => <span key={status} className={`sidebar__upload-count sidebar__upload-count--${status}`} aria-label={`${t(status === "success" ? "Success" : status === "pending" ? "Pending download" : "Failed")}: ${downloadCounts[status]}`} title={t(status === "success" ? "Success" : status === "pending" ? "Pending download" : "Failed")}>{downloadCounts[status]}</span>)}
+                      {(downloadCounts.success > 0 || downloadCounts.pending > 0 || downloadCounts.failed > 0) && <span className="sidebar__upload-counts" style={countStyle}>
+                        {(["success", "pending", "failed"] as const).map((status) => <span key={status} className={`sidebar__upload-count sidebar__upload-count--${status}${String(downloadCounts[status]).length < String(uploadCounts[status]).length ? " sidebar__upload-count--right" : ""}`} aria-label={`${t(status === "success" ? "Success" : status === "pending" ? "Pending download" : "Failed")}: ${downloadCounts[status]}`} title={t(status === "success" ? "Success" : status === "pending" ? "Pending download" : "Failed")}>{downloadCounts[status]}</span>)}
                       </span>}
                     </NavLink>
                   </AnimateIcon>

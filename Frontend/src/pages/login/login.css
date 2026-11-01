@@ -34,10 +34,33 @@
 }
 
 .login__header-actions {
-  display: flex;
-  align-items: center;
-  gap: 16px;
   margin-left: auto;
+}
+
+.login__settings-dialog {
+  width: min(800px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  padding: 0;
+  border: 0;
+  border-radius: 18px;
+  background: var(--bg);
+  color: var(--text);
+  box-shadow: var(--shadow-popover);
+}
+
+.login__settings-dialog::backdrop { background: rgba(0, 0, 0, 0.6); }
+.login__settings-close {
+  position: sticky;
+  top: 16px;
+  float: right;
+  margin: 16px 24px 0 0;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface-raised);
+  color: var(--text-strong);
+  box-shadow: var(--shadow-popover);
+  cursor: pointer;
 }
 
 .login {
@@ -139,7 +162,7 @@
 }
 
 .login__footer {
-  border-top: 1px solid var(--border);
+  border: 0;
 }
 
 @media (max-width: 1000px) {
@@ -224,12 +247,6 @@
 }
 
 @media (pointer: coarse) {
-  .login__header-actions .theme-toggler,
-  .login__header-actions .language-toggler {
-    width: 44px;
-    height: 44px;
-  }
-
   .login__card input {
     font-size: 1rem;
   }

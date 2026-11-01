@@ -374,3 +374,9 @@ Global theme tokens live in `src/styles/global.css`; sidebar styling is in
 text, and theme-aware borders and focus rings. Use `--focus-ring` for keyboard focus,
 `--theme-icon` and `--notification-icon` for shell icons, and `--text-on-danger` on
 filled danger controls. Popovers use `--shadow-popover`.
+# Color convention
+
+Use the same semantic color palette for colored icons and their associated text in light and dark themes. Share color tokens between matching icons and text, including hover and selected states.
+
+Buttons should have no border and use a shadow.
+

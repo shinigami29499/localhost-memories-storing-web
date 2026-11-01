@@ -40,7 +40,7 @@
   --shadow-popover: 0 10px 28px rgba(0, 0, 0, 0.28);
   --overlay-backdrop: rgba(15, 15, 15, 0.78);
   --radius: 14px;
-  --sidebar-width: 272px;
+  --sidebar-width: 348.8px;
 }
 
 :root:not(.dark) {
@@ -72,8 +72,8 @@
   --danger: #ad2438;
   --danger-wash: rgba(173, 36, 56, 0.08);
   --text-on-danger: #ffffff;
-  --theme-icon: #946200;
-  --notification-icon: #946200;
+  --theme-icon: #e6bf69;
+  --notification-icon: #e6bf69;
   --focus-ring: #484d53;
   --shadow-popover: 0 10px 28px rgba(23, 25, 29, 0.12);
 }

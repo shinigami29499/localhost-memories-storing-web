@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Switch } from "@animate-ui/react/primitives/base-ui/switch";
 import { useAnimationStore } from "../../store/animationStore";
+import { useToastPreferencesStore } from "../../store/toastPreferencesStore";
+import { toastManager } from "../../components/ui/Toast";
 import { Select } from "@animate-ui/react/primitives/base-ui/select";
 import { ChevronDown } from "../../components/animate-ui/icons/chevron-down";
 import { useLocale } from "../../context/LocaleContext";
@@ -29,7 +31,6 @@ const transitionLabels: Record<PageTransitionEffect, string> = {
   fade: "Fade",
   slide: "Slide",
   push: "Push",
-  zoom: "Zoom",
   iris: "Iris",
   wipe: "Wipe",
   bands: "Bands",
@@ -50,6 +51,8 @@ const clickAnimationLabels: Record<ClickAnimationEffect, string> = {
 
 export function SettingsPage() {
   const { t } = useLocale();
+  const toastsEnabled = useToastPreferencesStore((state) => state.enabled);
+  const setToastsEnabled = useToastPreferencesStore((state) => state.setEnabled);
   const animationsEnabled = useAnimationStore((state) => state.enabled);
   const setAnimationsEnabled = useAnimationStore((state) => state.setEnabled);
   const iconsEnabled = useAnimationStore((state) => state.iconsEnabled);
@@ -182,6 +185,19 @@ export function SettingsPage() {
         <section className="settings-page__section" aria-labelledby="settings-preferences-title">
           <h2 id="settings-preferences-title">{t("Preferences")}</h2>
           <div className="settings-page__fields">
+            <div className="settings-page__field">
+              <div className="settings-page__field-copy">
+                <label htmlFor="settings-toasts">{t("Toast notifications")}</label>
+                <p id="settings-toasts-help">{t("Show temporary notifications throughout the app.")}</p>
+              </div>
+              <Switch.Root id="settings-toasts" className="settings-page__switch"
+                checked={toastsEnabled} onCheckedChange={(enabled) => {
+                  setToastsEnabled(enabled);
+                  if (!enabled) toastManager.close();
+                }} aria-describedby="settings-toasts-help">
+                <Switch.Thumb className="settings-page__switch-thumb" />
+              </Switch.Root>
+            </div>
             <div className="settings-page__field">
               <div className="settings-page__field-copy">
                 <label htmlFor="settings-icon-animations">{t("Icon animations")}</label>

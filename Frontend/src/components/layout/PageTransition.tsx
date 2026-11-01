@@ -117,20 +117,6 @@ const EFFECTS: Record<
       },
     };
   },
-  zoom: (_, enter, exit) => ({
-    enter: {
-      opacity: [0, 1],
-      transform: ["scale(0.94)", "none"],
-      transformOrigin: [middle(enter), middle(enter)],
-      transition: { duration: 0.4, ease: "easeOut" },
-    },
-    exit: {
-      opacity: [1, 0],
-      transform: ["none", "scale(1.04)"],
-      transformOrigin: [middle(exit), middle(exit)],
-      transition: { duration: 0.2, ease: "easeIn" },
-    },
-  }),
   iris: (_, { width, top, bottom, x, y }) => {
     const radius = Math.hypot(
       Math.max(x, width - x),

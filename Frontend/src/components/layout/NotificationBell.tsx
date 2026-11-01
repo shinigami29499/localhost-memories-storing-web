@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { Bell } from "@/components/animate-ui/icons/bell";
+import { CheckCheckIcon } from "@/components/animate-ui/icons/check-check";
 import { useAlbumNotificationStore } from "../../features/notifications/albumNotificationStore";
 import { useUploadNotificationStore } from "../../features/notifications/uploadNotificationStore";
 import { uploadMessage } from "../../features/notifications/uploadMessage";
@@ -10,6 +11,7 @@ import { formatTimestamp } from "../../utils/media";
 import { LanguageToggleButton } from "../ui/LanguageToggleButton";
 import { ThemeTogglerButton } from "../ui/ThemeTogglerButton";
 import { useLocale } from "../../context/LocaleContext";
+import "./control-bar.css";
 
 function emphasizeNames(message: string, names: string[]) {
   return message.split(/(\uE000\d+\uE001)/u).map((part, index) => {
@@ -30,10 +32,6 @@ export function NotificationBell() {
   const markAlbumsRead = useAlbumNotificationStore((state) => state.markRead);
   const notifications = [...uploadItems.filter((item) => item.userId === userId).map((item) => ({ ...item, kind: "upload" as const })), ...albumItems.filter((item) => item.userId === userId).map((item) => ({ ...item, kind: "album" as const }))].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const unreadCount = notifications.filter((item) => !item.readAt).length;
-
-  useEffect(() => {
-    if (open && userId) { markUploadsRead(userId); markAlbumsRead(userId); }
-  }, [open, userId, markUploadsRead, markAlbumsRead]);
 
   useEffect(() => {
     if (!open) return;
@@ -59,14 +57,14 @@ export function NotificationBell() {
   }, [open]);
 
   return (
-    <div ref={containerRef} className="notification-bar">
+    <div ref={containerRef} className="notification-bar control-bar">
       <ThemeTogglerButton />
       <LanguageToggleButton />
       <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
         <button
           ref={triggerRef}
           type="button"
-          className="notification-bar__trigger"
+          className="notification-bar__trigger control-bar__action"
           aria-expanded={open}
           aria-controls="notification-panel"
           aria-label={unreadCount > 0 ? t("Notifications, {count} unread", { count: unreadCount }) : t("Notifications")}
@@ -87,7 +85,14 @@ export function NotificationBell() {
           className="notification-bar__panel"
           aria-label={t("Notifications")}
         >
-          <h2>{t("Notifications")}</h2>
+          <div className="notification-bar__header">
+            <h2>{t("Notifications")}</h2>
+            <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
+              <button type="button" className="notification-bar__mark-read" aria-label={t("Mark all as read")} title={t("Mark all as read")} disabled={!unreadCount} onClick={() => { if (userId) { markUploadsRead(userId); markAlbumsRead(userId); } }}>
+                <CheckCheckIcon size={18} aria-hidden="true" />
+              </button>
+            </AnimateIcon>
+          </div>
           {notifications.length === 0 ? (
             <p>{t("Notifications will appear here when available.")}</p>
           ) : (
@@ -105,6 +110,7 @@ export function NotificationBell() {
                     onClick={() => {
                       setOpen(false);
                       if (userId && !notification.readAt && notification.kind === "upload") markUploadsRead(userId, notification.id);
+                      if (userId && !notification.readAt && notification.kind === "album") markAlbumsRead(userId, notification.eventId);
                     }}
                   >
                     <span className="notification-bar__message">{emphasizeNames(message, names)}</span>
