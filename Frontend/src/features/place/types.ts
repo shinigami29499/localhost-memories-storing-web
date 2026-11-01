@@ -11,8 +11,6 @@ export interface Place {
   note: string;
   latitude: number;
   longitude: number;
-  /** 1 to 5 stars; 0 when the place has not been rated. */
-  rating: number;
   markerIcon: string;
   markerColor: string;
   owner: PlaceOwner;
@@ -28,10 +26,13 @@ export interface PlaceVisit {
   placeName: string;
   placeAddress: string;
   markerIcon: string;
+  markerColor: string;
   visitedAt: string;
   userId: string;
   username: string;
   avatarSeed: string | null;
+  note: string;
+  rating: number;
 }
 
 export interface SavePlaceInput {
@@ -40,7 +41,6 @@ export interface SavePlaceInput {
   note: string;
   latitude: number;
   longitude: number;
-  rating: number;
   markerIcon: string;
   markerColor: string;
   mediaIds: string[];

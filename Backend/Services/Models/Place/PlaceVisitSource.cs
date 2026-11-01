@@ -6,7 +6,10 @@ public sealed record PlaceVisitSource(
     string PlaceName,
     string PlaceAddress,
     string MarkerIcon,
+    string MarkerColor,
     DateTime VisitedAt,
     Guid UserId,
     string Username,
-    string? AvatarSeed);
+    string? AvatarSeed,
+    string Note,
+    int Rating);

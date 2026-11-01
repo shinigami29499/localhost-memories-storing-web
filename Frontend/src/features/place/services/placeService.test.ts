@@ -39,6 +39,7 @@ describe("placeService", () => {
       placeName: "Cafe",
       placeAddress: "1 Main Street",
       markerIcon: "☕",
+      markerColor: "#f97316",
       visitedAt: "2026-10-31T02:43:06Z",
     }];
     vi.mocked(api).mockResolvedValue(visits);

@@ -78,6 +78,16 @@ export function useDeletePlaceVisit() {
   });
 }
 
+export function useUpdatePlaceVisit() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationKey: ["place-place-visit-update"],
+    mutationFn: ({ visitId, note, rating }: { visitId: string; note: string; rating: number }) =>
+      placeService.updateVisit(visitId, { note, rating }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: placeKeys.all }),
+  });
+}
+
 export function useSavePlace() {
   const queryClient = useQueryClient();
   return useMutation({

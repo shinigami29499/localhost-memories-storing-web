@@ -51,6 +51,7 @@ This is a guide, not a requirement to create every directory. Prefer colocating 
 - Use PascalCase for React components and TypeScript types; use camelCase for functions, variables, and object properties.
 - Prefix custom hooks with `use`.
 - Prefer named exports for components and hooks.
+- When reusing or referring to an existing component, compare the original and final implementations. If they are equivalent, use one shared component and remove the unused duplicate after updating its references.
 - Components must not call `fetch` directly; use services.
 - Use TanStack Query for remote/server state and Zustand for shared client state.
 - Use local animated icon components from `src/components/animate-ui/icons`.

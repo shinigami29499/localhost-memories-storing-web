@@ -44,6 +44,7 @@ import { NavigationFallback } from "../../navigation/components/NavigationOption
 interface Props {
   places: Place[];
   selectedId: string | null;
+  focusZoom?: boolean;
   draft: PlaceCoordinate | null;
   draftIcon: string;
   draftColor: string;
@@ -68,11 +69,12 @@ type MapScene = "streets" | "3d";
 
 const MOBILE_PREVIEW_PADDING = { top: 300, bottom: 0, left: 0, right: 0 };
 
-function MapViewport({ places, selected, ready, allowFit }: {
+function MapViewport({ places, selected, ready, allowFit, focusZoom }: {
   places: Place[];
   selected: Place | undefined;
   ready: boolean;
   allowFit: boolean;
+  focusZoom?: boolean;
 }) {
   const { current: map } = useMap();
   const isMobile = useMediaQuery("(max-width: 640px)");
@@ -101,10 +103,10 @@ function MapViewport({ places, selected, ready, allowFit }: {
     if (!map || !ready || !selected) return;
     map.jumpTo({
       center: [selected.longitude, selected.latitude],
-      zoom: Math.max(map.getZoom(), 13),
+      zoom: Math.max(map.getZoom(), focusZoom ? 18 : 13),
       ...(isMobile ? { padding: MOBILE_PREVIEW_PADDING, retainPadding: false } : {}),
     });
-  }, [map, ready, selected?.id, selected?.latitude, selected?.longitude, isMobile]);
+  }, [map, ready, selected?.id, selected?.latitude, selected?.longitude, isMobile, focusZoom]);
   return null;
 }
 
@@ -510,7 +512,7 @@ function PlaceMarkers({ places, selectedId, ready, onSelect, canChange, onMove, 
 }
 
 function MapContent({
-  places, selectedId, draft, draftIcon, draftColor, picking, homeLocation,
+  places, selectedId, focusZoom, draft, draftIcon, draftColor, picking, homeLocation,
   homeLocationReady, homePicking, homeActionDisabled, onSelect, onPick, onPickHome,
   onHomeClick, token,
   canChange, onMove, onDelete, onEdit, onCancelSelection,
@@ -656,6 +658,7 @@ function MapContent({
           onResolved={resolveInitialLocation}
         />
         <MapViewport
+          focusZoom={focusZoom}
           places={places}
           selected={selected}
           ready={loaded && !navigationOpen}

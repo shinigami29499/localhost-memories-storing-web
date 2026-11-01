@@ -1,3 +1,4 @@
+import { useLocation, useNavigate } from "react-router-dom";
 import { startTransition, useCallback, useEffect, useRef, useState, useMemo, type CSSProperties } from "react";
 import { Highlight, HighlightItem } from "@animate-ui/react/primitives/effects/highlight";
 import { Pagination, DEFAULT_PAGE_SIZE } from "../../components/ui/Pagination";
@@ -11,6 +12,8 @@ import {
 } from "../../components/ui";
 import { PageTransition } from "../../components/layout/PageTransition";
 import { CalendarCheck } from "../../components/animate-ui/icons/calendar-check";
+import { AnimateIcon } from "../../components/animate-ui/icons/icon";
+import { Send } from "../../components/animate-ui/icons/send";
 import { Pencil } from "../../components/animate-ui/icons/pencil";
 import { readPageTransitionEffect } from "../../utils/pageTransition";
 import { useLocale } from "../../context/LocaleContext";
@@ -18,7 +21,6 @@ import { useAuthStore } from "../../store/authStore";
 import { ApiError } from "../../services/api";
 import { useHomeLocation } from "../../features/locations/hooks/useHomeLocation";
 import { HomeLocationPhotoConfirmation } from "../../features/locations/components/HomeLocationPhotoConfirmation";
-import { mediaPreviewUrl } from "../../utils/media";
 import { PlaceMap } from "../../features/place/components/PlaceMap";
 import { PlaceDialog } from "../../features/place/components/PlaceDialog";
 import { SinglePlaceVisitHistory } from "../../features/place/components/SinglePlaceVisitHistory";
@@ -54,7 +56,6 @@ const emptyValues: PlaceFormValues = {
   name: "",
   address: "",
   note: "",
-  rating: 0,
   markerIcon: DEFAULT_PLACE_MARKER_ICON,
   markerColor: DEFAULT_PLACE_MARKER_COLOR,
   mediaIds: [],
@@ -68,7 +69,6 @@ function toEditorState(place: Place): EditorState {
       name: place.name,
       address: place.address,
       note: place.note,
-      rating: place.rating,
       markerIcon: place.markerIcon,
       markerColor: place.markerColor,
       mediaIds: [...place.mediaIds],
@@ -78,6 +78,8 @@ function toEditorState(place: Place): EditorState {
 
 export function PlacePage({ saved = false }: { saved?: boolean }) {
   const { t } = useLocale();
+  const navigate = useNavigate();
+  const location = useLocation();
   const user = useAuthStore((state) => state.user);
   const isAdmin = user?.role?.toLowerCase() === "admin";
   const home = useHomeLocation(user?.id);
@@ -87,7 +89,7 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
   const checkInMutation = useCheckInPlace();
   const removeVisitMutation = useDeletePlaceVisit();
   const [editor, setEditor] = useState<EditorState | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(() => !saved ? (location.state as { focusPlaceId?: string } | null)?.focusPlaceId ?? null : null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [view, setView] = useState<"map" | "history">("map");
   const [historyPage, setHistoryPage] = useState(1);
@@ -377,6 +379,7 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
                     <PlaceMap
                       places={mapPlaces}
                       selectedId={selectedId}
+                      focusZoom={selectedId === (location.state as { focusPlaceId?: string } | null)?.focusPlaceId}
                       draft={placeToMove?.coordinate ?? editor?.coordinate ?? null}
                       draftIcon={placeToMove?.place.markerIcon ?? editor?.values.markerIcon ?? DEFAULT_PLACE_MARKER_ICON}
                       draftColor={placeToMove?.place.markerColor ?? editor?.values.markerColor ?? DEFAULT_PLACE_MARKER_COLOR}
@@ -417,6 +420,7 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
                 ) : visitHistory.isPending ? <Spinner /> : visitHistory.data?.length ? (
                   <PlaceVisitHistory
                     visits={visitHistory.data.slice((currentHistoryPage - 1) * historyPageSize, currentHistoryPage * historyPageSize)}
+                    onShowOnMap={(visit) => navigate("/location/place", { state: { focusPlaceId: visit.placeId } })}
                     showVisitor
                     showVisitorName
                     onRemove={(visit) => void removeVisit(visit)}
@@ -518,15 +522,6 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
                   <div className="place__details-rating">
                     <StarRating value={selected.rating} filledOnly />
                   </div>
-                  {selected.mediaIds.length > 0 && (
-                    <ul className="place__gallery" aria-label={t("Photos")}>
-                      {selected.mediaIds.map((mediaId) => (
-                        <li key={mediaId}>
-                          <img src={mediaPreviewUrl(mediaId)} alt="" loading="lazy" />
-                        </li>
-                      ))}
-                    </ul>
-                  )}
                   {selected.note && <p className="place__note">{selected.note}</p>}
                   <div className="place__form-actions place__details-actions">
                     <Button
@@ -546,7 +541,7 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
                       </Button>
                     )}
                   </div>
-                  <SinglePlaceVisitHistory placeId={selected.id} />
+                  <SinglePlaceVisitHistory placeId={selected.id} onShowOnMap={saved ? (visit) => navigate("/location/place", { state: { focusPlaceId: visit.placeId } }) : undefined} />
                 </div>
               </PlaceDialog>
             )}
@@ -665,3 +660,6 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
     </main>
   );
 }
+
+
+

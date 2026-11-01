@@ -70,6 +70,18 @@ public class PlacesController(
         return NoContent();
     }
 
+    public sealed record UpdatePlaceVisitRequest(string? Note, int Rating);
+
+    [HttpPut("visits/{visitId:guid}")]
+    public async Task<ActionResult<PlaceVisitDto>> UpdatePlaceVisitAsync(
+        Guid visitId, UpdatePlaceVisitRequest request, CancellationToken cancellationToken)
+    {
+        var updated = await placeService.UpdatePlaceVisitAsync(
+            visitId, currentUser.RequireUserId(), request.Note, request.Rating, cancellationToken);
+        await NotifyPlacesChangedAsync(currentUser.RequireUserId(), updated.PlaceId, cancellationToken);
+        return Ok(updated);
+    }
+
     [HttpPost]
     public async Task<ActionResult<PlaceDto>> CreatePlaceAsync(
         SavePlaceRequest request, CancellationToken cancellationToken)

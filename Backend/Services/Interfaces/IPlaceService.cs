@@ -24,4 +24,6 @@ public interface IPlaceService
         Guid placeId, Guid actorId, bool isAdmin, CancellationToken cancellationToken = default);
     Task DeletePlaceVisitAsync(
         Guid visitId, Guid actorId, CancellationToken cancellationToken = default);
+    Task<PlaceVisitDto> UpdatePlaceVisitAsync(
+        Guid visitId, Guid actorId, string? note, int rating, CancellationToken cancellationToken = default);
 }

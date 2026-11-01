@@ -1,11 +1,7 @@
 import { useState, type CSSProperties } from "react";
 import { Button, Input } from "../../../components/ui";
-import { AnimateIcon } from "../../../components/animate-ui/icons/icon";
-import { BookmarkIcon } from "../../../components/animate-ui/icons/bookmark";
 import { UploadIcon } from "../../../components/animate-ui/icons/upload";
-import { XIcon } from "../../../components/animate-ui/icons/x";
 import { useLocale } from "../../../context/LocaleContext";
-import { mediaPreviewUrl } from "../../../utils/media";
 import { PlaceMarkerCombobox } from "./PlaceMarkerCombobox";
 import { PlaceImagePicker } from "./PlaceImagePicker";
 import {
@@ -58,6 +54,12 @@ export function PlaceEditor({
         />
       </label>
 
+      <label className="place__field">
+        <span>{t("Note")}</span>
+        <textarea className="place__textarea" value={values.note} maxLength={2000} disabled={busy}
+          onChange={(event) => onChange({ ...values, note: event.target.value })} />
+      </label>
+
       <div className="place__field">
         <PlaceMarkerCombobox
           value={values.markerIcon}
@@ -85,59 +87,12 @@ export function PlaceEditor({
         </div>
       </div>
 
-      {values.mediaIds.length > 0 && (
-        <div className="place__field">
-          <span>{t("Photos")}</span>
-          <ul className="place__photo-list" aria-label={t("Photos")}>
-            {values.mediaIds.map((mediaId, index) => (
-              <li key={mediaId} className="place__photo-thumb">
-                <img src={mediaPreviewUrl(mediaId)} alt="" loading="lazy" />
-                {index === 0 ? (
-                  <span className="place__photo-cover">{t("Cover")}</span>
-                ) : (
-                  <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
-                    <button
-                      type="button"
-                      className="place__photo-action place__photo-action--cover"
-                      aria-label={t("Set photo {index} as cover", { index: index + 1 })}
-                      title={t("Set as cover")}
-                      disabled={busy}
-                      onClick={() => setMediaIds([mediaId, ...values.mediaIds.filter((id) => id !== mediaId)])}
-                    >
-                      <BookmarkIcon size={14} aria-hidden="true" />
-                    </button>
-                  </AnimateIcon>
-                )}
-                <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
-                  <button
-                    type="button"
-                    className="place__photo-action place__photo-action--remove"
-                    aria-label={t("Remove photo {index}", { index: index + 1 })}
-                    title={t("Remove photo")}
-                    disabled={busy}
-                    onClick={() => setMediaIds(values.mediaIds.filter((id) => id !== mediaId))}
-                  >
-                    <XIcon size={14} aria-hidden="true" />
-                  </button>
-                </AnimateIcon>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
       <div className="place__field">
-        <span>{t("Photos")}</span>
         <Button type="button" className="place__choose-photos" disabled={busy} onClick={() => setPickingImages(true)}>
           <UploadIcon size={18} aria-hidden="true" />
           {t("Choose photos")}
         </Button>
       </div>
-      <label className="place__field">
-        <span>{t("Note")}</span>
-        <textarea className="place__textarea" value={values.note} disabled={busy}
-          onChange={(event) => onChange({ ...values, note: event.target.value })} />
-      </label>
       {pickingImages && <PlaceImagePicker selectedIds={values.mediaIds} onConfirm={setMediaIds} onClose={() => setPickingImages(false)} />}
 
       {error && <p className="place__form-error" role="alert">{error}</p>}

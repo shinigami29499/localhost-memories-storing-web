@@ -10,15 +10,14 @@ public sealed class PlaceRepository(ApplicationDbContext db) : IPlaceRepository
 {
     public async Task<IReadOnlyList<PlaceSource>> GetPlacesAsync(
         CancellationToken cancellationToken = default)
-        => await Project(db.Places.AsNoTracking()
+        => await WithAverageRating(Project(db.Places.AsNoTracking()
                 .OrderByDescending(place => place.CreatedAt)
-                .ThenByDescending(place => place.Id))
-            .ToListAsync(cancellationToken);
+                .ThenByDescending(place => place.Id)), cancellationToken);
 
-    public Task<PlaceSource?> GetPlaceSourceAsync(
+    public async Task<PlaceSource?> GetPlaceSourceAsync(
         Guid placeId, CancellationToken cancellationToken = default)
-        => Project(db.Places.AsNoTracking().Where(place => place.Id == placeId))
-            .FirstOrDefaultAsync(cancellationToken);
+        => (await WithAverageRating(Project(db.Places.AsNoTracking().Where(place => place.Id == placeId)), cancellationToken))
+            .FirstOrDefault();
 
     public async Task<IReadOnlyList<PlaceVisitSource>> GetPlaceVisitHistoryAsync(
         Guid userId, CancellationToken cancellationToken = default)
@@ -39,10 +38,13 @@ public sealed class PlaceRepository(ApplicationDbContext db) : IPlaceRepository
                 place.Name,
                 place.Address,
                 place.MarkerIcon,
+                place.MarkerColor,
                 visit.CreatedAt,
                 user.Id,
                 user.Username,
-                user.AvatarSeed))
+                user.AvatarSeed,
+                visit.Note,
+                visit.Rating))
             .ToListAsync(cancellationToken);
     }
 
@@ -63,10 +65,13 @@ public sealed class PlaceRepository(ApplicationDbContext db) : IPlaceRepository
                 place.Name,
                 place.Address,
                 place.MarkerIcon,
+                place.MarkerColor,
                 visit.CreatedAt,
                 user.Id,
                 user.Username,
-                user.AvatarSeed))
+                user.AvatarSeed,
+                visit.Note,
+                visit.Rating))
             .ToListAsync(cancellationToken);
     }
 
@@ -87,10 +92,13 @@ public sealed class PlaceRepository(ApplicationDbContext db) : IPlaceRepository
                 place.Name,
                 place.Address,
                 place.MarkerIcon,
+                place.MarkerColor,
                 visit.CreatedAt,
                 user.Id,
                 user.Username,
-                user.AvatarSeed))
+                user.AvatarSeed,
+                visit.Note,
+                visit.Rating))
             .ToListAsync(cancellationToken);
     }
 
@@ -103,6 +111,21 @@ public sealed class PlaceRepository(ApplicationDbContext db) : IPlaceRepository
     public void AddPlace(Place place) => db.Places.Add(place);
 
     public void AddPlaceVisit(PlaceVisit visit) => db.PlaceVisits.Add(visit);
+
+    private async Task<IReadOnlyList<PlaceSource>> WithAverageRating(
+        IQueryable<PlaceSource> source, CancellationToken cancellationToken)
+    {
+        var results = await source.ToListAsync(cancellationToken);
+        var ids = results.Select(item => item.Place.Id).ToArray();
+        var averages = await db.PlaceVisits.AsNoTracking()
+            .Where(visit => ids.Contains(visit.PlaceId) && visit.Rating > 0)
+            .GroupBy(visit => visit.PlaceId)
+            .Select(group => new { PlaceId = group.Key, Rating = (int)Math.Round(group.Average(visit => visit.Rating), MidpointRounding.AwayFromZero) })
+            .ToDictionaryAsync(item => item.PlaceId, item => item.Rating, cancellationToken);
+        foreach (var result in results)
+            result.Place.Rating = averages.GetValueOrDefault(result.Place.Id);
+        return results;
+    }
 
     public async Task<IReadOnlySet<Guid>> GetActiveImageIdsAsync(
         IReadOnlyCollection<Guid> mediaIds, CancellationToken cancellationToken = default)

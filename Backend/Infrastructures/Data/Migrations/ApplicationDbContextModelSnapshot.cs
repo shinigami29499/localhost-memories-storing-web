@@ -425,6 +425,18 @@ namespace Infrastructures.Data.Migrations
 
             modelBuilder.Entity("Domains.Entities.PlaceVisit", b =>
                 {
+                    b.Property<string>("Note")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasDefaultValue("")
+                        .HasColumnName("note");
+
+                    b.Property<int>("Rating")
+                        .HasColumnType("integer")
+                        .HasColumnName("rating");
+
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")

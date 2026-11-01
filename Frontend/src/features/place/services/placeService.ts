@@ -11,7 +11,6 @@ function toBody(input: SavePlaceInput) {
     note: input.note,
     latitude: input.latitude,
     longitude: input.longitude,
-    rating: input.rating,
     markerIcon: input.markerIcon,
     markerColor: input.markerColor,
     mediaIds: input.mediaIds,
@@ -46,6 +45,10 @@ export const placeService = {
 
   removeVisit(visitId: string): Promise<void> {
     return api(`/api/location/place/visits/${visitId}`, { method: "DELETE" });
+  },
+
+  updateVisit(visitId: string, input: { note: string; rating: number }): Promise<PlaceVisit> {
+    return api(`/api/location/place/visits/${visitId}`, { method: "PUT", body: input });
   },
 
   create(input: SavePlaceInput): Promise<Place> {

@@ -44,6 +44,7 @@ function visit(id: string, placeId: string, visitedAt: string): PlaceVisit {
     placeName: placeId === "place-a" ? "Cafe" : "Bistro",
     placeAddress: "1 Main Street",
     markerIcon: "☕",
+    markerColor: "#f97316",
     visitedAt,
   };
 }

@@ -815,6 +815,32 @@ textarea::placeholder {
   overflow-y: auto;
   padding: 16px;
   z-index: 100001;
+  visibility: visible;
+}
+
+.confirmation-dialog-viewport > [data-nested-dialog-open] {
+  visibility: hidden;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .confirmation-dialog-viewport > .place__dialog--animated {
+    opacity: 1;
+    filter: blur(0);
+    transition: opacity 300ms ease-out, filter 300ms ease-out, visibility 0s;
+  }
+
+  @starting-style {
+    .confirmation-dialog-viewport > .place__dialog--animated {
+      opacity: 0;
+      filter: blur(8px);
+    }
+  }
+
+  .confirmation-dialog-viewport > .place__dialog--animated:is([data-starting-style], [data-ending-style], [data-nested-dialog-open]) {
+    opacity: 0;
+    filter: blur(8px);
+    transition: opacity 150ms ease-in, filter 150ms ease-in, visibility 0s 150ms;
+  }
 }
 
 /* Confirmation Dialog (Animate UI AlertDialog) */
@@ -899,6 +925,16 @@ textarea::placeholder {
 
 .album-dialog {
   width: min(480px, calc(100vw - 32px));
+}
+
+.album-dialog .btn {
+  border-color: transparent;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 18%);
+}
+
+.album-dialog .btn:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
 }
 
 .album-dialog__body {
@@ -1059,52 +1095,121 @@ textarea::placeholder {
   font-weight: 400;
 }
 
-.preview-picker {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
-  gap: 8px;
-  max-height: 240px;
-  overflow-y: auto;
-  padding: 2px;
-}
-
-.preview-picker__upload {
+.album-form__choose-photos {
   align-self: flex-start;
 }
 
-.preview-picker__option {
+.album-photo-picker-backdrop {
+  z-index: 100002;
+}
+
+.album-photo-picker-viewport {
+  z-index: 100003;
+}
+
+.album-photo-picker {
+  display: flex;
+  flex-direction: column;
+  width: min(720px, calc(100vw - 32px));
+  height: min(720px, calc(100dvh - 32px));
+  overflow: hidden;
+  border-radius: var(--radius);
+  background: var(--surface-card);
+  color: var(--text);
+  box-shadow: var(--shadow-popover);
+  outline: none;
+}
+
+.album-photo-picker__header,
+.album-photo-picker__footer {
+  flex: 0 0 auto;
+  padding: 16px 20px;
+  background: var(--surface-card);
+  box-shadow: 0 3px 10px rgb(0 0 0 / 18%);
+  z-index: 1;
+}
+
+.album-photo-picker__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.album-photo-picker__title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.album-photo-picker__count {
+  margin: 2px 0 0;
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+}
+
+.album-photo-picker__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px 20px;
+}
+
+.album-photo-picker__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+.album-photo-picker__option {
+  position: relative;
   aspect-ratio: 1;
   overflow: hidden;
   padding: 0;
-  border: 2px solid transparent;
+  border: 0;
   border-radius: 10px;
   background: var(--surface-raised);
-  color: var(--text-muted);
-  font: inherit;
-  font-size: 0.7rem;
-  line-height: 1.2;
+  color: var(--text-strong);
   cursor: pointer;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 18%);
 }
 
-.preview-picker__option--default {
-  padding: 6px;
-}
-
-.preview-picker__option img {
+.album-photo-picker__option img {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.preview-picker__option:hover,
-.preview-picker__option:focus-visible {
-  border-color: var(--border-control);
+.album-photo-picker__option:hover,
+.album-photo-picker__option:focus-visible {
+  box-shadow: 0 0 0 2px var(--focus-ring), 0 3px 10px rgb(0 0 0 / 28%);
 }
 
-.preview-picker__option[aria-checked="true"] {
-  border-color: var(--accent-strong);
-  color: var(--text-strong);
+.album-photo-picker__option:focus-visible {
+  outline: none;
+}
+
+.album-photo-picker__option[aria-checked="true"] {
+  box-shadow: 0 0 0 3px var(--accent-strong), 0 3px 10px rgb(0 0 0 / 28%);
+}
+
+.album-photo-picker__default {
+  padding: 12px;
+  font: inherit;
+  font-size: 0.875rem;
+}
+
+.album-photo-picker__footer {
+  display: flex;
+  justify-content: flex-end;
+  box-shadow: 0 -3px 10px rgb(0 0 0 / 18%);
+}
+
+@media (max-width: 560px) {
+  .album-photo-picker__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 .post-card__caption {

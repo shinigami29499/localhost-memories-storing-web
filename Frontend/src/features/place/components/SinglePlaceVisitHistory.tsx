@@ -11,9 +11,10 @@ const PAGE_SIZE = 5;
 
 interface Props {
   placeId: string;
+  onShowOnMap?: (visit: PlaceVisit) => void;
 }
 
-export function SinglePlaceVisitHistory({ placeId }: Props) {
+export function SinglePlaceVisitHistory({ placeId, onShowOnMap }: Props) {
   const { t } = useLocale();
   const history = usePlaceVisits(placeId);
   const removeVisit = useDeletePlaceVisit();
@@ -45,6 +46,7 @@ export function SinglePlaceVisitHistory({ placeId }: Props) {
         <div>
           <PlaceVisitHistory
             visits={visibleVisits}
+            onShowOnMap={onShowOnMap}
             showPlaceDetails={false}
             showVisitor
             showVisitorName
@@ -55,9 +57,7 @@ export function SinglePlaceVisitHistory({ placeId }: Props) {
             <Pagination page={currentPage} pageSize={PAGE_SIZE} total={visits.length} itemLabel="visits" onPageChange={setPage} />
           )}
         </div>
-      ) : (
-        <p className="place__hint">{t("No visits at this place yet.")}</p>
-      )}
+      ) : null}
     </section>
   );
 }

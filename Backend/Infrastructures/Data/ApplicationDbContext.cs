@@ -260,6 +260,7 @@ public class ApplicationDbContext(
 
         modelBuilder.Entity<PlaceVisit>(entity =>
         {
+            entity.Property(visit => visit.Note).HasMaxLength(2000).IsRequired().HasDefaultValue("");
             entity.HasOne(visit => visit.Place)
                 .WithMany()
                 .HasForeignKey(visit => visit.PlaceId)

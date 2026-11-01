@@ -26,8 +26,11 @@ internal static class PlaceMappings
         source.PlaceName,
         source.PlaceAddress,
         source.MarkerIcon,
+        source.MarkerColor,
         source.VisitedAt,
         source.UserId,
         source.Username,
-        source.AvatarSeed);
+        source.AvatarSeed,
+        source.Note,
+        source.Rating);
 }

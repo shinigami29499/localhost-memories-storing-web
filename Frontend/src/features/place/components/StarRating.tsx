@@ -6,12 +6,13 @@ interface Props {
   onChange?: (rating: number) => void;
   disabled?: boolean;
   filledOnly?: boolean;
+  hideReadout?: boolean;
   size?: "sm" | "md" | "lg";
 }
 
 const STARS = [1, 2, 3, 4, 5];
 
-export function StarRating({ value, onChange, disabled, filledOnly = false, size = "md" }: Props) {
+export function StarRating({ value, onChange, disabled, filledOnly = false, hideReadout = false, size = "md" }: Props) {
   const { t } = useLocale();
   const label = value > 0
     ? t("Rated {rating} of 5 stars", { rating: value })
@@ -44,7 +45,7 @@ export function StarRating({ value, onChange, disabled, filledOnly = false, size
           <Star fill={star <= value ? "currentColor" : "none"} aria-hidden="true" />
         </button>
       ))}
-      <span className="star-rating__readout">{label}</span>
+      {!hideReadout && <span className="star-rating__readout">{label}</span>}
     </span>
   );
 }

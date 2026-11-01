@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { AnimateIcon } from "@/components/animate-ui/icons/icon";
+import { Dialog } from "@base-ui/react/dialog";
 import { AlertDialog } from "@animate-ui/react/primitives/base-ui/alert-dialog";
 import { X } from "@/components/animate-ui/icons/x";
 import { Button } from "../../../components/ui/Button";
@@ -8,16 +9,16 @@ import { ErrorState, Spinner } from "../../../components/ui/Status";
 import { useLocale } from "../../../context/LocaleContext";
 import { ApiError } from "../../../services/api";
 import { mediaPreviewUrl } from "../../../utils/media";
-import { useAlbumMedia } from "../hooks/useAlbums";
+import { useInfiniteAlbumMedia } from "../hooks/useAlbums";
 import type { Album, UpdateAlbumInput } from "../types";
 import { ALBUM_NAME_MAX_LENGTH } from "../types";
 
-const PREVIEW_CANDIDATE_LIMIT = 100;
+const PREVIEW_PAGE_SIZE = 48;
 
 interface Props {
   /** Existing album to edit; omit to create a new one. */
   album?: Album;
-  onSubmit: (input: UpdateAlbumInput, previewFile?: File) => Promise<void>;
+  onSubmit: (input: UpdateAlbumInput) => Promise<void>;
   onClose: () => void;
 }
 
@@ -28,39 +29,14 @@ export function AlbumFormDialog({ album, onSubmit, onClose }: Props) {
   const [name, setName] = useState(album?.name ?? "");
   const [isPublic, setIsPublic] = useState(album?.isPublic ?? false);
   const [previewMediaId, setPreviewMediaId] = useState<string | null>(album?.customPreviewMediaId ?? null);
-  const [previewFile, setPreviewFile] = useState<File | null>(null);
-  const [previewFileUrl, setPreviewFileUrl] = useState<string | null>(null);
+  const [isPhotoPickerOpen, setIsPhotoPickerOpen] = useState(false);
+  const [pendingPreviewMediaId, setPendingPreviewMediaId] = useState<string | null>(album?.customPreviewMediaId ?? null);
   const [busy, setBusy] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const media = useAlbumMedia(album?.id, 1, PREVIEW_CANDIDATE_LIMIT, editing);
-  const images = (media.data?.items ?? []).filter((item) => item.mediaKind === "image");
-
-  useEffect(() => {
-    if (!previewFile) {
-      setPreviewFileUrl(null);
-      return;
-    }
-
-    const url = URL.createObjectURL(previewFile);
-    setPreviewFileUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [previewFile]);
+  const media = useInfiniteAlbumMedia(album?.id, PREVIEW_PAGE_SIZE, editing, "image");
+  const images = media.data?.pages.flatMap((page) => page.items) ?? [];
 
   const close = () => {
     if (!busy) onClose();
-  };
-
-  const selectPreviewFile = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.currentTarget.files?.[0];
-    event.currentTarget.value = "";
-    if (!file) return;
-    if (file.type && !file.type.startsWith("image/")) {
-      showToast.error(t("Choose an image file."));
-      return;
-    }
-
-    setPreviewFile(file);
-    setPreviewMediaId(null);
   };
 
   const submit = async (event: FormEvent) => {
@@ -70,7 +46,7 @@ export function AlbumFormDialog({ album, onSubmit, onClose }: Props) {
     setBusy(true);
     try {
       const input: UpdateAlbumInput = { name: trimmed, isPublic, previewMediaId };
-      await onSubmit(input, previewFile ?? undefined);
+      await onSubmit(input);
     } catch (err) {
       showToast.error(err instanceof ApiError ? err.message : t("Could not complete this action. Please retry."));
       setBusy(false);
@@ -118,69 +94,12 @@ export function AlbumFormDialog({ album, onSubmit, onClose }: Props) {
                 {editing ? (
                   <div className="album-form__field">
                     <span id="album-preview-label">{t("Preview image")}</span>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      aria-label={t("Upload an image for preview")}
-                      hidden
-                      onChange={selectPreviewFile}
-                    />
-                    <button
-                      type="button"
-                      className="btn btn--secondary preview-picker__upload"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      {t("Upload image")}
-                    </button>
-                    <small className="album-form__hint">{t("The uploaded image will also be added to this album.")}</small>
-                    {media.isPending ? <Spinner label={t("Loading images…")} /> : null}
-                    {media.isError ? <ErrorState message={t("Could not load media.")} onRetry={() => void media.refetch()} /> : null}
-                    <div className="preview-picker" role="radiogroup" aria-labelledby="album-preview-label">
-                      <button
-                        type="button"
-                        role="radio"
-                        aria-checked={!previewFile && previewMediaId === null}
-                        className="preview-picker__option preview-picker__option--default"
-                        onClick={() => {
-                          setPreviewFile(null);
-                          setPreviewMediaId(null);
-                        }}
-                      >
-                        {t("Default (first image)")}
-                      </button>
-                      {previewFile && previewFileUrl ? (
-                        <button
-                          type="button"
-                          role="radio"
-                          aria-checked="true"
-                          aria-label={t("Use {filename} as preview", { filename: previewFile.name })}
-                          className="preview-picker__option"
-                          onClick={() => setPreviewMediaId(null)}
-                        >
-                          <img src={previewFileUrl} alt="" />
-                        </button>
-                      ) : null}
-                      {images.map((image) => (
-                        <button
-                          key={image.id}
-                          type="button"
-                          role="radio"
-                          aria-checked={!previewFile && previewMediaId === image.id}
-                          aria-label={t("Use {filename} as preview", { filename: image.originalFilename })}
-                          className="preview-picker__option"
-                          onClick={() => {
-                            setPreviewFile(null);
-                            setPreviewMediaId(image.id);
-                          }}
-                        >
-                          <img src={mediaPreviewUrl(image.id)} alt="" loading="lazy" />
-                        </button>
-                      ))}
-                    </div>
-                    {!previewFile && media.isSuccess && images.length === 0 ? (
-                      <small className="album-form__hint">{t("Add images to this album or upload an image to choose a preview.")}</small>
-                    ) : null}
+                    <Button type="button" className="album-form__choose-photos" onClick={() => { setPendingPreviewMediaId(previewMediaId); setIsPhotoPickerOpen(true); }}>
+                      {t("Choose photos")}
+                    </Button>
+                    <small className="album-form__hint">
+                      {previewMediaId ? t("Selected photo: {filename}", { filename: images.find((image) => image.id === previewMediaId)?.originalFilename ?? "" }) : t("Default (first image)")}
+                    </small>
                   </div>
                 ) : null}
               </fieldset>
@@ -192,6 +111,66 @@ export function AlbumFormDialog({ album, onSubmit, onClose }: Props) {
           </AlertDialog.Popup>
         </AlertDialog.Viewport>
       </AlertDialog.Portal>
+      {isPhotoPickerOpen ? (
+        <Dialog.Root open onOpenChange={setIsPhotoPickerOpen}>
+          <Dialog.Portal>
+            <Dialog.Backdrop className="confirmation-dialog-backdrop album-photo-picker-backdrop" />
+            <Dialog.Viewport className="confirmation-dialog-viewport album-photo-picker-viewport">
+              <Dialog.Popup className="album-photo-picker" aria-busy={media.isPending}>
+                <header className="album-photo-picker__header">
+                  <div>
+                    <Dialog.Title className="album-photo-picker__title">{t("Choose photos")}</Dialog.Title>
+                    <Dialog.Description className="album-photo-picker__count">
+                      {t("{count} of {max} selected", { count: pendingPreviewMediaId ? 1 : 0, max: 1 })}
+                    </Dialog.Description>
+                  </div>
+                </header>
+                <div className="album-photo-picker__body" onScroll={(event) => {
+                  const element = event.currentTarget;
+                  if (element.scrollHeight - element.scrollTop - element.clientHeight < 160 && media.hasNextPage && !media.isFetchingNextPage) {
+                    void media.fetchNextPage();
+                  }
+                }}>
+                  {media.isPending ? <Spinner label={t("Loading images…")} /> : null}
+                  {media.isError ? <ErrorState message={t("Could not load media.")} onRetry={() => void media.refetch()} /> : null}
+                  {media.isSuccess ? (
+                    <div className="album-photo-picker__grid" role="radiogroup" aria-label={t("Choose photos")}>
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={pendingPreviewMediaId === null}
+                        aria-label={t("Default (first image)")}
+                        className="album-photo-picker__option album-photo-picker__default"
+                        onClick={() => setPendingPreviewMediaId(null)}
+                      >
+                        {t("Default (first image)")}
+                      </button>
+                      {images.map((image) => (
+                        <button
+                          key={image.id}
+                          type="button"
+                          role="radio"
+                          aria-checked={pendingPreviewMediaId === image.id}
+                          aria-label={t("Use {filename} as preview", { filename: image.originalFilename })}
+                          title={image.originalFilename}
+                          className="album-photo-picker__option"
+                          onClick={() => setPendingPreviewMediaId(image.id)}
+                        >
+                          <img src={mediaPreviewUrl(image.id)} alt="" loading="lazy" />
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                  {media.isFetchingNextPage ? <Spinner label={t("Loading images…")} /> : null}
+                </div>
+                <footer className="album-photo-picker__footer">
+                  <Button type="button" onClick={() => { setPreviewMediaId(pendingPreviewMediaId); setIsPhotoPickerOpen(false); }}>{t("Done")}</Button>
+                </footer>
+              </Dialog.Popup>
+            </Dialog.Viewport>
+          </Dialog.Portal>
+        </Dialog.Root>
+      ) : null}
     </AlertDialog.Root>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { Trash2 } from "../../../components/animate-ui/icons/trash-2";
 import { LoaderCircle } from "../../../components/animate-ui/icons/loader-circle";
 import { ConfirmationDialog } from "../../../components/ui";
@@ -7,6 +7,9 @@ import { UserAvatar } from "../../../components/common/UserAvatar";
 import { PlaceDialog } from "./PlaceDialog";
 import { AnimateIcon } from "../../../components/animate-ui/icons/icon";
 import { useLocale } from "../../../context/LocaleContext";
+import { useUpdatePlaceVisit } from "../hooks/usePlaces";
+import { StarRating } from "./StarRating";
+import { Button } from "../../../components/ui";
 import type { PlaceVisit } from "../types";
 
 interface Props {
@@ -14,17 +17,23 @@ interface Props {
   showPlaceDetails?: boolean;
   showVisitor?: boolean;
   showVisitorName?: boolean;
+  canEditVisits?: boolean;
   onRemove?: (visit: PlaceVisit) => void;
   removingVisitId?: string | null;
+  onShowOnMap?: (visit: PlaceVisit) => void;
 }
 
-export function PlaceVisitHistory({ visits, showPlaceDetails = true, showVisitor = false, showVisitorName = false, onRemove, removingVisitId }: Props) {
+export function PlaceVisitHistory({ visits, showPlaceDetails = true, showVisitor = false, showVisitorName = false, canEditVisits = true, onRemove, removingVisitId, onShowOnMap }: Props) {
   const { language, t } = useLocale();
   const isAdmin = useAuthStore((state) => state.user?.role?.toLowerCase() === "admin");
   const currentUserId = useAuthStore((state) => state.user?.id);
   const [now, setNow] = useState(() => Date.now());
   const [visitToRemove, setVisitToRemove] = useState<PlaceVisit | null>(null);
   const [selectedVisit, setSelectedVisit] = useState<PlaceVisit | null>(null);
+  const [editingVisit, setEditingVisit] = useState<PlaceVisit | null>(null);
+  const [editNote, setEditNote] = useState("");
+  const [editRating, setEditRating] = useState(0);
+  const updateVisit = useUpdatePlaceVisit();
 
   useEffect(() => {
     if (!onRemove) return;
@@ -58,7 +67,7 @@ export function PlaceVisitHistory({ visits, showPlaceDetails = true, showVisitor
           />
           {showPlaceDetails && (
             <>
-              <span className="place__history-icon" aria-hidden="true">{visit.markerIcon}</span>
+              <span className="place__chip place__history-icon" style={{ "--marker-color": visit.markerColor } as CSSProperties} aria-hidden="true">{visit.markerIcon}</span>
               <div className="place__history-details">
                 <strong>{visit.placeName}</strong>
                 {visit.placeAddress && <small>{visit.placeAddress}</small>}
@@ -102,23 +111,64 @@ export function PlaceVisitHistory({ visits, showPlaceDetails = true, showVisitor
         </li>
       ))}
     </ol>
-    {selectedVisit && (
+    {selectedVisit && !editingVisit && (
       <PlaceDialog
-        title={t("Check-in details")}
-        subtitle={selectedVisit.placeName}
-        icon={<span className="place__history-icon" aria-hidden="true">{selectedVisit.markerIcon}</span>}
+        className="place__dialog--visit"
+        title={selectedVisit.placeName}
+        subtitle={t("by {user}", { user: selectedVisit.username })}
+        subtitleSecondLine={new Date(selectedVisit.visitedAt).toLocaleString(language, { dateStyle: "full", timeStyle: "short" })}
+        icon={onShowOnMap ? (
+          <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
+            <button type="button" className="place__visit-marker-action" aria-label={t("Show on map")} title={t("Show on map")}
+              onClick={() => onShowOnMap(selectedVisit)}>
+              <span className="place__chip place__history-icon" style={{ "--marker-color": selectedVisit.markerColor } as CSSProperties} aria-hidden="true">{selectedVisit.markerIcon}</span>
+            </button>
+          </AnimateIcon>
+        ) : <span className="place__chip place__history-icon" style={{ "--marker-color": selectedVisit.markerColor } as CSSProperties} aria-hidden="true">{selectedVisit.markerIcon}</span>}
+        hideClose
         onClose={() => setSelectedVisit(null)}
       >
         <div className="place__visit-detail">
-          <div className="place__visit-detail-user">
-            <UserAvatar user={{ id: selectedVisit.userId, username: selectedVisit.username, avatarSeed: selectedVisit.avatarSeed }} className="place__history-visitor-avatar" />
-            <strong>{selectedVisit.username}</strong>
-          </div>
           {selectedVisit.placeAddress && <p>{selectedVisit.placeAddress}</p>}
-          <time dateTime={selectedVisit.visitedAt}>
-            {new Date(selectedVisit.visitedAt).toLocaleString(language, { dateStyle: "full", timeStyle: "short" })}
-          </time>
+          {selectedVisit.note ? (
+            <p className="place__note"><strong>{t("Note")}:</strong><span>{selectedVisit.note}</span></p>
+          ) : null}
+          {selectedVisit.rating > 0 ? <StarRating value={selectedVisit.rating} filledOnly size="sm" /> : null}
+          {!selectedVisit.note && selectedVisit.rating === 0 && (
+            <p className="place__visit-no-review">{t("No review yet")}</p>
+          )}
+          {canEditVisits && selectedVisit.userId === currentUserId && (
+          <Button type="button" onClick={() => {
+              setEditNote(selectedVisit.note);
+              setEditRating(selectedVisit.rating);
+              setEditingVisit(selectedVisit);
+            }}>{t("Edit check-in")}</Button>
+          )}
         </div>
+      </PlaceDialog>
+    )}
+    {editingVisit && (
+      <PlaceDialog
+        className="place__dialog--visit-edit"
+        title={editingVisit.placeName}
+        subtitle={t("by {user}", { user: editingVisit.username })}
+        icon={<span className="place__chip place__history-icon" style={{ "--marker-color": editingVisit.markerColor } as CSSProperties} aria-hidden="true">{editingVisit.markerIcon}</span>}
+        hideClose
+        onClose={() => setEditingVisit(null)}
+      >
+        <form className="place__visit-edit" onSubmit={(event) => {
+          event.preventDefault();
+          void updateVisit.mutateAsync({ visitId: editingVisit.id, note: editNote, rating: editRating }).then((updated) => {
+            setSelectedVisit(updated);
+            setEditingVisit(null);
+          });
+        }}>
+          <textarea aria-label={t("Note")} placeholder={t("Write something in your mind...")} value={editNote} rows={7} maxLength={2000} onChange={(event) => setEditNote(event.target.value)} />
+          <div className="place__visit-edit-rating">
+            <StarRating value={editRating} onChange={setEditRating} size="lg" hideReadout />
+          </div>
+          <Button type="submit" busy={updateVisit.isPending}>{t("Save changes")}</Button>
+        </form>
       </PlaceDialog>
     )}
     {visitToRemove && (

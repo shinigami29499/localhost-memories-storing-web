@@ -77,6 +77,28 @@ public sealed partial class PlaceService(
         await unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task<PlaceVisitDto> UpdatePlaceVisitAsync(
+        Guid visitId, Guid actorId, string? note, int rating, CancellationToken cancellationToken = default)
+    {
+        var visit = await repository.FindPlaceVisitAsync(visitId, cancellationToken)
+            ?? throw new NotFoundException($"Place visit '{visitId}' was not found.");
+        if (visit.UserId != actorId)
+            throw new ForbiddenException("You can only edit your own place visits.");
+        var normalizedNote = note?.Trim() ?? "";
+        if (normalizedNote.Length > MaxNoteLength || rating is < 0 or > 5)
+            throw new ValidationException("Invalid place visit.", new Dictionary<string, string[]>
+            {
+                [normalizedNote.Length > MaxNoteLength ? "note" : "rating"] = [normalizedNote.Length > MaxNoteLength
+                    ? $"Use {MaxNoteLength} characters or fewer." : "Rating must be between 1 and 5, or 0 when unrated."],
+            });
+        visit.Note = normalizedNote;
+        visit.Rating = rating;
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+        var updated = (await repository.GetPlaceVisitHistoryForPlaceAsync(visit.PlaceId, cancellationToken))
+            .First(item => item.Id == visitId);
+        return mapper.Map(updated);
+    }
+
     public async Task<PlaceDto> CreatePlaceAsync(
         Guid ownerId, SavePlaceRequest request, CancellationToken cancellationToken = default)
     {
@@ -89,7 +111,6 @@ public sealed partial class PlaceService(
             Note = values.Note,
             Latitude = values.Latitude,
             Longitude = values.Longitude,
-            Rating = values.Rating,
             MarkerIcon = values.MarkerIcon,
             MarkerColor = values.MarkerColor,
             OwnerId = ownerId,
@@ -116,7 +137,6 @@ public sealed partial class PlaceService(
         place.Note = values.Note;
         place.Latitude = values.Latitude;
         place.Longitude = values.Longitude;
-        place.Rating = values.Rating;
         place.MarkerIcon = values.MarkerIcon;
         place.MarkerColor = values.MarkerColor;
         if (mediaIds is not null)

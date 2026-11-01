@@ -218,16 +218,9 @@ export function AlbumsPage() {
         <AlbumFormDialog
           album={editing}
           onClose={() => setEditing(null)}
-          onSubmit={async (input, previewFile) => {
-            await albumService.update(editing.id, {
-              ...input,
-              previewMediaId: previewFile ? editing.customPreviewMediaId : input.previewMediaId,
-            });
-            try {
-              if (previewFile) await albumService.uploadPreviewImage(editing.id, previewFile);
-            } finally {
-              await invalidate();
-            }
+          onSubmit={async (input) => {
+            await albumService.update(editing.id, input);
+            await invalidate();
           }}
         />
       ) : null}
