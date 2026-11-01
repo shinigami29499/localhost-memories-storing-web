@@ -146,9 +146,15 @@
   flex-shrink: 0;
 }
 
-.notification-bar__trigger {
+.control-bar > .notification-bar__trigger {
   position: relative;
+  color: #facc15;
   transition: background-color var(--animate-ui-sidebar-color-duration) var(--animate-ui-sidebar-color-easing), scale 140ms ease-out;
+}
+
+.control-bar > .notification-bar__trigger:hover:not(:focus-visible),
+.control-bar > .notification-bar__trigger:focus-visible {
+  color: #facc15;
 }
 
 .language-toggler {
@@ -185,8 +191,8 @@
   place-items: center;
   border: 2px solid var(--control-bar-bg);
   border-radius: 999px;
-  background: var(--danger);
-  color: var(--text-on-danger);
+  background: #ef3340;
+  color: #fff;
   font-size: 0.65rem;
   font-weight: 700;
   line-height: 1;

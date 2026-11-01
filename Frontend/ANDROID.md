@@ -18,6 +18,9 @@ try {
     try {
         .\gradlew.bat :app:assembleDebug
         if ($LASTEXITCODE -ne 0) { throw "APK build failed" }
+        $apkDirectory = "E:\Project\APK"
+        New-Item -ItemType Directory -Path $apkDirectory -Force -ErrorAction Stop | Out-Null
+        Copy-Item -LiteralPath "app\build\outputs\apk\debug\app-debug.apk" -Destination (Join-Path $apkDirectory "app-debug.apk") -Force -ErrorAction Stop
     } finally {
         Pop-Location
     }
@@ -26,6 +29,6 @@ try {
 }
 ```
 
-The debug APK is `android/app/build/outputs/apk/debug/app-debug.apk`. It uses a debug signing key and is intended for development, not distribution. Release builds require a private signing key and a configured release signing process.
+The build copies the debug APK to `E:\Project\APK\app-debug.apk`, replacing an existing file with that name. Gradle also retains its output at `android/app/build/outputs/apk/debug/app-debug.apk`. The APK uses a debug signing key and is intended for development, not distribution. Release builds require a private signing key and a configured release signing process.
 
 Capacitor serves the app from `https://localhost`; add that origin to the backend's `Cors:AllowedOrigins`. The backend must support HTTPS with a certificate trusted by the device.

@@ -4,7 +4,6 @@ import * as Tabs from "@radix-ui/react-tabs";
 import { Highlight, HighlightItem } from "@animate-ui/react/primitives/effects/highlight";
 import { ScrollProgress, ScrollProgressContainer, ScrollProgressProvider } from "@animate-ui/react/primitives/scroll-progress";
 import { ScrollFade } from "@animate-ui/react/primitives/effects/scroll-fade";
-import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { Bookmark } from "@/components/animate-ui/icons/bookmark";
 import { Heart } from "@/components/animate-ui/icons/heart";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";

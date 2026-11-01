@@ -3,7 +3,11 @@
 [Oo]bj/
 .tmp/
 .tmp-buildDebug/
+/artifacts/
 .vs/
+__pycache__/
+*.pyc
+*.tsbuildinfo
 *.user
 *.suo
 

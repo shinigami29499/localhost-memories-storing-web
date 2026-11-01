@@ -11,7 +11,6 @@ import { showToast } from "../../components/ui/Toast";
 import { Check } from "@/components/animate-ui/icons/check";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
-import { Search } from "@/components/animate-ui/icons/search";
 import { Bot } from "@/components/animate-ui/icons/bot";
 import { Ban } from "@/components/animate-ui/icons/ban";
 import { UserRound } from "@/components/animate-ui/icons/user-round";
@@ -55,7 +54,6 @@ export function UsersPage() {
   const queryClient = useQueryClient();
   const [action, setAction] = useState<{ type: "approve" | "activate" | "disable" | "delete" | "role"; user: AuthUser } | null>(null);
   const [filter, setFilter] = useState<UserFilter>("all");
-  const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [now, setNow] = useState(() => Date.now());
   const [offlineUsers, setOfflineUsers] = useState<Record<string, boolean>>({});

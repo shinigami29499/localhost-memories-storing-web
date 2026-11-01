@@ -28,7 +28,7 @@ export function useMediaSelectionDrag(
   const selectionChangeRef = useRef(onSelectionChange);
   isSelectedRef.current = isSelected;
   selectionChangeRef.current = onSelectionChange;
-  const toggleForDrag = useCallback((current: SelectionDrag, mediaId: string) => {
+  const toggleForDrag = useCallback((mediaId: string) => {
     selectionChangeRef.current(mediaId, !isSelectedRef.current(mediaId));
   }, []);
 
@@ -101,7 +101,7 @@ export function useMediaSelectionDrag(
       return;
     }
     if (mediaId !== current.lastMediaId) {
-      toggleForDrag(current, mediaId);
+      toggleForDrag(mediaId);
       current.lastMediaId = mediaId;
     }
   }, [enabled, toggleForDrag]);

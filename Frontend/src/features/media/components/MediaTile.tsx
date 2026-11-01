@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useInView } from "motion/react";
 import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { Clapperboard } from "@/components/animate-ui/icons/clapperboard";
+import { Check } from "@/components/animate-ui/icons/check";
 import { Play } from "@/components/animate-ui/icons/play";
 import { RotateCcw } from "@/components/animate-ui/icons/rotate-ccw";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
@@ -191,9 +192,7 @@ export function MediaTile({
         <span className="media-tile__selection" aria-hidden="true">
           <span className="media-tile__selection-indicator">
             {selected ? (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="m4 12 5 5L20 6" />
-              </svg>
+              <Check size={14} animate={false} aria-hidden="true" />
             ) : null}
           </span>
         </span>

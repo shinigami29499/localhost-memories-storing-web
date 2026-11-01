@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { Collapsible } from "@animate-ui/react/primitives/base-ui/collapsible";
 import { Progress } from "@animate-ui/react/primitives/base-ui/progress";
 import { motionTokens } from "@animate-ui/react/utils/motion";

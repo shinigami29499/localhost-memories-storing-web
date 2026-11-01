@@ -15,22 +15,21 @@ export function listDownloadHistory(offset: number, limit: number) {
   return api<{ items: DownloadRecord[]; totalItems: number }>(`/api/downloads?offset=${offset}&limit=${limit}`);
 }
 
-export async function listAllDownloadHistory(): Promise<DownloadRecord[]> {
-  const records: DownloadRecord[] = [];
+async function listAllPages<T>(loadPage: (offset: number) => Promise<{ items: T[]; totalItems: number }>): Promise<T[]> {
+  const records: T[] = [];
   while (true) {
-    const page = await listDownloadHistory(records.length, 100);
+    const page = await loadPage(records.length);
     records.push(...page.items);
     if (page.items.length === 0 || records.length >= page.totalItems) return records;
   }
 }
 
-export async function listAllDownloadBatches(): Promise<DownloadBatch[]> {
-  const batches: DownloadBatch[] = [];
-  while (true) {
-    const page = await api<{ items: DownloadBatch[]; totalItems: number }>(`/api/downloads/batches?offset=${batches.length}&limit=100`);
-    batches.push(...page.items);
-    if (!page.items.length || batches.length >= page.totalItems) return batches;
-  }
+export function listAllDownloadHistory(): Promise<DownloadRecord[]> {
+  return listAllPages((offset) => listDownloadHistory(offset, 100));
+}
+
+export function listAllDownloadBatches(): Promise<DownloadBatch[]> {
+  return listAllPages((offset) => api<{ items: DownloadBatch[]; totalItems: number }>(`/api/downloads/batches?offset=${offset}&limit=100`));
 }
 
 export function saveDownloadBatch(batch: DownloadBatch) {

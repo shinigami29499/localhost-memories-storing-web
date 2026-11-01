@@ -7,7 +7,7 @@ import {
   useNavigate,
   useParams,
 } from "react-router-dom";
-import { Suspense, lazy, useEffect, useRef, type ReactNode } from "react";
+import { lazy, useEffect, useRef, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AnimateUIProvider } from "@animate-ui/react/provider";
 import { Click } from "@animate-ui/react/primitives/effects/click";
@@ -19,7 +19,6 @@ import { LoginPage } from "./pages/login/LoginPage";
 import { RegisterPage } from "./pages/register/RegisterPage";
 import { HomePage } from "./pages/home/HomePage";
 import { ErrorPage } from "./pages/ErrorPage";
-import { Spinner } from "./components/ui/Status";
 import { ThemeProvider } from "./context/ThemeContext";
 import { LocaleProvider } from "./context/LocaleContext";
 import { ToastProvider, showToast } from "./components/ui";
