@@ -1,6 +1,5 @@
-import { AlertDialog } from "@animate-ui/react/primitives/base-ui/alert-dialog";
+import { CustomDialog as AlertDialog, useCustomDialog } from "../../../components/ui/CustomDialog";
 import { Bookmark } from "@/components/animate-ui/icons/bookmark";
-import { X } from "@/components/animate-ui/icons/x";
 import { useLocale } from "../../../context/LocaleContext";
 import { mediaPreviewUrl } from "../../../utils/media";
 import type { Album } from "../types";
@@ -13,27 +12,14 @@ interface Props {
 
 export function AlbumChooserDialog({ albums, onClose, onSelect }: Props) {
   const { t } = useLocale();
+  const { dialogProps, close, dismiss } = useCustomDialog(onClose);
 
   return (
-    <AlertDialog.Root defaultOpen onOpenChange={(open) => { if (!open) onClose(); }}>
+    <AlertDialog.Root {...dialogProps}>
       <AlertDialog.Portal>
-        <AlertDialog.Backdrop className="confirmation-dialog-backdrop" onClick={onClose} />
-        <AlertDialog.Viewport
-          className="confirmation-dialog-viewport"
-          onClick={(event) => {
-            if (event.target === event.currentTarget) onClose();
-          }}
-        >
-          <AlertDialog.Popup from="top" className="confirmation-dialog album-dialog" onClick={(event) => event.stopPropagation()}>
-            <button
-              type="button"
-              className="btn btn--ghost confirmation-dialog__close"
-              aria-label={t("Close")}
-              title={t("Close")}
-              onClick={onClose}
-            >
-              <X size={20} aria-hidden="true" />
-            </button>
+        <AlertDialog.Backdrop className="confirmation-dialog-backdrop" />
+        <AlertDialog.Viewport className="confirmation-dialog-viewport">
+          <AlertDialog.Popup className="confirmation-dialog album-dialog">
             <AlertDialog.Title className="confirmation-dialog__title">{t("Choose an album")}</AlertDialog.Title>
             <div className="album-dialog__body">
               <ul className="album-picker" aria-label={t("Your albums")}>
@@ -43,7 +29,7 @@ export function AlbumChooserDialog({ albums, onClose, onSelect }: Props) {
                       type="button"
                       className="album-picker__item"
                       aria-label={t("Open album {name}", { name: album.name })}
-                      onClick={() => onSelect(album)}
+                      onClick={() => close(() => onSelect(album))}
                     >
                       <span className="album-picker__thumb" aria-hidden="true">
                         {album.previewMediaId ? (
@@ -64,7 +50,7 @@ export function AlbumChooserDialog({ albums, onClose, onSelect }: Props) {
               </ul>
             </div>
             <footer className="confirmation-dialog__actions">
-              <button type="button" className="btn btn--primary" onClick={onClose}>{t("Cancel")}</button>
+              <button type="button" className="btn btn--danger" onClick={dismiss}>{t("Cancel")}</button>
             </footer>
           </AlertDialog.Popup>
         </AlertDialog.Viewport>

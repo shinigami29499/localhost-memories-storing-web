@@ -16,6 +16,7 @@ public sealed partial class MediaStorageService(
 
     private const string MediaSubdirectory = "media";
     private const string TrashSubdirectory = "trash";
+    private const string PreviewSubdirectory = "preview-assets";
 
     private static MediaStorageOptions ValidateOptions(MediaStorageOptions options)
     {
@@ -26,11 +27,19 @@ public sealed partial class MediaStorageService(
         return options;
     }
 
-    public async Task<StoredFile> SaveAsync(
+    public Task<StoredFile> SaveAsync(
         Stream content,
         string originalFilename,
         long? sizeHint,
         CancellationToken cancellationToken = default)
+        => SaveFileAsync(content, originalFilename, sizeHint, false, cancellationToken);
+
+    public Task<StoredFile> SavePreviewAsync(
+        Stream content, string originalFilename, long? sizeHint, CancellationToken cancellationToken = default)
+        => SaveFileAsync(content, originalFilename, sizeHint, true, cancellationToken);
+
+    private async Task<StoredFile> SaveFileAsync(
+        Stream content, string originalFilename, long? sizeHint, bool previewOnly, CancellationToken cancellationToken)
     {
         List<string> allowed = [.. _options.ImageExtensions, .. _options.VideoExtensions];
 
@@ -45,9 +54,11 @@ public sealed partial class MediaStorageService(
 
         var kind = ClassifyKind(extension)
             ?? throw new InvalidMediaFileException($"File type '{extension}' is not mapped to a media kind.");
+        if (previewOnly && kind != MediaKinds.Image)
+            throw new InvalidMediaFileException("Choose an image file.");
 
         var storedFilename = $"{Guid.NewGuid():N}{extension}";
-        var relativePath = $"{MediaSubdirectory}/{kind}/{storedFilename}";
+        var relativePath = $"{(previewOnly ? PreviewSubdirectory : MediaSubdirectory)}/{kind}/{storedFilename}";
 
         var destination = ResolveAbsolute(relativePath);
         Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
@@ -125,7 +136,8 @@ public sealed partial class MediaStorageService(
     {
         cancellationToken.ThrowIfCancellationRequested();
         ValidateOwnedPath(trashRelativePath);
-        if (!trashRelativePath.StartsWith($"{TrashSubdirectory}/", StringComparison.Ordinal))
+        if (!trashRelativePath.StartsWith($"{TrashSubdirectory}/", StringComparison.Ordinal)
+            && !trashRelativePath.StartsWith($"{PreviewSubdirectory}/", StringComparison.Ordinal))
             throw new InvalidMediaFileException(
                 $"Storage path '{trashRelativePath}' is not a trashed media file.");
 
@@ -238,7 +250,7 @@ public sealed partial class MediaStorageService(
     {
         var segments = relativePath.Split('/');
         if (segments.Length != 3
-            || (segments[0] != MediaSubdirectory && segments[0] != TrashSubdirectory)
+            || (segments[0] != MediaSubdirectory && segments[0] != TrashSubdirectory && segments[0] != PreviewSubdirectory)
             || segments[1].Length == 0 || segments[2].Length == 0)
         {
             throw new InvalidMediaFileException(

@@ -80,7 +80,7 @@ public sealed class CollectionRepository(ApplicationDbContext db) : ICollectionR
             cancellationToken);
 
     public Task<bool> MediaExistsAsync(Guid mediaId, CancellationToken cancellationToken = default)
-        => db.MediaFiles.AnyAsync(media => media.Id == mediaId, cancellationToken);
+        => db.MediaFiles.AnyAsync(media => media.Id == mediaId && !media.IsPreviewOnly, cancellationToken);
 
     public Task<CollectionMedia?> FindCollectionMediaAsync(
         Guid collectionId, Guid mediaId, CancellationToken cancellationToken = default)
@@ -102,7 +102,7 @@ public sealed class CollectionRepository(ApplicationDbContext db) : ICollectionR
 
     public void AddCollectionMedia(CollectionMedia collectionMedia) => db.CollectionMedia.Add(collectionMedia);
 
-    // A custom preview is valid only while an active saved image remains in the collection.
+    // Custom previews may come from gallery media or the shared preview pool.
     private static IQueryable<CollectionSource> Project(
         IQueryable<Collection> query, Guid? mediaId)
         => query.Select(collection => new CollectionSource(
@@ -110,10 +110,9 @@ public sealed class CollectionRepository(ApplicationDbContext db) : ICollectionR
             collection.Owner,
             collection.MediaItems.Count(item => item.MediaFile.DeletedAt == null),
             collection.PreviewMediaFileId != null
-                && collection.MediaItems.Any(item =>
-                    item.MediaFileId == collection.PreviewMediaFileId
-                    && item.MediaFile.MediaKind == MediaKinds.Image
-                    && item.MediaFile.DeletedAt == null)
+                && collection.PreviewMediaFile != null
+                && collection.PreviewMediaFile.MediaKind == MediaKinds.Image
+                && collection.PreviewMediaFile.DeletedAt == null
                 ? collection.PreviewMediaFileId
                 : null,
             collection.MediaItems
@@ -124,5 +123,7 @@ public sealed class CollectionRepository(ApplicationDbContext db) : ICollectionR
                 .Select(item => (Guid?)item.MediaFileId)
                 .FirstOrDefault(),
             mediaId != null && collection.MediaItems.Any(item =>
-                item.MediaFileId == mediaId && item.MediaFile.DeletedAt == null)));
+                item.MediaFileId == mediaId && item.MediaFile.DeletedAt == null),
+            collection.PreviewMediaFile != null && collection.PreviewMediaFile.IsPreviewOnly
+                && collection.PreviewMediaFile.DeletedAt == null));
 }

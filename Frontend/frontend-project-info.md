@@ -55,6 +55,16 @@ and `/admin/users` redirect to `/sync/upload` and `/users`.
 
 ## Shared behavior and API boundaries
 
+Migrated dialogs use [CustomDialog](src/components/ui/CustomDialog.tsx) over Base UI
+with the `useCustomDialog` lifecycle rather than Animate UI dialog wrappers.
+Footer actions stack full-width, primary first and red Cancel/Close last, without
+a header X button. Outside clicks and Escape dismiss normal dialogs and
+confirmations, but are blocked during writes and for mandatory account notices.
+Popup and backdrop fades respect reduced motion and the app animation preference.
+Close callbacks run after the exit transition. Form and confirmation callbacks
+may return a function to navigate after fade-out. Nested photo pickers preserve
+their own focus scope, selection draft, and stacking.
+
 | Concern | Source and boundary |
 | --- | --- |
 | Session and token refresh | `src/store/authStore.ts`, `src/services/api.ts`; `/api/auth` |
@@ -106,9 +116,25 @@ client has no SignalR subscription. The upload runtime refreshes local query sta
   confirmation; the underlying media remain intact. Album detail media
   loads as the user scrolls. Album owners can hold a tile or press Shift+Space to
   select media, then remove selected items from the album.
-- Albums can be private or public, can choose a preview from their images or upload one
-  from the edit dialog, and support adding/removing media. Uploaded preview images are
-  added to the album. Album APIs are under `/api/library/album`.
+- Albums can be private or public and select a cover from Gallery or the shared
+  Preview pool. Album APIs are under `/api/library/album`.
+  Album and place editors use `src/features/media/components/PhotoPicker.tsx`,
+  including animated Gallery/Preview tabs. Existing covers select their source tab
+  and remain visible even when absent from the first page. Preview uploads use
+  `/api/previews`, create no upload records or album membership, and appear only
+  in Preview. Gallery uploads retain the existing upload workflow and history.
+  Uploads remain drafts until the album/place is saved. Done releases unselected
+  uploads; replacing an editor draft releases the previous unused draft. Cancelling
+  releases unused drafts; previews referenced by another album/place remain available.
+  Place selection promotes the chosen photo to cover, unlinks the replaced
+  preview-only cover, and preserves ordinary gallery links. Saved cover files are
+  deleted only after a successful parent save removes their last reference.
+  Save/delete refreshes the shared preview pool so removed assets disappear from both pickers.
+  Both pickers share the `.place-picker` styles in
+  `src/styles/global.css`: header/content colors, faded scroll edges, scroll
+  progress, responsive photo tiles, and stacked Done/Cancel buttons.
+  Both use `CustomDialog` for opening/closing fades and defer unmounting until the
+  exit transition finishes. The animation setting and reduced-motion preference apply.
 - The album detail header hides absent preview images and shows a transparent caption
   area beside the album details, stacking below on narrow screens.
   Owners and viewers of public albums can edit captions inline, up to 4,000
@@ -379,4 +405,3 @@ filled danger controls. Popovers use `--shadow-popover`.
 Use the same semantic color palette for colored icons and their associated text in light and dark themes. Share color tokens between matching icons and text, including hover and selected states.
 
 Buttons should have no border and use a shadow.
-

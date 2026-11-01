@@ -39,7 +39,8 @@ public sealed class Mapper : IMapper
             mediaFile.CreatedAt,
             isFavorited,
             mediaFile.OwnerId,
-            MediaLocationMetadata.Read(mediaFile.Metadata));
+            MediaLocationMetadata.Read(mediaFile.Metadata),
+            IsPreviewOnly: mediaFile.IsPreviewOnly);
 
     public CollectionDto Map(CollectionSource source) => CollectionMappings.ToDto(source);
 

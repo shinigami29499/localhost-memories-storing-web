@@ -30,6 +30,11 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUploadService, UploadService>();
         services.AddScoped<ICollectionService, CollectionService>();
         services.AddScoped<IPlaceService, PlaceService>();
+        services.AddScoped<IPreviewRepository, PreviewRepository>();
+        services.AddScoped<PreviewService>();
+        services.AddScoped<IPreviewService>(provider => provider.GetRequiredService<PreviewService>());
+        services.AddScoped<IPreviewLifecycle>(provider => provider.GetRequiredService<PreviewService>());
+        services.AddHostedService<PreviewCleanupWorker>();
 
         return services;
     }

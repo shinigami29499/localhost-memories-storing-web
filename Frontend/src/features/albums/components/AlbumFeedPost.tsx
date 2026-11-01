@@ -87,7 +87,7 @@ export function AlbumFeedPost({ album, canDelete }: Props) {
     if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
     event.preventDefault();
     clearClick();
-    if (previewId && !album.previewIsFavorited && !favorite.isPending) {
+    if (previewId && !album.previewIsPreviewOnly && !album.previewIsFavorited && !favorite.isPending) {
       favorite.mutate({ mediaId: previewId, isFavorited: false });
     }
   };
@@ -124,7 +124,7 @@ export function AlbumFeedPost({ album, canDelete }: Props) {
         to={albumPath}
         className="album-feed-post__preview"
         aria-label={openLabel}
-        aria-description={`${t("{count} media", { count: album.mediaCount })}. ${t("Double-click the preview to add it to favorites.")}`}
+        aria-description={`${t("{count} media", { count: album.mediaCount })}${album.previewIsPreviewOnly ? "" : `. ${t("Double-click the preview to add it to favorites.")}`}`}
         onBlur={clearClick}
         onClick={(event) => {
           if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button !== 0) return;

@@ -1,31 +1,30 @@
-import { useEffect, useState } from "react";
-import { AlertDialog } from "@animate-ui/react/primitives/base-ui/alert-dialog";
+import { useEffect } from "react";
+import { CustomDialog as AlertDialog, useCustomDialog } from "../../components/ui/CustomDialog";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocale } from "../../context/LocaleContext";
 import { sessionReplacedEvent } from "./sessionReplacement";
 
 export function SessionReplacedDialog() {
-  const [open, setOpen] = useState(false);
+  const { dialogProps, close, openDialog } = useCustomDialog(() => {}, { dismissible: false, defaultOpen: false });
   const queryClient = useQueryClient();
   const { t } = useLocale();
   useEffect(() => {
-    const onReplaced = () => { queryClient.clear(); setOpen(true); };
+    const onReplaced = () => { queryClient.clear(); openDialog(); };
     window.addEventListener(sessionReplacedEvent, onReplaced);
     return () => window.removeEventListener(sessionReplacedEvent, onReplaced);
-  }, [queryClient]);
-  if (!open) return null;
+  }, [queryClient, openDialog]);
   return (
-    <AlertDialog.Root open>
+    <AlertDialog.Root {...dialogProps}>
       <AlertDialog.Portal>
         <AlertDialog.Backdrop className="confirmation-dialog-backdrop" />
         <AlertDialog.Viewport className="confirmation-dialog-viewport">
-          <AlertDialog.Popup className="confirmation-dialog">
+          <AlertDialog.Popup className="confirmation-dialog" role="alertdialog">
             <AlertDialog.Title className="confirmation-dialog__title">{t("Signed out")}</AlertDialog.Title>
             <AlertDialog.Description className="confirmation-dialog__message">
               {t("Your account was signed in on another device. You have been signed out.")}
             </AlertDialog.Description>
             <footer className="confirmation-dialog__actions">
-              <button type="button" className="btn btn--primary" onClick={() => setOpen(false)}>{t("OK")}</button>
+              <button type="button" className="btn btn--primary" onClick={() => close()}>{t("OK")}</button>
             </footer>
           </AlertDialog.Popup>
         </AlertDialog.Viewport>

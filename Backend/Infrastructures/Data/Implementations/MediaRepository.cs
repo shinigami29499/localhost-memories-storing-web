@@ -16,7 +16,7 @@ public sealed class MediaRepository(ApplicationDbContext db) : IMediaRepository
             UPDATE media_files
             SET metadata = COALESCE(metadata, '{}'::jsonb) || {{patch}}::jsonb,
                 updated_at = {{DateTime.UtcNow}}, updated_by = {{ownerId}}
-            WHERE owner_id = {{ownerId}} AND media_kind = 'image' AND deleted_at IS NULL
+            WHERE owner_id = {{ownerId}} AND media_kind = 'image' AND deleted_at IS NULL AND NOT is_preview_only
                 AND metadata->>'location' IS NULL
             """, cancellationToken);
     }
@@ -24,7 +24,7 @@ public sealed class MediaRepository(ApplicationDbContext db) : IMediaRepository
     public async Task<IReadOnlyList<MediaFile>> GetLocationScanBatchAsync(
         Guid actorId, bool isAdmin, int offset, int limit, CancellationToken cancellationToken)
         => await db.MediaFiles.AsNoTracking()
-            .Where(media => media.MediaKind == "image" && (isAdmin || media.OwnerId == actorId))
+            .Where(media => !media.IsPreviewOnly && media.MediaKind == "image" && (isAdmin || media.OwnerId == actorId))
             .Where(media => media.Metadata == null || !EF.Functions.JsonExists(media.Metadata, "locationScanned"))
             .OrderBy(media => media.Id)
             .Skip(offset).Take(limit)
@@ -112,7 +112,7 @@ public sealed class MediaRepository(ApplicationDbContext db) : IMediaRepository
         => BuildMediaQuery(mediaKind, favoriteUserId, includeDeleted).LongCountAsync(cancellationToken);
 
     public Task<bool> MediaExistsAsync(Guid mediaId, CancellationToken cancellationToken = default)
-        => db.MediaFiles.AnyAsync(media => media.Id == mediaId, cancellationToken);
+        => db.MediaFiles.AnyAsync(media => media.Id == mediaId && !media.IsPreviewOnly, cancellationToken);
 
     public async Task<IReadOnlyCollection<Guid>> GetFavoritedMediaIdsAsync(
         Guid userId, IReadOnlyCollection<Guid> mediaIds, CancellationToken cancellationToken = default)
@@ -147,6 +147,7 @@ public sealed class MediaRepository(ApplicationDbContext db) : IMediaRepository
         var query = db.MediaFiles.AsNoTracking();
         if (includeDeleted)
             query = query.IgnoreQueryFilters().Where(media => media.DeletedAt != null);
+        query = query.Where(media => !media.IsPreviewOnly);
         if (mediaKind is not null)
             query = query.Where(media => media.MediaKind == mediaKind);
         if (favoriteUserId is { } userId)

@@ -14,7 +14,8 @@ public partial class MediaService(
     IUnitOfWork unitOfWork,
     IMediaStorage storage,
     IMapper mapper,
-    ILogger<MediaService> logger) : IMediaService
+    ILogger<MediaService> logger,
+    IPreviewRepository previews) : IMediaService
 {
     private readonly IMediaRepository _repository = repository;
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
@@ -23,7 +24,8 @@ public partial class MediaService(
     private readonly ILogger<MediaService> _logger = logger;
 
     public async Task<MediaFileContent> GetMediaFileAsync(
-        Guid mediaId, bool includeDeleted, CancellationToken cancellationToken = default, bool preview = false)
+        Guid mediaId, bool includeDeleted, CancellationToken cancellationToken = default, bool preview = false,
+        Guid? viewerId = null)
     {
         var media = includeDeleted
             ? await _repository.FindMediaIncludingDeletedAsync(mediaId, cancellationToken)
@@ -31,6 +33,9 @@ public partial class MediaService(
 
         if (media is null)
             throw new NotFoundException($"Media '{mediaId}' was not found.");
+        if (media.IsPreviewOnly && (media.IsDeleted
+            || (media.OwnerId != viewerId && !await previews.IsReferencedAsync(mediaId, cancellationToken))))
+            throw new NotFoundException($"Preview '{mediaId}' was not found.");
 
         var relativePath = media.DeletedAt is null
             ? media.RelativePath
@@ -92,6 +97,8 @@ public partial class MediaService(
     {
         var media = await _repository.FindMediaIncludingDeletedAsync(mediaId, cancellationToken)
             ?? throw new NotFoundException($"Media '{mediaId}' was not found.");
+        if (media.IsPreviewOnly)
+            throw new ForbiddenException("Preview-only images cannot be restored as gallery media.");
 
         if (!media.IsDeleted)
             throw new ConflictException("Media is not deleted; nothing to restore.");
@@ -135,6 +142,8 @@ public partial class MediaService(
             await _storage.DeleteAsync($"trash/purge/{mediaId:N}", cancellationToken);
             return;
         }
+        if (media.IsPreviewOnly)
+            throw new ForbiddenException("Preview-only images are removed by reference cleanup.");
 
         if (!media.IsDeleted)
             throw new ConflictException("Media must be in trash before permanent deletion.");
@@ -173,6 +182,8 @@ public partial class MediaService(
     {
         var media = await _repository.FindOwnedMediaAsync(mediaId, cancellationToken)
             ?? throw new NotFoundException($"Media '{mediaId}' was not found.");
+        if (media.IsPreviewOnly)
+            throw new ForbiddenException("Preview-only images cannot be managed as gallery media.");
 
         if (!isAdmin && media.OwnerId != actorId)
             throw new ForbiddenException("Only the media owner or an administrator may manage this media.");

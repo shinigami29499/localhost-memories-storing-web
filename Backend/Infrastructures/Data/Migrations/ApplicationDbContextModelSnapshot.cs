@@ -264,6 +264,176 @@ namespace Infrastructures.Data.Migrations
                     b.ToTable("download_records", (string)null);
                 });
 
+            modelBuilder.Entity("Domains.Entities.MediaFavorite", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("deleted_by");
+
+                    b.Property<Guid>("MediaFileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("media_file_id");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_media_favorites");
+
+                    b.HasIndex("MediaFileId", "UserId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_media_favorites_media_file_id_user_id")
+                        .HasFilter("deleted_at IS NULL");
+
+                    b.HasIndex("UserId", "CreatedAt")
+                        .HasDatabaseName("ix_media_favorites_user_id_created_at");
+
+                    b.ToTable("media_favorites", (string)null);
+                });
+
+            modelBuilder.Entity("Domains.Entities.MediaFile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("deleted_by");
+
+                    b.Property<string>("FileExtension")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("file_extension");
+
+                    b.Property<long>("FileSizeBytes")
+                        .HasColumnType("bigint")
+                        .HasColumnName("file_size_bytes");
+
+                    b.Property<bool>("IsPreviewOnly")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_preview_only");
+
+                    b.Property<string>("MediaKind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("media_kind");
+
+                    b.Property<string>("Metadata")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("metadata");
+
+                    b.Property<string>("MimeType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("mime_type");
+
+                    b.Property<string>("OriginalFilename")
+                        .IsRequired()
+                        .HasMaxLength(260)
+                        .HasColumnType("character varying(260)")
+                        .HasColumnName("original_filename");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("owner_id");
+
+                    b.Property<DateTime?>("PreviewDraftExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("preview_draft_expires_at");
+
+                    b.Property<string>("RelativePath")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("relative_path");
+
+                    b.Property<string>("StoredFilename")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("stored_filename");
+
+                    b.Property<string>("TrashRelativePath")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("trash_relative_path");
+
+                    b.Property<DateTime?>("TrashedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("trashed_at");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_media_files");
+
+                    b.HasIndex("OwnerId")
+                        .HasDatabaseName("ix_media_files_owner_id");
+
+                    b.HasIndex("RelativePath")
+                        .IsUnique()
+                        .HasDatabaseName("ix_media_files_relative_path")
+                        .HasFilter("deleted_at IS NULL");
+
+                    b.HasIndex("DeletedAt", "CreatedAt")
+                        .HasDatabaseName("ix_media_files_deleted_at_created_at");
+
+                    b.ToTable("media_files", (string)null);
+                });
+
             modelBuilder.Entity("Domains.Entities.Place", b =>
                 {
                     b.Property<Guid>("Id")
@@ -386,13 +556,13 @@ namespace Infrastructures.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("deleted_by");
 
-                    b.Property<Guid>("PlaceId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("place_id");
-
                     b.Property<Guid>("MediaFileId")
                         .HasColumnType("uuid")
                         .HasColumnName("media_file_id");
+
+                    b.Property<Guid>("PlaceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("place_id");
 
                     b.Property<int>("Position")
                         .HasColumnType("integer")
@@ -425,18 +595,6 @@ namespace Infrastructures.Data.Migrations
 
             modelBuilder.Entity("Domains.Entities.PlaceVisit", b =>
                 {
-                    b.Property<string>("Note")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)")
-                        .HasDefaultValue("")
-                        .HasColumnName("note");
-
-                    b.Property<int>("Rating")
-                        .HasColumnType("integer")
-                        .HasColumnName("rating");
-
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
@@ -459,9 +617,21 @@ namespace Infrastructures.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("deleted_by");
 
+                    b.Property<string>("Note")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasDefaultValue("")
+                        .HasColumnName("note");
+
                     b.Property<Guid>("PlaceId")
                         .HasColumnType("uuid")
                         .HasColumnName("place_id");
+
+                    b.Property<int>("Rating")
+                        .HasColumnType("integer")
+                        .HasColumnName("rating");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -485,166 +655,6 @@ namespace Infrastructures.Data.Migrations
                         .HasDatabaseName("ix_place_visits_user_id_created_at");
 
                     b.ToTable("place_visits", (string)null);
-                });
-
-            modelBuilder.Entity("Domains.Entities.MediaFavorite", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id")
-                        .HasDefaultValueSql("gen_random_uuid()");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<Guid?>("CreatedBy")
-                        .HasColumnType("uuid")
-                        .HasColumnName("created_by");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("deleted_at");
-
-                    b.Property<Guid?>("DeletedBy")
-                        .HasColumnType("uuid")
-                        .HasColumnName("deleted_by");
-
-                    b.Property<Guid>("MediaFileId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("media_file_id");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.Property<Guid?>("UpdatedBy")
-                        .HasColumnType("uuid")
-                        .HasColumnName("updated_by");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("user_id");
-
-                    b.HasKey("Id")
-                        .HasName("pk_media_favorites");
-
-                    b.HasIndex("MediaFileId", "UserId")
-                        .IsUnique()
-                        .HasDatabaseName("ix_media_favorites_media_file_id_user_id")
-                        .HasFilter("deleted_at IS NULL");
-
-                    b.HasIndex("UserId", "CreatedAt")
-                        .HasDatabaseName("ix_media_favorites_user_id_created_at");
-
-                    b.ToTable("media_favorites", (string)null);
-                });
-
-            modelBuilder.Entity("Domains.Entities.MediaFile", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id")
-                        .HasDefaultValueSql("gen_random_uuid()");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<Guid?>("CreatedBy")
-                        .HasColumnType("uuid")
-                        .HasColumnName("created_by");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("deleted_at");
-
-                    b.Property<Guid?>("DeletedBy")
-                        .HasColumnType("uuid")
-                        .HasColumnName("deleted_by");
-
-                    b.Property<string>("FileExtension")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("character varying(10)")
-                        .HasColumnName("file_extension");
-
-                    b.Property<long>("FileSizeBytes")
-                        .HasColumnType("bigint")
-                        .HasColumnName("file_size_bytes");
-
-                    b.Property<string>("MediaKind")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasColumnName("media_kind");
-
-                    b.Property<string>("Metadata")
-                        .HasColumnType("jsonb")
-                        .HasColumnName("metadata");
-
-                    b.Property<string>("MimeType")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("mime_type");
-
-                    b.Property<string>("OriginalFilename")
-                        .IsRequired()
-                        .HasMaxLength(260)
-                        .HasColumnType("character varying(260)")
-                        .HasColumnName("original_filename");
-
-                    b.Property<Guid>("OwnerId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("owner_id");
-
-                    b.Property<string>("RelativePath")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("relative_path");
-
-                    b.Property<string>("StoredFilename")
-                        .IsRequired()
-                        .HasMaxLength(300)
-                        .HasColumnType("character varying(300)")
-                        .HasColumnName("stored_filename");
-
-                    b.Property<string>("TrashRelativePath")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("trash_relative_path");
-
-                    b.Property<DateTime?>("TrashedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("trashed_at");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.Property<Guid?>("UpdatedBy")
-                        .HasColumnType("uuid")
-                        .HasColumnName("updated_by");
-
-                    b.HasKey("Id")
-                        .HasName("pk_media_files");
-
-                    b.HasIndex("OwnerId")
-                        .HasDatabaseName("ix_media_files_owner_id");
-
-                    b.HasIndex("RelativePath")
-                        .IsUnique()
-                        .HasDatabaseName("ix_media_files_relative_path")
-                        .HasFilter("deleted_at IS NULL");
-
-                    b.HasIndex("DeletedAt", "CreatedAt")
-                        .HasDatabaseName("ix_media_files_deleted_at_created_at");
-
-                    b.ToTable("media_files", (string)null);
                 });
 
             modelBuilder.Entity("Domains.Entities.RefreshToken", b =>
@@ -1085,60 +1095,6 @@ namespace Infrastructures.Data.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Domains.Entities.Place", b =>
-                {
-                    b.HasOne("Domains.Entities.User", "Owner")
-                        .WithMany()
-                        .HasForeignKey("OwnerId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired()
-                        .HasConstraintName("fk_places_users_owner_id");
-
-                    b.Navigation("Owner");
-                });
-
-            modelBuilder.Entity("Domains.Entities.PlaceMedia", b =>
-                {
-                    b.HasOne("Domains.Entities.Place", "Place")
-                        .WithMany("MediaItems")
-                        .HasForeignKey("PlaceId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired()
-                        .HasConstraintName("fk_place_media_places_place_id");
-
-                    b.HasOne("Domains.Entities.MediaFile", "MediaFile")
-                        .WithMany()
-                        .HasForeignKey("MediaFileId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired()
-                        .HasConstraintName("fk_place_media_media_files_media_file_id");
-
-                    b.Navigation("Place");
-
-                    b.Navigation("MediaFile");
-                });
-
-            modelBuilder.Entity("Domains.Entities.PlaceVisit", b =>
-                {
-                    b.HasOne("Domains.Entities.Place", "Place")
-                        .WithMany()
-                        .HasForeignKey("PlaceId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired()
-                        .HasConstraintName("fk_place_visits_places_place_id");
-
-                    b.HasOne("Domains.Entities.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired()
-                        .HasConstraintName("fk_place_visits_users_user_id");
-
-                    b.Navigation("Place");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("Domains.Entities.MediaFavorite", b =>
                 {
                     b.HasOne("Domains.Entities.MediaFile", "MediaFile")
@@ -1170,6 +1126,60 @@ namespace Infrastructures.Data.Migrations
                         .HasConstraintName("fk_media_files_users_owner_id");
 
                     b.Navigation("Owner");
+                });
+
+            modelBuilder.Entity("Domains.Entities.Place", b =>
+                {
+                    b.HasOne("Domains.Entities.User", "Owner")
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired()
+                        .HasConstraintName("fk_places_users_owner_id");
+
+                    b.Navigation("Owner");
+                });
+
+            modelBuilder.Entity("Domains.Entities.PlaceMedia", b =>
+                {
+                    b.HasOne("Domains.Entities.MediaFile", "MediaFile")
+                        .WithMany()
+                        .HasForeignKey("MediaFileId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired()
+                        .HasConstraintName("fk_place_media_media_files_media_file_id");
+
+                    b.HasOne("Domains.Entities.Place", "Place")
+                        .WithMany("MediaItems")
+                        .HasForeignKey("PlaceId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired()
+                        .HasConstraintName("fk_place_media_places_place_id");
+
+                    b.Navigation("MediaFile");
+
+                    b.Navigation("Place");
+                });
+
+            modelBuilder.Entity("Domains.Entities.PlaceVisit", b =>
+                {
+                    b.HasOne("Domains.Entities.Place", "Place")
+                        .WithMany()
+                        .HasForeignKey("PlaceId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired()
+                        .HasConstraintName("fk_place_visits_places_place_id");
+
+                    b.HasOne("Domains.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired()
+                        .HasConstraintName("fk_place_visits_users_user_id");
+
+                    b.Navigation("Place");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Domains.Entities.RefreshToken", b =>

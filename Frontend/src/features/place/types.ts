@@ -16,7 +16,7 @@ export interface Place {
   owner: PlaceOwner;
   createdAt: string;
   updatedAt: string | null;
-  /** Library image ids in display order; the first is the cover. */
+  /** Gallery or shared-preview image ids in display order; the first is the cover. */
   mediaIds: string[];
 }
 

@@ -15,8 +15,8 @@ public sealed class CollectionService(
     IMediaRepository mediaRepository,
     IUnitOfWork unitOfWork,
     IMapper mapper,
-    IMediaStorage mediaStorage,
-    IUserRepository userRepository) : ICollectionService
+    IPreviewService previews,
+    IPreviewLifecycle previewLifecycle) : ICollectionService
 {
     public async Task<IReadOnlyList<CollectionDto>> GetCollectionsAsync(
         Guid viewerId, CollectionListRequest request, CancellationToken cancellationToken = default)
@@ -106,24 +106,24 @@ public sealed class CollectionService(
     public async Task<CollectionDto> UpdateCollectionAsync(
         Guid collectionId, Guid ownerId, UpdateCollectionRequest request, CancellationToken cancellationToken = default)
     {
-        var collection = await FindOwnedCollectionAsync(collectionId, ownerId, cancellationToken);
-        var name = NormalizeName(request.Name);
-
-        if (request.PreviewMediaId is { } previewId
-            && !await repository.IsCollectionImageAsync(collectionId, previewId, cancellationToken))
-            throw new ValidationException(
-                "Invalid preview image.",
-                new Dictionary<string, string[]>
-                {
-                    ["previewMediaId"] = ["Choose an image saved in this collection."]
-                });
-
-        collection.Name = name;
-        collection.IsPublic = request.IsPublic;
-        collection.PreviewMediaFileId = request.PreviewMediaId;
-        if (request.Caption is not null)
-            collection.Caption = NormalizeCaption(request.Caption);
-        await unitOfWork.SaveChangesAsync(cancellationToken);
+        Guid? oldPreviewId;
+        await using (var transaction = await unitOfWork.BeginTransactionAsync(cancellationToken))
+        {
+            await previewLifecycle.LockAsync(cancellationToken);
+            var collection = await FindOwnedCollectionAsync(collectionId, ownerId, cancellationToken);
+            oldPreviewId = collection.PreviewMediaFileId;
+            if (request.PreviewMediaId is { } previewId)
+                await previewLifecycle.ValidateImageAsync(previewId, ownerId, cancellationToken);
+            collection.Name = NormalizeName(request.Name);
+            collection.IsPublic = request.IsPublic;
+            collection.PreviewMediaFileId = request.PreviewMediaId;
+            if (request.Caption is not null)
+                collection.Caption = NormalizeCaption(request.Caption);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        }
+        if (oldPreviewId is { } oldId && oldId != request.PreviewMediaId)
+            await previewLifecycle.CleanupAsync([oldId], ownerId, CancellationToken.None);
         return await GetCollectionAsync(collectionId, ownerId, cancellationToken);
     }
 
@@ -152,18 +152,24 @@ public sealed class CollectionService(
     public async Task DeleteCollectionAsync(
         Guid collectionId, Guid actorId, bool isAdmin, CancellationToken cancellationToken = default)
     {
-        var collection = isAdmin
-            ? await repository.FindCollectionAsync(collectionId, cancellationToken)
-                ?? throw new NotFoundException($"Collection '{collectionId}' was not found.")
-            : await FindOwnedCollectionAsync(collectionId, actorId, cancellationToken);
-        var utcNow = DateTime.UtcNow;
-
-        await using var transaction = await unitOfWork.BeginTransactionAsync(cancellationToken);
-        await repository.DeleteCollectionMediaAsync(collectionId, actorId, utcNow, cancellationToken);
-        collection.DeletedAt = utcNow;
-        collection.DeletedBy = actorId;
-        await unitOfWork.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
+        Guid? previewId;
+        await using (var transaction = await unitOfWork.BeginTransactionAsync(cancellationToken))
+        {
+            await previewLifecycle.LockAsync(cancellationToken);
+            var collection = isAdmin
+                ? await repository.FindCollectionAsync(collectionId, cancellationToken)
+                    ?? throw new NotFoundException($"Collection '{collectionId}' was not found.")
+                : await FindOwnedCollectionAsync(collectionId, actorId, cancellationToken);
+            previewId = collection.PreviewMediaFileId;
+            var utcNow = DateTime.UtcNow;
+            await repository.DeleteCollectionMediaAsync(collectionId, actorId, utcNow, cancellationToken);
+            collection.DeletedAt = utcNow;
+            collection.DeletedBy = actorId;
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        }
+        if (previewId is { } oldId)
+            await previewLifecycle.CleanupAsync([oldId], actorId, CancellationToken.None);
     }
 
     public async Task<CollectionDto> AddMediaAsync(
@@ -195,42 +201,29 @@ public sealed class CollectionService(
         CancellationToken cancellationToken = default)
     {
         await FindOwnedCollectionAsync(collectionId, ownerId, cancellationToken);
-        if (sizeHint <= 0)
-            throw new ValidationException(
-                "Invalid preview image.",
-                new Dictionary<string, string[]> { ["file"] = ["Choose a non-empty image file."] });
-
-        var stored = await mediaStorage.SaveAsync(content, originalFilename, sizeHint, cancellationToken);
-        if (stored.MediaKind != "image")
-        {
-            await mediaStorage.DeleteAsync(stored.RelativePath, CancellationToken.None);
-            throw new ValidationException(
-                "Invalid preview image.",
-                new Dictionary<string, string[]> { ["file"] = ["Choose an image file."] });
-        }
-
+        var preview = await previews.UploadAsync(ownerId, content, originalFilename, sizeHint, cancellationToken);
+        Guid? oldPreviewId;
         try
         {
-            await using var transaction = await unitOfWork.BeginTransactionAsync(cancellationToken);
-            var collection = await FindOwnedCollectionAsync(collectionId, ownerId, cancellationToken);
-            var mediaFile = mapper.Map(stored, ownerId, originalFilename);
-            await MediaHomeLocation.ApplyAsync(mediaFile, userRepository, cancellationToken);
-            mediaRepository.AddMediaFile(mediaFile);
-            repository.AddCollectionMedia(new CollectionMedia
+            await using (var transaction = await unitOfWork.BeginTransactionAsync(cancellationToken))
             {
-                CollectionId = collectionId,
-                MediaFileId = mediaFile.Id,
-            });
-            collection.PreviewMediaFileId = mediaFile.Id;
-            await unitOfWork.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
+                await previewLifecycle.LockAsync(cancellationToken);
+                var collection = await FindOwnedCollectionAsync(collectionId, ownerId, cancellationToken);
+                oldPreviewId = collection.PreviewMediaFileId;
+                await previewLifecycle.ValidateImageAsync(preview.Id, ownerId, cancellationToken);
+                collection.PreviewMediaFileId = preview.Id;
+                await unitOfWork.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+            }
         }
         catch
         {
-            await mediaStorage.DeleteAsync(stored.RelativePath, CancellationToken.None);
+            unitOfWork.DiscardChanges();
+            await previews.ReleaseDraftAsync(preview.Id, ownerId, CancellationToken.None);
             throw;
         }
-
+        if (oldPreviewId is { } oldId)
+            await previewLifecycle.CleanupAsync([oldId], ownerId, CancellationToken.None);
         return await GetCollectionAsync(collectionId, ownerId, cancellationToken);
     }
 

@@ -13,7 +13,8 @@ public interface IMediaService
     Task<ScanMediaLocationsResponse> ScanLocationsAsync(
         Guid actorId, bool isAdmin, int offset, CancellationToken cancellationToken = default);
     Task<MediaFileContent> GetMediaFileAsync(
-        Guid mediaId, bool includeDeleted, CancellationToken cancellationToken = default, bool preview = false);
+        Guid mediaId, bool includeDeleted, CancellationToken cancellationToken = default, bool preview = false,
+        Guid? viewerId = null);
     Task DeleteMediaAsync(Guid mediaId, Guid actorId, bool isAdmin, CancellationToken cancellationToken = default);
     Task RestoreMediaAsync(Guid mediaId, Guid actorId, bool isAdmin, CancellationToken cancellationToken = default);
     Task PermanentlyDeleteMediaAsync(

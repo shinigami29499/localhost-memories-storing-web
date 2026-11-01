@@ -443,8 +443,10 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
           onClose={() => setDeleting(false)}
           onConfirm={async () => {
             await albumService.remove(data.id);
-            navigate("/library/album", { replace: true });
-            void invalidate();
+            return () => {
+              navigate("/library/album", { replace: true });
+              void invalidate();
+            };
           }}
         >
           {t("The album “{name}” will be deleted. Saved media stay in your gallery.", { name: data.name })}

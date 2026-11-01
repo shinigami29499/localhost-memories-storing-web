@@ -1,8 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { useQueries } from "@tanstack/react-query";
-import { AnimateIcon } from "@/components/animate-ui/icons/icon";
-import { AlertDialog } from "@animate-ui/react/primitives/base-ui/alert-dialog";
-import { X } from "@/components/animate-ui/icons/x";
+import { CustomDialog as AlertDialog, useCustomDialog } from "../../../components/ui/CustomDialog";
 import { Bookmark } from "@/components/animate-ui/icons/bookmark";
 import { Button } from "../../../components/ui/Button";
 import { Spinner, ErrorState } from "../../../components/ui/Status";
@@ -34,11 +32,13 @@ export function SaveToAlbumDialog({ mediaIds, onClose, portalContainer }: Props)
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [creating, setCreating] = useState(false);
+  const busy = pendingId !== null || creating;
+  const { dialogProps, dismiss } = useCustomDialog(onClose, { blocked: busy });
 
   const describe = (err: unknown) => (err instanceof ApiError ? err.message : t("Could not complete this action. Please retry."));
 
   const toggle = async (album: Album) => {
-    if (pendingId !== null) return;
+    if (busy) return;
     setPendingId(album.id);
     try {
       const savedMediaIds = mediaIds.filter((_, index) =>
@@ -80,7 +80,7 @@ export function SaveToAlbumDialog({ mediaIds, onClose, portalContainer }: Props)
   const create = async (event: FormEvent) => {
     event.preventDefault();
     const trimmed = name.trim();
-    if (!trimmed || creating) return;
+    if (!trimmed || busy) return;
     setCreating(true);
     try {
       const album = await albumService.create({ name: trimmed });
@@ -111,21 +111,11 @@ export function SaveToAlbumDialog({ mediaIds, onClose, portalContainer }: Props)
   const failedQueries = albumQueries.filter((query) => query.isError);
 
   return (
-    <AlertDialog.Root defaultOpen onOpenChange={(open) => { if (!open) onClose(); }}>
+    <AlertDialog.Root {...dialogProps}>
       <AlertDialog.Portal container={portalContainer}>
-        <AlertDialog.Backdrop className="confirmation-dialog-backdrop" onClick={onClose} />
-        <AlertDialog.Viewport
-          className="confirmation-dialog-viewport"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) onClose();
-          }}
-        >
-          <AlertDialog.Popup from="top" className="confirmation-dialog album-dialog" onClick={(e) => e.stopPropagation()}>
-            <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
-              <button type="button" className="btn btn--ghost confirmation-dialog__close" aria-label={t("Close")} title={t("Close")} onClick={onClose}>
-                <X size={20} aria-hidden="true" />
-              </button>
-            </AnimateIcon>
+        <AlertDialog.Backdrop className="confirmation-dialog-backdrop" />
+        <AlertDialog.Viewport className="confirmation-dialog-viewport">
+          <AlertDialog.Popup className="confirmation-dialog album-dialog">
             <AlertDialog.Title className="confirmation-dialog__title">{t("Save to album")}</AlertDialog.Title>
             <div className="album-dialog__body">
                 {isPending ? <Spinner label={t("Loading albums…")} /> : failedQueries.length > 0 ? (
@@ -147,7 +137,7 @@ export function SaveToAlbumDialog({ mediaIds, onClose, portalContainer }: Props)
                           aria-pressed={mediaIds.every((_, index) =>
                             albumQueries[index]?.data?.find((item) => item.id === album.id)?.containsMedia,
                           )}
-                          disabled={pendingId !== null}
+                          disabled={busy}
                           aria-busy={pendingId === album.id || undefined}
                           onClick={() => void toggle(album)}
                         >
@@ -180,13 +170,13 @@ export function SaveToAlbumDialog({ mediaIds, onClose, portalContainer }: Props)
                     maxLength={ALBUM_NAME_MAX_LENGTH}
                     placeholder={t("New album name")}
                     aria-label={t("New album name")}
-                    disabled={creating}
+                    disabled={busy}
                   />
-                  <Button type="submit" variant="secondary" busy={creating} disabled={!name.trim()}>{t("Create")}</Button>
+                  <Button type="submit" variant="secondary" busy={creating} disabled={!name.trim() || busy}>{t("Create")}</Button>
                 </form>
             </div>
             <footer className="confirmation-dialog__actions">
-              <button type="button" className="btn btn--primary" onClick={onClose}>{t("Done")}</button>
+              <button type="button" className="btn btn--primary" disabled={busy} onClick={dismiss}>{t("Done")}</button>
             </footer>
           </AlertDialog.Popup>
         </AlertDialog.Viewport>

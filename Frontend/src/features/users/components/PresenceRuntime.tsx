@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { HubConnectionBuilder, LogLevel } from "@microsoft/signalr";
-import { AlertDialog } from "@animate-ui/react/primitives/base-ui/alert-dialog";
+import { CustomDialog as AlertDialog, useCustomDialog } from "../../../components/ui/CustomDialog";
 import { useLocale } from "../../../context/LocaleContext";
 import { useAuthStore } from "../../../store/authStore";
 import { useAlbumNotificationStore, type AlbumNotification } from "../../notifications/albumNotificationStore";
@@ -19,7 +19,12 @@ export function PresenceRuntime() {
   const token = useAuthStore((state) => state.accessToken);
   const queryClient = useQueryClient();
   const [accountChange, setAccountChange] = useState<"disabled" | "roleUpdated" | null>(null);
+  const { dialogProps, close, openDialog } = useCustomDialog(() => setAccountChange(null), { dismissible: false, defaultOpen: false });
   const { t } = useLocale();
+
+  useEffect(() => {
+    if (accountChange) openDialog();
+  }, [accountChange, openDialog]);
 
   useEffect(() => {
     if (!token) return;
@@ -185,11 +190,11 @@ export function PresenceRuntime() {
   if (!accountChange) return null;
 
   return (
-    <AlertDialog.Root open>
+    <AlertDialog.Root {...dialogProps}>
       <AlertDialog.Portal>
         <AlertDialog.Backdrop className="confirmation-dialog-backdrop" />
         <AlertDialog.Viewport className="confirmation-dialog-viewport">
-          <AlertDialog.Popup className="confirmation-dialog">
+          <AlertDialog.Popup className="confirmation-dialog" role="alertdialog">
             <AlertDialog.Title className="confirmation-dialog__title">
               {t(accountChange === "disabled" ? "Account disabled" : "Role updated")}
             </AlertDialog.Title>
@@ -199,10 +204,10 @@ export function PresenceRuntime() {
                 : "Your role has been updated. Reload and sign in again.")}
             </AlertDialog.Description>
             <footer className="confirmation-dialog__actions">
-              <button type="button" className="btn btn--primary" onClick={() => {
+              <button type="button" className="btn btn--primary" onClick={() => close(() => {
                 useAuthStore.getState().clear();
                 window.location.reload();
-              }}>{t("Reload")}</button>
+              })}>{t("Reload")}</button>
             </footer>
           </AlertDialog.Popup>
         </AlertDialog.Viewport>

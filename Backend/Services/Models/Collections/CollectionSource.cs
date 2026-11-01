@@ -9,4 +9,5 @@ public sealed record CollectionSource(
     int MediaCount,
     Guid? CustomPreviewMediaId,
     Guid? DefaultPreviewMediaId,
-    bool ContainsMedia);
+    bool ContainsMedia,
+    bool PreviewIsPreviewOnly = false);

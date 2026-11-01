@@ -1,8 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { useQueries } from "@tanstack/react-query";
-import { AnimateIcon } from "@/components/animate-ui/icons/icon";
-import { AlertDialog } from "@animate-ui/react/primitives/base-ui/alert-dialog";
-import { X } from "@/components/animate-ui/icons/x";
+import { CustomDialog as AlertDialog, useCustomDialog } from "../../../components/ui/CustomDialog";
 import { Bookmark } from "@/components/animate-ui/icons/bookmark";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import { Button } from "../../../components/ui/Button";
@@ -121,30 +119,14 @@ export function BulkSaveToAlbumDialog({ mediaIds, onSaved, onClose }: Props) {
   const isPending = albumQueries.some((query) => query.isPending);
   const failedQueries = albumQueries.filter((query) => query.isError);
   const busy = pendingId !== null || creating;
+  const { dialogProps, dismiss } = useCustomDialog(onClose, { blocked: busy });
 
   return (
-    <AlertDialog.Root defaultOpen onOpenChange={(open) => { if (!open) onClose(); }}>
+    <AlertDialog.Root {...dialogProps}>
       <AlertDialog.Portal>
-        <AlertDialog.Backdrop className="confirmation-dialog-backdrop" onClick={onClose} />
-        <AlertDialog.Viewport
-          className="confirmation-dialog-viewport"
-          onClick={(event) => {
-            if (event.target === event.currentTarget) onClose();
-          }}
-        >
-          <AlertDialog.Popup from="top" className="confirmation-dialog album-dialog" onClick={(event) => event.stopPropagation()}>
-            <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
-              <button
-                type="button"
-                className="btn btn--ghost confirmation-dialog__close"
-                aria-label={t("Close")}
-                title={t("Close")}
-                disabled={busy}
-                onClick={onClose}
-              >
-                <X size={20} aria-hidden="true" />
-              </button>
-            </AnimateIcon>
+        <AlertDialog.Backdrop className="confirmation-dialog-backdrop" />
+        <AlertDialog.Viewport className="confirmation-dialog-viewport">
+          <AlertDialog.Popup className="confirmation-dialog album-dialog">
             <AlertDialog.Title className="confirmation-dialog__title">
               {t("Save {count} media items to albums", { count: selectedMediaIds.length })}
             </AlertDialog.Title>
@@ -204,7 +186,7 @@ export function BulkSaveToAlbumDialog({ mediaIds, onSaved, onClose }: Props) {
               </form>
             </div>
             <footer className="confirmation-dialog__actions">
-              <button type="button" className="btn btn--primary" disabled={busy} onClick={onClose}>{t("Done")}</button>
+              <button type="button" className="btn btn--primary" disabled={busy} onClick={dismiss}>{t("Done")}</button>
             </footer>
           </AlertDialog.Popup>
         </AlertDialog.Viewport>

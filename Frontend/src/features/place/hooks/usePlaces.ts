@@ -94,7 +94,11 @@ export function useSavePlace() {
     mutationKey: ["place-place-save"],
     mutationFn: ({ id, input }: { id?: string; input: SavePlaceInput }) =>
       id ? placeService.update(id, input) : placeService.create(input),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: placeKeys.all }),
+    onSuccess: () => Promise.all([
+      queryClient.invalidateQueries({ queryKey: placeKeys.all }),
+      queryClient.invalidateQueries({ queryKey: ["previews"] }),
+      queryClient.invalidateQueries({ queryKey: ["picker-image"] }),
+    ]),
   });
 }
 
@@ -103,6 +107,10 @@ export function useDeletePlace() {
   return useMutation({
     mutationKey: ["place-place-delete"],
     mutationFn: (placeId: string) => placeService.remove(placeId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: placeKeys.all }),
+    onSuccess: () => Promise.all([
+      queryClient.invalidateQueries({ queryKey: placeKeys.all }),
+      queryClient.invalidateQueries({ queryKey: ["previews"] }),
+      queryClient.invalidateQueries({ queryKey: ["picker-image"] }),
+    ]),
   });
 }

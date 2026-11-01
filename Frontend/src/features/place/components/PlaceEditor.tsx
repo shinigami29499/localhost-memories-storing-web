@@ -3,9 +3,11 @@ import { Button, Input } from "../../../components/ui";
 import { UploadIcon } from "../../../components/animate-ui/icons/upload";
 import { useLocale } from "../../../context/LocaleContext";
 import { PlaceMarkerCombobox } from "./PlaceMarkerCombobox";
-import { PlaceImagePicker } from "./PlaceImagePicker";
+import { PhotoPicker } from "../../media/components/PhotoPicker";
+import { usePreviewDrafts } from "../../media/hooks/usePreviewDrafts";
 import {
   PLACE_MARKER_COLORS,
+  MAX_PLACE_IMAGES,
   type PlaceCoordinate,
   type SavePlaceInput,
 } from "../types";
@@ -32,7 +34,8 @@ export function PlaceEditor({
 }: Props) {
   const { t } = useLocale();
   const [pickingImages, setPickingImages] = useState(false);
-  const busy = saving || deleting === true;
+  const { register: registerDraft, retain: retainDrafts } = usePreviewDrafts();
+  const busy = saving || deleting === true || pickingImages;
   const setMediaIds = (mediaIds: string[]) => onChange({ ...values, mediaIds });
 
   return (
@@ -40,7 +43,7 @@ export function PlaceEditor({
       className="place__form"
       onSubmit={(event) => {
         event.preventDefault();
-        onSubmit();
+        if (!busy) onSubmit();
       }}
     >
       <label className="place__field">
@@ -93,7 +96,21 @@ export function PlaceEditor({
           {t("Choose photos")}
         </Button>
       </div>
-      {pickingImages && <PlaceImagePicker selectedIds={values.mediaIds} onConfirm={setMediaIds} onClose={() => setPickingImages(false)} />}
+      {pickingImages && <PhotoPicker
+        selectedId={values.mediaIds[0] ?? null}
+        selectedIds={values.mediaIds}
+        maxImages={MAX_PLACE_IMAGES}
+        onConfirm={(image, previousImage) => {
+          if (image) {
+            const mediaIds = [image.id, ...values.mediaIds.filter((id) =>
+              id !== image.id && !(previousImage?.isPreviewOnly && id === previousImage.id))];
+            setMediaIds(mediaIds);
+            retainDrafts(mediaIds);
+          }
+        }}
+        onUploadedPreview={registerDraft}
+        onClose={() => setPickingImages(false)}
+      />}
 
       {error && <p className="place__form-error" role="alert">{error}</p>}
 

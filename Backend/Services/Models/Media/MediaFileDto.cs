@@ -10,4 +10,5 @@ public sealed record MediaFileDto(
     bool IsFavorited,
     Guid OwnerId = default,
     MediaLocationDto? Location = null,
-    string? OwnerUsername = null);
+    string? OwnerUsername = null,
+    bool IsPreviewOnly = false);

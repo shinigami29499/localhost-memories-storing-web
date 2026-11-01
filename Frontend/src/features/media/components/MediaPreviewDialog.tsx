@@ -271,7 +271,11 @@ export function MediaPreviewDialog({
         if (!albumDialogOpen) close();
       }}
       onClick={(event) => {
-        if (event.target === event.currentTarget) close();
+        if (albumDialogOpen) return;
+        const target = event.target;
+        if (target === event.currentTarget || (target instanceof Element && target.matches(
+          ".media-preview-dialog__content, .media-preview-dialog__viewport, .media-preview-dialog__track, .media-preview-dialog__item, .media-preview-dialog__stage",
+        ))) close();
       }}
       onKeyDown={(event) => {
         if (albumDialogOpen) return;

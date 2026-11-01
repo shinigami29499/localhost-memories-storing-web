@@ -877,6 +877,10 @@ const vietnamese: Record<string, string> = {
   "Anyone signed in can view a public album. Private albums are only visible to you.":
     "Mọi người đã đăng nhập đều xem được album công khai. Album riêng tư chỉ bạn xem được.",
   "Preview image": "Ảnh xem trước",
+  "Preview": "Ảnh đại diện",
+  "Photo source": "Nguồn ảnh",
+  "No images yet.": "Chưa có ảnh.",
+  "Could not remove unused preview.": "Không thể xóa ảnh đại diện không còn sử dụng.",
   "Upload image": "Tải ảnh lên",
   "Upload an image for preview": "Tải ảnh lên làm ảnh xem trước",
   "The uploaded image will also be added to this album.": "Ảnh tải lên cũng sẽ được thêm vào album này.",

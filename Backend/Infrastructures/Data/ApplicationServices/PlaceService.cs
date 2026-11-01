@@ -11,7 +11,8 @@ namespace Infrastructures.Data.ApplicationServices;
 public sealed partial class PlaceService(
     IPlaceRepository repository,
     IUnitOfWork unitOfWork,
-    IMapper mapper) : IPlaceService
+    IMapper mapper,
+    IPreviewLifecycle previews) : IPlaceService
 {
     private const int MaxNameLength = 120;
     private const int MaxAddressLength = 300;
@@ -103,7 +104,9 @@ public sealed partial class PlaceService(
         Guid ownerId, SavePlaceRequest request, CancellationToken cancellationToken = default)
     {
         var values = Validate(request);
-        var mediaIds = await ValidateMediaIdsAsync(request.MediaIds, cancellationToken) ?? [];
+        await using var transaction = await unitOfWork.BeginTransactionAsync(cancellationToken);
+        await previews.LockAsync(cancellationToken);
+        var mediaIds = await ValidateMediaIdsAsync(request.MediaIds, ownerId, cancellationToken) ?? [];
         var place = new Place
         {
             Name = values.Name,
@@ -122,6 +125,7 @@ public sealed partial class PlaceService(
         };
         repository.AddPlace(place);
         await unitOfWork.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return await GetPlaceAsync(place.Id, cancellationToken);
     }
 
@@ -130,34 +134,54 @@ public sealed partial class PlaceService(
         CancellationToken cancellationToken = default)
     {
         var values = Validate(request);
-        var place = await FindEditablePlaceAsync(placeId, actorId, isAdmin, cancellationToken);
-        var mediaIds = await ValidateMediaIdsAsync(request.MediaIds, cancellationToken);
-        place.Name = values.Name;
-        place.Address = values.Address;
-        place.Note = values.Note;
-        place.Latitude = values.Latitude;
-        place.Longitude = values.Longitude;
-        place.MarkerIcon = values.MarkerIcon;
-        place.MarkerColor = values.MarkerColor;
-        if (mediaIds is not null)
-            await ReplaceMediaAsync(place.Id, mediaIds, actorId, cancellationToken);
-        await unitOfWork.SaveChangesAsync(cancellationToken);
-        return await GetPlaceAsync(place.Id, cancellationToken);
+        List<Guid> removedIds = [];
+        await using (var transaction = await unitOfWork.BeginTransactionAsync(cancellationToken))
+        {
+            await previews.LockAsync(cancellationToken);
+            var place = await FindEditablePlaceAsync(placeId, actorId, isAdmin, cancellationToken);
+            var mediaIds = await ValidateMediaIdsAsync(request.MediaIds, actorId, cancellationToken);
+            place.Name = values.Name;
+            place.Address = values.Address;
+            place.Note = values.Note;
+            place.Latitude = values.Latitude;
+            place.Longitude = values.Longitude;
+            place.MarkerIcon = values.MarkerIcon;
+            place.MarkerColor = values.MarkerColor;
+            if (mediaIds is not null)
+            {
+                removedIds = (await repository.GetPlaceMediaAsync(place.Id, cancellationToken))
+                    .Where(item => !mediaIds.Contains(item.MediaFileId)).Select(item => item.MediaFileId).ToList();
+                await ReplaceMediaAsync(place.Id, mediaIds, actorId, cancellationToken);
+            }
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        }
+        await previews.CleanupAsync(removedIds, actorId, CancellationToken.None);
+        return await GetPlaceAsync(placeId, cancellationToken);
     }
 
     public async Task DeletePlaceAsync(
         Guid placeId, Guid actorId, bool isAdmin, CancellationToken cancellationToken = default)
     {
-        var place = await FindEditablePlaceAsync(placeId, actorId, isAdmin, cancellationToken);
-        var utcNow = DateTime.UtcNow;
-        foreach (var item in await repository.GetPlaceMediaAsync(place.Id, cancellationToken))
+        List<Guid> mediaIds;
+        await using (var transaction = await unitOfWork.BeginTransactionAsync(cancellationToken))
         {
-            item.DeletedAt = utcNow;
-            item.DeletedBy = actorId;
+            await previews.LockAsync(cancellationToken);
+            var place = await FindEditablePlaceAsync(placeId, actorId, isAdmin, cancellationToken);
+            var utcNow = DateTime.UtcNow;
+            var items = await repository.GetPlaceMediaAsync(place.Id, cancellationToken);
+            mediaIds = items.Select(item => item.MediaFileId).ToList();
+            foreach (var item in items)
+            {
+                item.DeletedAt = utcNow;
+                item.DeletedBy = actorId;
+            }
+            place.DeletedAt = utcNow;
+            place.DeletedBy = actorId;
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
         }
-        place.DeletedAt = utcNow;
-        place.DeletedBy = actorId;
-        await unitOfWork.SaveChangesAsync(cancellationToken);
+        await previews.CleanupAsync(mediaIds, actorId, CancellationToken.None);
     }
 
     private async Task ReplaceMediaAsync(
@@ -192,7 +216,7 @@ public sealed partial class PlaceService(
 
     /// <summary>Returns null when the request leaves images unchanged; otherwise distinct ids in request order.</summary>
     private async Task<IReadOnlyList<Guid>?> ValidateMediaIdsAsync(
-        IReadOnlyList<Guid>? requested, CancellationToken cancellationToken)
+        IReadOnlyList<Guid>? requested, Guid actorId, CancellationToken cancellationToken)
     {
         if (requested is null) return null;
         var mediaIds = requested.Distinct().ToList();
@@ -202,12 +226,8 @@ public sealed partial class PlaceService(
                 ["mediaIds"] = [$"Choose {MaxImages} images or fewer."],
             });
 
-        var available = await repository.GetActiveImageIdsAsync(mediaIds, cancellationToken);
-        if (mediaIds.Any(mediaId => !available.Contains(mediaId)))
-            throw new ValidationException("Invalid place.", new Dictionary<string, string[]>
-            {
-                ["mediaIds"] = ["Choose images that still exist in the library."],
-            });
+        foreach (var mediaId in mediaIds)
+            await previews.ValidateImageAsync(mediaId, actorId, cancellationToken);
 
         return mediaIds;
     }

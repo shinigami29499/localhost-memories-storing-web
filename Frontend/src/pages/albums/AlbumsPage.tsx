@@ -230,7 +230,7 @@ export function AlbumsPage() {
           onSubmit={async ({ name, isPublic }) => {
             const created = await albumService.create({ name, isPublic });
             await invalidate();
-            navigate(`/library/album/${created.id}`);
+            return () => navigate(`/library/album/${created.id}`);
           }}
         />
       ) : null}

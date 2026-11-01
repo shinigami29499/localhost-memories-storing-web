@@ -81,6 +81,7 @@ public class ApplicationDbContext(
             entity.Property(m => m.MimeType).HasMaxLength(100).IsRequired();
             entity.Property(m => m.FileExtension).HasMaxLength(10).IsRequired();
             entity.Property(m => m.MediaKind).HasMaxLength(20).IsRequired();
+            entity.Property(m => m.IsPreviewOnly).HasDefaultValue(false);
             entity.Property(m => m.Metadata).HasColumnType("jsonb");
 
             entity.HasOne(m => m.Owner)
@@ -322,4 +323,3 @@ public class ApplicationDbContext(
         }
     }
 }
-

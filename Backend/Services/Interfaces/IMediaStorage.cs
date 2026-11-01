@@ -6,6 +6,8 @@ public interface IMediaStorage
 {
     Task<StoredFile> SaveAsync(
         Stream content, string originalFilename, long? sizeHint, CancellationToken cancellationToken = default);
+    Task<StoredFile> SavePreviewAsync(
+        Stream content, string originalFilename, long? sizeHint, CancellationToken cancellationToken = default);
     Task<string> MoveToTrashAsync(string relativePath, CancellationToken cancellationToken = default);
     Task<string?> MoveToPurgeAsync(
         string trashRelativePath, Guid mediaId, CancellationToken cancellationToken = default);

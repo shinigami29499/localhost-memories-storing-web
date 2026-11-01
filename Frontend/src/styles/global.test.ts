@@ -268,10 +268,26 @@ describe("Global styles", () => {
     expect(ruleFor(".confirmation-dialog")?.style.boxShadow).toBe("var(--shadow-popover)");
     expect(ruleFor(".place__dialog")?.style.boxShadow).toBe("var(--shadow-popover)");
     expect(ruleFor(".place-picker")?.style.boxShadow).toBe("var(--shadow-popover)");
-    expect(ruleFor(".confirmation-dialog__actions")?.style.background).toBe("var(--surface-card-raised)");
-    expect(ruleFor(".confirmation-dialog__actions")?.style.borderTop).toBe("1px solid var(--border)");
+    expect(ruleFor(".confirmation-dialog__actions")?.style.background).toBe("var(--surface-card)");
+    expect(ruleFor(".confirmation-dialog__actions")?.style.borderTop).toBe("");
+    expect(ruleFor(".confirmation-dialog__actions")?.style.flexDirection).toBe("column");
+    expect(ruleFor(".confirmation-dialog__actions > .btn")?.style.width).toBe("100%");
     expect(ruleFor(".post-card__footer")?.style.background).toBe("var(--surface-raised)");
     expect(ruleFor(".confirmation-dialog-backdrop")?.style.backgroundColor).toBe("var(--overlay-backdrop)");
+  });
+
+  it("fades custom popups and backdrops only when motion is allowed", () => {
+    const motionStyles = globalStyles.slice(
+      globalStyles.indexOf("@media (prefers-reduced-motion: no-preference)", globalStyles.indexOf(".confirmation-dialog-viewport")),
+      globalStyles.indexOf("/* Custom dialogs */"),
+    );
+    expect(motionStyles).toContain(".custom-dialog--animated");
+    expect(motionStyles).toContain(".custom-dialog-backdrop--animated");
+    expect(motionStyles).toContain("@starting-style");
+    expect(motionStyles).toContain("[data-ending-style]");
+    expect(motionStyles).toContain("opacity: 0");
+    expect(motionStyles).toContain("opacity 300ms ease-out");
+    expect(motionStyles).toContain("opacity 150ms ease-in");
   });
 
   it.each(["dark", "light"])("separates text hierarchy and control borders in %s mode", (theme) => {

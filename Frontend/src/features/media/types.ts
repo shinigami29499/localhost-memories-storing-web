@@ -6,6 +6,7 @@ export interface MediaFile {
   fileSizeBytes: number;
   createdAt: string;
   isFavorited: boolean;
+  isPreviewOnly?: boolean;
   ownerId?: string;
   ownerUsername?: string | null;
   location?: PhotoLocation | null;

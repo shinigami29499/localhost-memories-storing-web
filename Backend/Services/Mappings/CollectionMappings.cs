@@ -16,5 +16,8 @@ internal static class CollectionMappings
         source.CustomPreviewMediaId,
         source.ContainsMedia,
         source.Collection.CreatedAt,
-        source.Collection.UpdatedAt);
+        source.Collection.UpdatedAt)
+    {
+        PreviewIsPreviewOnly = source.PreviewIsPreviewOnly,
+    };
 }

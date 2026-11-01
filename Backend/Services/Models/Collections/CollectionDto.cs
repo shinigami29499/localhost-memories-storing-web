@@ -16,4 +16,5 @@ public record CollectionDto(
     DateTime? UpdatedAt)
 {
     public bool PreviewIsFavorited { get; init; }
+    public bool PreviewIsPreviewOnly { get; init; }
 }

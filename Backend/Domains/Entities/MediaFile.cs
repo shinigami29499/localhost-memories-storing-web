@@ -17,5 +17,7 @@ public class MediaFile : AuditableEntity
     public required string FileExtension { get; set; }
     public long FileSizeBytes { get; set; }
     public required string MediaKind { get; set; }
+    public bool IsPreviewOnly { get; set; }
+    public DateTime? PreviewDraftExpiresAt { get; set; }
     public string? Metadata { get; set; }
 }

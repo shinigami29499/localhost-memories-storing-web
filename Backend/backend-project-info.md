@@ -46,6 +46,7 @@ Paths in this page are relative to the repository root.
 | Photo location updates and backfill | `Backend/Infrastructures/Data/ApplicationServices/MediaService.Location.cs`, `Backend/Services/Models/Media/MediaLocationMetadata.cs` |
 | Upload tracking and file completion | `Backend/Infrastructures/Data/ApplicationServices/UploadService.cs`, `Backend/Infrastructures/Data/Implementations/UploadRepository.cs` |
 | Albums, captions, membership, preview uploads | `Backend/Infrastructures/Data/ApplicationServices/CollectionService.cs`, `Backend/Infrastructures/Data/Implementations/CollectionRepository.cs` |
+| Shared preview uploads, reference cleanup, abandoned drafts | `Backend/Apis/Controllers/PreviewsController.cs`, `Backend/Infrastructures/Data/ApplicationServices/PreviewService.cs`, `PreviewCleanupWorker.cs`, `Backend/Infrastructures/Data/Implementations/PreviewRepository.cs` |
 | Places, visits, history, ratings, notes, custom markers | `Backend/Infrastructures/Data/ApplicationServices/PlaceService.cs`, `Backend/Infrastructures/Data/Implementations/PlaceRepository.cs` |
 | File storage and trash moves | `Backend/Infrastructures/Adapters/Implementations/MediaStorageService.cs` |
 | JPEG previews | `Backend/Infrastructures/Adapters/Implementations/MediaStorageService.Preview.cs` |
@@ -130,16 +131,42 @@ Collections are albums in the client. They are owned by one user and private by 
 Signed-in viewers can read public albums and update their captions through
 `PUT /api/library/album/{collectionId}/caption` (maximum 4,000 characters).
 Only owners can change other album details, upload previews, or add/remove media.
-Owners and administrators can delete albums without deleting their media files.
+Owners and administrators can delete albums without deleting gallery media files.
 Private albums return 404 to other viewers; owner-only edits reject non-owners.
 
 `CollectionMedia` stores album membership. `PreviewMediaId` uses the selected
 `Collection.PreviewMediaFileId` when valid, otherwise the first active image in saved
 order. `PreviewIsFavorited` is viewer-specific and fetched in one batch for album lists.
-Preview uploads create standalone media, add it to the album, and select it as preview
-in one transaction. Removing selected preview media clears the preview reference.
+Custom covers can reference active gallery images or the shared preview pool without
+adding album membership. `PreviewIsPreviewOnly` distinguishes preview-only covers,
+which cannot become gallery favorites or be restored through gallery APIs.
+Removing selected gallery media from an album still clears its matching cover.
 Soft-deleted media disappears from album results and returns after restoration;
 permanent deletion removes membership, favorites, and preview references.
+
+### Shared preview pool
+
+Authenticated `GET /api/previews` pages shared, referenced previews and the caller's
+drafts. `GET /api/previews/{id}` resolves a selectable gallery/preview image;
+`POST /api/previews` uploads a preview-only draft without creating upload batches,
+upload items, gallery membership, or album membership. The compatibility album
+preview-upload route uses the same pool and immediately attaches its result.
+`DELETE /api/previews/{id}/draft` releases an uploader's unused draft and preserves
+any preview still referenced by an active album or place photo link.
+
+`AddPreviewOnlyMedia` adds `media_files.is_preview_only` (false for all existing
+media) and nullable `preview_draft_expires_at`. New preview originals use
+`preview-assets/image/` beneath the normal storage root; generated JPEG thumbnails
+remain in the existing preview cache. Gallery, favorites, trash, and location scans
+exclude preview-only media. Existing gallery images and upload history are unchanged.
+
+Album/place reference writes and cleanup share a PostgreSQL transaction-scoped
+advisory lock. After the last reference is removed, cleanup stages the original
+for purge, removes its cached thumbnail, and soft-deletes the database row before
+permanently deleting the staged file. Failed database writes restore the original;
+pending file deletion is retryable. Every five minutes, `PreviewCleanupWorker`
+retries pending/unreferenced previews and expires unused drafts older than 24 hours.
+Attaching a preview clears its draft expiry; shared references preserve its files.
 
 ### Places
 

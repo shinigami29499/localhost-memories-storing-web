@@ -26,6 +26,39 @@ code changes.
 disk rather than a directory next to the binaries. Files must survive app redeploys; the
 database only records relative paths (`media/<kind>/<file>`, `trash/<kind>/<file>`).
 
+### Preview-only uploads
+
+Apply `AddPreviewOnlyMedia` and `EnsurePreviewDraftExpiry` before deploying the updated
+API/frontend. These additive migrations preserve existing gallery media and upload history. New album/place
+preview uploads use shared `preview-assets/image/` storage, so back up that directory
+alongside the database and normal media files.
+
+If the API reports PostgreSQL error `42703` for `preview_draft_expires_at`, the database
+may have applied the earlier version of `AddPreviewOnlyMedia` before draft expiry was
+included. EF does not rerun an applied migration after its source changes.
+`EnsurePreviewDraftExpiry` adds the nullable column only when it is missing, so it
+also works on databases that already have the column. Apply pending migrations through
+the database workflow above, then restart the updated API. Reverting only this repair
+keeps the column because `AddPreviewOnlyMedia` owns it.
+
+Stop `dotnet watch` before scaffolding migrations: startup can apply a generated,
+still-empty migration before its custom SQL is finished. If migration history already
+records `EnsurePreviewDraftExpiry` but the column is still missing, apply
+`RepairPreviewDraftExpiryColumn`. It repeats the conditional column addition under
+a new migration ID. Keep the API stopped until pending migrations have been applied.
+
+Unused previews are permanently removed after their last active album/place
+reference disappears, including replacement and deletion. Cancelled drafts are
+released immediately; abandoned drafts expire after 24 hours. A five-minute worker
+retries pending cleanup. Database rows remain soft-deleted, but preview files and
+generated thumbnails are not recoverable through Trash.
+
+For rollback, stop the updated API and restore a coordinated database/storage backup
+from before this feature, or first remove all preview-only references and allow cleanup
+to finish. Do not drop the preview-only columns while live preview assets remain:
+older APIs would treat those rows as gallery media. Rolling back schema cannot
+restore preview files already permanently removed.
+
 ## 3. Secrets & JWT
 
 - Replace `Jwt:Key` with a 64+ character random secret (`encryptionKey` rotations require
