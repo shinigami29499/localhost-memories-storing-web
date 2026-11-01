@@ -42,7 +42,12 @@
   border-radius: 0 999px 999px 0;
 }
 
-.control-bar > button:is(:hover, :focus-visible) {
+.control-bar > button:hover:not(:focus-visible):not(:disabled) {
+  background: transparent;
+  color: var(--control-bar-fg);
+}
+
+.control-bar > button:focus-visible {
   background: var(--control-bar-hover);
   color: var(--control-bar-fg);
 }
