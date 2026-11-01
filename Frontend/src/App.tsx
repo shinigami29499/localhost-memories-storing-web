@@ -3,13 +3,16 @@ import {
   Outlet,
   RouterProvider,
   createBrowserRouter,
+  useLocation,
+  useNavigate,
   useParams,
 } from "react-router-dom";
-import { Suspense, lazy, useEffect, type ReactNode } from "react";
+import { Suspense, lazy, useEffect, useRef, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AnimateUIProvider } from "@animate-ui/react/provider";
 import { Click } from "@animate-ui/react/primitives/effects/click";
 import { useAuthStore } from "./store/authStore";
+import { useAnimationStore } from "./store/animationStore";
 import { useClickAnimationStore } from "./store/clickAnimationStore";
 import { AuthenticatedLayout } from "./components/layout/AuthenticatedLayout";
 import { LoginPage } from "./pages/login/LoginPage";
@@ -19,7 +22,8 @@ import { ErrorPage } from "./pages/ErrorPage";
 import { Spinner } from "./components/ui/Status";
 import { ThemeProvider } from "./context/ThemeContext";
 import { LocaleProvider } from "./context/LocaleContext";
-import { ToastProvider } from "./components/ui";
+import { ToastProvider, showToast } from "./components/ui";
+import { useLocale } from "./context/LocaleContext";
 import { SessionReplacedDialog } from "./features/auth/SessionReplacedDialog";
 
 const GalleryPage = lazy(() => import("./pages/gallery/GalleryPage").then((module) => ({ default: module.GalleryPage })));
@@ -28,7 +32,7 @@ const AlbumsPage = lazy(() => import("./pages/albums/AlbumsPage").then((module) 
 const AlbumPage = lazy(() => import("./pages/albums/AlbumPage").then((module) => ({ default: module.AlbumPage })));
 const UsersPage = lazy(() => import("./pages/users/UsersPage").then((module) => ({ default: module.UsersPage })));
 const LocationsPage = lazy(() => import("./pages/locations/LocationsPage").then((module) => ({ default: module.LocationsPage })));
-const FoodPage = lazy(() => import("./pages/food/FoodPage").then((module) => ({ default: module.FoodPage })));
+const PlacePage = lazy(() => import("./pages/place/PlacePage").then((module) => ({ default: module.PlacePage })));
 const UploadManagementPage = lazy(() => import("./pages/uploads/UploadManagementPage").then((module) => ({ default: module.UploadManagementPage })));
 const DownloadManagementPage = lazy(() => import("./pages/downloads/DownloadManagementPage").then((module) => ({ default: module.DownloadManagementPage })));
 const SettingsPage = lazy(() => import("./pages/settings/SettingsPage").then((module) => ({ default: module.SettingsPage })));
@@ -41,7 +45,7 @@ const queryClient = new QueryClient({
 /** / is the protected Home page; unauthenticated visitors land on /login or /register. */
 const router = createBrowserRouter([
   {
-    element: <Outlet />,
+    element: <RouteNotifications />,
     errorElement: <ErrorPage />,
     children: [
       {
@@ -77,13 +81,16 @@ const router = createBrowserRouter([
           { path: "/sync/upload", element: <UploadManagementPage /> },
           { path: "/sync/download", element: <DownloadManagementPage /> },
           { path: "/location/travel", element: <LocationsPage /> },
-          { path: "/location/food", element: <FoodPage /> },
+          { path: "/location/place", element: <PlacePage key="places" /> },
+          { path: "/location/saved", element: <PlacePage key="saved" saved /> },
           { path: "/profile", element: <ProfilePage /> },
           { path: "/settings", element: <SettingsPage /> },
           { path: "/uploads", element: <Navigate replace to="/sync/upload" /> },
           { path: "/uploads/new", element: <Navigate replace to="/sync/upload" /> },
           { path: "/locations", element: <Navigate replace to="/location/travel" /> },
-          { path: "/food", element: <Navigate replace to="/location/food" /> },
+          { path: "/food", element: <Navigate replace to="/location/place" /> },
+          { path: "/location/food", element: <Navigate replace to="/location/place" /> },
+          { path: "/place", element: <Navigate replace to="/location/place" /> },
           { path: "/users", element: <UsersPage /> },
           { path: "/admin/users", element: <Navigate replace to="/users" /> },
         ],
@@ -107,6 +114,27 @@ function RequireAuth({ children }: { children: ReactNode }) {
   return token ? children : <Navigate to="/login" replace />;
 }
 
+function RouteNotifications() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { t } = useLocale();
+  const handledLocation = useRef<string | null>(null);
+
+  useEffect(() => {
+    const state = location.state as { authToast?: { type: "login" | "logout"; username?: string } } | null;
+    if (!state?.authToast || handledLocation.current === location.key) return;
+    handledLocation.current = location.key;
+    const { type, username } = state.authToast;
+    if (type === "login" && username) {
+      showToast.success(t("Login as {username} successfully", { username }), { highlight: [username] });
+    }
+    const { authToast: _, ...remainingState } = state;
+    void navigate(location.pathname + location.search + location.hash, { replace: true, state: remainingState });
+  }, [location, navigate, t]);
+
+  return <Outlet />;
+}
+
 /** Session must carry the admin role; non-admins fall back to Home. */
 function RequireAdmin({ children }: { children: ReactNode }) {
   const user = useAuthStore((s) => s.user);
@@ -119,6 +147,7 @@ function LegacyAlbumRedirect() {
 }
 
 export function App() {
+  const animationsEnabled = useAnimationStore((state) => state.enabled);
   const clickAnimation = useClickAnimationStore((state) => state.effect);
 
   useEffect(() => {
@@ -138,11 +167,11 @@ export function App() {
         <QueryClientProvider client={queryClient}>
           <AnimateUIProvider tempo={1}>
             <ToastProvider>
-              {clickAnimation === "ripple" ? (
+              {animationsEnabled && (clickAnimation === "ripple" ? (
                 <Click variant="ripple" color="var(--accent-strong)" size={100} duration={400} />
               ) : clickAnimation !== "off" ? (
                 <Click variant={clickAnimation} color="var(--accent-strong)" size={100} duration={400} />
-              ) : null}
+              ) : null)}
               <RouterProvider router={router} future={{ v7_startTransition: true }} />
               <SessionReplacedDialog />
             </ToastProvider>

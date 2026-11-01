@@ -58,7 +58,24 @@ public class CollectionsController(
         var updated = await collectionService.UpdateCollectionAsync(collectionId, userId, request, cancellationToken);
         if (!previous.IsPublic && updated.IsPublic)
             await NotifyPublicAlbumAsync(updated, false);
+        else
+            await NotifyAlbumChangedAsync(updated, previous.IsPublic && !updated.IsPublic ? "private" : "updated", previous.IsPublic || updated.IsPublic);
         return Ok(updated);
+    }
+
+    private async Task NotifyAlbumChangedAsync(CollectionDto album, string action, bool broadcast)
+    {
+        try
+        {
+            var payload = new { albumId = album.Id, albumName = album.Name, ownerId = album.Owner.Id,
+                actorId = currentUser.RequireUserId(), username = currentUser.RequireUsername(), action };
+            var clients = broadcast ? notificationsHub.Clients.All : notificationsHub.Clients.User(album.Owner.Id.ToString());
+            await clients.SendAsync("AlbumChanged", payload);
+        }
+        catch (Exception exception)
+        {
+            logger.LogWarning(exception, "Could not notify users about album {AlbumId}", album.Id);
+        }
     }
 
     private async Task NotifyPublicAlbumAsync(CollectionDto album, bool created)
@@ -81,22 +98,32 @@ public class CollectionsController(
     [HttpPut("{collectionId:guid}/caption")]
     public async Task<ActionResult<CollectionDto>> UpdateCollectionCaptionAsync(
         Guid collectionId, UpdateCollectionCaptionRequest request, CancellationToken cancellationToken)
-        => Ok(await collectionService.UpdateCollectionCaptionAsync(
-            collectionId, currentUser.RequireUserId(), request, cancellationToken));
+    {
+        var album = await collectionService.UpdateCollectionCaptionAsync(collectionId, currentUser.RequireUserId(), request, cancellationToken);
+        await NotifyAlbumChangedAsync(album, "updated", album.IsPublic);
+        return Ok(album);
+    }
 
     [HttpDelete("{collectionId:guid}")]
     public async Task<IActionResult> DeleteCollectionAsync(Guid collectionId, CancellationToken cancellationToken)
     {
+        var album = currentUser.IsAdmin
+            ? await collectionService.GetCollectionForAdminAsync(collectionId, cancellationToken)
+            : await collectionService.GetCollectionAsync(collectionId, currentUser.RequireUserId(), cancellationToken);
         await collectionService.DeleteCollectionAsync(
             collectionId, currentUser.RequireUserId(), currentUser.IsAdmin, cancellationToken);
+        await NotifyAlbumChangedAsync(album, "deleted", album.IsPublic);
         return NoContent();
     }
 
     [HttpPost("{collectionId:guid}/media")]
     public async Task<ActionResult<CollectionDto>> AddMediaAsync(
         Guid collectionId, AddCollectionMediaRequest request, CancellationToken cancellationToken)
-        => Ok(await collectionService.AddMediaAsync(
-            collectionId, currentUser.RequireUserId(), request.MediaId, cancellationToken));
+    {
+        var album = await collectionService.AddMediaAsync(collectionId, currentUser.RequireUserId(), request.MediaId, cancellationToken);
+        await NotifyAlbumChangedAsync(album, "updated", album.IsPublic);
+        return Ok(album);
+    }
 
     [HttpPost("{collectionId:guid}/preview")]
     [Consumes("multipart/form-data")]
@@ -104,18 +131,23 @@ public class CollectionsController(
         Guid collectionId, IFormFile file, CancellationToken cancellationToken)
     {
         await using var content = file.OpenReadStream();
-        return Ok(await collectionService.UploadPreviewImageAsync(
+        var album = await collectionService.UploadPreviewImageAsync(
             collectionId,
             currentUser.RequireUserId(),
             content,
             file.FileName,
             file.Length,
-            cancellationToken));
+            cancellationToken);
+        await NotifyAlbumChangedAsync(album, "updated", album.IsPublic);
+        return Ok(album);
     }
 
     [HttpDelete("{collectionId:guid}/media/{mediaId:guid}")]
     public async Task<ActionResult<CollectionDto>> RemoveMediaAsync(
         Guid collectionId, Guid mediaId, CancellationToken cancellationToken)
-        => Ok(await collectionService.RemoveMediaAsync(
-            collectionId, currentUser.RequireUserId(), mediaId, cancellationToken));
+    {
+        var album = await collectionService.RemoveMediaAsync(collectionId, currentUser.RequireUserId(), mediaId, cancellationToken);
+        await NotifyAlbumChangedAsync(album, "updated", album.IsPublic);
+        return Ok(album);
+    }
 }

@@ -1,7 +1,6 @@
 import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import * as PaginationPrimitive from "@animate-ui/react/primitives/pagination";
 import { Select } from "@animate-ui/react/primitives/base-ui/select";
-import { Check } from "@/components/animate-ui/icons/check";
 import "./Pagination.css";
 import { useLocale } from "../../context/LocaleContext";
 
@@ -108,9 +107,6 @@ export function Pagination({
                   {PAGE_SIZE_OPTIONS.map((size) => (
                     <Select.Item key={size} value={String(size)} className="pagination__select-item">
                       <Select.ItemText>{size}</Select.ItemText>
-                      <Select.ItemIndicator className="pagination__select-indicator">
-                        <Check size={14} aria-hidden="true" />
-                      </Select.ItemIndicator>
                     </Select.Item>
                   ))}
                 </Select.List>
@@ -125,11 +121,15 @@ export function Pagination({
 }
 
 function getPageNumbers(page: number, totalPages: number): (number | "ellipsis")[] {
-  if (totalPages <= 7) {
+  if (totalPages <= 5) {
     return Array.from({ length: totalPages }, (_, index) => index + 1);
   }
 
-  if (page <= 4) return [1, 2, 3, 4, 5, "ellipsis", totalPages];
-  if (page >= totalPages - 3) return [1, "ellipsis", totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
-  return [1, "ellipsis", page - 1, page, page + 1, "ellipsis", totalPages];
+  const start = Math.max(1, Math.min(page - 1, totalPages - 4));
+  const leadingPages = Array.from({ length: 3 }, (_, index) => start + index);
+  const trailingPages = [totalPages - 1, totalPages];
+
+  return leadingPages[2] + 1 < trailingPages[0]
+    ? [...leadingPages, "ellipsis", ...trailingPages]
+    : [...leadingPages, ...trailingPages];
 }

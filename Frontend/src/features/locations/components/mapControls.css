@@ -1,52 +1,96 @@
-:is(.food, .locations) :is(.food__map-panel, .locations__map-panel) {
+:is(.place, .locations) :is(.place__map-panel, .locations__map-panel) {
   height: clamp(420px, calc(100dvh - var(--app-topbar-height, 96px) - 190px), 900px);
   min-height: 0;
   overflow: hidden;
 }
 
-:is(.food, .locations) :is(.food__map, .locations__map) {
+:is(.place, .locations) :is(.place__map, .locations__map) {
   height: 100%;
   min-height: 0;
 }
 
-:is(.food, .locations) .map-controls > .mapboxgl-map {
+:is(.place, .locations) .map-controls > .mapboxgl-map {
   position: relative;
-  z-index: 0;
 }
 
-:is(.food, .locations) .map-controls :is(.food__scenes, .locations__scenes) {
+@keyframes map-marker-squash {
+  0%, 100% { scale: 1; }
+  33% { scale: 1.08 0.85; }
+  67% { scale: 0.97 1.04; }
+}
+
+:is(.place__pin, .locations__pin):not(.place__pin--draft):not(.locations__pin--draft) {
+  transform-origin: 0 100%;
+  translate: 22px 9.1127px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :is(.place__pin, .locations__pin)[data-marker-motion="true"]:is(:hover, :focus-visible, :active) {
+    animation: map-marker-squash 0.6s ease-in-out;
+  }
+}
+
+:is(.place, .locations) .map-controls .mapboxgl-ctrl-group:has(.mapboxgl-ctrl-geolocate) {
+  background: #1c1f23;
+  border-radius: var(--radius);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+:is(.place, .locations) .map-controls .mapboxgl-ctrl-group .mapboxgl-ctrl-geolocate {
+  width: 54px;
+  height: 54px;
+  border-radius: inherit;
+}
+
+:is(.place, .locations) .map-controls .mapboxgl-ctrl-geolocate .mapboxgl-ctrl-icon {
+  background-size: 30px 30px;
+}
+
+:is(.place, .locations) .map-controls .mapboxgl-ctrl-geolocate:not(:disabled):is(:hover, :active, .mapboxgl-ctrl-geolocate-active) {
+  background-color: #30343a;
+}
+
+:is(.place, .locations) .map-controls .mapboxgl-ctrl-geolocate:not(:disabled) .mapboxgl-ctrl-icon {
+  filter: invert(1);
+}
+
+:is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes) {
   left: 8px;
   top: 8px;
   max-height: calc(100% - 16px);
 }
 
-:is(.food, .locations) .map-controls :is(.food__scenes, .locations__scenes):not([open]) {
+:is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes):not([open]) {
   width: 54px;
+  background: #1c1f23;
+  color: #dedede;
+  border: 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 
-:is(.food, .locations) .map-controls :is(.food__scenes, .locations__scenes)[open] {
+:is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes)[open] {
   width: min(264px, calc(100% - 78px));
   z-index: 7;
 }
 
-:is(.food, .locations) .map-controls .map-appearance-control {
+:is(.place, .locations) .map-controls .map-appearance-control {
   top: 68px;
 }
 
-:is(.food, .locations) .map-appearance {
+:is(.place, .locations) .map-appearance {
   display: grid;
   gap: 8px;
   margin-top: 8px;
 }
 
-:is(.food, .locations) .map-appearance__section {
+:is(.place, .locations) .map-appearance__section {
   padding: 8px;
   border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--surface);
 }
 
-:is(.food, .locations) .map-appearance__heading {
+:is(.place, .locations) .map-appearance__heading {
   margin: 0 0 8px;
   color: var(--text-muted);
   font-size: 0.6875rem;
@@ -54,13 +98,13 @@
   letter-spacing: 0.08em;
 }
 
-:is(.food, .locations) .map-appearance__grid {
+:is(.place, .locations) .map-appearance__grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 
-:is(.food, .locations) .map-appearance__option {
+:is(.place, .locations) .map-appearance__option {
   display: flex;
   position: relative;
   isolation: isolate;
@@ -80,12 +124,12 @@
   transition: background-color 140ms ease, border-color 140ms ease;
 }
 
-:is(.food, .locations) .map-appearance__option > :not(.map-appearance__selection-indicator) {
+:is(.place, .locations) .map-appearance__option > :not(.map-appearance__selection-indicator) {
   position: relative;
   z-index: 1;
 }
 
-:is(.food, .locations) .map-appearance__selection-indicator {
+:is(.place, .locations) .map-appearance__selection-indicator {
   position: absolute;
   z-index: 0;
   inset: 0;
@@ -94,36 +138,36 @@
   pointer-events: none;
 }
 
-:is(.food, .locations) .map-appearance__option:hover {
+:is(.place, .locations) .map-appearance__option:hover {
   background: var(--surface-hover);
 }
 
-:is(.food, .locations) .map-appearance__option:hover .map-appearance__selection-indicator {
+:is(.place, .locations) .map-appearance__option:hover .map-appearance__selection-indicator {
   background: var(--surface-hover);
 }
 
-:is(.food, .locations) .map-appearance__option:focus-visible {
+:is(.place, .locations) .map-appearance__option:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
-:is(.food, .locations) .map-appearance__option[aria-pressed="true"] {
+:is(.place, .locations) .map-appearance__option[aria-pressed="true"] {
   background: transparent;
   border-color: var(--text-strong);
   color: var(--text-strong);
 }
 
-:is(.food, .locations) .map-appearance__grid--themes {
+:is(.place, .locations) .map-appearance__grid--themes {
   row-gap: 8px;
 }
 
-:is(.food, .locations) .map-appearance__theme {
+:is(.place, .locations) .map-appearance__theme {
   min-height: 54px;
   flex-direction: column;
   gap: 4px;
 }
 
-:is(.food, .locations) .map-appearance__swatches {
+:is(.place, .locations) .map-appearance__swatches {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -131,62 +175,62 @@
   height: 12px;
 }
 
-:is(.food, .locations) .map-appearance__swatches span {
+:is(.place, .locations) .map-appearance__swatches span {
   width: 9px;
   height: 9px;
   border-radius: 50%;
   background: var(--map-swatch, #4569f5);
 }
 
-:is(.food, .locations) .map-appearance__swatches {
+:is(.place, .locations) .map-appearance__swatches {
   transition: transform 140ms ease-out;
 }
 
 @media (hover: hover) {
-  :is(.food, .locations) .map-appearance__option:hover .map-appearance__swatches {
+  :is(.place, .locations) .map-appearance__option:hover .map-appearance__swatches {
     transform: translateY(-2px);
   }
 }
 
-:is(.food, .locations) .map-appearance__swatches span:nth-child(2) {
+:is(.place, .locations) .map-appearance__swatches span:nth-child(2) {
   background: var(--map-swatch-secondary, #8b9bb3);
 }
 
-:is(.food, .locations) .map-appearance__swatches span:nth-child(3) {
+:is(.place, .locations) .map-appearance__swatches span:nth-child(3) {
   background: var(--map-swatch-tertiary, #91b79d);
 }
 
-:is(.food, .locations) .map-appearance__theme[data-theme="faded"] {
+:is(.place, .locations) .map-appearance__theme[data-theme="faded"] {
   --map-swatch: #9da2a8;
   --map-swatch-secondary: #b7babd;
   --map-swatch-tertiary: #d0d1d2;
 }
 
-:is(.food, .locations) .map-appearance__theme[data-theme="mono"] {
+:is(.place, .locations) .map-appearance__theme[data-theme="mono"] {
   --map-swatch: #333333;
   --map-swatch-secondary: #777777;
   --map-swatch-tertiary: #aaaaaa;
 }
 
-:is(.food, .locations) .map-appearance__theme[data-theme="ocean"] {
+:is(.place, .locations) .map-appearance__theme[data-theme="ocean"] {
   --map-swatch: #008baa;
   --map-swatch-secondary: #22a9bd;
   --map-swatch-tertiary: #6bc6c9;
 }
 
-:is(.food, .locations) .map-appearance__theme[data-theme="warm"] {
+:is(.place, .locations) .map-appearance__theme[data-theme="warm"] {
   --map-swatch: #d17a31;
   --map-swatch-secondary: #e19a4b;
   --map-swatch-tertiary: #9e6440;
 }
 
-:is(.food, .locations) .map-appearance__theme[data-theme="vivid"] {
+:is(.place, .locations) .map-appearance__theme[data-theme="vivid"] {
   --map-swatch: #ff4d55;
   --map-swatch-secondary: #48d97a;
   --map-swatch-tertiary: #4775ff;
 }
 
-:is(.food, .locations) .map-controls :is(.food__scenes-title, .locations__scenes-title) {
+:is(.place, .locations) .map-controls :is(.place__scenes-title, .locations__scenes-title) {
   display: grid;
   grid-template-columns: 44px max-content 20px;
   justify-content: start;
@@ -198,80 +242,99 @@
   white-space: nowrap;
 }
 
-:is(.food, .locations) .map-controls .map-appearance-control > summary {
+:is(.place, .locations) .map-controls .map-appearance-control > summary {
   transform: none;
 }
 
-:is(.food, .locations) .map-controls :is(.food__scenes, .locations__scenes):not([open]) summary {
+:is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes):not([open]) summary {
   display: grid;
+  color: #dedede;
   grid-template-columns: 44px;
   justify-content: start;
   padding: 0;
 }
 
-:is(.food, .locations) .map-controls :is(.food__scenes-title, .locations__scenes-title) > svg:first-of-type {
+:is(.place, .locations) .map-controls :is(.place__scenes-title, .locations__scenes-title) > svg:first-of-type {
   justify-self: center;
 }
 
-:is(.food, .locations) .map-controls :is(.food__scenes, .locations__scenes):not([open]) summary > span {
+:is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes):not([open]) summary > span {
   display: none;
 }
 
-:is(.food, .locations) .map-controls .food__location-search {
+:is(.place, .locations) .map-controls .place__location-search {
+  --sidebar-bg: #1c1f23;
+  --surface: #1c1f23;
+  --text: #dedede;
+  --text-strong: #f4f5f7;
+  --text-muted: #b2b8c2;
+  --border: #3e444d;
+  --surface-hover: rgba(222, 222, 222, 0.14);
+  color: var(--text);
   right: 8px;
   top: 8px;
   width: 54px;
 }
 
-:is(.food, .locations) .map-controls .food__location-search:focus-within {
+:is(.place, .locations) .map-controls .place__location-search:not(:focus-within) .place__location-search-form {
+  background: #1c1f23;
+  border: 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+:is(.place, .locations) .map-controls .place__location-search:focus-within {
   width: min(360px, calc(100% - 78px));
   z-index: 6;
 }
 
-:is(.food, .locations) .map-controls .food__location-search:not(:focus-within) .food__location-search-input {
+:is(.place, .locations) .map-controls .place__location-search-input:focus {
+  outline: none;
+}
+
+:is(.place, .locations) .map-controls .place__location-search:not(:focus-within) .place__location-search-input {
   background: transparent;
   color: transparent;
   cursor: text;
   padding: 0;
 }
 
-:is(.food, .locations) .map-controls .food__location-search:not(:focus-within) .food__location-search-input::placeholder {
+:is(.place, .locations) .map-controls .place__location-search:not(:focus-within) .place__location-search-input::placeholder {
   color: transparent;
 }
 
-:is(.food, .locations) .map-controls .food__location-search:not(:focus-within) .food__location-search-icon {
+:is(.place, .locations) .map-controls .place__location-search:not(:focus-within) .place__location-search-icon {
   top: 50%;
   right: 0;
   width: 54px;
   height: 54px;
-  color: var(--text-strong);
+  color: #dedede;
   transform: translateY(-50%);
 }
 
-:is(.food, .locations) .map-controls .food__location-search:not(:focus-within) :is(.food__location-search-message, .food__location-search-results) {
+:is(.place, .locations) .map-controls .place__location-search:not(:focus-within) :is(.place__location-search-message, .place__location-search-results) {
   display: none;
 }
 
-:is(.food, .locations) .food__location-search button:focus-visible {
+:is(.place, .locations) .place__location-search button:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
-:is(.food, .locations) .food__location-search button:disabled {
+:is(.place, .locations) .place__location-search button:disabled {
   cursor: not-allowed;
   opacity: 0.5;
 }
 
-:is(.food, .locations) .food__location-search-message {
+:is(.place, .locations) .place__location-search-message {
   display: grid;
   font-size: 0.8125rem;
   gap: 8px;
   padding: 12px;
 }
 
-:is(.food, .locations) .food__location-search-message p { margin: 0; }
+:is(.place, .locations) .place__location-search-message p { margin: 0; }
 
-:is(.food, .locations) .food__location-search-message button {
+:is(.place, .locations) .place__location-search-message button {
   background: transparent;
   border: 1px solid var(--border-control);
   border-radius: var(--radius);
@@ -281,110 +344,175 @@
   padding: 8px;
 }
 
-:is(.food, .locations) .food__location-search-message button:hover { background: var(--surface-hover); }
-:is(.food, .locations) .food__location-search-message [role="alert"] { color: var(--danger); }
+:is(.place, .locations) .place__location-search-message button:hover { background: var(--surface-hover); }
+:is(.place, .locations) .place__location-search-message [role="alert"] { color: var(--danger); }
 
-:is(.food, .locations) :is(.food__map-home-control, .locations__map-home-control) {
+:is(.place, .locations) :is(.place__map-home-control, .locations__map-home-control) {
   left: 8px;
   right: auto;
   top: 128px;
   bottom: auto;
   height: 54px;
   width: 54px;
-  background: var(--sidebar-bg);
+  background: #1c1f23;
+  border: 0;
   border-radius: var(--radius);
-  color: var(--text-strong);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  color: #dedede;
 }
 
-:is(.food, .locations) .map-controls :is(.food__map-home-control, .locations__map-home-control):hover {
-  background: var(--sidebar-bg);
+:is(.place, .locations) .map-controls :is(.place__map-home-control, .locations__map-home-control):is(:hover, :active, [aria-pressed="true"]):not(:disabled) {
+  background: #30343a;
 }
 
-:is(.food, .locations) .home-location-marker {
+:is(.place, .locations) .home-location-marker {
   height: 54px;
   position: relative;
   width: 44px;
 }
 
-:is(.food, .locations) .home-location-marker :is(.food__home-pin, .locations__home-pin) {
+:is(.place, .locations) .home-location-marker::before {
+  content: "";
+  position: absolute;
+  left: 12px;
+  bottom: -6px;
+  width: 20px;
+  height: 9px;
+  border-radius: 50%;
+  background: #1f2226;
+  box-shadow: 0 0 0 2px #fff, 0 3px 8px rgb(0 0 0 / 45%);
+  pointer-events: none;
+}
+
+:is(.place, .locations) .home-location-marker :is(.place__home-pin, .locations__home-pin) {
+  background: #30353b;
+  border: 0;
+  box-shadow: 0 0 0 2px #fff, 0 3px 8px rgb(0 0 0 / 45%);
+  color: #000;
   cursor: grab;
+  height: 44px;
+  width: 44px;
+  left: 0;
+  overflow: hidden;
+  padding: 0;
+  top: 0;
+  transform-origin: 0 100%;
+  translate: 22px 9.1127px;
   transition: scale 140ms ease-out;
 }
 
-:is(.food, .locations) .home-location-marker button:is(:hover, :focus-visible, :active, [aria-pressed="true"]) {
-  scale: 1.1;
+:is(.place, .locations) .home-location-marker button > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  margin: auto;
+  background: #fff;
+  border-radius: 50%;
+  transform: rotate(45deg);
 }
+:is(.place, .locations) .home-location-marker button svg { transform: none; }
+:is(.place, .locations) .home-location-marker button svg path:first-child { fill: #000; stroke: #fff; }
+:is(.place, .locations) .home-location-marker button svg path:last-child { stroke: #fff; }
 
-:is(.food, .locations) .home-location-marker button:active { cursor: grabbing; }
-:is(.food, .locations) .home-location-marker svg { stroke-width: 2; }
+:is(.place, .locations) .home-location-marker button:active { cursor: grabbing; }
+:is(.place, .locations) .home-location-marker svg { stroke-width: 2; }
 
 @media (prefers-reduced-motion: reduce) {
-  :is(.food, .locations) .home-location-marker button { transition: none; }
-  :is(.food, .locations) .map-appearance__option { transition: none; }
-  :is(.food, .locations) .map-appearance__swatches { transition: none; transform: none !important; }
-  :is(.food, .locations) .map-controls .map-appearance-control > summary { transition: none; }
+  :is(.place, .locations) .home-location-marker button { transition: none; }
+  :is(.place, .locations) .map-appearance__option { transition: none; }
+  :is(.place, .locations) .map-appearance__swatches { transition: none; transform: none !important; }
+  :is(.place, .locations) .map-controls .map-appearance-control > summary { transition: none; }
 }
 
 @media (hover: hover) and (pointer: fine) and (min-width: 641px) {
-  :is(.food, .locations) .map-controls :is(.food__scenes, .locations__scenes):not([open]):hover {
+  :is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes):not([open]):hover {
     width: auto;
   }
 
-  :is(.food, .locations) .map-controls :is(.food__scenes, .locations__scenes):not([open]):hover summary {
+  :is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes):not([open]):hover summary {
     grid-template-columns: 44px max-content 20px;
     padding: 0 12px 0 0;
   }
 
-  :is(.food, .locations) .map-controls :is(.food__scenes, .locations__scenes):not([open]):hover summary > span {
+  :is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes):not([open]):hover summary > span {
     display: inline-flex;
   }
 
-  :is(.food, .locations) .map-controls .food__location-search:hover {
+  :is(.place, .locations) .map-controls .place__location-search:hover {
     width: min(360px, calc(100% - 78px));
     z-index: 6;
   }
 
-  :is(.food, .locations) .map-controls .food__location-search:hover .food__location-search-input {
+  :is(.place, .locations) .map-controls .place__location-search:hover .place__location-search-input {
     background: var(--surface);
     color: var(--text);
     padding: 10px 40px 10px 12px;
   }
 
-  :is(.food, .locations) .map-controls .food__location-search:hover .food__location-search-input::placeholder {
+  :is(.place, .locations) .map-controls .place__location-search:hover .place__location-search-input::placeholder {
+    color: var(--text-muted);
+  }
+
+  :is(.place, .locations) .map-controls .place__location-search:hover:not(:focus-within) .place__location-search-icon {
     color: var(--text-muted);
   }
 }
 
 @media (max-width: 900px) {
-  :is(.food, .locations) :is(.food__map-panel, .locations__map-panel) {
+  :is(.place, .locations) :is(.place__map-panel, .locations__map-panel) {
     height: clamp(420px, calc(100dvh - var(--app-topbar-height, 68px) - 190px), 900px);
   }
 }
 
 @media (max-width: 640px) {
-  :is(.food, .locations) .map-controls :is(.food__scenes, .locations__scenes):not([open]),
-  :is(.food, .locations) .map-controls .food__location-search {
+  :is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes, .place__location-search, .place__map-home-control, .locations__map-home-control, .mapboxgl-ctrl-group:has(.mapboxgl-ctrl-geolocate)) {
+    transition: opacity 180ms ease, visibility 180ms ease;
+  }
+  :is(.place, .locations) .map-controls:has(:is(.place__marker, .locations__marker)[data-selected="true"]) :is(.place__scenes, .locations__scenes, .place__location-search, .place__map-home-control, .locations__map-home-control, .mapboxgl-ctrl-group:has(.mapboxgl-ctrl-geolocate)) {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    :is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes, .place__location-search, .place__map-home-control, .locations__map-home-control, .mapboxgl-ctrl-group:has(.mapboxgl-ctrl-geolocate)) { transition: none; }
+  }
+  :is(.place, .locations) .home-location-marker::before { bottom: -7px; left: 16px; height: 9px; }
+  :is(.place, .locations) .home-location-marker :is(.place__home-pin, .locations__home-pin) {
+    width: 40px;
+    height: 40px;
+    left: 4px;
+    top: 6px;
+  }
+  :is(.place, .locations) .map-controls .mapboxgl-ctrl-group .mapboxgl-ctrl-geolocate {
+    width: 44px;
+    height: 44px;
+  }
+
+  :is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes):not([open]),
+  :is(.place, .locations) .map-controls .place__location-search {
     width: 44px;
   }
 
-  :is(.food, .locations) .map-controls :is(.food__scenes, .locations__scenes)[open] {
+  :is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes)[open] {
     width: min(220px, calc(100% - 62px));
   }
 
-  :is(.food, .locations) .map-controls :is(.food__scenes, .locations__scenes)[open]:not(.map-appearance-control) {
+  :is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes)[open]:not(.map-appearance-control) {
     width: max-content;
     max-width: calc(100% - 62px);
   }
 
-  :is(.food, .locations) .map-controls .map-appearance-control { top: 58px; }
+  :is(.place, .locations) .map-controls .map-appearance-control { top: 58px; }
 
-  :is(.food, .locations) .map-controls :is(.food__map-home-control, .locations__map-home-control) {
+  :is(.place, .locations) .map-controls :is(.place__map-home-control, .locations__map-home-control) {
     top: 108px;
     width: 44px;
     height: 44px;
   }
 
-  :is(.food, .locations) .map-controls :is(.food__scenes-title, .locations__scenes-title) {
+  :is(.place, .locations) .map-controls :is(.place__scenes-title, .locations__scenes-title) {
     grid-template-columns: 34px minmax(0, 1fr) 16px;
     gap: 8px;
     justify-content: stretch;
@@ -392,102 +520,102 @@
     min-height: 34px;
   }
 
-  :is(.food, .locations) .map-controls :is(.food__scenes, .locations__scenes):not([open]) summary {
+  :is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes):not([open]) summary {
     grid-template-columns: 34px;
   }
 
-  :is(.food, .locations) .map-controls :is(.food__scenes-title, .locations__scenes-title) > svg:first-of-type,
-  :is(.food, .locations) .map-controls :is(.food__map-home-control, .locations__map-home-control) svg,
-  :is(.food, .locations) .map-controls .food__location-search-icon svg,
-  :is(.food, .locations) .map-controls :is(.food__scene-icon, .locations__scene-icon) svg {
+  :is(.place, .locations) .map-controls :is(.place__scenes-title, .locations__scenes-title) > svg:first-of-type,
+  :is(.place, .locations) .map-controls :is(.place__map-home-control, .locations__map-home-control) svg,
+  :is(.place, .locations) .map-controls .place__location-search-icon svg,
+  :is(.place, .locations) .map-controls :is(.place__scene-icon, .locations__scene-icon) svg {
     width: 18px;
     height: 18px;
   }
 
-  :is(.food, .locations) .map-controls .food__location-search:not(:focus-within) .food__location-search-icon {
+  :is(.place, .locations) .map-controls .place__location-search:not(:focus-within) .place__location-search-icon {
     width: 44px;
     height: 44px;
   }
 
-  :is(.food, .locations) .map-controls .food__location-search:focus-within {
+  :is(.place, .locations) .map-controls .place__location-search:focus-within {
     width: min(252px, calc(100% - 62px));
   }
 
-  :is(.food, .locations) .map-controls :is(.food__scenes-title, .locations__scenes-title),
-  :is(.food, .locations) .map-controls .food__location-search-input {
+  :is(.place, .locations) .map-controls :is(.place__scenes-title, .locations__scenes-title),
+  :is(.place, .locations) .map-controls .place__location-search-input {
     font-size: 0.75rem;
   }
 
-  :is(.food, .locations) .map-controls .food__location-search-input {
+  :is(.place, .locations) .map-controls .place__location-search-input {
     height: 34px;
     min-height: 34px;
   }
 
-  :is(.food, .locations) .map-appearance { gap: 6px; }
+  :is(.place, .locations) .map-appearance { gap: 6px; }
 
-  :is(.food, .locations) .map-appearance__section { padding: 6px; }
+  :is(.place, .locations) .map-appearance__section { padding: 6px; }
 
-  :is(.food, .locations) .map-appearance__grid { gap: 6px; }
+  :is(.place, .locations) .map-appearance__grid { gap: 6px; }
 
-  :is(.food, .locations) .map-appearance__option {
+  :is(.place, .locations) .map-appearance__option {
     min-height: 44px;
     padding: 4px;
     font-size: 0.75rem;
   }
 
-  :is(.food, .locations) .map-appearance__theme {
+  :is(.place, .locations) .map-appearance__theme {
     min-height: 44px;
     gap: 3px;
   }
 
-  :is(.food, .locations) .map-appearance__swatches span {
+  :is(.place, .locations) .map-appearance__swatches span {
     width: 7px;
     height: 7px;
   }
 
-  :is(.food, .locations) .map-controls :is(.food__scene-list, .locations__scene-list) {
+  :is(.place, .locations) .map-controls :is(.place__scene-list, .locations__scene-list) {
     gap: 3px;
     padding: 3px 3px 2px;
   }
 
-  :is(.food, .locations) .map-controls :is(.food__scene, .locations__scene) {
+  :is(.place, .locations) .map-controls :is(.place__scene, .locations__scene) {
     min-height: 44px;
     gap: 8px;
     padding: 8px;
     border-radius: 7px;
   }
 
-  :is(.food, .locations) .map-controls :is(.food__scene-copy, .locations__scene-copy) strong {
+  :is(.place, .locations) .map-controls :is(.place__scene-copy, .locations__scene-copy) strong {
     font-size: 0.75rem;
     white-space: nowrap;
   }
 
-  :is(.food, .locations) .map-controls:has(.food__scenes[open]:not(.map-appearance-control), .locations__scenes[open]:not(.map-appearance-control)) .map-appearance-control {
+  :is(.place, .locations) .map-controls:has(.place__scenes[open]:not(.map-appearance-control), .locations__scenes[open]:not(.map-appearance-control)) .map-appearance-control {
     visibility: hidden;
   }
 
-  :is(.food, .locations) .map-appearance__heading {
+  :is(.place, .locations) .map-appearance__heading {
     margin-bottom: 6px;
     font-size: 0.6875rem;
   }
 
-  :is(.food, .locations) .map-controls :is(.food__scenes, .locations__scenes),
-  :is(.food, .locations) .map-controls .food__location-search-form {
+  :is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes),
+  :is(.place, .locations) .map-controls .place__location-search-form {
     border-radius: 10px;
   }
 
-  :is(.food, .locations) .map-controls :is(.food__scenes-title, .locations__scenes-title),
-  :is(.food, .locations) .map-controls .food__location-search-input {
+  :is(.place, .locations) .map-controls :is(.place__scenes-title, .locations__scenes-title),
+  :is(.place, .locations) .map-controls .place__location-search-input {
     border-radius: 7px;
   }
 
-  :is(.food, .locations) .map-appearance__section { border-radius: 5px; }
+  :is(.place, .locations) .map-appearance__section { border-radius: 5px; }
 
-  :is(.food, .locations) .map-appearance__option { border-radius: 3px; }
+  :is(.place, .locations) .map-appearance__option { border-radius: 3px; }
 
-  :is(.food, .locations) :is(.food__map-panel, .locations__map-panel) {
+  :is(.place, .locations) :is(.place__map-panel, .locations__map-panel) {
     height: max(360px, calc(100dvh - var(--app-topbar-height, 68px) - 220px));
   }
 
-  :is(.food, .locations) .food__location-search-results { max-height: 200px; }
+  :is(.place, .locations) .place__location-search-results { max-height: 200px; }
 }

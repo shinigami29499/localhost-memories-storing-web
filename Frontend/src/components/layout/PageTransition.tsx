@@ -1,3 +1,4 @@
+import { useAnimationStore } from "../../store/animationStore";
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { useLocation } from "react-router-dom";
@@ -345,6 +346,7 @@ export function PageTransition({ effect, transitionKey, children }: PageTransiti
     hasChangedRef.current = true;
   }
   const reduce = usePrefersReducedMotion();
+  const animationsEnabled = useAnimationStore((state) => state.enabled);
   const localRef = useRef<HTMLDivElement>(null);
   const styleRef = useRef<HTMLStyleElement>(null);
   const pointRef = useRef<{ x: number; y: number } | undefined>(undefined);
@@ -389,7 +391,7 @@ export function PageTransition({ effect, transitionKey, children }: PageTransiti
     refreshStyle();
     const named = types.find((type): type is Effect => type in EFFECTS);
     const enter = frameOf(localRef.current!, pointRef.current);
-    return EFFECTS[reduce ? "fade" : (named ?? effectRef.current)](
+    return EFFECTS[reduce || !animationsEnabled ? "fade" : (named ?? effectRef.current)](
       types.includes("nav-back"),
       enter,
       exitRef.current ?? enter,

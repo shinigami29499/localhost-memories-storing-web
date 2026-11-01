@@ -391,10 +391,13 @@
   font-size: 0.9rem;
 }
 
-.sidebar__link[href="/library/album"] > svg > path,
 .gallery-card__album > svg > path {
   fill: var(--notification-icon) !important;
 }
+
+.sidebar__link:is([href="/library/album"], [href="/location/saved"]) > svg { stroke: light-dark(#000, #fff); }
+.sidebar__link:is([href="/library/album"], [href="/location/saved"]) > svg > path { fill: none !important; }
+.sidebar__link:is([href="/library/album"], [href="/location/saved"]):is(:hover, .sidebar__link--active) > svg { stroke: light-dark(#fff, #000); }
 
 .sidebar__link[href="/library/gallery/trash"] > svg {
   stroke: var(--text-strong);
@@ -468,6 +471,13 @@
   font-style: italic;
   font-weight: 750;
   line-height: 1;
+}
+
+.sidebar__account-avatar.user-avatar--fallback {
+  background-color: var(--user-avatar-color, #ff1744);
+  color: #fff;
+  font-size: 1rem;
+  font-style: normal;
 }
 
 .sidebar__account-name {
@@ -647,7 +657,7 @@
 }
 
 .app-shell {
-  --app-topbar-height: calc(96px + env(safe-area-inset-top));
+  --app-topbar-height: calc(96px + var(--safe-area-inset-top, env(safe-area-inset-top)));
 }
 
 .app-topbar {
@@ -660,7 +670,7 @@
   flex-shrink: 0;
   gap: 16px;
   min-height: var(--app-topbar-height);
-  padding: calc(24px + env(safe-area-inset-top)) calc(48px + env(safe-area-inset-right)) 24px 64px;
+  padding: calc(24px + var(--safe-area-inset-top, env(safe-area-inset-top))) calc(48px + var(--safe-area-inset-right, env(safe-area-inset-right))) 24px 64px;
   background: transparent;
 }
 
@@ -685,7 +695,7 @@
   .app-shell,
   .app-shell.app-shell--sidebar-collapsed {
     --sidebar-width: min(288px, 85vw);
-    --app-topbar-height: calc(68px + env(safe-area-inset-top));
+    --app-topbar-height: calc(68px + var(--safe-area-inset-top, env(safe-area-inset-top)));
   }
 
   .app-topbar::after {
@@ -700,8 +710,8 @@
   .sidebar--collapsed {
     width: calc(var(--sidebar-width) - 16px);
     z-index: 40;
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
+    padding-top: var(--safe-area-inset-top, env(safe-area-inset-top));
+    padding-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom));
     box-shadow: 12px 0 32px rgba(0, 0, 0, 0.35);
     left: 8px;
     transform: translateX(0);
@@ -732,7 +742,7 @@
   }
 
   .sidebar__toggle {
-    top: calc(1dvh + env(safe-area-inset-top));
+    top: calc(1dvh + var(--safe-area-inset-top, env(safe-area-inset-top)));
     left: 12px;
     transform: translate(calc(var(--sidebar-width) - 76px), 11px);
     z-index: 41;
@@ -743,7 +753,7 @@
   }
 
   .sidebar--collapsed ~ .sidebar__toggle {
-    top: calc((var(--app-topbar-height) - 44px + env(safe-area-inset-top)) / 2);
+    top: calc((var(--app-topbar-height) - 44px + var(--safe-area-inset-top, env(safe-area-inset-top))) / 2);
     left: 12px;
     transform: translate(0, 0);
   }
@@ -767,7 +777,7 @@
   .app-topbar {
     justify-content: space-between;
     gap: 8px;
-    padding: calc(8px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) 8px calc(64px + env(safe-area-inset-left));
+    padding: calc(8px + var(--safe-area-inset-top, env(safe-area-inset-top))) calc(12px + var(--safe-area-inset-right, env(safe-area-inset-right))) 8px calc(64px + var(--safe-area-inset-left, env(safe-area-inset-left)));
   }
 
   .app-topbar .notification-bar {
@@ -825,10 +835,10 @@
   .notification-bar__panel {
     position: fixed;
     top: calc(var(--app-topbar-height) + 8px);
-    right: calc(12px + env(safe-area-inset-right));
-    left: calc(12px + env(safe-area-inset-left));
+    right: calc(12px + var(--safe-area-inset-right, env(safe-area-inset-right)));
+    left: calc(12px + var(--safe-area-inset-left, env(safe-area-inset-left)));
     width: auto;
-    max-height: calc(100dvh - var(--app-topbar-height) - 20px - env(safe-area-inset-bottom));
+    max-height: calc(100dvh - var(--app-topbar-height) - 20px - var(--safe-area-inset-bottom, env(safe-area-inset-bottom)));
     overscroll-behavior: contain;
     overflow-wrap: anywhere;
   }

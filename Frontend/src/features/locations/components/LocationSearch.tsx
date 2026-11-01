@@ -22,7 +22,7 @@ export function LocationSearch({ disabled = false, onFocus, onSelect }: Props) {
 
   return (
     <AnimateIcon animateOnHover animateOnTap={false} animateOnView={false} completeOnStop asChild>
-      <section className="food__location-search" aria-label={t("Search locations")}
+      <section className="place__location-search" aria-label={t("Search locations")}
         onBlur={(event) => {
           if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
         }}
@@ -32,12 +32,12 @@ export function LocationSearch({ disabled = false, onFocus, onSelect }: Props) {
             setOpen(false);
           }
         }}>
-        <form className="food__location-search-form" onSubmit={(event) => {
+        <form className="place__location-search-form" onSubmit={(event) => {
           event.preventDefault();
           if (!disabled) setOpen(true);
         }}>
           <Input
-            className="food__location-search-input"
+            className="place__location-search-input"
             name="query"
             value={query}
             onChange={(value) => { setQuery(value); setOpen(true); }}
@@ -49,17 +49,13 @@ export function LocationSearch({ disabled = false, onFocus, onSelect }: Props) {
             disabled={disabled}
             maxLength={200}
           />
-          <span className="food__location-search-icon" aria-hidden="true">
-            {searching ? <span className="food__location-search-spinner" /> : <Search size={20} />}
+          <span className="place__location-search-icon" aria-hidden="true">
+            {searching ? <span className="place__location-search-spinner" /> : <Search size={20} />}
           </span>
         </form>
         {showResults && <>
-          <div className="food__location-search-message">
-            <p id={`${id}-hint`}>{t("Search powered by")}{" "}
-              <a href="https://photon.komoot.io/" target="_blank" rel="noopener noreferrer">Photon</a>{" / "}
-              <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>.
-            </p>
-            {query.trim().length < 3 && <p role="status">{t("Enter at least 3 characters to search.")}</p>}
+          <div id={`${id}-hint`} className="place__location-search-message">
+            {query.trim().length < 3 && <p role="status">{t("Enter 3 characters to begin.")}</p>}
             {searching && <p role="status">{t("Searching locations…")}</p>}
             {error && <>
               <p role="alert">{t(error.message === "Location search returned an invalid response. Try again later."
@@ -68,7 +64,7 @@ export function LocationSearch({ disabled = false, onFocus, onSelect }: Props) {
             </>}
             {!searching && results?.length === 0 && <p role="status">{t("No matching locations found.")}</p>}
           </div>
-          {!searching && !!results?.length && <ul className="food__location-search-results" aria-label={t("Search results")}>
+          {!searching && !!results?.length && <ul className="place__location-search-results" aria-label={t("Search results")}>
             {results.map((result) => <li key={result.id}>
               <button type="button" onClick={() => {
                 setOpen(false);

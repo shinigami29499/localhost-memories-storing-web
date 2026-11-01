@@ -34,7 +34,7 @@
   --text-on-danger: #17191d;
   --theme-icon: #9ccfff;
   --notification-icon: #e6bf69;
-  --focus-ring: #9ccfff;
+  --focus-ring: #dedede;
   --shadow-popover: 0 10px 28px rgba(0, 0, 0, 0.28);
   --overlay-backdrop: rgba(15, 15, 15, 0.78);
   --radius: 14px;
@@ -72,7 +72,7 @@
   --text-on-danger: #ffffff;
   --theme-icon: #946200;
   --notification-icon: #946200;
-  --focus-ring: #315d96;
+  --focus-ring: #484d53;
   --shadow-popover: 0 10px 28px rgba(23, 25, 29, 0.12);
 }
 
@@ -639,7 +639,7 @@ textarea::placeholder {
 .app-shell__content,
 .home-page__content,
 .gallery-page__content,
-.food__content,
+.place__content,
 .locations__content,
 .upload-page__content,
 .admin-posts__content,
@@ -650,7 +650,7 @@ textarea::placeholder {
 .app-shell__content::-webkit-scrollbar,
 .home-page__content::-webkit-scrollbar,
 .gallery-page__content::-webkit-scrollbar,
-.food__content::-webkit-scrollbar,
+.place__content::-webkit-scrollbar,
 .locations__content::-webkit-scrollbar,
 .upload-page__content::-webkit-scrollbar,
 .admin-posts__content::-webkit-scrollbar,
@@ -662,7 +662,7 @@ textarea::placeholder {
   min-height: 100%;
 }
 
-.app-shell__content:has(.home-page, .gallery-page, .food, .locations) > .page-transition {
+.app-shell__content:has(.home-page, .gallery-page, .place, .locations) > .page-transition {
   height: 100%;
   min-height: 0;
 }
@@ -1643,6 +1643,11 @@ textarea::placeholder {
   right: 12px;
 }
 
+.viewer-icon-btn.media-lightbox__close:is(:hover, :active):not(:disabled) {
+  background: var(--danger);
+  color: var(--text-on-danger);
+}
+
 /* Reactions ------------------------------------------------------------------ */
 
 .reaction-icon--heart {
@@ -1896,7 +1901,7 @@ textarea::placeholder {
 }
 
 .new-post__pick:focus-within {
-  outline: 2px solid var(--accent-soft);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 4px;
 }
 
@@ -2025,7 +2030,7 @@ textarea::placeholder {
   .confirmation-dialog__actions {
     flex-wrap: wrap;
     margin: 0 -16px;
-    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    padding: 12px 16px calc(12px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom)));
   }
 
   .confirmation-dialog__actions .btn {
@@ -2033,11 +2038,11 @@ textarea::placeholder {
   }
 
   .media-lightbox {
-    padding: calc(56px + env(safe-area-inset-top)) 8px calc(8px + env(safe-area-inset-bottom));
+    padding: calc(56px + var(--safe-area-inset-top, env(safe-area-inset-top))) 8px calc(8px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom)));
   }
 
   .media-lightbox__close {
-    top: calc(8px + env(safe-area-inset-top));
+    top: calc(8px + var(--safe-area-inset-top, env(safe-area-inset-top)));
   }
 }
 
@@ -2167,4 +2172,9 @@ textarea::placeholder {
   justify-content: center;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+.error-page__actions .btn--secondary {
+  border-color: transparent;
+  box-shadow: var(--shadow-popover);
 }

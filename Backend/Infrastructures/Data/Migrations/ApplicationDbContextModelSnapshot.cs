@@ -264,7 +264,7 @@ namespace Infrastructures.Data.Migrations
                     b.ToTable("download_records", (string)null);
                 });
 
-            modelBuilder.Entity("Domains.Entities.FoodPlace", b =>
+            modelBuilder.Entity("Domains.Entities.Place", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -351,18 +351,18 @@ namespace Infrastructures.Data.Migrations
                         .HasColumnName("updated_by");
 
                     b.HasKey("Id")
-                        .HasName("pk_food_places");
+                        .HasName("pk_places");
 
                     b.HasIndex("CreatedAt")
-                        .HasDatabaseName("ix_food_places_created_at");
+                        .HasDatabaseName("ix_places_created_at");
 
                     b.HasIndex("OwnerId", "CreatedAt")
-                        .HasDatabaseName("ix_food_places_owner_id_created_at");
+                        .HasDatabaseName("ix_places_owner_id_created_at");
 
-                    b.ToTable("food_places", (string)null);
+                    b.ToTable("places", (string)null);
                 });
 
-            modelBuilder.Entity("Domains.Entities.FoodPlaceMedia", b =>
+            modelBuilder.Entity("Domains.Entities.PlaceMedia", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -386,9 +386,9 @@ namespace Infrastructures.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("deleted_by");
 
-                    b.Property<Guid>("FoodPlaceId")
+                    b.Property<Guid>("PlaceId")
                         .HasColumnType("uuid")
-                        .HasColumnName("food_place_id");
+                        .HasColumnName("place_id");
 
                     b.Property<Guid>("MediaFileId")
                         .HasColumnType("uuid")
@@ -407,23 +407,23 @@ namespace Infrastructures.Data.Migrations
                         .HasColumnName("updated_by");
 
                     b.HasKey("Id")
-                        .HasName("pk_food_place_media");
+                        .HasName("pk_place_media");
 
                     b.HasIndex("MediaFileId")
-                        .HasDatabaseName("ix_food_place_media_media_file_id");
+                        .HasDatabaseName("ix_place_media_media_file_id");
 
-                    b.HasIndex("FoodPlaceId", "MediaFileId")
+                    b.HasIndex("PlaceId", "MediaFileId")
                         .IsUnique()
-                        .HasDatabaseName("ix_food_place_media_food_place_id_media_file_id")
+                        .HasDatabaseName("ix_place_media_place_id_media_file_id")
                         .HasFilter("deleted_at IS NULL");
 
-                    b.HasIndex("FoodPlaceId", "Position")
-                        .HasDatabaseName("ix_food_place_media_food_place_id_position");
+                    b.HasIndex("PlaceId", "Position")
+                        .HasDatabaseName("ix_place_media_place_id_position");
 
-                    b.ToTable("food_place_media", (string)null);
+                    b.ToTable("place_media", (string)null);
                 });
 
-            modelBuilder.Entity("Domains.Entities.FoodPlaceVisit", b =>
+            modelBuilder.Entity("Domains.Entities.PlaceVisit", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -447,9 +447,9 @@ namespace Infrastructures.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("deleted_by");
 
-                    b.Property<Guid>("FoodPlaceId")
+                    b.Property<Guid>("PlaceId")
                         .HasColumnType("uuid")
-                        .HasColumnName("food_place_id");
+                        .HasColumnName("place_id");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -464,15 +464,15 @@ namespace Infrastructures.Data.Migrations
                         .HasColumnName("user_id");
 
                     b.HasKey("Id")
-                        .HasName("pk_food_place_visits");
+                        .HasName("pk_place_visits");
 
-                    b.HasIndex("FoodPlaceId")
-                        .HasDatabaseName("ix_food_place_visits_food_place_id");
+                    b.HasIndex("PlaceId")
+                        .HasDatabaseName("ix_place_visits_place_id");
 
                     b.HasIndex("UserId", "CreatedAt")
-                        .HasDatabaseName("ix_food_place_visits_user_id_created_at");
+                        .HasDatabaseName("ix_place_visits_user_id_created_at");
 
-                    b.ToTable("food_place_visits", (string)null);
+                    b.ToTable("place_visits", (string)null);
                 });
 
             modelBuilder.Entity("Domains.Entities.MediaFavorite", b =>
@@ -709,6 +709,35 @@ namespace Infrastructures.Data.Migrations
                         .HasDatabaseName("ix_refresh_tokens_user_id_expires_at");
 
                     b.ToTable("refresh_tokens", (string)null);
+                });
+
+            modelBuilder.Entity("Domains.Entities.SharedHomeLocation", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    b.Property<double?>("Latitude")
+                        .HasColumnType("double precision")
+                        .HasColumnName("latitude");
+
+                    b.Property<double?>("Longitude")
+                        .HasColumnType("double precision")
+                        .HasColumnName("longitude");
+
+                    b.HasKey("Id")
+                        .HasName("pk_shared_home_locations");
+
+                    b.ToTable("shared_home_locations", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_shared_home_location_singleton", "id = 1");
+                        });
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1
+                        });
                 });
 
             modelBuilder.Entity("Domains.Entities.UploadBatch", b =>
@@ -1044,56 +1073,56 @@ namespace Infrastructures.Data.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Domains.Entities.FoodPlace", b =>
+            modelBuilder.Entity("Domains.Entities.Place", b =>
                 {
                     b.HasOne("Domains.Entities.User", "Owner")
                         .WithMany()
                         .HasForeignKey("OwnerId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired()
-                        .HasConstraintName("fk_food_places_users_owner_id");
+                        .HasConstraintName("fk_places_users_owner_id");
 
                     b.Navigation("Owner");
                 });
 
-            modelBuilder.Entity("Domains.Entities.FoodPlaceMedia", b =>
+            modelBuilder.Entity("Domains.Entities.PlaceMedia", b =>
                 {
-                    b.HasOne("Domains.Entities.FoodPlace", "FoodPlace")
+                    b.HasOne("Domains.Entities.Place", "Place")
                         .WithMany("MediaItems")
-                        .HasForeignKey("FoodPlaceId")
+                        .HasForeignKey("PlaceId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired()
-                        .HasConstraintName("fk_food_place_media_food_places_food_place_id");
+                        .HasConstraintName("fk_place_media_places_place_id");
 
                     b.HasOne("Domains.Entities.MediaFile", "MediaFile")
                         .WithMany()
                         .HasForeignKey("MediaFileId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired()
-                        .HasConstraintName("fk_food_place_media_media_files_media_file_id");
+                        .HasConstraintName("fk_place_media_media_files_media_file_id");
 
-                    b.Navigation("FoodPlace");
+                    b.Navigation("Place");
 
                     b.Navigation("MediaFile");
                 });
 
-            modelBuilder.Entity("Domains.Entities.FoodPlaceVisit", b =>
+            modelBuilder.Entity("Domains.Entities.PlaceVisit", b =>
                 {
-                    b.HasOne("Domains.Entities.FoodPlace", "FoodPlace")
+                    b.HasOne("Domains.Entities.Place", "Place")
                         .WithMany()
-                        .HasForeignKey("FoodPlaceId")
+                        .HasForeignKey("PlaceId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired()
-                        .HasConstraintName("fk_food_place_visits_food_places_food_place_id");
+                        .HasConstraintName("fk_place_visits_places_place_id");
 
                     b.HasOne("Domains.Entities.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired()
-                        .HasConstraintName("fk_food_place_visits_users_user_id");
+                        .HasConstraintName("fk_place_visits_users_user_id");
 
-                    b.Navigation("FoodPlace");
+                    b.Navigation("Place");
 
                     b.Navigation("User");
                 });
@@ -1172,7 +1201,7 @@ namespace Infrastructures.Data.Migrations
                     b.Navigation("MediaItems");
                 });
 
-            modelBuilder.Entity("Domains.Entities.FoodPlace", b =>
+            modelBuilder.Entity("Domains.Entities.Place", b =>
                 {
                     b.Navigation("MediaItems");
                 });

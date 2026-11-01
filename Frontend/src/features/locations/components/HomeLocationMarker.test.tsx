@@ -65,7 +65,7 @@ vi.mock("../../../components/ui", () => ({
   ),
 }));
 
-describe.each(["food", "locations"] as const)("%s home marker", (variant) => {
+describe.each(["place", "locations"] as const)("%s home marker", (variant) => {
   let container: HTMLDivElement;
   let root: Root;
   const location = { latitude: 10, longitude: 20 };

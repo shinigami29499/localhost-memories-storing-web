@@ -33,7 +33,7 @@ export function AvatarPicker({ user }: { user: AuthUser }) {
       queryClient.setQueryData(["profile", updated.id], updated);
       setDraft(null);
       showToast.success(t("Avatar saved."));
-      for (const key of ["users", "admin-users", "albums", "food-places"]) {
+      for (const key of ["users", "admin-users", "albums", "places"]) {
         void queryClient.invalidateQueries({ queryKey: [key] });
       }
     },

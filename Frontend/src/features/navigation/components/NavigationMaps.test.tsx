@@ -3,9 +3,9 @@ import { act, useEffect, type ReactNode, type ButtonHTMLAttributes } from "react
 import { createRoot, type Root } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { FoodMap } from "../../food/components/FoodMap";
+import { PlaceMap } from "../../place/components/PlaceMap";
 import { LocationMap } from "../../locations/components/LocationMap";
-import type { FoodPlace } from "../../food/types";
+import type { Place } from "../../place/types";
 import type { MediaFile } from "../../media/types";
 
 const viewport = vi.hoisted(() => ({
@@ -58,13 +58,13 @@ const photo: MediaFile = {
   id: "travel", location: coordinate, originalFilename: "Holiday.jpg", mediaKind: "image",
   fileSizeBytes: 1, mimeType: "image/jpeg", isFavorited: false, createdAt: "",
 };
-const place: FoodPlace = {
-  id: "food", ...coordinate, name: "Lunch", address: "", note: "", rating: 0,
+const place: Place = {
+  id: "place", ...coordinate, name: "Lunch", address: "", note: "", rating: 0,
   markerColor: "#1769d2", markerIcon: "", mediaIds: [], createdAt: "", updatedAt: null,
   owner: { id: "owner", username: "owner" },
 };
 
-describe.each(["travel", "food"] as const)("%s map navigation integration", (kind) => {
+describe.each(["travel", "place"] as const)("%s map navigation integration", (kind) => {
   let container: HTMLDivElement;
   let root: Root;
   let client: QueryClient;
@@ -82,7 +82,7 @@ describe.each(["travel", "food"] as const)("%s map navigation integration", (kin
           <LocationMap {...shared} media={[photo]} selected={selected ? photo : undefined}
             draft={coordinate} editable canMove={() => true} onMove={vi.fn()} />
         ) : (
-          <FoodMap {...shared} places={[place]} selectedId={selected ? place.id : null}
+          <PlaceMap {...shared} places={[place]} selectedId={selected ? place.id : null}
             draft={null} draftIcon="" draftColor="" picking={false}
             canChange={() => true} onMove={vi.fn()} onDelete={vi.fn()} />
         )}

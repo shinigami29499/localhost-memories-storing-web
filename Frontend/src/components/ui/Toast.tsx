@@ -2,6 +2,7 @@ import { startTransition, useLayoutEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { Toast as AnimateToast } from '@animate-ui/react/primitives/base-ui/toast';
 import { AnimateIcon } from '@/components/animate-ui/icons/icon';
+import { CalendarCheck } from '@/components/animate-ui/icons/calendar-check';
 import { Check } from '@/components/animate-ui/icons/check';
 import { LoaderCircle } from '@/components/animate-ui/icons/loader-circle';
 import { ShieldCheck } from '@/components/animate-ui/icons/shield-check';
@@ -12,6 +13,7 @@ import { useLocale } from "../../context/LocaleContext";
 export type ToastUndoHandler = () => void | Promise<void>;
 
 export interface ToastOptions {
+  id?: string;
   description?: string;
   /** Adds an undo button to the toast; the toast reports whether the handler succeeded. */
   undo?: ToastUndoHandler;
@@ -20,6 +22,7 @@ export interface ToastOptions {
   progress?: boolean;
   onClick?: () => void;
   highlight?: string[];
+  icon?: 'calendar-check';
 }
 
 interface ToastData {
@@ -28,6 +31,7 @@ interface ToastData {
   progress?: boolean;
   onClick?: () => void;
   highlight?: string[];
+  icon?: 'calendar-check';
 }
 
 /** Undoable toasts stay longer because the user has to decide before they close. */
@@ -41,16 +45,19 @@ function normalizeToastMessage(message: string) {
   return message.trim().replace(/[.!?…]+$/u, '').trim().toLocaleLowerCase();
 }
 
-function addToast(type: 'success' | 'error' | 'info', title: string, details?: string | ToastOptions) {
+function addToast(type: 'success' | 'error' | 'info' | 'warning' | 'delete', title: string, details?: string | ToastOptions) {
   const options: ToastOptions = typeof details === 'string' ? { description: details } : details ?? {};
   return toastManager.add<ToastData>({
+    id: options.id,
     title,
     description: options.description && normalizeToastMessage(options.description) !== normalizeToastMessage(title)
       ? options.description
       : undefined,
     type,
     timeout: options.timeout ?? (options.undo ? UNDOABLE_TOAST_TIMEOUT : undefined),
-    data: options.undo || options.progress || options.onClick || options.highlight?.length ? { undo: options.undo, undoLabel: options.undoLabel, progress: options.progress, onClick: options.onClick, highlight: options.highlight } : undefined,
+    data: options.undo || options.progress || options.onClick || options.highlight?.length || options.icon
+      ? { undo: options.undo, undoLabel: options.undoLabel, progress: options.progress, onClick: options.onClick, highlight: options.highlight, icon: options.icon }
+      : undefined,
   });
 }
 
@@ -72,6 +79,8 @@ export const showToast = {
   success: (title: string, details?: string | ToastOptions) => addToast('success', title, details),
   error: (title: string, details?: string | ToastOptions) => addToast('error', title, details),
   info: (title: string, details?: string | ToastOptions) => addToast('info', title, details),
+  warning: (title: string, details?: string | ToastOptions) => addToast('warning', title, details),
+  delete: (title: string, details?: string | ToastOptions) => addToast('delete', title, details),
   dismiss: (toastId?: string) => toastManager.close(toastId),
 };
 
@@ -197,6 +206,7 @@ export function Toaster() {
             key={toast.id}
             toast={toast}
             className="toast-root"
+            data-toast-type={toast.type}
             data-presence-progress={toast.data?.progress ? toast.type : undefined}
             onPointerDown={(event) => {
               if (event.button !== 0) return;
@@ -233,9 +243,11 @@ export function Toaster() {
             <AnimateToast.Content className="toast-content">
               <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
                 <div className="toast-icon-wrapper" data-slot="toast-icon">
-                  {toast.type === 'success' || toast.type === undefined ? (
+                  {toast.data?.icon === 'calendar-check' ? (
+                    <CalendarCheck size={18} className="toast-icon toast-icon--check-in" aria-hidden="true" />
+                  ) : toast.type === 'success' || toast.type === undefined ? (
                     <Check size={18} className="toast-icon toast-icon--success" aria-hidden="true" />
-                  ) : toast.type === 'error' ? (
+                  ) : toast.type === 'error' || toast.type === 'delete' ? (
                     <X size={18} className="toast-icon toast-icon--error" aria-hidden="true" />
                   ) : (
                     <ShieldCheck size={18} className="toast-icon" aria-hidden="true" />
@@ -246,9 +258,9 @@ export function Toaster() {
                 {toast.data?.onClick ? (
                   <button type="button" className="toast-link" onClick={() => activateToast(toast.id, toast.data?.onClick)}>
                     <AnimateToast.Title className="toast-title">{typeof toast.title === 'string' && toast.data?.highlight ? highlightedTitle(toast.title, toast.data.highlight) : toast.title}</AnimateToast.Title>
-                    <AnimateToast.Description className="toast-description" />
+                    <AnimateToast.Description className="toast-description">{typeof toast.description === 'string' && toast.data?.highlight ? highlightedTitle(toast.description, toast.data.highlight) : toast.description}</AnimateToast.Description>
                   </button>
-                ) : <><AnimateToast.Title className="toast-title">{typeof toast.title === 'string' && toast.data?.highlight ? highlightedTitle(toast.title, toast.data.highlight) : toast.title}</AnimateToast.Title><AnimateToast.Description className="toast-description" /></>}
+                ) : <><AnimateToast.Title className="toast-title">{typeof toast.title === 'string' && toast.data?.highlight ? highlightedTitle(toast.title, toast.data.highlight) : toast.title}</AnimateToast.Title><AnimateToast.Description className="toast-description">{typeof toast.description === 'string' && toast.data?.highlight ? highlightedTitle(toast.description, toast.data.highlight) : toast.description}</AnimateToast.Description></>}
                 {toast.data?.undo ? <ToastUndoButton toastId={toast.id} data={toast.data} /> : null}
               </div>
               <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>

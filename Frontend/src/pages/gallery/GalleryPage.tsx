@@ -1,11 +1,14 @@
 import { startTransition, useEffect, useMemo, useRef, useState } from "react";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
 import * as Tabs from "@radix-ui/react-tabs";
+import { Highlight, HighlightItem } from "@animate-ui/react/primitives/effects/highlight";
 import { ScrollProgress, ScrollProgressContainer, ScrollProgressProvider } from "@animate-ui/react/primitives/scroll-progress";
+import { ScrollFade } from "@animate-ui/react/primitives/effects/scroll-fade";
 import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { Bookmark } from "@/components/animate-ui/icons/bookmark";
 import { Heart } from "@/components/animate-ui/icons/heart";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
+import { Plus } from "@/components/animate-ui/icons/plus";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
 import { X } from "@/components/animate-ui/icons/x";
 import { BulkSaveToAlbumDialog } from "../../features/albums/components/BulkSaveToAlbumDialog";
@@ -23,6 +26,7 @@ import { useMediaSelectionDrag } from "../../features/media/hooks/useMediaSelect
 import { mediaService } from "../../features/media/services/mediaService";
 import { mediaQueryOptions, useMedia } from "../../features/media/hooks/useMedia";
 import { DownloadButton } from "../../features/downloads/components/DownloadButton";
+import { uploadService } from "../../features/uploads/services/uploadService";
 import type { MediaFile, MediaKindFilter } from "../../features/media/types";
 import "./gallery.css";
 import "../../features/media/components/media.css";
@@ -70,7 +74,8 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
   const pageTransition = readPageTransitionEffect();
   const queryClient = useQueryClient();
   const [selectedFilter, setSelectedFilter] = useState<MediaKindFilter>(() => initialFilter ?? "image");
-  const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const uploadInput = useRef<HTMLInputElement>(null);
   const [tabLoading, setTabLoading] = useState(false);
   const tabRequestRef = useRef(0);
   const [selectionMode, setSelectionMode] = useState(false);
@@ -92,7 +97,7 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
   const galleryRef = useRef<HTMLElement>(null);
   const returnToMediaId = useRef<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
-  const showingFavorites = view === "favorites" || favoritesOnly;
+  const showingFavorites = view === "favorites";
   const query = useMedia(20, showingFavorites ? "favorites" : "all", selectedFilter);
 
   useEffect(() => () => { tabRequestRef.current += 1; }, [showingFavorites]);
@@ -120,6 +125,20 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
   const selectedMedia = [...selectedItems.values()];
   const allSelectedFavorited = selectedMedia.length > 0 && selectedMedia.every((item) => item.isFavorited);
   const favoriteBusy = favoriteBusyId !== null || bulkFavoriteBusy;
+
+  const uploadFiles = async (files: File[]) => {
+    if (!files.length || uploading) return;
+    setUploading(true);
+    try {
+      await uploadService.submit(files);
+      await queryClient.invalidateQueries({ queryKey: ["uploads"] });
+      showToast.success(t("Begin uploading {count} media", { count: files.length }));
+    } catch (error) {
+      showToast.error(t("Could not start this upload."), error instanceof Error ? error.message : undefined);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const refreshFavoriteQueries = () => Promise.all([
     queryClient.invalidateQueries({ queryKey: ["media"] }),
@@ -296,7 +315,7 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
         return next;
       });
       await queryClient.invalidateQueries({ queryKey: ["media"] });
-      showToast.success(t("Media moved to trash"), {
+      showToast.delete(t("Media moved to trash"), {
         undo: async () => {
           for (const mediaId of deletedIds) await mediaService.restore(mediaId);
           await queryClient.invalidateQueries({ queryKey: ["media"] });
@@ -307,15 +326,6 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
     if (failedIds.length > 0) throw firstFailure;
 
     cancelSelection();
-  };
-
-  const toggleFavoritesOnly = () => {
-    tabRequestRef.current += 1;
-    setTabLoading(false);
-    setFavoritesOnly((current) => !current);
-    setPreviewMediaId(null);
-    setSelectionMode(false);
-    setSelectedItems(new Map());
   };
 
   const galleryContent = (
@@ -388,8 +398,7 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
         <div className="gallery-page__scroll-track" aria-hidden="true">
           <ScrollProgress mode="scaleX" className="gallery-page__scroll-progress" />
         </div>
-        <ScrollProgressContainer className="gallery-page__content">
-          <div className="gallery-page__inner">
+        <div className="gallery-page__fixed-layout">
             <header className="gallery-page__header">
               <p className="gallery-page__eyebrow">{t("Your library")}</p>
               <h1>{t(copy.title)}<span className="brand__dot">.</span></h1>
@@ -397,6 +406,7 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
             </header>
 
             <Tabs.Root
+              className="gallery-page__fixed-tabs"
               value={selectedFilter}
               onValueChange={(value) => {
                 if (value !== "image" && value !== "video") return;
@@ -416,47 +426,48 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
                   });
               }}
             >
-              <div className="gallery-page__toolbar">
-                <Tabs.List className="gallery-page__filters" aria-label={t("Filter by media type")}>
+              <div className="gallery-page__media-toolbar">
+                <Tabs.List className="gallery-page__media-filters" aria-label={t("Filter by media type")}>
+                  <Highlight value={selectedFilter} controlledItems className="gallery-page__media-highlight">
                   {filters.map(({ value, label }) => (
+                    <HighlightItem key={value} value={value} asChild>
                     <Tabs.Trigger
-                      key={value}
-                      className="gallery-page__filter"
+                      className="gallery-page__media-option"
                       value={value}
                       disabled={bulkFavoriteBusy}
                     >
                       {t(label)}
                     </Tabs.Trigger>
+                    </HighlightItem>
                   ))}
+                  </Highlight>
                 </Tabs.List>
-                {view === "pictures" ? (
-                  <button
-                    type="button"
-                    className="gallery-page__filter"
-                    aria-label={t(showingFavorites ? "Show all media" : "Show favorites only")}
-                    title={t(showingFavorites ? "Show all media" : "Show favorites only")}
-                    aria-pressed={showingFavorites}
-                    disabled={bulkFavoriteBusy}
-                    onClick={toggleFavoritesOnly}
-                  >
-                    <Heart size={20} fill={showingFavorites ? "currentColor" : "none"} aria-hidden="true" />
-                  </button>
-                ) : null}
               </div>
+              <ScrollFade asChild blur={0} shrink={0}>
+              <ScrollProgressContainer className="gallery-page__content gallery-page__media-scroll">
               <Tabs.Content value={selectedFilter} className="gallery-page__tab-panel gallery-page__tab-panel--media" aria-busy={tabLoading || undefined}>
                 <PageTransition effect={pageTransition} transitionKey={selectedFilter}>
                   {galleryContent}
                 </PageTransition>
               </Tabs.Content>
+              </ScrollProgressContainer>
+              </ScrollFade>
             </Tabs.Root>
-          </div>
-        </ScrollProgressContainer>
+        </div>
       </ScrollProgressProvider>
 
-      {selectionMode ? (
-        <footer className="gallery-page__footer">
+        <footer className="gallery-page__footer gallery-page__footer--transition">
           <div className="gallery-selection-bar gallery-selection-bar--compact" role="group" aria-label={t("{count} selected", { count: selectedItems.size })} aria-busy={bulkFavoriteBusy}>
             <span className="gallery-selection-bar__status" role="status">{t("{count} selected", { count: selectedItems.size })}</span>
+            <input ref={uploadInput} type="file" accept="image/*,video/*" multiple hidden onChange={(event) => {
+              const files = Array.from(event.currentTarget.files ?? []);
+              event.currentTarget.value = "";
+              void uploadFiles(files);
+            }} />
+            <button type="button" className="gallery-selection-bar__action" aria-label={t("Upload media")} title={t("Upload media")}
+              disabled={uploading || bulkFavoriteBusy} aria-busy={uploading || undefined} onClick={() => uploadInput.current?.click()}>
+              {uploading ? <LoaderCircle size={20} className="spinner__wheel" aria-hidden="true" /> : <Plus size={20} aria-hidden="true" />}
+            </button>
             <DownloadButton
               media={selectedMedia}
               className="gallery-selection-bar__action gallery-selection-bar__action--download"
@@ -502,7 +513,7 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
               className="gallery-selection-bar__cancel"
               aria-label={t("Cancel selection")}
               title={t("Cancel selection")}
-              disabled={bulkFavoriteBusy}
+              disabled={!selectionMode || bulkFavoriteBusy}
               onClick={cancelSelection}
             >
               <X size={20} aria-hidden="true" />
@@ -510,7 +521,6 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
             </button>
           </div>
         </footer>
-      ) : null}
 
       {saveDialogOpen ? (
         <BulkSaveToAlbumDialog

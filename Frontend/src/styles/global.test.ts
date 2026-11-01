@@ -10,7 +10,7 @@ const galleryStyles = readFileSync(resolve("src", "pages", "gallery", "gallery.c
 const mediaStyles = readFileSync(resolve("src", "features", "media", "components", "media.css"), "utf8");
 const toastStyles = readFileSync(resolve("src", "components", "ui", "toast.css"), "utf8");
 const loginStyles = readFileSync(resolve("src", "pages", "login", "login.css"), "utf8");
-const foodStyles = readFileSync(resolve("src", "pages", "food", "food.css"), "utf8");
+const placeStyles = readFileSync(resolve("src", "pages", "place", "place.css"), "utf8");
 
 function contrastRatio(foreground: string, background: string) {
   const luminance = (color: string) => {
@@ -31,7 +31,7 @@ describe("Global styles", () => {
   beforeEach(() => {
     document.documentElement.classList.add("dark");
     style = document.createElement("style");
-    style.textContent = globalStyles.replace(/^@import .*;$/gm, "") + sidebarStyles + usersStyles + galleryStyles + foodStyles;
+    style.textContent = globalStyles.replace(/^@import .*;$/gm, "") + sidebarStyles + usersStyles + galleryStyles + placeStyles;
     document.head.append(style);
     card = document.createElement("article");
     card.className = "post-card";
@@ -266,8 +266,8 @@ describe("Global styles", () => {
 
     expect(ruleFor(".confirmation-dialog")?.style.background).toBe("var(--surface-card)");
     expect(ruleFor(".confirmation-dialog")?.style.boxShadow).toBe("var(--shadow-popover)");
-    expect(ruleFor(".food__dialog")?.style.boxShadow).toBe("var(--shadow-popover)");
-    expect(ruleFor(".food-picker")?.style.boxShadow).toBe("var(--shadow-popover)");
+    expect(ruleFor(".place__dialog")?.style.boxShadow).toBe("var(--shadow-popover)");
+    expect(ruleFor(".place-picker")?.style.boxShadow).toBe("var(--shadow-popover)");
     expect(ruleFor(".confirmation-dialog__actions")?.style.background).toBe("var(--surface-card-raised)");
     expect(ruleFor(".confirmation-dialog__actions")?.style.borderTop).toBe("1px solid var(--border)");
     expect(ruleFor(".post-card__footer")?.style.background).toBe("var(--surface-raised)");

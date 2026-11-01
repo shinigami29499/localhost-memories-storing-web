@@ -10,6 +10,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import { useInView, type LegacyAnimationControls } from "motion/react";
 import { useShouldReduceMotion } from "@animate-ui/react/utils/motion";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { useAnimationStore } from "@/store/animationStore";
 
 export { getVariants, type IconProps } from "@animate-ui/react/icons";
 
@@ -31,11 +32,12 @@ type IconTriggers<T extends string> = Pick<IconProps<T>,
 >;
 
 function useIconTriggers<T extends string>(props: IconTriggers<T>) {
+  const iconsEnabled = useAnimationStore((state) => state.iconsEnabled);
   const standalone = useMediaQuery("(display-mode: standalone)");
   const mobile = useMediaQuery("(max-width: 640px)");
   const hover = useMediaQuery("(hover: hover) and (pointer: fine)");
   const installed = standalone || (typeof navigator !== "undefined" && "standalone" in navigator && navigator.standalone === true);
-  const enabled = props.animate !== false;
+  const enabled = iconsEnabled && props.animate !== false;
 
   return {
     animateOnHover: enabled && !installed && hover ? (props.animateOnHover ?? true) : false,
@@ -47,6 +49,7 @@ function useIconTriggers<T extends string>(props: IconTriggers<T>) {
 }
 
 export function AnimateIcon(props: AnimateIconProps) {
+  const iconsEnabled = useAnimationStore((state) => state.iconsEnabled);
   const triggers = useIconTriggers(props);
   const reduceMotion = useShouldReduceMotion();
   const [controls, setControls] = useState<LegacyAnimationControls>();
@@ -60,6 +63,13 @@ export function AnimateIcon(props: AnimateIconProps) {
     if (typeof props.ref === "function") return props.ref(element);
     if (props.ref) props.ref.current = element;
   }, [props.ref]);
+
+  useEffect(() => {
+    if (!iconsEnabled && controls) {
+      controls.stop();
+      controls.set("initial");
+    }
+  }, [controls, iconsEnabled]);
 
   useEffect(() => {
     if (!controls || !triggers.animateOnView || props.loop || props.animate !== undefined) return;
@@ -80,6 +90,8 @@ export function AnimateIcon(props: AnimateIconProps) {
       <BaseAnimateIcon
         {...props}
         {...triggers}
+        animate={iconsEnabled ? props.animate : false}
+        loop={iconsEnabled ? props.loop : false}
         ref={setRef}
         animation={typeof triggers.animateOnView === "string" ? triggers.animateOnView : props.animation}
         animateOnView={props.loop ? triggers.animateOnView : false}

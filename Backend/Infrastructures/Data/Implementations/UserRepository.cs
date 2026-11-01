@@ -32,6 +32,9 @@ public sealed class UserRepository(ApplicationDbContext db) : IUserRepository
             .ToListAsync(cancellationToken);
     }
 
+    public Task<SharedHomeLocation> GetSharedHomeLocationAsync(CancellationToken cancellationToken = default)
+        => db.SharedHomeLocations.SingleAsync(location => location.Id == 1, cancellationToken);
+
     public Task<User?> FindUserAsync(Guid userId, CancellationToken cancellationToken = default)
         => db.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
 

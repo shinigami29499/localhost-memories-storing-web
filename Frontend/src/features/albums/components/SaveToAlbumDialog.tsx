@@ -66,7 +66,7 @@ export function SaveToAlbumDialog({ mediaIds, onClose, portalContainer }: Props)
       if (failed > 0) {
         showToast.error(t("{count} media items could not be updated.", { count: failed }));
       } else if (removing) {
-        showToast.success(t("Removed from album"), { undo });
+        showToast.delete(t("Removed from album"), { undo });
       } else {
         showToast.success(t("Successfully saved to album {name}", { name: album.name }), { undo, highlight: [album.name] });
       }

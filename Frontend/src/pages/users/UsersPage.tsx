@@ -92,7 +92,6 @@ export function UsersPage() {
       .withUrl(`${apiBase}/hubs/notifications`, { accessTokenFactory: () => useAuthStore.getState().accessToken ?? "" })
       .withAutomaticReconnect()
       .build();
-    let loadedAt = 0;
     connection.on("UsersChanged", (userId: string, resetPresence: boolean) => {
       if (resetPresence) {
         offlineUsersRef.current = { ...offlineUsersRef.current, [userId]: true };
@@ -110,25 +109,13 @@ export function UsersPage() {
       lastSeenAt: string | null;
     }) => {
       if (event.userId === me?.id && !event.online) return;
-      const currentUsers = queryClient.getQueryData<AuthUser[]>(["users"]) ?? [];
-      const currentUser = currentUsers.find((user) => user.id === event.userId);
-      const hasObservedState = Object.hasOwn(offlineUsersRef.current, event.userId);
-      const recentlyActive = !!currentUser?.lastSeenAt && Date.now() - Date.parse(currentUser.lastSeenAt) < ONLINE_WINDOW_MS;
-      const wasOnline = hasObservedState
-        ? !offlineUsersRef.current[event.userId] && (!event.online || recentlyActive)
-        : !event.online || recentlyActive;
-      const username = event.username || currentUser?.username;
       offlineUsersRef.current = { ...offlineUsersRef.current, [event.userId]: !event.online };
       setOfflineUsers(offlineUsersRef.current);
       queryClient.setQueryData<AuthUser[]>(["users"], (existing) =>
         existing?.map((user) => user.id === event.userId ? { ...user, lastSeenAt: event.lastSeenAt ?? user.lastSeenAt } : user),
       );
-      if (event.online !== wasOnline && loadedAt && username && event.userId !== me?.id) {
-        if (event.online) showToast.success(t("{username} is online", { username }), { progress: true, timeout: 5000, highlight: [username] });
-        else showToast.error(t("{username} went offline", { username }), { progress: true, timeout: 5000, highlight: [username] });
-      }
     });
-    void connection.start().then(() => { loadedAt = Date.now(); }).catch(() => undefined);
+    void connection.start().catch(() => undefined);
     return () => { void connection.stop(); };
   }, [queryClient, me?.id, t]);
 
@@ -176,12 +163,7 @@ export function UsersPage() {
   });
 
   const allUsers = users.data ?? [];
-  const normalizedSearch = search.trim().toLocaleLowerCase();
-  const visibleUsers = allUsers.filter((user) => {
-    const matchesStatus = filter === "all" || user.status === filter;
-    const matchesSearch = !normalizedSearch || `${user.username} ${user.role}`.toLocaleLowerCase().includes(normalizedSearch);
-    return matchesStatus && matchesSearch;
-  });
+  const visibleUsers = allUsers.filter((user) => filter === "all" || user.status === filter);
   const currentPage = Math.min(page, Math.max(1, Math.ceil(visibleUsers.length / limit)));
   const pagedUsers = visibleUsers.slice((currentPage - 1) * limit, currentPage * limit);
 
@@ -223,7 +205,7 @@ export function UsersPage() {
             >
               <div className="admin-users__toolbar">
                 <Tabs.List
-                  className="gallery-page__filters admin-users__filters"
+                  className="admin-users__filters"
                   aria-label={t("Filter users by status")}
                 >
                   {userFilters.map((option) => {
@@ -234,36 +216,18 @@ export function UsersPage() {
                       <Tabs.Tab
                         key={option.value}
                         value={option.value}
-                        className="gallery-page__filter admin-users__tab"
+                        className="admin-users__tab"
                       >
                         {t(option.label)} <span>{count}</span>
                       </Tabs.Tab>
                     );
                   })}
                 </Tabs.List>
-                <label className="admin-users__search">
-                  <Search
-                    size={24}
-                    className="admin-users__search-icon"
-                    aria-hidden="true"
-                    focusable="false"
-                  />
-                  <input
-                    type="search"
-                    aria-label={t("Search users")}
-                    value={search}
-                    onChange={(event) => {
-                      setSearch(event.target.value);
-                      setPage(1);
-                    }}
-                    placeholder={t("Username or role")}
-                  />
-                </label>
               </div>
 
               <Tabs.Panel value={filter}>
                 {visibleUsers.length === 0 ? (
-                  <EmptyState title={t("No matching users")} hint={t("Try another name or status filter.")} />
+                  <EmptyState title={t("No matching users")} hint={t("Try another status filter.")} />
                 ) : (
                   <div className="admin-table-wrap">
                     <table className="admin-table admin-users__table">

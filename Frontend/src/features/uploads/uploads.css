@@ -28,7 +28,7 @@
 .upload-page__footer {
   position: relative;
   flex-shrink: 0;
-  padding-bottom: env(safe-area-inset-bottom);
+  padding-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom));
 }
 
 .upload-page__footer::before {
@@ -292,7 +292,7 @@
 }
 
 .upload-batch__summary:has(.upload-batch__toggle:focus-visible) {
-  outline: 2px solid var(--accent-strong);
+  outline: 2px solid var(--focus-ring);
   outline-offset: -2px;
 }
 
@@ -531,6 +531,10 @@
   margin-right: 0;
 }
 
+:root.dark .upload-batch__select-all:not(:checked):not(:indeterminate) {
+  background: var(--surface);
+}
+
 .upload-item__select:indeterminate::before {
   clip-path: inset(40% 0);
   transform: scale(1);
@@ -547,7 +551,7 @@
 }
 
 .upload-item__select:focus-visible {
-  outline: 2px solid var(--accent-strong);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 

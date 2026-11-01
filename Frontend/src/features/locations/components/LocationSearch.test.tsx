@@ -91,11 +91,11 @@ describe("LocationSearch", () => {
   it("selects the returned name and coordinates through the existing map callback", async () => {
     await change("Hanoi");
     await advance();
-    const button = container.querySelector<HTMLButtonElement>(".food__location-search-results button");
+    const button = container.querySelector<HTMLButtonElement>(".place__location-search-results button");
     expect(button).not.toBeNull();
     await act(async () => button?.click());
     expect(onSelect).toHaveBeenCalledExactlyOnceWith(place);
-    expect(container.querySelector(".food__location-search-results")).toBeNull();
+    expect(container.querySelector(".place__location-search-results")).toBeNull();
     await advance();
     expect(search).toHaveBeenCalledOnce();
   });
@@ -124,7 +124,7 @@ describe("LocationSearch", () => {
     await advance();
     await act(async () => resolveOld([place]));
     await advance(1);
-    expect(container.querySelector(".food__location-search-results")?.textContent).toBe("Paris");
+    expect(container.querySelector(".place__location-search-results")?.textContent).toBe("Paris");
   });
 
   it("shows errors with manual retry and an explicit empty state", async () => {
@@ -134,7 +134,7 @@ describe("LocationSearch", () => {
     expect(container.querySelector('[role="alert"]')?.textContent).toContain("Could not search locations");
     expect(search).toHaveBeenCalledOnce();
     search.mockResolvedValue([]);
-    const retry = container.querySelector<HTMLButtonElement>(".food__location-search-message button");
+    const retry = container.querySelector<HTMLButtonElement>(".place__location-search-message button");
     await act(async () => retry?.click());
     await advance(1);
     expect(search).toHaveBeenCalledTimes(2);
@@ -149,7 +149,7 @@ describe("LocationSearch", () => {
     await render(true);
     expect(input().disabled).toBe(true);
     expect(signal?.aborted).toBe(true);
-    expect(container.querySelector(".food__location-search-results")).toBeNull();
+    expect(container.querySelector(".place__location-search-results")).toBeNull();
     await advance();
     expect(search).toHaveBeenCalledOnce();
     expect(onSelect).not.toHaveBeenCalled();
@@ -158,9 +158,9 @@ describe("LocationSearch", () => {
   it("keeps the icon decorative and closes results on Escape", async () => {
     await change("Hanoi");
     await advance();
-    expect(container.querySelector(".food__location-search-icon")?.tagName).toBe("SPAN");
+    expect(container.querySelector(".place__location-search-icon")?.tagName).toBe("SPAN");
     expect(onFocus).toHaveBeenCalledOnce();
     await act(async () => input().dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
-    expect(container.querySelector(".food__location-search-results")).toBeNull();
+    expect(container.querySelector(".place__location-search-results")).toBeNull();
   });
 });

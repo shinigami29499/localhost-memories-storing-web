@@ -1,6 +1,6 @@
 using Domains.Entities;
 using Services.Models.Collections;
-using Services.Models.Food;
+using Services.Models.Place;
 using Services.Models.Media;
 using Services.Interfaces;
 using Services.Mappings;
@@ -43,7 +43,7 @@ public sealed class Mapper : IMapper
 
     public CollectionDto Map(CollectionSource source) => CollectionMappings.ToDto(source);
 
-    public FoodPlaceDto Map(FoodPlaceSource source) => FoodPlaceMappings.ToDto(source);
+    public PlaceDto Map(PlaceSource source) => PlaceMappings.ToDto(source);
 
-    public FoodPlaceVisitDto Map(FoodPlaceVisitSource source) => FoodPlaceMappings.ToDto(source);
+    public PlaceVisitDto Map(PlaceVisitSource source) => PlaceMappings.ToDto(source);
 }

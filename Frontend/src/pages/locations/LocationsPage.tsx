@@ -40,7 +40,7 @@ export function LocationsPage() {
   const [failedPreviews, setFailedPreviews] = useState<Set<string>>(() => new Set());
   const selected = media.find((item) => item.id === selectedId);
   const focused = media.find((item) => item.id === focusedMediaId);
-  const showDetails = !!selected && !!selection?.editing && !isMobile;
+  const showDetails = !!selected && !!selection?.editing;
   const canMove = (item: MediaFile) => !isMobile && !saving
     && (item.ownerId === user?.id || user?.role.toLowerCase() === "admin");
   const canEdit = !!selected && !!selection?.editing && canMove(selected);
@@ -132,8 +132,8 @@ export function LocationsPage() {
           <div className="locations__inner">
             <header className="locations__header">
               <p className="locations__eyebrow">{t("Your library")}</p>
-              <h1>{t("Travel")}<span className="brand__dot">.</span></h1>
-              <p>{t("Browse photos and videos with locations in your library.")}</p>
+              <h1>{t("Scenery")}<span className="brand__dot">.</span></h1>
+              <p>{t("Places we have been to")}</p>
             </header>
             {homePicking && (
               <div className="locations__notice" role="status">
@@ -171,6 +171,8 @@ export function LocationsPage() {
                 homeLocation={home.query.data ?? null} homeLocationReady={home.query.isFetched}
                 homeActionDisabled={saving || home.save.isPending}
                 homePicking={homePicking} onSelect={select} canMove={canMove} onMove={movePhoto}
+                onEdit={(item) => setSelection({ id: item.id, draft: item.location ?? null, editing: true })}
+                onCancelSelection={clearSelection}
                 onPick={(location) => { if (selected) updateDraft(selected.id, location); }}
                 onPickHome={(location) => void pickHome(location)}
                 onHomeClick={() => {

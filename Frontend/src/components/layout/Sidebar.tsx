@@ -16,12 +16,10 @@ import { Settings } from "@/components/animate-ui/icons/settings";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
 import { Upload } from "@/components/animate-ui/icons/upload";
 import { Users } from "@/components/animate-ui/icons/users";
-import { Utensils } from "@/components/animate-ui/icons/utensils";
+import { Key } from "@/components/animate-ui/icons/key";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
 import { authService } from "../../features/auth";
-import { userService } from "../../features/users/services/userService";
-import { showToast } from "../ui";
 import { Brand } from "./Brand";
 import { Container, Gap, Highlight } from "@animate-ui/react/primitives/sidebar";
 import { Collapsible } from "@animate-ui/react/primitives/base-ui/collapsible";
@@ -42,7 +40,8 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
   const isAdmin = user?.role?.toLowerCase() === "admin";
 
   const locationsActive = location.pathname.startsWith("/location/travel")
-    || location.pathname.startsWith("/location/food");
+    || location.pathname.startsWith("/location/place")
+    || location.pathname.startsWith("/location/saved");
   const libraryActive = location.pathname.startsWith("/library/gallery")
     || location.pathname.startsWith("/library/album")
     || location.pathname.startsWith("/saved");
@@ -101,15 +100,14 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
   const logout = async () => {
     const { accessToken, refreshToken, clear } = useAuthStore.getState();
     try {
-      if (accessToken) await userService.offline();
       if (accessToken && refreshToken) {
         await authService.logout(refreshToken, { Authorization: `Bearer ${accessToken}` });
       }
     } catch {
       // logout is best-effort
     } finally {
+      sessionStorage.setItem("shinigacim-logout-toast", "1");
       clear();
-      showToast.success(t("Logout successfully"));
       navigate("/login", { replace: true });
     }
   };
@@ -209,23 +207,29 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
                       to="/location/travel"
                       className={`sidebar__link sidebar__sub-link${location.pathname === "/location/travel" ? " sidebar__link--active" : ""}`}
                       data-sidebar="menu-sub-button"
-                      aria-label={t("Travel")}
-                      title={t("Travel")}
+                      aria-label={t("Scenery")}
+                      title={t("Scenery")}
                     >
                       <PlaneTakeoff size={16} aria-hidden="true" />
-                      <span>{t("Travel")}</span>
+                      <span>{t("Scenery")}</span>
                     </NavLink>
                   </AnimateIcon>
                   <AnimateIcon animateOnTap completeOnStop asChild>
                     <NavLink
-                      to="/location/food"
-                      className={`sidebar__link sidebar__sub-link${location.pathname === "/location/food" ? " sidebar__link--active" : ""}`}
+                      to="/location/place"
+                      className={`sidebar__link sidebar__sub-link${location.pathname === "/location/place" ? " sidebar__link--active" : ""}`}
                       data-sidebar="menu-sub-button"
-                      aria-label={t("Food")}
-                      title={t("Food")}
+                      aria-label={t("Places")}
+                      title={t("Places")}
                     >
-                      <Utensils size={16} aria-hidden="true" />
-                      <span>{t("Food")}</span>
+                      <Key size={16} aria-hidden="true" />
+                      <span>{t("Places")}</span>
+                    </NavLink>
+                  </AnimateIcon>
+                  <AnimateIcon animateOnTap completeOnStop asChild>
+                    <NavLink to="/location/saved" className={`sidebar__link sidebar__sub-link${location.pathname === "/location/saved" ? " sidebar__link--active" : ""}`} data-sidebar="menu-sub-button" aria-label={t("Saved")} title={t("Saved")}>
+                      <Bookmark size={16} aria-hidden="true" />
+                      <span>{t("Saved")}</span>
                     </NavLink>
                   </AnimateIcon>
                 </div>

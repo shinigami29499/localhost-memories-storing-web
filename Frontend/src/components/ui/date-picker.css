@@ -50,7 +50,7 @@
 }
 
 .date-picker__popup {
-  width: 296px;
+  width: min(296px, calc(100vw - 24px));
   padding: 12px;
   border: 1px solid var(--border-card);
   border-radius: var(--radius);

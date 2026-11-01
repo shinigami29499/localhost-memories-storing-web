@@ -28,9 +28,9 @@ vi.mock("../animate-ui/icons/plane-takeoff", async () => {
   return { PlaneTakeoff: () => <svg data-animated={String(useAnimateIconContext().active === true)} /> };
 });
 
-vi.mock("../animate-ui/icons/utensils", async () => {
+vi.mock("../animate-ui/icons/key", async () => {
   const { useAnimateIconContext } = await import("@animate-ui/react/icons");
-  return { Utensils: () => <svg data-animated={String(useAnimateIconContext().active === true)} /> };
+  return { Key: () => <svg data-animated={String(useAnimateIconContext().active === true)} /> };
 });
 
 vi.mock("../animate-ui/icons/camera", async () => {
@@ -134,7 +134,7 @@ describe("Sidebar icon hover behavior", () => {
     vi.unstubAllGlobals();
   });
 
-  it.each(["/", "/library/gallery", "/library/gallery/trash", "/location/travel", "/location/food", "/users"])("animates the icon when hovering the %s link text", async (href) => {
+  it.each(["/", "/library/gallery", "/library/gallery/trash", "/location/travel", "/location/place", "/users"])("animates the icon when hovering the %s link text", async (href) => {
     const link = container.querySelector<HTMLAnchorElement>(`.sidebar__nav a[href="${href}"]`)!;
     const label = link.querySelector("span")!;
     expect(link.classList.contains("sidebar__link")).toBe(true);
@@ -183,8 +183,8 @@ describe("Sidebar icon hover behavior", () => {
     expect(container.querySelector('[href="/users"]')?.textContent).toBe("Users");
     expect(container.querySelector('[href="/location/travel"]')?.textContent).toBe("Travel");
     expect(container.querySelector('[aria-label="Locations"]')?.getAttribute("aria-expanded")).toBe("true");
-    expect(container.querySelector('[href="/location/food"]')?.textContent).toBe("Food");
-    expect(container.querySelector('[href="/location/food"]')?.classList.contains("sidebar__sub-link")).toBe(true);
+    expect(container.querySelector('[href="/location/place"]')?.textContent).toBe("Place");
+    expect(container.querySelector('[href="/location/place"]')?.classList.contains("sidebar__sub-link")).toBe(true);
     expect(container.querySelector('[href="/library/gallery/trash"]')).toBeNull();
     expect(container.querySelector('[href^="/admin"]')).toBeNull();
   });

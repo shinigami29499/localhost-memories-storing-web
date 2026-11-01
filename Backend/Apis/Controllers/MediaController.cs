@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
+using Apis.Realtime;
 using Apis.Authorization;
 using Apis.Interfaces;
 using Services.Exceptions;
@@ -17,7 +19,9 @@ namespace Apis.Controllers;
 public class MediaController(
     IMediaService mediaService,
     IDownloadHistoryService downloadHistory,
-    ICurrentUserContext currentUser) : ControllerBase
+    ICurrentUserContext currentUser,
+    IHubContext<NotificationsHub> notificationsHub,
+    ILogger<MediaController> logger) : ControllerBase
 {
     private readonly IMediaService _mediaService = mediaService;
     private readonly ICurrentUserContext _currentUser = currentUser;
@@ -93,8 +97,10 @@ public class MediaController(
     [HttpDelete("{mediaId:guid}")]
     public async Task<IActionResult> DeleteMediaAsync(Guid mediaId, CancellationToken cancellationToken)
     {
+        var media = await _mediaService.GetMediaForNotificationAsync(mediaId, cancellationToken);
         await _mediaService.DeleteMediaAsync(
             mediaId, _currentUser.RequireUserId(), _currentUser.IsAdmin, cancellationToken);
+        await NotifyMediaChangedAsync(media, "trashed");
         return NoContent();
     }
 
@@ -102,8 +108,10 @@ public class MediaController(
     [HttpPost("{mediaId:guid}/restore")]
     public async Task<IActionResult> RestoreMediaAsync(Guid mediaId, CancellationToken cancellationToken)
     {
+        var media = await _mediaService.GetMediaForNotificationAsync(mediaId, cancellationToken);
         await _mediaService.RestoreMediaAsync(
             mediaId, _currentUser.RequireUserId(), _currentUser.IsAdmin, cancellationToken);
+        await NotifyMediaChangedAsync(media, "restored");
         return NoContent();
     }
 
@@ -111,9 +119,27 @@ public class MediaController(
     [HttpDelete("{mediaId:guid}/permanent")]
     public async Task<IActionResult> PermanentlyDeleteMediaAsync(Guid mediaId, CancellationToken cancellationToken)
     {
+        var media = await _mediaService.GetMediaForNotificationAsync(mediaId, cancellationToken);
         await _mediaService.PermanentlyDeleteMediaAsync(
             mediaId, _currentUser.RequireUserId(), _currentUser.IsAdmin, cancellationToken);
+        await NotifyMediaChangedAsync(media, "deleted");
         return NoContent();
+    }
+
+    private async Task NotifyMediaChangedAsync(MediaFileDto? media, string action)
+    {
+        if (media is null) return;
+        try
+        {
+            await notificationsHub.Clients.All.SendAsync("MediaChanged", new {
+                mediaId = media.Id, name = media.OriginalFilename, ownerId = media.OwnerId,
+                actorId = _currentUser.RequireUserId(), username = _currentUser.RequireUsername(), action
+            });
+        }
+        catch (Exception exception)
+        {
+            logger.LogWarning(exception, "Could not notify users about media {MediaId}", media.Id);
+        }
     }
 
 }

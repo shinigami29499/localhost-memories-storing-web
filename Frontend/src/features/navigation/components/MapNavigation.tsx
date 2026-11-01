@@ -2,6 +2,8 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Layer, Marker, Source, useMap } from "react-map-gl/mapbox";
 import { Button } from "../../../components/ui";
 import { XIcon } from "../../../components/animate-ui/icons/x";
+import { Compass } from "../../../components/animate-ui/icons/compass";
+import { Pencil } from "../../../components/animate-ui/icons/pencil";
 import { useLocale } from "../../../context/LocaleContext";
 import { useMediaQuery } from "../../../hooks/useMediaQuery";
 import { useNavigation } from "../hooks/useNavigation";
@@ -15,19 +17,50 @@ interface Props {
   accessToken: string;
   homeLocation?: Coordinate | null;
   onOpenChange: (open: boolean) => void;
+  onEdit?: () => void;
+  onCancel?: () => void;
 }
 
-export function MapNavigation({ destination, accessToken, homeLocation, onOpenChange }: Props) {
+export function NavigationToolbar({ onEdit, onNavigate, onCancel }: {
+  onEdit?: () => void;
+  onNavigate?: () => void;
+  onCancel?: () => void;
+}) {
+  const { t } = useLocale();
+  return (
+    <div className="map-navigation__toolbar">
+      <Button type="button" variant="ghost" aria-label={t("Edit")} title={t("Edit")} disabled={!onEdit} onClick={onEdit}>
+        <Pencil size={20} aria-hidden="true" /><span className="map-navigation__desktop-label">{t("Edit")}</span>
+      </Button>
+      <span className="map-navigation__divider" aria-hidden="true" />
+      <Button type="button" variant="ghost" className="map-navigation__trigger" disabled={!onNavigate} onClick={onNavigate}>
+        <Compass size={22} aria-hidden="true" /> {t("Navigate")}
+      </Button>
+      <span className="map-navigation__divider" aria-hidden="true" />
+      <Button type="button" variant="ghost" className="map-navigation__dismiss" aria-label={t("Cancel")} title={t("Cancel")} disabled={!onCancel} onClick={onCancel}>
+        <XIcon size={20} aria-hidden="true" /><span className="map-navigation__desktop-label">{t("Cancel")}</span>
+      </Button>
+    </div>
+  );
+}
+
+export function DisabledNavigationToolbar() {
+  const { t } = useLocale();
+  return <section className="map-navigation" aria-label={t("Navigation")} data-expanded={false}><NavigationToolbar /></section>;
+}
+
+export function MapNavigation({ destination, accessToken, homeLocation, onOpenChange, onEdit, onCancel }: Props) {
   const { t, language } = useLocale();
   // Changing the destination or language must cancel requests and release the GPS watch.
   return <NavigationSession
     key={`${destination.latitude}:${destination.longitude}:${language}:${accessToken}`}
     destination={destination} accessToken={accessToken} homeLocation={homeLocation}
     onOpenChange={onOpenChange} name={t("Navigation")}
+    onEdit={onEdit} onCancel={onCancel}
   />;
 }
 
-function NavigationSession({ destination, accessToken, homeLocation, onOpenChange, name }: Props & { name: string }) {
+function NavigationSession({ destination, accessToken, homeLocation, onOpenChange, onEdit, onCancel, name }: Props & { name: string }) {
   const { t, language } = useLocale();
   const { current: map } = useMap();
   const mobile = useMediaQuery("(max-width: 640px)");
@@ -59,7 +92,7 @@ function NavigationSession({ destination, accessToken, homeLocation, onOpenChang
     onOpenChange(expanded);
     if (!expanded && restoreFocus.current) {
       restoreFocus.current = false;
-      panelRef.current?.querySelector("button")?.focus();
+      panelRef.current?.querySelector<HTMLButtonElement>(".map-navigation__trigger")?.focus();
     }
   }, [expanded, onOpenChange]);
   useEffect(() => () => onOpenChange(false), [onOpenChange]);
@@ -133,6 +166,15 @@ function NavigationSession({ destination, accessToken, homeLocation, onOpenChang
           <span className="map-navigation__destination" role="img" aria-label={destination.name} />
         </Marker>
       )}
+      {expanded && (
+        <div className="map-navigation" data-expanded="false"
+          onClick={(event) => event.stopPropagation()}
+          onPointerDown={(event) => event.stopPropagation()}
+          onDoubleClick={(event) => event.stopPropagation()}
+          onWheel={(event) => event.stopPropagation()}>
+          <NavigationToolbar onEdit={onEdit} onNavigate={() => setExpanded(true)} onCancel={onCancel} />
+        </div>
+      )}
       <section ref={panelRef} className="map-navigation" aria-label={name} data-expanded={expanded}
         onClick={(event) => event.stopPropagation()}
         onPointerDown={(event) => event.stopPropagation()}
@@ -140,9 +182,7 @@ function NavigationSession({ destination, accessToken, homeLocation, onOpenChang
         onWheel={(event) => event.stopPropagation()}
       >
         {!expanded ? (
-          <Button type="button" variant="secondary" onClick={() => setExpanded(true)}>
-            {t("Navigate")}
-          </Button>
+          <NavigationToolbar onEdit={onEdit} onNavigate={() => setExpanded(true)} onCancel={onCancel} />
         ) : (
           <>
             <header className="map-navigation__header">
@@ -165,6 +205,11 @@ function NavigationSession({ destination, accessToken, homeLocation, onOpenChang
               {!tracking && (
                 <Button type="button" variant="secondary" busy={busy} onClick={navigation.preview}>
                   {t(locating ? "Finding your location…" : loading ? "Loading route…" : "Preview with Mapbox")}
+                </Button>
+              )}
+              {!tracking && !arrived && (
+                <Button type="button" disabled={busy || !route || !!error || navigation.usingHomeOrigin} onClick={navigation.start}>
+                  {t("Start navigation")}
                 </Button>
               )}
             </div>
@@ -195,9 +240,7 @@ function NavigationSession({ destination, accessToken, homeLocation, onOpenChang
                 {!arrived && (
                   tracking ? (
                     <Button type="button" variant="secondary" onClick={navigation.stop}>{t("Stop navigation")}</Button>
-                  ) : !error && !navigation.usingHomeOrigin && (
-                    <Button type="button" disabled={busy} onClick={navigation.start}>{t("Start navigation")}</Button>
-                  )
+                  ) : null
                 )}
                 <details className="map-navigation__steps">
                   <summary>{t("Turn-by-turn directions")}</summary>

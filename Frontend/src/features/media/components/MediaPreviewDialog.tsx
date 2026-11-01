@@ -11,6 +11,7 @@ import { Bookmark } from "@/components/animate-ui/icons/bookmark";
 import { Check } from "@/components/animate-ui/icons/check";
 import { Copy } from "@/components/animate-ui/icons/copy";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
+import { Heart } from "@/components/animate-ui/icons/heart";
 import { MapPin } from "@/components/animate-ui/icons/map-pin";
 import { RotateCcw } from "@/components/animate-ui/icons/rotate-ccw";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
@@ -89,6 +90,11 @@ function PreviewSlide({ media, active, includeDeleted, onFavorite }: SlideProps)
   const videoRef = useRef<HTMLVideoElement>(null);
   const url = active ? mediaUrl(media.id, includeDeleted) : mediaPreviewUrl(media.id, includeDeleted);
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const [burst, setBurst] = useState(0);
+  const favorite = () => {
+    setBurst((value) => value + 1);
+    onFavorite();
+  };
 
   useEffect(() => {
     if (!active) videoRef.current?.pause();
@@ -107,9 +113,10 @@ function PreviewSlide({ media, active, includeDeleted, onFavorite }: SlideProps)
           preload={active ? "metadata" : "none"}
           tabIndex={active ? 0 : -1}
           aria-label={media.originalFilename}
+          onLoadedMetadata={(event) => event.currentTarget.style.setProperty("--media-aspect", String(event.currentTarget.videoWidth / event.currentTarget.videoHeight))}
           onDoubleClick={active && !includeDeleted ? (event) => {
             event.preventDefault();
-            onFavorite();
+            favorite();
           } : undefined}
           onError={() => setFailedUrl(url)}
         />
@@ -121,10 +128,18 @@ function PreviewSlide({ media, active, includeDeleted, onFavorite }: SlideProps)
           loading={active ? "eager" : "lazy"}
           decoding="async"
           draggable={false}
-          onDoubleClick={active && !includeDeleted ? onFavorite : undefined}
+          onLoad={(event) => event.currentTarget.style.setProperty("--media-aspect", String(event.currentTarget.naturalWidth / event.currentTarget.naturalHeight))}
+          onDoubleClick={active && !includeDeleted ? favorite : undefined}
           onError={() => setFailedUrl(url)}
         />
       )}
+      {active && burst > 0 ? (
+        <span key={burst} className="media-preview-dialog__heart-burst" aria-hidden="true" onAnimationEnd={(event) => {
+          if (event.target === event.currentTarget) setBurst(0);
+        }}>
+          <Heart size={96} fill="currentColor" animate={false} />
+        </span>
+      ) : null}
     </div>
   );
 }
@@ -368,8 +383,7 @@ export function MediaPreviewDialog({
           >
             <Bookmark
               size={20}
-              stroke={inAlbum ? "var(--notification-icon)" : "currentColor"}
-              fill={inAlbum ? "var(--notification-icon)" : "none"}
+              style={{ color: "inherit" }}
               aria-hidden="true"
             />
           </button>

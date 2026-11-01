@@ -116,8 +116,8 @@ export function DownloadManagementPage() {
         <header className="upload-page__header">
           <div>
             <p className="upload-page__eyebrow">{t("Sync")}</p>
-            <h1 id="download-page-title">{t("Download management")}<span className="brand__dot">.</span></h1>
-            <p>{t("Download original images and videos, one file at a time.")}</p>
+            <h1 id="download-page-title">{t("Download")}<span className="brand__dot">.</span></h1>
+            <p>{t("Download original images and videos.")}</p>
           </div>
         </header>
         <div className="upload-page__toolbar">
@@ -154,7 +154,7 @@ export function DownloadManagementPage() {
       {totalItems > 0 ? (
         <footer className="upload-page__footer">
           <Pagination page={page} pageSize={limit} total={totalItems} onPageChange={setPage} itemLabel="download batches"
-            isFetching={query.isFetching} onPageSizeChange={(size) => {
+            onPageSizeChange={(size) => {
               setLimit(size);
               setPage(1);
               window.localStorage.setItem("downloads.limit", String(size));

@@ -161,7 +161,7 @@
   }
 
   .login__header {
-    padding-top: calc(22px + env(safe-area-inset-top));
+    padding-top: calc(22px + var(--safe-area-inset-top, env(safe-area-inset-top)));
   }
 
   .login__header-note,
@@ -181,7 +181,7 @@
   .login__footer {
     flex-wrap: wrap;
     font-size: 0.75rem;
-    padding-bottom: calc(22px + env(safe-area-inset-bottom));
+    padding-bottom: calc(22px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom)));
   }
 }
 
@@ -192,11 +192,11 @@
   }
 
   .login__header {
-    padding-top: calc(16px + env(safe-area-inset-top));
+    padding-top: calc(16px + var(--safe-area-inset-top, env(safe-area-inset-top)));
   }
 
   .login__footer {
-    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+    padding-bottom: calc(16px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom)));
   }
 
   .login {
@@ -242,11 +242,11 @@
   }
 
   .login__header {
-    padding-top: calc(12px + env(safe-area-inset-top));
+    padding-top: calc(12px + var(--safe-area-inset-top, env(safe-area-inset-top)));
   }
 
   .login__footer {
-    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+    padding-bottom: calc(12px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom)));
   }
 
   .login {

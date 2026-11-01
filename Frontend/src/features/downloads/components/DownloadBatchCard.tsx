@@ -77,7 +77,7 @@ export function DownloadBatchCard({ batch, showUsername = false, avatarSeed, can
           <span className="upload-batch__toggle-label">{toggleLabel}</span>
         </Collapsible.Trigger>
         {canRetry ? <input className="upload-item__select upload-batch__select-all" type="checkbox" aria-label={t("Select all files")} title={t("Select all files")} disabled={filteredItems.length === 0} checked={filteredItems.length > 0 && selectedItems.length === filteredItems.length} ref={(element) => { if (element) element.indeterminate = selectedItems.length > 0 && selectedItems.length < filteredItems.length; }} onChange={(event) => setSelectedIds(event.target.checked ? new Set(filteredItems.map((item) => item.id)) : new Set())} /> : null}
-        {showUsername ? <UserAvatar user={{ id: batch.userId ?? batch.id, avatarSeed }} className="upload-batch__owner-avatar" /> : null}
+        {showUsername ? <UserAvatar user={{ id: batch.userId ?? batch.id, username: batch.username ?? undefined, avatarSeed }} className="upload-batch__owner-avatar" /> : null}
         {showUsername ? <div className="upload-batch__field upload-batch__username-field"><span className="upload-batch__label">{t("Username")}</span><span className="upload-batch__value">{batch.username ?? "--"}</span></div> : null}
         <div className="upload-batch__field upload-batch__created-field">
           <span className="upload-batch__label upload-batch__date-label">{t("Date & Time")}</span>

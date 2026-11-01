@@ -23,6 +23,7 @@ public interface ICollectionService
     Task<CollectionDto> UpdateCollectionCaptionAsync(
         Guid collectionId, Guid editorId, UpdateCollectionCaptionRequest request,
         CancellationToken cancellationToken = default);
+    Task<CollectionDto> GetCollectionForAdminAsync(Guid collectionId, CancellationToken cancellationToken = default);
     Task DeleteCollectionAsync(Guid collectionId, Guid ownerId, CancellationToken cancellationToken = default);
     Task DeleteCollectionAsync(
         Guid collectionId, Guid actorId, bool isAdmin, CancellationToken cancellationToken = default);

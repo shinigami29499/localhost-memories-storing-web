@@ -1,8 +1,8 @@
 .album-feed-post {
   overflow: hidden;
-  border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);
+  box-shadow: var(--shadow-popover);
 }
 
 .album-feed-post__header {

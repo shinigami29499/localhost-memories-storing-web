@@ -1,0 +1,265 @@
+using System.Text.RegularExpressions;
+using Domains.Entities;
+using Infrastructures.Data.Interfaces;
+using Services.Exceptions;
+using Services.Interfaces;
+using Services.Models.Place;
+using Services.Requests.Place;
+
+namespace Infrastructures.Data.ApplicationServices;
+
+public sealed partial class PlaceService(
+    IPlaceRepository repository,
+    IUnitOfWork unitOfWork,
+    IMapper mapper) : IPlaceService
+{
+    private const int MaxNameLength = 120;
+    private const int MaxAddressLength = 300;
+    private const int MaxNoteLength = 2000;
+    private const int MaxMarkerIconLength = 16;
+    private const int MaxImages = 12;
+    private const string DefaultMarkerIcon = "🍜";
+    private const string DefaultMarkerColor = "#E2572B";
+
+    public async Task<IReadOnlyList<PlaceDto>> GetPlacesAsync(CancellationToken cancellationToken = default)
+        => (await repository.GetPlacesAsync(cancellationToken)).Select(mapper.Map).ToList();
+
+    public async Task<PlaceDto> GetPlaceAsync(
+        Guid placeId, CancellationToken cancellationToken = default)
+        => mapper.Map(await repository.GetPlaceSourceAsync(placeId, cancellationToken)
+            ?? throw new NotFoundException($"Place '{placeId}' was not found."));
+
+    public async Task<IReadOnlyList<PlaceVisitDto>> GetPlaceVisitHistoryAsync(
+        Guid userId, CancellationToken cancellationToken = default)
+        => (await repository.GetPlaceVisitHistoryAsync(userId, cancellationToken))
+            .Select(mapper.Map)
+            .ToList();
+
+    public async Task<IReadOnlyList<PlaceVisitDto>> GetAllPlaceVisitHistoryAsync(
+        CancellationToken cancellationToken = default)
+        => (await repository.GetAllPlaceVisitHistoryAsync(cancellationToken))
+            .Select(mapper.Map)
+            .ToList();
+
+    public async Task<IReadOnlyList<PlaceVisitDto>> GetPlaceVisitHistoryForPlaceAsync(
+        Guid placeId, CancellationToken cancellationToken = default)
+    {
+        _ = await repository.FindPlaceAsync(placeId, cancellationToken)
+            ?? throw new NotFoundException($"Place '{placeId}' was not found.");
+        return (await repository.GetPlaceVisitHistoryForPlaceAsync(placeId, cancellationToken))
+            .Select(mapper.Map)
+            .ToList();
+    }
+
+    public async Task CheckInPlaceAsync(
+        Guid placeId, Guid userId, CancellationToken cancellationToken = default)
+    {
+        _ = await repository.FindPlaceAsync(placeId, cancellationToken)
+            ?? throw new NotFoundException($"Place '{placeId}' was not found.");
+        repository.AddPlaceVisit(new PlaceVisit
+        {
+            PlaceId = placeId,
+            UserId = userId,
+        });
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task DeletePlaceVisitAsync(
+        Guid visitId, Guid userId, CancellationToken cancellationToken = default)
+    {
+        var visit = await repository.FindPlaceVisitAsync(visitId, cancellationToken)
+            ?? throw new NotFoundException($"Place visit '{visitId}' was not found.");
+        if (visit.UserId != userId)
+            throw new ForbiddenException("You can only remove your own place visits.");
+
+        visit.DeletedAt = DateTime.UtcNow;
+        visit.DeletedBy = userId;
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<PlaceDto> CreatePlaceAsync(
+        Guid ownerId, SavePlaceRequest request, CancellationToken cancellationToken = default)
+    {
+        var values = Validate(request);
+        var mediaIds = await ValidateMediaIdsAsync(request.MediaIds, cancellationToken) ?? [];
+        var place = new Place
+        {
+            Name = values.Name,
+            Address = values.Address,
+            Note = values.Note,
+            Latitude = values.Latitude,
+            Longitude = values.Longitude,
+            Rating = values.Rating,
+            MarkerIcon = values.MarkerIcon,
+            MarkerColor = values.MarkerColor,
+            OwnerId = ownerId,
+            MediaItems = mediaIds.Select((mediaId, index) => new PlaceMedia
+            {
+                MediaFileId = mediaId,
+                Position = index,
+            }).ToList(),
+        };
+        repository.AddPlace(place);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+        return await GetPlaceAsync(place.Id, cancellationToken);
+    }
+
+    public async Task<PlaceDto> UpdatePlaceAsync(
+        Guid placeId, Guid actorId, bool isAdmin, SavePlaceRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var values = Validate(request);
+        var place = await FindEditablePlaceAsync(placeId, actorId, isAdmin, cancellationToken);
+        var mediaIds = await ValidateMediaIdsAsync(request.MediaIds, cancellationToken);
+        place.Name = values.Name;
+        place.Address = values.Address;
+        place.Note = values.Note;
+        place.Latitude = values.Latitude;
+        place.Longitude = values.Longitude;
+        place.Rating = values.Rating;
+        place.MarkerIcon = values.MarkerIcon;
+        place.MarkerColor = values.MarkerColor;
+        if (mediaIds is not null)
+            await ReplaceMediaAsync(place.Id, mediaIds, actorId, cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+        return await GetPlaceAsync(place.Id, cancellationToken);
+    }
+
+    public async Task DeletePlaceAsync(
+        Guid placeId, Guid actorId, bool isAdmin, CancellationToken cancellationToken = default)
+    {
+        var place = await FindEditablePlaceAsync(placeId, actorId, isAdmin, cancellationToken);
+        var utcNow = DateTime.UtcNow;
+        foreach (var item in await repository.GetPlaceMediaAsync(place.Id, cancellationToken))
+        {
+            item.DeletedAt = utcNow;
+            item.DeletedBy = actorId;
+        }
+        place.DeletedAt = utcNow;
+        place.DeletedBy = actorId;
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task ReplaceMediaAsync(
+        Guid placeId, IReadOnlyList<Guid> mediaIds, Guid actorId, CancellationToken cancellationToken)
+    {
+        var existing = await repository.GetPlaceMediaAsync(placeId, cancellationToken);
+        var positions = mediaIds.Select((mediaId, index) => (mediaId, index))
+            .ToDictionary(pair => pair.mediaId, pair => pair.index);
+        var utcNow = DateTime.UtcNow;
+
+        foreach (var item in existing)
+        {
+            if (positions.Remove(item.MediaFileId, out var position))
+            {
+                if (item.Position != position) item.Position = position;
+                continue;
+            }
+            item.DeletedAt = utcNow;
+            item.DeletedBy = actorId;
+        }
+
+        foreach (var (mediaId, position) in positions)
+        {
+            repository.AddPlaceMedia(new PlaceMedia
+            {
+                PlaceId = placeId,
+                MediaFileId = mediaId,
+                Position = position,
+            });
+        }
+    }
+
+    /// <summary>Returns null when the request leaves images unchanged; otherwise distinct ids in request order.</summary>
+    private async Task<IReadOnlyList<Guid>?> ValidateMediaIdsAsync(
+        IReadOnlyList<Guid>? requested, CancellationToken cancellationToken)
+    {
+        if (requested is null) return null;
+        var mediaIds = requested.Distinct().ToList();
+        if (mediaIds.Count > MaxImages)
+            throw new ValidationException("Invalid place.", new Dictionary<string, string[]>
+            {
+                ["mediaIds"] = [$"Choose {MaxImages} images or fewer."],
+            });
+
+        var available = await repository.GetActiveImageIdsAsync(mediaIds, cancellationToken);
+        if (mediaIds.Any(mediaId => !available.Contains(mediaId)))
+            throw new ValidationException("Invalid place.", new Dictionary<string, string[]>
+            {
+                ["mediaIds"] = ["Choose images that still exist in the library."],
+            });
+
+        return mediaIds;
+    }
+
+    private async Task<Place> FindEditablePlaceAsync(
+        Guid placeId, Guid actorId, bool isAdmin, CancellationToken cancellationToken)
+    {
+        var place = await repository.FindPlaceAsync(placeId, cancellationToken)
+            ?? throw new NotFoundException($"Place '{placeId}' was not found.");
+        if (!isAdmin && place.OwnerId != actorId)
+            throw new ForbiddenException("Only the owner or an administrator can change this place.");
+        return place;
+    }
+
+    private static PlaceValues Validate(SavePlaceRequest request)
+    {
+        Dictionary<string, string[]> errors = [];
+        var name = request.Name?.Trim() ?? "";
+        if (name.Length == 0)
+            errors["name"] = ["Enter a name for this place."];
+        else if (name.Length > MaxNameLength)
+            errors["name"] = [$"Use {MaxNameLength} characters or fewer."];
+
+        var address = request.Address?.Trim() ?? "";
+        if (address.Length > MaxAddressLength)
+            errors["address"] = [$"Use {MaxAddressLength} characters or fewer."];
+
+        var note = request.Note?.Trim() ?? "";
+        if (note.Length > MaxNoteLength)
+            errors["note"] = [$"Use {MaxNoteLength} characters or fewer."];
+
+        if (!double.IsFinite(request.Latitude) || request.Latitude is < -90 or > 90)
+            errors["latitude"] = ["Latitude must be between -90 and 90."];
+        if (!double.IsFinite(request.Longitude) || request.Longitude is < -180 or > 180)
+            errors["longitude"] = ["Longitude must be between -180 and 180."];
+
+        if (request.Rating is < 0 or > 5)
+            errors["rating"] = ["Rating must be between 1 and 5, or 0 when unrated."];
+
+        var markerIcon = request.MarkerIcon?.Trim() is { Length: > 0 } icon ? icon : DefaultMarkerIcon;
+        if (markerIcon.Length > MaxMarkerIconLength)
+            errors["markerIcon"] = [$"Use {MaxMarkerIconLength} characters or fewer."];
+
+        var markerColor = request.MarkerColor?.Trim() is { Length: > 0 } color
+            ? color.ToUpperInvariant() : DefaultMarkerColor;
+        if (!HexColorPattern().IsMatch(markerColor))
+            errors["markerColor"] = ["Use a hex color such as #E2572B."];
+
+        if (errors.Count > 0)
+            throw new ValidationException("Invalid place.", errors);
+
+        return new PlaceValues(
+            name,
+            address,
+            note,
+            request.Latitude,
+            request.Longitude,
+            request.Rating,
+            markerIcon,
+            markerColor);
+    }
+
+    [GeneratedRegex("^#(?:[0-9A-F]{3}|[0-9A-F]{6})$", RegexOptions.CultureInvariant)]
+    private static partial Regex HexColorPattern();
+
+    private sealed record PlaceValues(
+        string Name,
+        string Address,
+        string Note,
+        double Latitude,
+        double Longitude,
+        int Rating,
+        string MarkerIcon,
+        string MarkerColor);
+}

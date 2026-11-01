@@ -78,10 +78,9 @@ export function startUploadRuntime(
     notifiedBatches.add(key);
     localStorage.setItem(key, "1");
 
-    const summary = translate("{success} succeeded, {failed} failed, {cancelled} cancelled.", {
+    const summary = translate("{success} success, {failed} failed.", {
       success: batch.successfulFiles,
       failed: batch.failedFiles,
-      cancelled: batch.cancelledFiles,
     });
     if (batch.status === "Completed") {
       const images = batch.items.filter((item) => item.status === "Success" && item.contentType.startsWith("image/")).length;

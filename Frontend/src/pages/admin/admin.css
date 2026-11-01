@@ -229,7 +229,7 @@
 
 .admin-posts__field input:focus-visible,
 .admin-posts__field select:focus-visible {
-  border-color: var(--accent-soft);
+  border-color: var(--focus-ring);
   outline: 2px solid var(--focus-ring);
   outline-offset: 1px;
 }
@@ -326,7 +326,7 @@
   flex-shrink: 0;
   z-index: 10;
   background: transparent;
-  padding-bottom: env(safe-area-inset-bottom);
+  padding-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom));
 }
 
 .admin-posts__footer::before,
@@ -509,8 +509,8 @@
 }
 
 .admin-users__search:focus-within {
-  border-color: var(--accent-soft);
-  outline: 2px solid color-mix(in srgb, var(--accent-soft) 30%, transparent);
+  border-color: var(--focus-ring);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 1px;
 }
 
@@ -758,7 +758,7 @@
 }
 
 .admin-tab:focus-visible {
-  outline: 2px solid var(--accent-soft);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
@@ -840,7 +840,7 @@
 }
 
 .admin-post__media:focus-visible {
-  outline: 2px solid var(--accent-soft);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 

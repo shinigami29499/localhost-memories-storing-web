@@ -45,8 +45,8 @@ export function UploadManagementPage() {
     enabled: isAdmin,
     staleTime: 5 * 60 * 1000,
   });
-  const avatarSeedsByUsername = new Map(
-    (usersQuery.data ?? []).map((account) => [account.username.toLowerCase(), account.avatarSeed] as const),
+  const avatarUsersByUsername = new Map(
+    (usersQuery.data ?? []).map((account) => [account.username.toLowerCase(), account] as const),
   );
   const query = useQuery({
     queryKey: ["uploads", isAdmin, offset, limit, selectedDate, user?.id],
@@ -85,7 +85,7 @@ export function UploadManagementPage() {
       setSelectedFiles([]);
       if (uploadInput.current) uploadInput.current.value = "";
       await queryClient.invalidateQueries({ queryKey: ["uploads"] });
-      showToast.success(t("Upload batch started"));
+      showToast.success(t("Begin uploading {count} media", { count: selectedFiles.length }));
     } catch (error) {
       showToast.error(t("Could not start this upload."), error instanceof Error ? error.message : undefined);
     } finally {
@@ -139,7 +139,7 @@ export function UploadManagementPage() {
     }
     if (missing.length > 0) {
       retryTargets.current = missing;
-      if (missing.length > 1) showToast.info(t("Select the original files to retry the remaining uploads."));
+      if (missing.length > 1) showToast.warning(t("Select the original files to retry the remaining uploads."));
       retryInput.current?.click();
     }
   };
@@ -214,8 +214,8 @@ export function UploadManagementPage() {
         <header className="upload-page__header">
           <div>
             <p className="upload-page__eyebrow">{t("Sync")}</p>
-            <h1 id="upload-page-title">{t("Upload management")}<span className="brand__dot">.</span></h1>
-            <p>{t("Upload images and videos, then retry failed files here.")}</p>
+            <h1 id="upload-page-title">{t("Upload")}<span className="brand__dot">.</span></h1>
+            <p>{t("Upload images and videos.")}</p>
           </div>
         </header>
 
@@ -292,7 +292,7 @@ export function UploadManagementPage() {
         </div>
         {activityOpen ? <UploadActivityDialog onClose={() => setActivityOpen(false)} /> : null}
 
-        {query.isPending ? <Spinner label="Loading uploads…" /> : query.isError ? (
+        {query.isPending ? <Spinner label="Loading uploads…" /> : query.isError && !query.data ? (
           <ErrorState message="Could not load uploads." onRetry={() => void query.refetch()} />
         ) : batches.length === 0 ? (
           <EmptyState
@@ -309,7 +309,7 @@ export function UploadManagementPage() {
                 batch={isAdmin ? batch : { ...batch, username: batch.username ?? user?.username }}
                 displayId={offset + index + 1}
                 showUsername
-                avatarSeed={isAdmin && batch.username ? avatarSeedsByUsername.get(batch.username.toLowerCase()) : user?.avatarSeed}
+                avatarUser={isAdmin && batch.username ? avatarUsersByUsername.get(batch.username.toLowerCase()) : user ?? undefined}
                 busyItemIds={busyItemIds}
                 onRetry={(batch, item) => retryItems(batch, [item])}
                 onDelete={(batch, item) => removeRecord(batch, item)}
@@ -328,7 +328,7 @@ export function UploadManagementPage() {
             pageSize={limit}
             total={data.totalItems}
             itemLabel="upload batches"
-            isFetching={query.isFetching}
+            isFetching={query.isPlaceholderData}
             onPageChange={(nextPage) => setOffset((nextPage - 1) * limit)}
             onPageSizeChange={handlePageSizeChange}
           />

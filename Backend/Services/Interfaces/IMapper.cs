@@ -1,6 +1,6 @@
 using Domains.Entities;
 using Services.Models.Collections;
-using Services.Models.Food;
+using Services.Models.Place;
 using Services.Models.Media;
 using Services.Requests.Auth;
 using Services.Responses.Auth;
@@ -14,6 +14,6 @@ public interface IMapper
     MediaFile Map(StoredFile stored, Guid ownerId, string originalFilename);
     MediaFileDto Map(MediaFile mediaFile, bool isFavorited = false);
     CollectionDto Map(CollectionSource source);
-    FoodPlaceDto Map(FoodPlaceSource source);
-    FoodPlaceVisitDto Map(FoodPlaceVisitSource source);
+    PlaceDto Map(PlaceSource source);
+    PlaceVisitDto Map(PlaceVisitSource source);
 }

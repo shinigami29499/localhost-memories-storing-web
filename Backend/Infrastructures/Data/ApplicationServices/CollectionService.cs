@@ -141,6 +141,10 @@ public sealed class CollectionService(
         return await GetCollectionAsync(collectionId, editorId, cancellationToken);
     }
 
+    public async Task<CollectionDto> GetCollectionForAdminAsync(Guid collectionId, CancellationToken cancellationToken = default)
+        => mapper.Map(await repository.GetCollectionSourceAsync(collectionId, cancellationToken)
+            ?? throw new NotFoundException($"Collection '{collectionId}' was not found."));
+
     public Task DeleteCollectionAsync(
         Guid collectionId, Guid ownerId, CancellationToken cancellationToken = default)
         => DeleteCollectionAsync(collectionId, ownerId, false, cancellationToken);

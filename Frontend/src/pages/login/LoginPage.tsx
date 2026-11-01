@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowRight } from "@/components/animate-ui/icons/arrow-right";
 import { Link, useNavigate } from "react-router-dom";
 import { authService } from "../../features/auth";
@@ -15,14 +15,19 @@ export function LoginPage() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
 
+  useEffect(() => {
+    if (sessionStorage.getItem("shinigacim-logout-toast") !== "1") return;
+    sessionStorage.removeItem("shinigacim-logout-toast");
+    showToast.success(t("Logout successfully"));
+  }, [t]);
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
     try {
       const session = await authService.login(username.trim(), password);
       useAuthStore.getState().setSession(session);
-      showToast.success(t("Login as {username} successfully", { username: session.user.username }), { highlight: [session.user.username] });
-      navigate("/", { replace: true });
+      navigate("/", { replace: true, state: { authToast: { type: "login", username: session.user.username } } });
     } catch (err) {
       showToast.error(t("Authentication failed"), err instanceof Error ? err.message : t("Login failed."));
     } finally {

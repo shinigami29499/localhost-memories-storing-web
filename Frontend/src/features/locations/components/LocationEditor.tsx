@@ -56,7 +56,7 @@ export function LocationEditor({ media, draft, onChange, onSaved, onCancel }: Pr
       onChange(location);
       await queryClient.invalidateQueries({ queryKey: ["media"] });
       await queryClient.invalidateQueries({ queryKey: ["albums"] });
-      showToast.success(t(location ? "Location saved." : "Location removed."));
+      (location ? showToast.success : showToast.delete)(t(location ? "Location saved." : "Location removed."));
       if (location) onSaved();
     },
   });

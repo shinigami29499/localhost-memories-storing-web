@@ -43,6 +43,10 @@
   border-bottom: 1px solid var(--border);
 }
 
+.profile-page__identity > div {
+  min-width: 0;
+}
+
 .profile-page__avatar {
   display: grid;
   width: 56px;
@@ -64,6 +68,7 @@
 .profile-page__identity p {
   margin: 4px 0 0;
   color: var(--text-muted);
+  overflow-wrap: anywhere;
 }
 
 .profile-page__details {

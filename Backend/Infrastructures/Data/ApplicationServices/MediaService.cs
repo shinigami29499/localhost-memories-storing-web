@@ -51,6 +51,13 @@ public partial class MediaService(
         return new MediaFileContent(stream, media.MimeType, media.OriginalFilename);
     }
 
+    public async Task<MediaFileDto?> GetMediaForNotificationAsync(Guid mediaId, CancellationToken cancellationToken = default)
+    {
+        var media = await _repository.FindMediaIncludingDeletedAsync(mediaId, cancellationToken);
+        return media is null ? null : new MediaFileDto(media.Id, media.MediaKind, media.MimeType,
+            media.OriginalFilename, media.FileSizeBytes, media.CreatedAt, false, media.OwnerId);
+    }
+
     public async Task DeleteMediaAsync(Guid mediaId, Guid actorId, bool isAdmin, CancellationToken cancellationToken = default)
     {
         var media = await LoadOwnedMediaAsync(mediaId, actorId, isAdmin, cancellationToken);

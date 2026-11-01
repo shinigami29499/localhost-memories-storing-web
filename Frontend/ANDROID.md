@@ -1,14 +1,31 @@
 # Android build
 
-Install Node.js 22 or newer, JDK 21, Android SDK 36, and the frontend dependencies with `npm ci`.
+Install Node.js 22 or newer, JDK 21, Android SDK 36, and frontend dependencies once with `npm ci`.
 
-Set `VITE_API_URL` to the HTTPS backend URL reachable by the Android device before building. `localhost` refers to the device itself. Add `https://localhost` to the backend's `Cors:AllowedOrigins`; Capacitor serves the app from that origin. The backend must support HTTPS with a certificate trusted by the device.
-
-From `Frontend/` in PowerShell:
+From either `Frontend/` or `Frontend/android/` in PowerShell, run this whenever you want a fresh APK. Update the SDK or JDK paths if they differ on your machine:
 
 ```powershell
-$env:VITE_API_URL = "https://your-api.example.com"
-npm.cmd run android:sync; if ($LASTEXITCODE -eq 0) { Push-Location android; .\gradlew.bat assembleDebug; Pop-Location }
+$env:VITE_API_URL = "https://inc-clubs-acceptable-completely.trycloudflare.com"
+$env:ANDROID_HOME = "E:\JDK-SDK\Android\SDK"
+$env:JAVA_HOME = "E:\IDE\Android\Android Studio\jbr"
+$frontend = (Get-Location).Path
+if ((Split-Path $frontend -Leaf) -ieq "android") { $frontend = Split-Path $frontend -Parent }
+Push-Location $frontend
+try {
+    npm.cmd run android:sync
+    if ($LASTEXITCODE -ne 0) { throw "Frontend build or Android sync failed" }
+    Push-Location (Join-Path $frontend "android")
+    try {
+        .\gradlew.bat :app:assembleDebug
+        if ($LASTEXITCODE -ne 0) { throw "APK build failed" }
+    } finally {
+        Pop-Location
+    }
+} finally {
+    Pop-Location
+}
 ```
 
-The debug APK is `android/app/build/outputs/apk/debug/app-debug.apk`. It uses a debug signing key and is intended for development, not distribution. Release builds require a private signing key and a configured release signing process. Run `npm run android:sync` after frontend changes before rebuilding the APK.
+The debug APK is `android/app/build/outputs/apk/debug/app-debug.apk`. It uses a debug signing key and is intended for development, not distribution. Release builds require a private signing key and a configured release signing process.
+
+Capacitor serves the app from `https://localhost`; add that origin to the backend's `Cors:AllowedOrigins`. The backend must support HTTPS with a certificate trusted by the device.

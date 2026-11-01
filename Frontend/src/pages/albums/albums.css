@@ -1,5 +1,8 @@
 /* Albums ------------------------------------------------------------- */
 
+.albums-page__footer { view-transition-name: albums-footer; }
+::view-transition-group(albums-footer) { z-index: 3; }
+
 .album-save-menu__content {
   background: var(--surface-card);
   border: 1px solid var(--border);
@@ -87,11 +90,14 @@
   flex-direction: column;
   gap: 10px;
   text-decoration: none;
+  touch-action: pan-y pinch-zoom;
+  user-select: none;
 }
 
 .album-card__media {
   aspect-ratio: 1;
   background: var(--surface-raised);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow-popover);
   display: block;
@@ -99,13 +105,32 @@
   position: relative;
 }
 
+.album-card__selection {
+  align-items: center;
+  background: var(--surface);
+  border: 2px solid var(--text-strong);
+  border-radius: 4px;
+  color: var(--text-strong);
+  display: flex;
+  height: 24px;
+  justify-content: center;
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  width: 24px;
+}
+
+.album-card__selection--selected { background: var(--text-strong); color: var(--surface); }
+
+.album-page .gallery-selection-bar__cancel:disabled { cursor: not-allowed; opacity: 0.4; }
+
 
 .album-card__link:focus-visible {
   outline: none;
 }
 
 .album-card__link:focus-visible .album-card__media {
-  outline: 3px solid var(--accent);
+  outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
@@ -301,7 +326,7 @@
 }
 
 .album-caption__text:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 4px;
 }
 

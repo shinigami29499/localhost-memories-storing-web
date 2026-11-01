@@ -11,6 +11,7 @@ public class ApplicationDbContext(
     IAuditActorProvider? actorProvider = null) : DbContext(options)
 {
     public DbSet<User> Users => Set<User>();
+    public DbSet<SharedHomeLocation> SharedHomeLocations => Set<SharedHomeLocation>();
     public DbSet<DownloadBatchState> DownloadBatchStates => Set<DownloadBatchState>();
     public DbSet<DownloadRecord> DownloadRecords => Set<DownloadRecord>();
     public DbSet<MediaFile> MediaFiles => Set<MediaFile>();
@@ -20,9 +21,9 @@ public class ApplicationDbContext(
     public DbSet<Collection> Collections => Set<Collection>();
     public DbSet<CollectionMedia> CollectionMedia => Set<CollectionMedia>();
     public DbSet<MediaFavorite> MediaFavorites => Set<MediaFavorite>();
-    public DbSet<FoodPlace> FoodPlaces => Set<FoodPlace>();
-    public DbSet<FoodPlaceMedia> FoodPlaceMedia => Set<FoodPlaceMedia>();
-    public DbSet<FoodPlaceVisit> FoodPlaceVisits => Set<FoodPlaceVisit>();
+    public DbSet<Place> Places => Set<Place>();
+    public DbSet<PlaceMedia> PlaceMedia => Set<PlaceMedia>();
+    public DbSet<PlaceVisit> PlaceVisits => Set<PlaceVisit>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -30,8 +31,16 @@ public class ApplicationDbContext(
 
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
-            entityType.FindProperty(nameof(Entity.Id))?.SetDefaultValueSql("gen_random_uuid()");
+            if (typeof(Entity).IsAssignableFrom(entityType.ClrType))
+                entityType.FindProperty(nameof(Entity.Id))?.SetDefaultValueSql("gen_random_uuid()");
         }
+
+        modelBuilder.Entity<SharedHomeLocation>(entity =>
+        {
+            entity.Property(location => location.Id).ValueGeneratedNever();
+            entity.ToTable(table => table.HasCheckConstraint("ck_shared_home_location_singleton", "id = 1"));
+            entity.HasData(new SharedHomeLocation { Id = 1 });
+        });
 
         modelBuilder.Entity<User>(entity =>
         {
@@ -209,7 +218,7 @@ public class ApplicationDbContext(
             entity.HasQueryFilter(favorite => favorite.DeletedAt == null);
         });
 
-        modelBuilder.Entity<FoodPlace>(entity =>
+        modelBuilder.Entity<Place>(entity =>
         {
             entity.Property(place => place.Name).HasMaxLength(120).IsRequired();
             entity.Property(place => place.Address).HasMaxLength(300).IsRequired().HasDefaultValue("");
@@ -228,11 +237,11 @@ public class ApplicationDbContext(
             entity.HasQueryFilter(place => place.DeletedAt == null);
         });
 
-        modelBuilder.Entity<FoodPlaceMedia>(entity =>
+        modelBuilder.Entity<PlaceMedia>(entity =>
         {
-            entity.HasOne(item => item.FoodPlace)
+            entity.HasOne(item => item.Place)
                 .WithMany(place => place.MediaItems)
-                .HasForeignKey(item => item.FoodPlaceId)
+                .HasForeignKey(item => item.PlaceId)
                 .OnDelete(DeleteBehavior.NoAction);
 
             entity.HasOne(item => item.MediaFile)
@@ -240,20 +249,20 @@ public class ApplicationDbContext(
                 .HasForeignKey(item => item.MediaFileId)
                 .OnDelete(DeleteBehavior.NoAction);
 
-            entity.HasIndex(item => new { item.FoodPlaceId, item.MediaFileId })
+            entity.HasIndex(item => new { item.PlaceId, item.MediaFileId })
                 .IsUnique()
                 .HasFilter("deleted_at IS NULL");
-            entity.HasIndex(item => new { item.FoodPlaceId, item.Position });
+            entity.HasIndex(item => new { item.PlaceId, item.Position });
             entity.HasIndex(item => item.MediaFileId);
 
             entity.HasQueryFilter(item => item.DeletedAt == null);
         });
 
-        modelBuilder.Entity<FoodPlaceVisit>(entity =>
+        modelBuilder.Entity<PlaceVisit>(entity =>
         {
-            entity.HasOne(visit => visit.FoodPlace)
+            entity.HasOne(visit => visit.Place)
                 .WithMany()
-                .HasForeignKey(visit => visit.FoodPlaceId)
+                .HasForeignKey(visit => visit.PlaceId)
                 .OnDelete(DeleteBehavior.NoAction);
 
             entity.HasOne(visit => visit.User)
@@ -262,7 +271,7 @@ public class ApplicationDbContext(
                 .OnDelete(DeleteBehavior.NoAction);
 
             entity.HasIndex(visit => new { visit.UserId, visit.CreatedAt });
-            entity.HasIndex(visit => visit.FoodPlaceId);
+            entity.HasIndex(visit => visit.PlaceId);
 
             entity.HasQueryFilter(visit => visit.DeletedAt == null);
         });
@@ -312,3 +321,4 @@ public class ApplicationDbContext(
         }
     }
 }
+

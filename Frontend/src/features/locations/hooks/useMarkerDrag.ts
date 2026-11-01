@@ -1,7 +1,7 @@
 ﻿import { useRef, useState, type PointerEvent } from "react";
 import { useMap } from "react-map-gl/mapbox";
 
-const HOLD_MS = 250;
+export const MARKER_DRAG_HOLD_MS = 150;
 
 export function useMarkerDrag(location: { latitude: number; longitude: number }, onMove: (location: { latitude: number; longitude: number }) => void, enabled = true) {
   const { current: map } = useMap();
@@ -24,7 +24,7 @@ export function useMarkerDrag(location: { latitude: number; longitude: number },
       if (!start || start.id !== event.pointerId) return;
       const x = event.clientX - start.x, y = event.clientY - start.y;
       if (Math.hypot(x, y) > 8 && !start.dragging) {
-        if (performance.now() - start.startedAt < HOLD_MS) {
+        if (performance.now() - start.startedAt < MARKER_DRAG_HOLD_MS) {
           start.cancelled = true;
           suppressClick.current = true;
         } else if (!start.cancelled) start.dragging = true;

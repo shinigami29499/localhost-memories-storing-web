@@ -7,7 +7,7 @@ public class MediaStorageOptions
     /// <summary>Absolute root containing media and trash.</summary>
     public string Root { get; set; } = string.Empty;
 
-    public int MaxFileMegabytes { get; set; } = 100;
+    public int MaxFileMegabytes { get; set; } = 8192;
 
     public string FFmpegPath { get; set; } = "ffmpeg";
 

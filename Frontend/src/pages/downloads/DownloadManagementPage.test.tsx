@@ -66,7 +66,7 @@ describe("download management", () => {
 
   it("explains how to start downloads and discloses browser and session limits", async () => {
     await render();
-    expect(container.querySelector("h1")?.textContent).toBe("Download management");
+    expect(container.querySelector("h1")?.textContent).toBe("Download.");
     expect(container.textContent).toContain("No downloads yet");
     expect(container.textContent).toContain("not automatically to Photos");
     expect(container.textContent).toContain("saving cannot be confirmed here");

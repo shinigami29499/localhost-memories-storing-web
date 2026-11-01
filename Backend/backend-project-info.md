@@ -41,20 +41,20 @@ Paths in this page are relative to the repository root.
 | Account avatars | `UsersController` exposes authenticated `GET /api/users/me` and `PUT /api/users/me/avatar` (`{ "seed": "..." }`, 1-128 characters). `UserService` updates only the current account and returns `UserResponse`; auth/user and owner-summary responses include nullable `avatarSeed`. Migration `AddUserAvatarSeed` adds nullable `users.avatar_seed`, preserving existing accounts. Apply through the normal migration workflow before using the updated API; builds do not update the database. |
 | Persistence and workflow registration | `Backend/Infrastructures/Data/DependencyInjection/ServiceCollectionExtensions.cs` |
 | Application utility registration | `Backend/Services/DependencyInjection/ServiceCollectionExtensions.cs` |
-| Mapping implementation and definitions | `Backend/Services/Implementations/Mapper.cs`, `Backend/Services/Mappings/AuthMappings.cs`, `Backend/Services/Mappings/CollectionMappings.cs`, `Backend/Services/Mappings/FoodPlaceMappings.cs` |
+| Mapping implementation and definitions | `Backend/Services/Implementations/Mapper.cs`, `Backend/Services/Mappings/AuthMappings.cs`, `Backend/Services/Mappings/CollectionMappings.cs`, `Backend/Services/Mappings/PlaceMappings.cs` |
 | Media access, paging, favorites, trash, restore, purge | `Backend/Infrastructures/Data/ApplicationServices/MediaService.cs`, `Backend/Infrastructures/Data/Implementations/MediaRepository.cs` |
 | Photo location updates and backfill | `Backend/Infrastructures/Data/ApplicationServices/MediaService.Location.cs`, `Backend/Services/Models/Media/MediaLocationMetadata.cs` |
 | Upload tracking and file completion | `Backend/Infrastructures/Data/ApplicationServices/UploadService.cs`, `Backend/Infrastructures/Data/Implementations/UploadRepository.cs` |
 | Albums, captions, membership, preview uploads | `Backend/Infrastructures/Data/ApplicationServices/CollectionService.cs`, `Backend/Infrastructures/Data/Implementations/CollectionRepository.cs` |
-| Food places, visits, history, ratings, notes, custom markers | `Backend/Infrastructures/Data/ApplicationServices/FoodPlaceService.cs`, `Backend/Infrastructures/Data/Implementations/FoodPlaceRepository.cs` |
+| Places, visits, history, ratings, notes, custom markers | `Backend/Infrastructures/Data/ApplicationServices/PlaceService.cs`, `Backend/Infrastructures/Data/Implementations/PlaceRepository.cs` |
 | File storage and trash moves | `Backend/Infrastructures/Adapters/Implementations/MediaStorageService.cs` |
 | JPEG previews | `Backend/Infrastructures/Adapters/Implementations/MediaStorageService.Preview.cs` |
 | EXIF GPS extraction | `Backend/Infrastructures/Adapters/Implementations/MediaStorageService.Location.cs` |
 | Upload realtime groups and delivery | `Backend/Apis/Realtime/NotificationsHub.cs`, `Backend/Apis/Realtime/UploadNotifications.cs` |
 
 Current domain entities are `User`, `RefreshToken`, `MediaFile`, `MediaFavorite`,
-`Collection`, `CollectionMedia`, `UploadBatch`, `UploadItem`, `FoodPlace`, and
-`FoodPlaceVisit`, alongside
+`Collection`, `CollectionMedia`, `UploadBatch`, `UploadItem`, `Place`, and
+`PlaceVisit`, alongside
 the shared entity bases. Media belongs directly to its uploader through
 `MediaFile.OwnerId`; album membership and favorites reference media, not posts.
 
@@ -91,9 +91,9 @@ The Infrastructures project's Data area hosts workflow orchestration that coordi
 | Media lists, files, trash, restore, purge | `MediaController.cs` | `IMediaService`, `MediaService`; `/api/library/gallery` |
 | Media favorites | `MediaFavoritesController.cs` | `IMediaService`; `GET /api/library/gallery/favorites`, `POST`/`DELETE /api/library/gallery/{mediaId}/favorite` |
 | Photo locations | `MediaController.cs` | `IMediaService`; `PUT /api/location/travel/{mediaId}`, `POST /api/location/travel/scan` |
-| Food places and current-user visit history | `FoodPlacesController.cs` | `IFoodPlaceService`, `FoodPlaceService`; `/api/location/food` |
+| Places and current-user visit history | `PlacesController.cs` | `IPlaceService`, `PlaceService`; `/api/location/place` |
 | Upload batches, queue, progress, file completion | `UploadsController.cs` | `IUploadService`, `UploadService`; `/api/sync/upload` |
-| User listing, admin approval/deletion, account home location | `UsersController.cs` | `IUserService`, `UserService`; `/api/users`, `/api/location/food/home-location` |
+| User listing, admin approval/deletion, account home location | `UsersController.cs` | `IUserService`, `UserService`; `/api/users`, `/api/location/place/home-location` |
 | Mention candidate lookup | `UserDirectoryController.cs` | `IUserService`; `GET /api/users/directory/mentions` |
 
 New routes follow sidebar groups; previous API paths remain aliases for compatibility.
@@ -141,31 +141,33 @@ in one transaction. Removing selected preview media clears the preview reference
 Soft-deleted media disappears from album results and returns after restoration;
 permanent deletion removes membership, favorites, and preview references.
 
-### Food places
+### Places
 
-`FoodPlace` records a map-based food location with a name (maximum 120 characters),
+`Place` records a map-based place location with a name (maximum 120 characters),
 an optional address (maximum 300 characters), a note (maximum 2,000 characters),
 latitude/longitude, a rating, and marker styling.
 `Rating` is 1 to 5 stars, or 0 when the place is unrated. `MarkerIcon` is a short emoji
 or glyph (maximum 16 characters) and `MarkerColor` is a `#RGB` or `#RRGGBB` hex color;
-both fall back to defaults when omitted. Every signed-in user can read all food places
-through `GET /api/location/food`; only the owner or an administrator can update or delete
+both fall back to defaults when omitted. Every signed-in user can read all places
+through `GET /api/location/place`; only the owner or an administrator can update or delete
 one. Deletion is a soft delete, like every other entity.
 
-`FoodPlaceMedia` links a food place to up to 12 active library images in display order;
-the lowest `Position` is the cover. `SaveFoodPlaceRequest.MediaIds` replaces the links in
+`PlaceMedia` links a place to up to 12 active library images in display order;
+the lowest `Position` is the cover. `SavePlaceRequest.MediaIds` replaces the links in
 the given order (duplicates are ignored), or keeps them unchanged when omitted.
-`FoodPlaceDto.MediaIds` lists only active images, so trashed or deleted media drop out.
-Deleting a food place soft-deletes its links.
+`PlaceDto.MediaIds` lists only active images, so trashed or deleted media drop out.
+Deleting a place soft-deletes its links.
 
 Every signed-in user can record repeat visits through
-`POST /api/location/food/{foodPlaceId}/visits`. `GET /api/location/food/visits` returns
+`POST /api/location/place/{placeId}/visits`. `GET /api/location/place/visits` returns
 only that user's visits, newest first. The visit timestamp comes from the audit
-`CreatedAt` value. History retains place details after a food place is soft-deleted.
+`CreatedAt` value. History retains place details after a place is soft-deleted.
 
-Each account stores one optional home coordinate on `User`. Authenticated users read
-and update only their own location through `GET` and `PUT /api/location/food/home-location`;
-`DELETE` clears it.
+All authenticated accounts share one optional home coordinate. `GET` and `PUT`
+`/api/location/place/home-location` read and update it; `DELETE` clears it for everyone.
+New photos without coordinates use the shared home. Applying it to existing unlocated
+photos remains limited to the requesting account. The migration initializes home from
+the oldest non-deleted account with coordinates and retains all original account values.
 
 ### Locations and previews
 
@@ -187,14 +189,14 @@ it. Both previews and deleted-file responses use `Cache-Control: no-store`.
 `AddMediaLevelAlbumFavorites` introduced media album membership and favorites.
 `RemovePostFeatures` then removed posts, comments, reactions, persisted post
 notifications, and upload-to-post links, transferring media ownership to users.
-`AddCollectionCaption` adds album captions. `AddFoodPlaces` adds the `food_places`
-table for map-based food places with rating, note, and marker columns.
-`AddFoodPlaceMedia` adds the ordered `food_place_media` image links.
-`AddFoodPlaceAddress` adds an optional address to `food_places`. Earlier post-related
+`AddCollectionCaption` adds album captions. `AddPlaces` adds the `place_places`
+table for map-based places with rating, note, and marker columns.
+`AddPlaceMedia` adds the ordered `place_place_media` image links.
+`AddPlaceAddress` adds an optional address to `place_places`. Earlier post-related
 migrations remain historical steps, not active API documentation.
 `AddUserHomeLocation` adds nullable home coordinates to `users`. The model snapshot is
 `Backend/Infrastructures/Data/Migrations/ApplicationDbContextModelSnapshot.cs`.
-`AddFoodPlaceVisits` adds per-user visit records for food places.
+`AddPlaceVisits` adds per-user visit records for places.
 
 ## Runtime configuration
 

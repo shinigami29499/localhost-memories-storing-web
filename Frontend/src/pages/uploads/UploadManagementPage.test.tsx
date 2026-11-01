@@ -172,7 +172,7 @@ describe("UploadManagementPage", () => {
       </QueryClientProvider>,
     ));
 
-    expect(container.querySelector("h1")?.textContent).toBe("Upload management");
+    expect(container.querySelector("h1")?.textContent).toBe("Upload.");
     expect(container.querySelector("#upload-media-files")).not.toBeNull();
     expect(container.textContent).toContain("Loading");
     expect(container.querySelector('[aria-label="Select replacement file"]')?.hasAttribute("hidden")).toBe(true);
@@ -189,7 +189,7 @@ describe("UploadManagementPage", () => {
     await act(async () => {
       await vi.waitFor(() => expect(container.textContent).toContain("Error"));
     });
-    expect(container.querySelector("h1")?.textContent).toBe("Upload management");
+    expect(container.querySelector("h1")?.textContent).toBe("Upload.");
     expect(container.querySelector("#upload-media-files")).not.toBeNull();
   });
 

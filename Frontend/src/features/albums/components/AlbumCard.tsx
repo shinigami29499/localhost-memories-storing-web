@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { Bookmark } from "@/components/animate-ui/icons/bookmark";
 import { PencilLine } from "@/components/animate-ui/icons/pencil-line";
+import { Check } from "@/components/animate-ui/icons/check";
 import { useLocale } from "../../../context/LocaleContext";
 import { mediaPreviewUrl } from "../../../utils/media";
 import type { Album } from "../types";
@@ -14,9 +15,12 @@ interface Props {
   showOwner?: boolean;
   /** Shown only to the owner. */
   onEdit?: (album: Album) => void;
+  selectionMode?: boolean;
+  selected?: boolean;
+  onSelect?: (albumId: string) => void;
 }
 
-export function AlbumCard({ album, isOwner, showOwner = false, onEdit }: Props) {
+export function AlbumCard({ album, isOwner, showOwner = false, onEdit, selectionMode = false, selected = false, onSelect }: Props) {
   const { t } = useLocale();
   const previewRef = useRef<HTMLSpanElement>(null);
   const inView = useInView(previewRef, { margin: "200px 0px" });
@@ -27,7 +31,12 @@ export function AlbumCard({ album, isOwner, showOwner = false, onEdit }: Props) 
 
   return (
     <article className="album-card">
-      <Link to={`/library/album/${album.id}`} className="album-card__link" aria-label={t("Open album {name}", { name: album.name })} aria-description={t("{count} media", { count: album.mediaCount })}>
+      <Link to={`/library/album/${album.id}`} className="album-card__link" data-media-id={album.id} role={selectionMode ? "checkbox" : undefined} aria-checked={selectionMode ? selected : undefined}
+        aria-label={t(selectionMode ? "Select album {name}" : "Open album {name}", { name: album.name })} aria-description={t("Hold to select, or press Shift+Space.")}
+        onDragStart={(event) => event.preventDefault()}
+        onContextMenu={(event) => event.preventDefault()}
+        onKeyDown={(event) => { if ((event.shiftKey || selectionMode) && event.key === " ") { event.preventDefault(); if (!event.repeat) onSelect?.(album.id); } }}
+        onClick={(event) => { if (selectionMode) { event.preventDefault(); onSelect?.(album.id); } }}>
         <span ref={previewRef} className="album-card__media">
           {showImage ? (
             inView ? <img src={mediaPreviewUrl(preview)} alt="" loading="lazy" decoding="async" onError={() => setFailedId(preview)} /> : null
@@ -35,6 +44,9 @@ export function AlbumCard({ album, isOwner, showOwner = false, onEdit }: Props) 
             <span className="album-card__placeholder" aria-hidden="true"><Bookmark size={32} /></span>
           )}
           <span className="album-card__badge">{t(album.isPublic ? "Public" : "Private")}</span>
+          {selectionMode && <span className={`album-card__selection${selected ? " album-card__selection--selected" : ""}`} aria-hidden="true">
+            {selected && <Check size={16} aria-hidden="true" />}
+          </span>}
           <span className="album-card__body">
             <span className="album-card__details">
               <span className="album-card__name">{album.name}</span>
@@ -47,7 +59,7 @@ export function AlbumCard({ album, isOwner, showOwner = false, onEdit }: Props) 
         </span>
         {album.caption ? <span className="album-card__caption">{album.caption}</span> : null}
       </Link>
-      {isOwner && onEdit ? (
+      {isOwner && onEdit && !selectionMode ? (
         <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
           <button
             type="button"

@@ -1,5 +1,6 @@
 import { startTransition, useEffect, useMemo, useRef, useState } from "react";
 import * as Tabs from "@radix-ui/react-tabs";
+import { Highlight, HighlightItem } from "@animate-ui/react/primitives/effects/highlight";
 import { RotateCcw } from "@/components/animate-ui/icons/rotate-ccw";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
 import { X } from "@/components/animate-ui/icons/x";
@@ -16,7 +17,7 @@ import { MediaPreviewDialog } from "../../features/media/components/MediaPreview
 import { useMediaSelectionDrag } from "../../features/media/hooks/useMediaSelectionDrag";
 import { mediaService } from "../../features/media/services/mediaService";
 import { DownloadButton } from "../../features/downloads/components/DownloadButton";
-import type { MediaKindFilter } from "../../features/media/types";
+import type { MediaFile, MediaKindFilter } from "../../features/media/types";
 import "./gallery.css";
 import "../../features/media/components/media.css";
 
@@ -39,7 +40,7 @@ function trashQueryOptions(filter: MediaKindFilter) {
   });
 }
 export function TrashPage() {
-  const { t } = useLocale();
+  const { t, language } = useLocale();
   const pageTransition = readPageTransitionEffect();
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<MediaKindFilter>("image");
@@ -57,6 +58,21 @@ export function TrashPage() {
   const media = useMemo(
     () => (query.data?.pages ?? []).flatMap((page) => page.items),
     [query.data],
+  );
+  const groups = useMemo(() => {
+    const byDate = new Map<string, { date: Date; items: MediaFile[] }>();
+    for (const item of media) {
+      const date = new Date(item.createdAt);
+      const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+      const group = byDate.get(key);
+      if (group) group.items.push(item);
+      else byDate.set(key, { date, items: [item] });
+    }
+    return [...byDate.entries()].sort(([, a], [, b]) => b.date.getTime() - a.date.getTime());
+  }, [media]);
+  const dateFormatter = useMemo(
+    () => new Intl.DateTimeFormat(language, { year: "numeric", month: "long", day: "numeric" }),
+    [language],
   );
 
   const cancelSelection = () => {
@@ -193,17 +209,20 @@ export function TrashPage() {
                   });
               }}
             >
-              <div className="gallery-page__toolbar">
-                <Tabs.List className="gallery-page__filters" aria-label={t("Filter by media type")}>
+              <div className="gallery-page__media-toolbar">
+                <Tabs.List className="gallery-page__media-filters" aria-label={t("Filter by media type")}>
+                  <Highlight value={filter} controlledItems className="gallery-page__media-highlight">
                   {filters.map(({ value, label }) => (
+                    <HighlightItem key={value} value={value} asChild>
                     <Tabs.Trigger
-                      key={value}
-                      className="gallery-page__filter"
+                      className="gallery-page__media-option"
                       value={value}
                     >
                       {t(label)}
                     </Tabs.Trigger>
+                    </HighlightItem>
                   ))}
+                  </Highlight>
                 </Tabs.List>
               </div>
               <Tabs.Content value={filter} className="gallery-page__tab-panel gallery-page__tab-panel--media" aria-busy={tabLoading || undefined}>
@@ -214,19 +233,32 @@ export function TrashPage() {
                   ) : null}
 
                   {media.length > 0 ? (
-                    <MediaRetryProvider key={filter} order={media.map((item) => item.id)}>
-                      <div className="gallery-date-grid">
-                        {media.map((item) => (
-                          <MediaTile
-                            key={item.id}
-                            media={item}
-                            includeDeleted
-                            selectionMode={selectionMode}
-                            selectionDragEnabled
-                            selected={selectedIds.has(item.id)}
-                            onSelect={toggleSelected}
-                            onOpen={setPreviewMediaId}
-                          />
+                    <MediaRetryProvider key={filter} order={groups.flatMap(([, group]) => group.items.map((item) => item.id))}>
+                      <div className="gallery-groups">
+                        {groups.map(([key, group]) => (
+                          <section key={key} aria-label={dateFormatter.format(group.date)}>
+                            <div className="gallery-group__header">
+                              <h2 className="gallery-group__title">
+                                <time dateTime={`${group.date.getFullYear()}-${String(group.date.getMonth() + 1).padStart(2, "0")}-${String(group.date.getDate()).padStart(2, "0")}`}>
+                                  {dateFormatter.format(group.date)}
+                                </time>
+                              </h2>
+                            </div>
+                            <div className="gallery-date-grid">
+                              {group.items.map((item) => (
+                                <MediaTile
+                                  key={item.id}
+                                  media={item}
+                                  includeDeleted
+                                  selectionMode={selectionMode}
+                                  selectionDragEnabled
+                                  selected={selectedIds.has(item.id)}
+                                  onSelect={toggleSelected}
+                                  onOpen={setPreviewMediaId}
+                                />
+                              ))}
+                            </div>
+                          </section>
                         ))}
                       </div>
                     </MediaRetryProvider>

@@ -1,4 +1,5 @@
 import { useId, useState } from "react";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { useLocale } from "../../../context/LocaleContext";
 import { googleDirectionsUrl, type Coordinate, type NavigationDestination, type TravelMode } from "../services/directionsService";
 import "./mapNavigation.css";
@@ -18,13 +19,28 @@ export function NavigationModeSelect({ mode, disabled, onChange }: {
   const id = useId();
   return (
     <>
-      <label htmlFor={id}>{t("Travel mode")}</label>
-      <select id={id} value={mode} disabled={disabled} onChange={(event) => {
-        const selected = modes.find((item) => item.value === event.target.value);
-        if (selected) onChange(selected.value);
-      }}>
-        {modes.map((item) => <option key={item.value} value={item.value}>{t(item.label)}</option>)}
-      </select>
+      <span id={id}>{t("Travel mode")}</span>
+      <DropdownMenu.Root>
+        <DropdownMenu.Trigger className="map-navigation__mode-trigger" disabled={disabled} aria-labelledby={id}>
+          <span>{t(modes.find((item) => item.value === mode)?.label ?? "Driving")}</span>
+          <span className="map-navigation__mode-chevron" aria-hidden="true" />
+        </DropdownMenu.Trigger>
+        <DropdownMenu.Portal>
+          <DropdownMenu.Content className="map-navigation__mode-menu" align="start" sideOffset={4} collisionPadding={8}>
+            <DropdownMenu.RadioGroup value={mode} onValueChange={(value) => {
+              const selected = modes.find((item) => item.value === value);
+              if (selected) onChange(selected.value);
+            }}>
+              {modes.map((item) => (
+                <DropdownMenu.RadioItem className="map-navigation__mode-item" key={item.value} value={item.value}>
+                  {t(item.label)}
+                  <DropdownMenu.ItemIndicator aria-hidden="true">✓</DropdownMenu.ItemIndicator>
+                </DropdownMenu.RadioItem>
+              ))}
+            </DropdownMenu.RadioGroup>
+          </DropdownMenu.Content>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>
     </>
   );
 }

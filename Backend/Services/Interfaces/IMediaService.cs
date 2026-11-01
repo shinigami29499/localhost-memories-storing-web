@@ -6,6 +6,7 @@ namespace Services.Interfaces;
 
 public interface IMediaService
 {
+    Task<MediaFileDto?> GetMediaForNotificationAsync(Guid mediaId, CancellationToken cancellationToken = default);
     Task SetLocationAsync(
         Guid mediaId, Guid actorId, bool isAdmin, SetMediaLocationRequest request,
         CancellationToken cancellationToken = default);

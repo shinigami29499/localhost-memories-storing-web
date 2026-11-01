@@ -9,7 +9,7 @@ describe("homeLocationService", () => {
 
   it("does not assign existing photos without explicit consent", async () => {
     await homeLocationService.set({ latitude: 0, longitude: 0 });
-    expect(api).toHaveBeenCalledWith("/api/location/food/home-location", {
+    expect(api).toHaveBeenCalledWith("/api/location/place/home-location", {
       method: "PUT",
       body: { latitude: 0, longitude: 0, applyToUnlocatedPhotos: false },
     });
@@ -17,7 +17,7 @@ describe("homeLocationService", () => {
 
   it("includes explicit consent when assigning existing photos", async () => {
     await homeLocationService.set({ latitude: -90, longitude: 180 }, true);
-    expect(api).toHaveBeenCalledWith("/api/location/food/home-location", {
+    expect(api).toHaveBeenCalledWith("/api/location/place/home-location", {
       method: "PUT",
       body: { latitude: -90, longitude: 180, applyToUnlocatedPhotos: true },
     });

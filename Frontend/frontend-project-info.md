@@ -15,7 +15,7 @@ including local source changes. Paths below are relative to `Frontend/`.
 | Albums | `src/features/albums/` |
 | Media library | `src/features/media/` |
 | Photo locations | `src/features/locations/` |
-| Food places | `src/features/food/` |
+| Places | `src/features/place/` |
 | Upload management | `src/features/uploads/` |
 | Browser-local upload notifications | `src/features/notifications/uploadNotificationStore.ts` |
 | Pages | `src/pages/` |
@@ -43,13 +43,13 @@ shared `Suspense` fallback for them.
 | `/library/gallery/trash` | `src/pages/gallery/TrashPage.tsx` | `features/media/services/mediaService.ts` |
 | `/sync/upload` | `src/pages/uploads/UploadManagementPage.tsx` | `features/uploads/components/UploadBatchCard.tsx`, `features/uploads/components/UploadActivityDialog.tsx`, `features/uploads/services/uploadService.ts` |
 | `/location/travel` | `src/pages/locations/LocationsPage.tsx` | `features/locations/hooks/useLocations.ts`, `features/locations/components/LocationMap.tsx`, `features/locations/components/LocationEditor.tsx` |
-| `/location/food` | `src/pages/food/FoodPage.tsx` | `features/food/hooks/useFoodPlaces.ts`, `features/locations/hooks/useHomeLocation.ts`, `features/food/components/FoodMap.tsx`, `features/food/components/FoodVisitHistory.tsx`, `features/food/components/FoodPlaceVisitHistory.tsx`, `features/food/components/FoodPlaceDialog.tsx`, `features/food/components/FoodPlaceEditor.tsx`, `features/food/components/StarRating.tsx` |
+| `/location/place` | `src/pages/place/PlacePage.tsx` | `features/place/hooks/usePlaces.ts`, `features/locations/hooks/useHomeLocation.ts`, `features/place/components/PlaceMap.tsx`, `features/place/components/PlaceVisitHistory.tsx`, `features/place/components/PlaceVisitHistory.tsx`, `features/place/components/PlaceDialog.tsx`, `features/place/components/PlaceEditor.tsx`, `features/place/components/StarRating.tsx` |
 | `/users` | `src/pages/users/UsersPage.tsx` | `features/users/services/userService.ts` |
 | `/profile` | `src/pages/profile/ProfilePage.tsx` | `features/users/components/AvatarPicker.tsx`, `features/users/services/userService.ts` |
 | `/login`, `/register` | `src/pages/login/LoginPage.tsx`, `src/pages/register/RegisterPage.tsx` | `features/auth/services/authService.ts`, `components/ui/PasswordInput.tsx` |
 
 Feature entry points in this table are under `src/`. Previous `/gallery`, `/albums`,
-`/locations`, `/food`, and `/uploads` routes redirect to these sidebar-based routes.
+`/locations`, `/place`, and `/uploads` routes redirect to these sidebar-based routes.
 Legacy `/saved` and `/saved/:albumId` still redirect to album routes; `/uploads/new`
 and `/admin/users` redirect to `/sync/upload` and `/users`.
 
@@ -58,14 +58,14 @@ and `/admin/users` redirect to `/sync/upload` and `/users`.
 | Concern | Source and boundary |
 | --- | --- |
 | Session and token refresh | `src/store/authStore.ts`, `src/services/api.ts`; `/api/auth` |
-| Account avatars | `src/components/common/UserAvatar.tsx` renders DiceBear Clay from the saved account seed. The profile picker previews choices, cancels drafts, and saves through `PUT /api/users/me/avatar`. `GET /api/users/me` reloads the saved profile; login/refresh and user/owner responses also include `avatarSeed`. Saving updates the persisted session and invalidates user, album, and food-place caches. DiceBear's HTTP API receives the avatar seed. |
+| Account avatars | `src/components/common/UserAvatar.tsx` renders DiceBear Clay from the saved account seed. The profile picker previews choices, cancels drafts, and saves through `PUT /api/users/me/avatar`. `GET /api/users/me` reloads the saved profile; login/refresh and user/owner responses also include `avatarSeed`. Saving updates the persisted session and invalidates user, album, and place-place caches. DiceBear's HTTP API receives the avatar seed. |
 | Album queries, membership, captions, previews | `src/features/albums/hooks/useAlbums.ts`, `src/features/albums/services/albumService.ts`; `/api/library/album` |
 | Media queries, favorites, trash | `src/features/media/hooks/useMedia.ts`, `src/features/media/services/mediaService.ts`; `/api/library/gallery` |
 | Media tiles, preview retries, fullscreen carousel | `src/features/media/components/MediaTile.tsx`, `MediaRetryProvider.tsx`, `MediaPreviewDialog.tsx` in the same folder |
 | Album pickers and bulk saving | `src/features/albums/components/SaveToAlbumButton.tsx`, `SaveToAlbumDialog.tsx`, `BulkSaveToAlbumDialog.tsx` in the same folder |
 | Location edits and GPS backfill | `src/features/locations/services/locationService.ts`; `PUT /api/location/travel/{mediaId}`, `POST /api/location/travel/scan` |
-| Shared map location search and account home location | `src/features/locations/components/LocationSearch.tsx`, `HomeLocationMarker.tsx`, `locationSearchService.ts`, `src/features/locations/hooks/useLocationSearch.ts`, `useHomeLocation.ts`, `homeLocationService.ts`; typing at least three characters searches Photon / OpenStreetMap after a 500 ms pause, without an API key. Up to five results appear inside the app and pass selected coordinates and names to the existing photo, food, or Home draft workflow. Requests time out after 10 seconds; errors support manual retry. Searches are cached for 60 seconds and canceled when the query changes, the control closes, or search is disabled. Only search text goes to the public Photon demo, which permits reasonable usage but may throttle requests and has no availability guarantee. Map display still uses Mapbox. Home uses `GET`/`PUT`/`DELETE /api/location/food/home-location`. On both maps, press and drag the home marker to request a move. Holding still opens removal confirmation at 600 ms without waiting for release; starting a drag before that threshold cancels removal. Right-click or Delete/Backspace while focused also requests removal. Both actions use the shared confirmation dialog; cancel keeps the saved position. Normal click keeps the existing home controls. |
-| Food place list, check-ins, current-user visit history globally and per place, optional addresses, rating, notes, custom markers, linked library photos | `src/features/food/services/foodPlaceService.ts`, `src/features/food/hooks/useFoodPlaces.ts`; `/api/location/food`, `/api/location/food/visits`, `/api/location/food/{id}/visits` |
+| Shared map location search and account home location | `src/features/locations/components/LocationSearch.tsx`, `HomeLocationMarker.tsx`, `locationSearchService.ts`, `src/features/locations/hooks/useLocationSearch.ts`, `useHomeLocation.ts`, `homeLocationService.ts`; typing at least three characters searches Photon / OpenStreetMap after a 500 ms pause, without an API key. Up to five results appear inside the app and pass selected coordinates and names to the existing photo, place, or Home draft workflow. Requests time out after 10 seconds; errors support manual retry. Searches are cached for 60 seconds and canceled when the query changes, the control closes, or search is disabled. Only search text goes to the public Photon demo, which permits reasonable usage but may throttle requests and has no availability guarantee. Map display still uses Mapbox. Home uses `GET`/`PUT`/`DELETE /api/location/place/home-location`. On both maps, press and drag the home marker to request a move. Holding still opens removal confirmation at 600 ms without waiting for release; starting a drag before that threshold cancels removal. Right-click or Delete/Backspace while focused also requests removal. Both actions use the shared confirmation dialog; cancel keeps the saved position. Normal click keeps the existing home controls. |
+| Place list, check-ins, current-user visit history globally and per place, optional addresses, rating, notes, custom markers, linked library photos | `src/features/place/services/placeService.ts`, `src/features/place/hooks/usePlaces.ts`; `/api/location/place`, `/api/location/place/visits`, `/api/location/place/{id}/visits` |
 | Upload submission, progress, recovery | `src/features/uploads/services/uploadService.ts`, `uploadRuntime.ts`, `uploadFileStore.ts` in the same folder; `/api/sync/upload` |
 | Mounted upload runtime and query invalidation | `src/features/uploads/components/UploadRuntime.tsx`, `src/features/uploads/hooks/useUploadRuntime.ts`; invalidates media, albums, and uploads |
 | Local notification UI | `src/components/layout/NotificationBell.tsx`, `src/features/notifications/uploadNotificationStore.ts` |
@@ -84,13 +84,13 @@ client has no SignalR subscription. The upload runtime refreshes local query sta
 
 ## Key behavior
 
-- Travel and Food share `features/locations/components/mapControls.css`: equal
+- Travel and Place share `features/locations/components/mapControls.css`: equal
   viewport-based map heights, 54 px corner Settings/search controls with 20 px
   icons, and home above geolocation at bottom right. Search expands on hover
   (fine pointers) or focus; Settings reveals its label on hover and opens on click.
   Touch controls expand on tap, and both maps retain Mapbox Standard/street styles.
-  Photo and food markers within 46 screen pixels form groups at the first marker's
-  coordinate. Activate a food group's count to spiderfy its markers, then select one.
+  Photo and place markers within 46 screen pixels form groups at the first marker's
+  coordinate. Activate a place group's count to spiderfy its markers, then select one.
 - Opening a home-marker confirmation ends the active gesture on both maps.
   Cancel and successful confirmation discard pending drag callbacks and release clicks;
   another action requires a fresh press or explicit keyboard activation.
@@ -208,23 +208,23 @@ client has no SignalR subscription. The upload runtime refreshes local query sta
   default view. Its Setting control follows the sidebar styling, is collapsed
   by default, and expands to title-only Street map, 3D Basemap, and Photo markers
   controls. Hover animates their icons and slightly scales the scene buttons.
-  On both maps, selecting a photo or food marker zooms to at least level 18.
+  On both maps, selecting a photo or place marker zooms to at least level 18.
   Marker previews use white-framed, 180px-wide portrait photos (3:4) in both themes
   and show localized "By {username}" attribution. Travel previews omit filenames
   and coordinates; paged gallery media includes an optional `ownerUsername`.
-  Food previews retain place details and ratings.
-  Food-place details show the marker beside a single dialog title, a numeric
+  Place previews retain place details and ratings.
+  Place-place details show the marker beside a single dialog title, a numeric
   score beside the stars (or an unrated label), and compact visit-history rows
   with emphasized dates and secondary times. The global history keeps its cards.
-  The food-place editor centers larger rating stars, keeps notes in an animated
+  The place-place editor centers larger rating stars, keeps notes in an animated
   collapsible section, and selects marker icons through a searchable combobox.
   Save and Cancel follow the rating at the bottom of the form. The editor no longer
   offers photo selection; previously linked photos remain visible and can be
   removed or set as the cover.
   Coordinates and the Change location button are omitted from the editor;
   existing markers can still be moved directly on the map.
-  Owners and administrators can drag food pins more than 8 pixels to request
-  relocation, or hold still for 600 ms to request deletion. Expanded food groups
+  Owners and administrators can drag place pins more than 8 pixels to request
+  relocation, or hold still for 600 ms to request deletion. Expanded place groups
   support the same gestures. Right-click and focused Delete/Backspace also request
   deletion. Both actions require confirmation; outside click or Escape cancels
   without changing the saved place. Escape or window blur also cancels an active
@@ -234,7 +234,7 @@ client has no SignalR subscription. The upload runtime refreshes local query sta
   to Street map, and returns to the saved home location at zoom 14 with no tilt.
   Without a saved home location, it opens the existing home setup flow.
   Outside editing, clicking or tapping outside a marker dismisses its preview on
-  desktop and mobile. The first map tap dismisses a selected food preview instead
+  desktop and mobile. The first map tap dismisses a selected place preview instead
   of creating a new place. Open dialogs and pending saves prevent dismissal.
   Clearing marker selection leaves the camera unchanged; zooming occurs when
   selecting a marker, not when dismissing its preview.

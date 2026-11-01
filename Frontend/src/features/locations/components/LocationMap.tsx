@@ -1,11 +1,13 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import Map, { GeolocateControl, Marker, useMap, type MapRef } from "react-map-gl/mapbox";
 import { useShouldReduceMotion } from "@animate-ui/react/utils/motion";
+import { useAnimationStore } from "../../../store/animationStore";
 import "mapbox-gl/dist/mapbox-gl.css";
 import "./mapControls.css";
-import { ErrorState, showToast, Spinner } from "../../../components/ui";
+import { ErrorState, showToast } from "../../../components/ui";
 import { AnimateIcon } from "../../../components/animate-ui/icons/icon";
 import { MapPin } from "../../../components/animate-ui/icons/map-pin";
+import { Camera } from "../../../components/animate-ui/icons/camera";
 import { Globe } from "../../../components/animate-ui/icons/globe";
 import { Home } from "../../../components/animate-ui/icons/home";
 import { Settings } from "../../../components/animate-ui/icons/settings";
@@ -19,17 +21,18 @@ import {
 } from "./MapAppearanceSettings";
 import { LocationSearch } from "./LocationSearch";
 import { useHomeMarkerHover } from "../hooks/useHomeMarkerHover";
-import { useMarkerDrag } from "../hooks/useMarkerDrag";
+import { MARKER_DRAG_HOLD_MS, useMarkerDrag } from "../hooks/useMarkerDrag";
 import { HomeLocationMarker } from "./HomeLocationMarker";
+import { MapLoadingOverlay } from "./MapLoadingOverlay";
 import type { LocationSearchResult } from "../services/locationSearchService";
 import { useLocale } from "../../../context/LocaleContext";
 import { useMediaQuery } from "../../../hooks/useMediaQuery";
 import { mediaPreviewUrl } from "../../../utils/media";
-import { clusterMapMarkers, getSpiderfyOffset, mapMarkersOverlap, type MapProjector } from "../../../utils/mapMarkerGroups";
+import { clusterMapMarkers, mapMarkersOverlap, type MapProjector } from "../../../utils/mapMarkerGroups";
 import type { MediaFile, PhotoLocation, PickedLocation } from "../../media/types";
 import { findPlaceAt } from "../utils/findPlaceAt";
 import type { HomeLocation } from "../types";
-import { MapNavigation } from "../../navigation/components/MapNavigation";
+import { DisabledNavigationToolbar, MapNavigation } from "../../navigation/components/MapNavigation";
 import { NavigationFallback } from "../../navigation/components/NavigationOptions";
 
 interface Props {
@@ -43,6 +46,8 @@ interface Props {
   homePicking: boolean;
   homeActionDisabled: boolean;
   onSelect: (media: MediaFile) => void;
+  onEdit: (media: MediaFile) => void;
+  onCancelSelection: () => void;
   canMove: (media: MediaFile) => boolean;
   onMove: (media: MediaFile, location: PickedLocation) => void;
   onPick: (location: PickedLocation) => void;
@@ -211,7 +216,6 @@ interface PhotoCluster {
 }
 
 const MAX_FANNED_PHOTOS = 8;
-const MARKER_DRAG_HOLD_MS = 250;
 
 function PhotoPin({ item, selected, movable, onSelect, onMove }: {
   item: MediaFile;
@@ -221,14 +225,16 @@ function PhotoPin({ item, selected, movable, onSelect, onMove }: {
   onMove: Props["onMove"];
 }) {
   const { current: map } = useMap();
+  const animateMarker = useAnimationStore((state) => state.enabled && state.iconsEnabled);
   const gesture = useRef<{ id: number; x: number; y: number; startedAt: number; dragging: boolean; cancelled: boolean } | null>(null);
   const suppressClick = useRef(false);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   return (
     <button type="button" className="locations__pin" title={item.originalFilename}
+      data-marker-motion={animateMarker}
       aria-label={item.originalFilename} aria-pressed={selected}
       data-movable={movable}
-      style={{ translate: `${offset.x}px ${offset.y}px` }}
+      style={{ translate: `calc(22px + ${offset.x}px) calc(9.1127px + ${offset.y}px)` }}
       onPointerDown={(event) => {
         suppressClick.current = false;
         if (!movable || !map || event.button !== 0 || !event.isPrimary) return;
@@ -245,9 +251,7 @@ function PhotoPin({ item, selected, movable, onSelect, onMove }: {
           if (performance.now() - start.startedAt < MARKER_DRAG_HOLD_MS) {
             start.cancelled = true;
             suppressClick.current = true;
-          } else if (!start.cancelled) {
-            start.dragging = true;
-          }
+          } else if (!start.cancelled) start.dragging = true;
         }
         if (start.dragging) setOffset({ x, y });
       }}
@@ -284,7 +288,7 @@ function PhotoPin({ item, selected, movable, onSelect, onMove }: {
         }
         onSelect(item);
       }}>
-      <img src={mediaPreviewUrl(item.id)} alt="" loading="lazy" draggable={false} />
+      <span aria-hidden="true"><Camera size={20} /></span>
     </button>
   );
 }
@@ -305,8 +309,9 @@ function DraftMarker({ location, onPick }: { location: PickedLocation; onPick: P
   );
 }
 
-function PhotoClusterMarker({ cluster, selected, onSelect, canMove, onMove, homeExpanded, onHomeHoverChange }: {
+function PhotoClusterMarker({ cluster, selected, onSelect, canMove, onMove, homeExpanded, nearHome, onHomeHoverChange }: {
   homeExpanded: boolean;
+  nearHome: boolean;
   onHomeHoverChange?: (hovered: boolean) => void;
   cluster: PhotoCluster;
   selected: MediaFile | undefined;
@@ -321,15 +326,17 @@ function PhotoClusterMarker({ cluster, selected, onSelect, canMove, onMove, home
   const ordered = selectedIndex > 0
     ? [cluster.items[selectedIndex], ...cluster.items.filter((_, index) => index !== selectedIndex)]
     : cluster.items;
-  const fanned = homeExpanded ? ordered : ordered.slice(0, MAX_FANNED_PHOTOS);
+  const fanned = ordered.slice(0, MAX_FANNED_PHOTOS);
   const expanded = count === 1 || open || selectedIndex >= 0 || homeExpanded;
   const step = Math.min(26, 150 / Math.max(fanned.length - 1, 1));
+  const markerColors = ["#d64a43", "#e59718", "#2d9a52", "#2584cc", "#8058bd", "#c04c88"];
 
   return (
     <div
       className={`locations__cluster${count > 1 ? " locations__cluster--group" : ""}`}
       data-open={expanded}
       data-home-expanded={homeExpanded}
+      data-near-home={nearHome}
       data-selected={selectedIndex >= 0}
       style={{ "--fan-count": fanned.length, "--fan-step": `${step}deg` } as CSSProperties}
       onMouseEnter={(event) => {
@@ -347,10 +354,7 @@ function PhotoClusterMarker({ cluster, selected, onSelect, canMove, onMove, home
     >
       {fanned.map((item, index) => item.location && (
         <div key={item.id} className="locations__marker" data-selected={selected?.id === item.id}
-          style={{ "--fan-index": index,
-            "--spider-x": `${getSpiderfyOffset(index, count).x}px`,
-            "--spider-y": `${getSpiderfyOffset(index, count).y}px`,
-          } as CSSProperties}>
+          style={{ "--fan-index": index, "--marker-color": markerColors[Array.from(item.id).reduce((hash, char) => (hash * 31 + char.charCodeAt(0)) >>> 0, 0) % markerColors.length] } as CSSProperties}>
           <PhotoPin item={item} selected={selected?.id === item.id} movable={canMove(item)}
             onSelect={onSelect} onMove={onMove} />
           <article className="locations__popup" aria-label={item.originalFilename}>
@@ -406,15 +410,15 @@ function PhotoMarkers({ media, selected, ready, onSelect, canMove, onMove, homeL
           onClick={(event) => event.originalEvent.stopPropagation()}
         >
           <PhotoClusterMarker cluster={cluster}
-            homeExpanded={homeExpanded}
+            homeExpanded={homeExpanded} nearHome={nearHome}
             onHomeHoverChange={homeExpanded ? onHomeHoverChange : undefined}
             selected={selected} onSelect={onSelect} canMove={canMove} onMove={onMove} />
         </Marker>
-        {nearHome && homeLocation && cluster.items.length === 1 && (
+        {nearHome && homeLocation && (cluster.items.length === 1 || !homeExpanded) && (
           <Marker latitude={homeLocation.latitude} longitude={homeLocation.longitude} anchor="bottom"
             style={{ zIndex: 22, pointerEvents: "none" }}>
             <div className="locations__cluster" aria-hidden="true">
-              <span className="locations__cluster-count">1</span>
+              <span className="locations__cluster-count">{cluster.items.length}</span>
             </div>
           </Marker>
         )}
@@ -427,7 +431,7 @@ function PhotoMarkers({ media, selected, ready, onSelect, canMove, onMove, homeL
 
 function MapContent({
   media, selected, focused, draft, editable, homeLocation, homeLocationReady, homePicking, homeActionDisabled,
-  onSelect, canMove, onMove, onPick, onPickHome, onHomeClick, token,
+  onSelect, onEdit, onCancelSelection, canMove, onMove, onPick, onPickHome, onHomeClick, token,
 }: Props & { token: string }) {
   const { t } = useLocale();
   const shouldReduceMotion = useShouldReduceMotion();
@@ -506,17 +510,18 @@ function MapContent({
 
   return (
     <div className="locations__map map-controls" role="region" aria-label={t("Photo locations")}>
-      {!initialViewReady && <div className="locations__map-loading"><Spinner label="Loading map?" /></div>}
+      <MapLoadingOverlay ready={initialViewReady} className="locations__map-loading" />
       <Map
         style={{ minHeight: "inherit" }}
         ref={mapRef}
         mapboxAccessToken={token}
+        attributionControl={false}
         mapStyle={styleUrl}
         config={{ basemap: getMapAppearanceConfig(mapAppearance.lighting, mapAppearance.colorTheme) }}
         initialViewState={{ latitude: 20, longitude: 0, zoom: 2, pitch: 0, bearing: 0 }}
         cursor={!navigationOpen && (editable || homePicking) ? "crosshair" : undefined}
-        cooperativeGestures
-        onLoad={() => setLoaded(true)}
+        cooperativeGestures={false}
+        onLoad={(event) => { event.target.setCooperativeGestures(false); setLoaded(true); }}
         onIdle={() => {
           if (initialLocationResolved || cameraTarget?.location || homeRequest > 0) setInitialViewReady(true);
         }}
@@ -568,8 +573,10 @@ function MapContent({
         {loaded && selected?.location && !homePicking && (
           <MapNavigation destination={{ ...selected.location, name: selected.originalFilename }} accessToken={token}
             homeLocation={homeLocation}
+            onEdit={canMove(selected) ? () => onEdit(selected) : undefined} onCancel={onCancelSelection}
             onOpenChange={setNavigationOpen} />
         )}
+        {(!loaded || !selected?.location || homePicking) && <DisabledNavigationToolbar />}
         {homeLocation && (
           <HomeLocationMarker location={homeLocation} variant="locations" onHoverChange={onHomeHoverChange} onClick={() => {
             mapRef.current?.easeTo({

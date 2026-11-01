@@ -198,7 +198,8 @@ public class UserService(
         if (user is null || user.DeletedAt is not null)
             throw new NotFoundException("User not found.");
 
-        return user.HomeLatitude is { } latitude && user.HomeLongitude is { } longitude
+        var home = await _repository.GetSharedHomeLocationAsync(cancellationToken);
+        return home.Latitude is { } latitude && home.Longitude is { } longitude
             ? new HomeLocationDto(latitude, longitude)
             : null;
     }
@@ -217,13 +218,13 @@ public class UserService(
         if (user is null || user.DeletedAt is not null)
             throw new NotFoundException("User not found.");
 
+        var home = await _repository.GetSharedHomeLocationAsync(cancellationToken);
         if (request.ApplyToUnlocatedPhotos
-            && user.HomeLatitude is not null && user.HomeLongitude is not null
-            && (user.HomeLatitude != request.Latitude || user.HomeLongitude != request.Longitude))
+            && (home.Latitude != request.Latitude || home.Longitude != request.Longitude))
             throw new ConflictException("Home changed. Refresh and confirm the current home location.");
 
-        user.HomeLatitude = request.Latitude;
-        user.HomeLongitude = request.Longitude;
+        home.Latitude = request.Latitude;
+        home.Longitude = request.Longitude;
         if (request.ApplyToUnlocatedPhotos)
         {
             await using var transaction = await _unitOfWork.BeginTransactionAsync(cancellationToken);
@@ -243,8 +244,9 @@ public class UserService(
         if (user is null || user.DeletedAt is not null)
             throw new NotFoundException("User not found.");
 
-        user.HomeLatitude = null;
-        user.HomeLongitude = null;
+        var home = await _repository.GetSharedHomeLocationAsync(cancellationToken);
+        home.Latitude = null;
+        home.Longitude = null;
         await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 }

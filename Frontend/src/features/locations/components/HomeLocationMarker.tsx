@@ -11,7 +11,7 @@ import type { HomeLocation } from "../types";
 
 interface Props {
   location: HomeLocation;
-  variant: "food" | "locations";
+  variant: "place" | "locations";
   onClick: () => void;
   onHoverChange?: (hovered: boolean) => void;
 }
@@ -87,7 +87,7 @@ export function HomeLocationMarker({ location, variant, onClick, onHoverChange }
       showToast.success(t("Home location saved."));
     } else if (action?.type === "remove") {
       await home.clear.mutateAsync();
-      showToast.success(t("Home location removed."));
+      showToast.delete(t("Home location removed."));
     }
   };
   const position = action?.type === "move" ? action.location : location;
@@ -116,8 +116,7 @@ export function HomeLocationMarker({ location, variant, onClick, onHoverChange }
           <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
             <button
               type="button"
-              className={variant === "food" ? "food__home-pin" : "locations__home-pin"}
-              style={variant === "food" ? { color: "#fff" } : undefined}
+              className={variant === "place" ? "place__home-pin" : "locations__home-pin"}
               aria-label={t("Home location")}
               title={t("Drag to move home. Hold or right-click to remove.")}
               aria-haspopup="dialog"
@@ -154,9 +153,7 @@ export function HomeLocationMarker({ location, variant, onClick, onHoverChange }
                   && !suppressClick.current && !drag.suppressClick.current) onClick();
               }}
             >
-              {variant === "food"
-                ? <span aria-hidden="true"><Home size={18} /></span>
-                : <Home size={18} aria-hidden="true" />}
+              <span aria-hidden="true"><Home size={22} /></span>
             </button>
           </AnimateIcon>
         </div>
