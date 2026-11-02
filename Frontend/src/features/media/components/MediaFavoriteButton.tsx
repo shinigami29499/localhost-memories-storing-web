@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { Particles, ParticlesEffect } from "@animate-ui/react/primitives/effects/particles";
 import { useShouldReduceMotion } from "@animate-ui/react/utils/motion";
+import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { Heart } from "@/components/animate-ui/icons/heart";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import { useLocale } from "@/context/LocaleContext";
@@ -31,38 +32,39 @@ export function MediaFavoriteButton({ isFavorited, busy, onToggle }: Props) {
 
   return (
     <Particles animate={animateFavorite}>
-      <button
-        type="button"
-        className="viewer-icon-btn media-preview-dialog__action"
-        aria-label={label}
-        title={label}
-        aria-pressed={isFavorited}
-        aria-busy={busy || undefined}
-        disabled={busy}
-        onClick={onToggle}
-      >
-        <motion.span
-          className="media-preview-dialog__favorite-icon"
-          initial={false}
-          animate={{ scale: animateFavorite ? [1, 1.3, 1] : 1 }}
-          transition={{
-            duration: reduceMotion || !iconsEnabled ? 0 : 0.4,
-            times: [0, 0.4, 1],
-            ease: ["easeOut", [0.34, 1.56, 0.64, 1]],
-          }}
+      <AnimateIcon animateOnHover completeOnStop asChild>
+        <button
+          type="button"
+          className="viewer-icon-btn media-preview-dialog__action"
+          aria-label={label}
+          title={label}
+          aria-pressed={isFavorited}
+          aria-busy={busy || undefined}
+          disabled={busy}
+          onClick={onToggle}
         >
-          {busy ? (
-            <LoaderCircle size={20} className="spinner__wheel" aria-hidden="true" />
-          ) : (
-            <Heart
-              size={20}
-              animate={false}
-              fill={isFavorited ? "currentColor" : "none"}
-              aria-hidden="true"
-            />
-          )}
-        </motion.span>
-      </button>
+          <motion.span
+            className="media-preview-dialog__favorite-icon"
+            initial={false}
+            animate={{ scale: animateFavorite ? [1, 1.3, 1] : 1 }}
+            transition={{
+              duration: reduceMotion || !iconsEnabled ? 0 : 0.4,
+              times: [0, 0.4, 1],
+              ease: ["easeOut", [0.34, 1.56, 0.64, 1]],
+            }}
+          >
+            {busy ? (
+              <LoaderCircle size={20} className="spinner__wheel" aria-hidden="true" />
+            ) : (
+              <Heart
+                size={20}
+                fill={isFavorited ? "currentColor" : "none"}
+                aria-hidden="true"
+              />
+            )}
+          </motion.span>
+        </button>
+      </AnimateIcon>
       <ParticlesEffect
         key={burst}
         style={{ top: "50%", left: "50%" }}

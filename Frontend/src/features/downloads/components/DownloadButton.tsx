@@ -1,4 +1,4 @@
-import { AnimateIcon } from "@/components/animate-ui/icons/icon";
+import { AnimateIcon, AnimatedAction, useAnimateIconOnChange } from "@/components/animate-ui/icons/icon";
 import { Download } from "@/components/animate-ui/icons/download";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import { useNavigate } from "react-router-dom";
@@ -14,9 +14,10 @@ interface Props {
   includeDeleted?: boolean;
   disabled?: boolean;
   beforeNavigate?: () => Promise<void>;
+  animationMode?: boolean;
 }
 
-export function DownloadButton({ media, className, includeDeleted = false, disabled = false, beforeNavigate }: Props) {
+export function DownloadButton({ media, className, includeDeleted = false, disabled = false, beforeNavigate, animationMode }: Props) {
   const { t } = useLocale();
   const navigate = useNavigate();
   const busy = useDownloadStore((state) => state.batches.some((batch) => batch.items.some((item) =>
@@ -24,9 +25,9 @@ export function DownloadButton({ media, className, includeDeleted = false, disab
     && media.some((file) => file.id === item.mediaId),
   )));
   const label = media.length > 1 ? "Download selected" : "Download";
-  return (
-    <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
-      <button
+  const animationRevision = useAnimateIconOnChange(animationMode);
+  const button = (
+    <button
         type="button"
         className={className}
         aria-label={t(label)}
@@ -48,7 +49,8 @@ export function DownloadButton({ media, className, includeDeleted = false, disab
         {busy
           ? <LoaderCircle size={20} className="spinner__wheel" aria-hidden="true" />
           : <Download size={20} aria-hidden="true" />}
-      </button>
-    </AnimateIcon>
+    </button>
   );
+  if (animationMode !== undefined) return <AnimatedAction animationRevision={animationRevision}>{button}</AnimatedAction>;
+  return <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>{button}</AnimateIcon>;
 }

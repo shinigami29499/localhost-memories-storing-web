@@ -2,6 +2,7 @@ import { startTransition, useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Highlight, HighlightItem } from "@animate-ui/react/primitives/effects/highlight";
+import { AnimatedAction, useAnimateIconOnChange } from "@/components/animate-ui/icons/icon";
 import { ScrollFade } from "@animate-ui/react/primitives/effects/scroll-fade";
 import { Plus } from "@/components/animate-ui/icons/plus";
 import { Download } from "@/components/animate-ui/icons/download";
@@ -47,6 +48,7 @@ export function AlbumsPage() {
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<Album | null>(null);
   const [selectionMode, setSelectionMode] = useState(false);
+  const selectionAnimationRevision = useAnimateIconOnChange(selectionMode);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [deleting, setDeleting] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -196,18 +198,18 @@ export function AlbumsPage() {
       </div>
       <footer className="gallery-page__footer albums-page__footer">
         <div className="gallery-selection-bar">
-          <button type="button" className="gallery-selection-bar__action" aria-label={t("New album")} title={t("New album")} disabled={saving || deleting} onClick={() => setCreating(true)}>
+          <AnimatedAction animationRevision={selectionAnimationRevision}><button type="button" className="gallery-selection-bar__action" aria-label={t("New album")} title={t("New album")} disabled={saving || deleting} onClick={() => setCreating(true)}>
             <Plus size={20} aria-hidden="true" />
             <span className="album-page__create-label">{t("New album")}</span>
-          </button>
-          <button type="button" className="gallery-selection-bar__action" aria-label={t("Download selected")} title={t("Download selected")}
+          </button></AnimatedAction>
+          <AnimatedAction animationRevision={selectionAnimationRevision}><button type="button" className="gallery-selection-bar__action" aria-label={t("Download selected")} title={t("Download selected")}
             disabled={!selectedAlbums.some((album) => album.mediaCount > 0) || saving || deleting} aria-busy={saving || undefined} onClick={() => void downloadSelected()}>
             {saving ? <LoaderCircle size={20} className="spinner__wheel" aria-hidden="true" /> : <Download size={20} aria-hidden="true" />}
-          </button>
-          <button type="button" className="gallery-selection-bar__action gallery-selection-bar__action--danger" aria-label={t("Delete selected albums")} title={t("Delete selected albums")}
-            disabled={!canDelete || saving || deleting} onClick={() => setDeleting(true)}><Trash2 size={20} aria-hidden="true" /></button>
-          <button type="button" className="gallery-selection-bar__cancel" aria-label={t("Cancel selection")} title={t("Cancel selection")}
-            disabled={!selectionMode || saving || deleting} onClick={cancelSelection}><X size={20} aria-hidden="true" /></button>
+          </button></AnimatedAction>
+          <AnimatedAction animationRevision={selectionAnimationRevision}><button type="button" className="gallery-selection-bar__action gallery-selection-bar__action--danger" aria-label={t("Delete selected albums")} title={t("Delete selected albums")}
+            disabled={!canDelete || saving || deleting} onClick={() => setDeleting(true)}><Trash2 size={20} aria-hidden="true" /></button></AnimatedAction>
+          <AnimatedAction animationRevision={selectionAnimationRevision}><button type="button" className="gallery-selection-bar__cancel" aria-label={t("Cancel selection")} title={t("Cancel selection")}
+            disabled={!selectionMode || saving || deleting} onClick={cancelSelection}><X size={20} aria-hidden="true" /></button></AnimatedAction>
         </div>
       </footer>
       {deleting && <ConfirmationDialog title="Delete selected albums?" danger onClose={() => setDeleting(false)} onConfirm={async () => {

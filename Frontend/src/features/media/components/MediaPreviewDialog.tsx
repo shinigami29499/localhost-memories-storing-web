@@ -425,31 +425,33 @@ export function MediaPreviewDialog({
           </AnimateIcon>
         </> : <>
         {current.mediaKind === "image" ? (
-          <CopyButton
-            content={mediaUrl(current.id)}
-            copied={imageCopied}
-            type="button"
-            className="viewer-icon-btn media-preview-dialog__action"
-            aria-label={t(imageCopied ? "Image copied" : "Copy image")}
-            title={t(imageCopied ? "Image copied" : "Copy image")}
-            aria-busy={copyingImage || undefined}
-            disabled={copyingImage}
-            onClick={(event) => {
-              // Image copying replaces the primitive's default text write.
-              event.preventDefault();
-              void copyImage();
-            }}
-          >
-            <CopyButtonIcon
-              icon={copyingImage ? (
-                <LoaderCircle size={20} animate={false} className="spinner__wheel" aria-hidden="true" />
-              ) : (
-                <Copy size={20} animate={false} aria-hidden="true" />
-              )}
-              copiedIcon={<Check size={20} animate={false} aria-hidden="true" />}
-              aria-hidden="true"
-            />
-          </CopyButton>
+          <AnimateIcon animateOnHover completeOnStop asChild>
+            <CopyButton
+              content={mediaUrl(current.id)}
+              copied={imageCopied}
+              type="button"
+              className="viewer-icon-btn media-preview-dialog__action"
+              aria-label={t(imageCopied ? "Image copied" : "Copy image")}
+              title={t(imageCopied ? "Image copied" : "Copy image")}
+              aria-busy={copyingImage || undefined}
+              disabled={copyingImage}
+              onClick={(event) => {
+                // Image copying replaces the primitive's default text write.
+                event.preventDefault();
+                void copyImage();
+              }}
+            >
+              <CopyButtonIcon
+                icon={copyingImage ? (
+                  <LoaderCircle size={20} className="spinner__wheel" aria-hidden="true" />
+                ) : (
+                  <Copy size={20} aria-hidden="true" />
+                )}
+                copiedIcon={<Check size={20} aria-hidden="true" />}
+                aria-hidden="true"
+              />
+            </CopyButton>
+          </AnimateIcon>
         ) : null}
         <MediaFavoriteButton
           key={current.id}

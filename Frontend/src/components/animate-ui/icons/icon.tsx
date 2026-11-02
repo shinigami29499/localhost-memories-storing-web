@@ -6,7 +6,7 @@ import {
   type IconProps,
   type IconWrapperProps,
 } from "@animate-ui/react/icons";
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { useInView, type LegacyAnimationControls } from "motion/react";
 import { useShouldReduceMotion } from "@animate-ui/react/utils/motion";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
@@ -98,6 +98,28 @@ export function AnimateIcon(props: AnimateIconProps) {
         animateOnView={props.loop ? triggers.animateOnView : false}
       />
     </ViewControlsContext>
+  );
+}
+
+export function useAnimateIconOnChange(value: unknown, animateOnMount = false) {
+  const previous = useRef(value);
+  const [revision, setRevision] = useState(animateOnMount ? 1 : 0);
+
+  useEffect(() => {
+    if (Object.is(previous.current, value)) return;
+    previous.current = value;
+    setRevision((current) => current + 1);
+  }, [value]);
+
+  return revision;
+}
+
+export function AnimatedAction({ animationRevision, children }: { animationRevision: number; children: ReactNode }) {
+  return (
+    <AnimateIcon key={animationRevision} animate={animationRevision > 0 ? "default" : undefined}
+      animateOnHover animateOnTap initialOnAnimateEnd completeOnStop asChild>
+      <span className="animated-icon-action">{children}</span>
+    </AnimateIcon>
   );
 }
 

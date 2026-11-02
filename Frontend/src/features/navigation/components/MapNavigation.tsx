@@ -1,8 +1,8 @@
-import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Layer, Marker, Source, useMap } from "react-map-gl/mapbox";
 import { Button } from "../../../components/ui";
-import { useAnimateIconContext } from "../../../components/animate-ui/icons/icon";
+import { AnimateIcon } from "../../../components/animate-ui/icons/icon";
 import { XIcon } from "../../../components/animate-ui/icons/x";
 import { Compass } from "../../../components/animate-ui/icons/compass";
 import { Pencil } from "../../../components/animate-ui/icons/pencil";
@@ -17,25 +17,6 @@ import "./mapNavigation.css";
 
 function getNavigationPortal() {
   return document.querySelector<HTMLElement>(".app-shell") ?? document.body;
-}
-
-function NavigationActionIcon({ enabled, children }: { enabled: boolean; children: ReactNode }) {
-  const { controls } = useAnimateIconContext();
-  const previouslyEnabled = useRef(false);
-  const pendingAnimation = useRef(false);
-
-  useEffect(() => {
-    if (enabled && !previouslyEnabled.current) pendingAnimation.current = true;
-    if (!enabled && previouslyEnabled.current && controls) controls.set("initial");
-    if (enabled && controls && pendingAnimation.current) {
-      pendingAnimation.current = false;
-      controls.set("initial");
-      void controls.start("animate");
-    }
-    previouslyEnabled.current = enabled;
-  }, [enabled, controls]);
-
-  return <span>{children}</span>;
 }
 
 interface Props {
@@ -58,24 +39,24 @@ export function NavigationToolbar({ onEdit, onNavigate, onCancel, editAction = "
   const editLabel = editAction === "add" ? "Add" : "Edit";
   return (
     <div className="map-navigation__toolbar">
-      <Button type="button" variant="ghost" aria-label={t(editLabel)} title={t(editLabel)} disabled={!onEdit} onClick={onEdit}>
-        <NavigationActionIcon enabled={!!onEdit} key={`${onEdit ? "enabled" : "disabled"}-${editAction}`}>
+      <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
+        <Button type="button" variant="ghost" aria-label={t(editLabel)} title={t(editLabel)} disabled={!onEdit} onClick={onEdit}>
           {editAction === "add" ? <Plus size={20} aria-hidden="true" /> : <Pencil size={20} aria-hidden="true" />}
-        </NavigationActionIcon>
-        <span className="map-navigation__desktop-label">{t(editLabel)}</span>
-      </Button>
+          <span className="map-navigation__desktop-label">{t(editLabel)}</span>
+        </Button>
+      </AnimateIcon>
       <span className="map-navigation__divider" aria-hidden="true" />
-      <Button type="button" variant="ghost" className="map-navigation__trigger" disabled={!onNavigate} onClick={onNavigate}>
-        <NavigationActionIcon enabled={!!onNavigate} key={onNavigate ? "enabled" : "disabled"}>
-          <Compass size={22} aria-hidden="true" />
-        </NavigationActionIcon> {t("Navigate")}
-      </Button>
+      <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
+        <Button type="button" variant="ghost" className="map-navigation__trigger" disabled={!onNavigate} onClick={onNavigate}>
+          <Compass size={22} aria-hidden="true" /> {t("Navigate")}
+        </Button>
+      </AnimateIcon>
       <span className="map-navigation__divider" aria-hidden="true" />
-      <Button type="button" variant="ghost" className="map-navigation__dismiss" aria-label={t("Cancel")} title={t("Cancel")} disabled={!onCancel} onClick={onCancel}>
-        <NavigationActionIcon enabled={!!onCancel} key={onCancel ? "enabled" : "disabled"}>
-          <XIcon size={20} aria-hidden="true" />
-        </NavigationActionIcon><span className="map-navigation__desktop-label">{t("Cancel")}</span>
-      </Button>
+      <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
+        <Button type="button" variant="ghost" className="map-navigation__dismiss" aria-label={t("Cancel")} title={t("Cancel")} disabled={!onCancel} onClick={onCancel}>
+          <XIcon size={20} aria-hidden="true" /><span className="map-navigation__desktop-label">{t("Cancel")}</span>
+        </Button>
+      </AnimateIcon>
     </div>
   );
 }

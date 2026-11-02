@@ -3,9 +3,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import * as Tabs from "@radix-ui/react-tabs";
 import { Highlight, HighlightItem } from "@animate-ui/react/primitives/effects/highlight";
+import { AnimateIcon, AnimatedAction, useAnimateIconOnChange } from "@/components/animate-ui/icons/icon";
 import { ScrollProgress, ScrollProgressContainer, ScrollProgressProvider } from "@animate-ui/react/primitives/scroll-progress";
 import { ScrollFade } from "@animate-ui/react/primitives/effects/scroll-fade";
-import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { ExternalLink } from "@/components/animate-ui/icons/external-link";
 import { Check } from "@/components/animate-ui/icons/check";
 import { CopyButton, CopyButtonIcon } from "@animate-ui/react/primitives/buttons/copy";
@@ -56,6 +56,7 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
   const [editingCaption, setEditingCaption] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
+  const selectionAnimationRevision = useAnimateIconOnChange(selectionMode);
   const [selectedItems, setSelectedItems] = useState<Map<string, MediaFile>>(() => new Map());
   const [removingSelection, setRemovingSelection] = useState(false);
   const [bulkFavoriteBusy, setBulkFavoriteBusy] = useState(false);
@@ -373,17 +374,17 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
       <footer className="gallery-page__footer gallery-page__footer--transition">
         <div className="gallery-selection-bar gallery-selection-bar--compact" role="group" aria-label={t("{count} selected", { count: selectedItems.size })}>
           <span className="gallery-selection-bar__status" role="status">{t("{count} selected", { count: selectedItems.size })}</span>
-          <DownloadButton media={selectedMedia} className="gallery-selection-bar__action gallery-selection-bar__action--download" disabled={bulkFavoriteBusy} />
-          <button type="button" className="gallery-selection-bar__action gallery-selection-bar__action--favorite"
+          <DownloadButton media={selectedMedia} className="gallery-selection-bar__action gallery-selection-bar__action--download" disabled={bulkFavoriteBusy} animationMode={selectionMode} />
+          <AnimatedAction animationRevision={selectionAnimationRevision}><button type="button" className="gallery-selection-bar__action gallery-selection-bar__action--favorite"
             aria-label={t(allSelectedFavorited ? "Remove from favorites" : "Add to favorites")} title={t(allSelectedFavorited ? "Remove from favorites" : "Add to favorites")}
             aria-pressed={allSelectedFavorited} disabled={!selectedMedia.length || bulkFavoriteBusy || favoriteBusyMediaId !== null} onClick={() => void favoriteSelected()}>
             {bulkFavoriteBusy ? <LoaderCircle size={20} className="spinner__wheel" aria-hidden="true" /> : <Heart size={20} fill={allSelectedFavorited ? "currentColor" : "none"} aria-hidden="true" />}
-          </button>
-          {isOwner && <button type="button" className="gallery-selection-bar__action gallery-selection-bar__action--danger"
+          </button></AnimatedAction>
+          {isOwner && <AnimatedAction animationRevision={selectionAnimationRevision}><button type="button" className="gallery-selection-bar__action gallery-selection-bar__action--danger"
             aria-label={t("Remove from album")} title={t("Remove from album")} disabled={!selectedMedia.length || bulkFavoriteBusy}
-            onClick={() => setRemovingSelection(true)}><Trash2 size={20} aria-hidden="true" /></button>}
-          <button type="button" className="gallery-selection-bar__cancel" aria-label={t("Cancel selection")} title={t("Cancel selection")}
-            disabled={!selectionMode || bulkFavoriteBusy} onClick={cancelSelection}><X size={20} aria-hidden="true" /><span className="gallery-selection-bar__cancel-text">{t("Cancel")}</span></button>
+            onClick={() => setRemovingSelection(true)}><Trash2 size={20} aria-hidden="true" /></button></AnimatedAction>}
+          <AnimatedAction animationRevision={selectionAnimationRevision}><button type="button" className="gallery-selection-bar__cancel" aria-label={t("Cancel selection")} title={t("Cancel selection")}
+            disabled={!selectionMode || bulkFavoriteBusy} onClick={cancelSelection}><X size={20} aria-hidden="true" /><span className="gallery-selection-bar__cancel-text">{t("Cancel")}</span></button></AnimatedAction>
         </div>
       </footer>
       {removingSelection && <ConfirmationDialog title="Remove selected media from album?" danger onConfirm={removeSelected} onClose={() => setRemovingSelection(false)}>

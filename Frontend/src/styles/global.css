@@ -2572,3 +2572,9 @@ textarea::placeholder {
 :is(:disabled, [aria-disabled="true"], [data-disabled], [data-state="disabled"]) svg {
   color: var(--text-muted) !important;
 }
+
+.animated-icon-action {
+  align-items: center;
+  display: inline-flex;
+  justify-content: center;
+}

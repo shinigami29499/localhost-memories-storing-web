@@ -557,7 +557,6 @@ function MapContent({
     () => places.find((place) => place.id === selectedId),
     [places, selectedId],
   );
-
   useEffect(() => {
     const closeOnOutsideClick = (event: PointerEvent) => {
       if (!(event.target instanceof Node)) return;
