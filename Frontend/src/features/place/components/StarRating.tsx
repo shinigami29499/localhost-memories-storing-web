@@ -21,9 +21,23 @@ export function StarRating({ value, onChange, disabled, filledOnly = false, hide
   if (!onChange) {
     return (
       <span className={`star-rating star-rating--${size}`} role="img" aria-label={label} title={label}>
-        {STARS.filter((star) => !filledOnly || star <= value).map((star) => (
-          <Star key={star} className="star-rating__star" data-filled={star <= value} fill={star <= value ? "currentColor" : "none"} aria-hidden="true" />
-        ))}
+        {STARS.filter((star) => !filledOnly || star <= value).map((star) => {
+          const fill = Math.max(0, Math.min(1, value - star + 1));
+          const isFull = fill === 1;
+          return (
+            <span key={star} className="star-rating__icon">
+              <Star className="star-rating__star" data-filled={isFull} fill={isFull ? "currentColor" : "none"} aria-hidden="true" />
+              {fill > 0 && fill < 1 ? (
+                <Star
+                  className="star-rating__star star-rating__partial"
+                  style={{ clipPath: `inset(0 ${100 - fill * 100}% 0 0)` }}
+                  fill="currentColor"
+                  aria-hidden="true"
+                />
+              ) : null}
+            </span>
+          );
+        })}
       </span>
     );
   }

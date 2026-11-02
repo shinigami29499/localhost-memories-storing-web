@@ -9,7 +9,7 @@ public sealed record PlaceDto(
     string Note,
     double Latitude,
     double Longitude,
-    int Rating,
+    double Rating,
     string MarkerIcon,
     string MarkerColor,
     UserSummaryDto Owner,

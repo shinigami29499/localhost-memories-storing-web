@@ -294,7 +294,7 @@
 }
 
 .place__history--visitor-name .place__history-item {
-  grid-template-columns: 48px minmax(0, 1fr) 28px minmax(0, 0.65fr) max-content max-content 28px;
+  grid-template-columns: 48px minmax(0, 1fr) max-content minmax(0, 0.65fr) max-content max-content 28px;
 }
 
 .place__history--visitor-name .place__history-item time {
@@ -487,18 +487,18 @@
 @media (min-width: 769px) {
   .place__dialog--details { max-width: min(480px, calc(100vw - 32px)); }
   .place__place-history .place__history--visitor-name .place__history-item {
-    grid-template-columns: 28px minmax(0, 1fr) max-content max-content 28px;
+    grid-template-columns: 28px minmax(0, 1fr) max-content max-content max-content 28px;
   }
-  .place__place-history .place__history--visitor-name .place__history-item time { grid-column: 3 / span 2; }
-  .place__place-history .place__history--visitor-name .place__history-item > .place__history-remove { grid-column: 5; }
+  .place__place-history .place__history--visitor-name .place__history-item time { grid-column: 4 / span 2; }
+  .place__place-history .place__history--visitor-name .place__history-item > .place__history-remove { grid-column: 6; }
 }
 @media (max-width: 768px) {
   .place__dialog--visit .place__dialog-actions svg { height: 16px; width: 16px; }
   .place__dialog--visit .place__dialog-body { padding: 12px 8px; }
   .place__place-history .place__history--visitor-name .place__history-visitor-name { display: none; }
-  .place__place-history .place__history--visitor-name .place__history-item { grid-template-columns: 28px max-content max-content minmax(0, 1fr) 28px; }
-  .place__place-history .place__history--visitor-name .place__history-item time { grid-column: 2 / span 2; }
-  .place__place-history .place__history--visitor-name .place__history-item > .place__history-remove { grid-column: 5; }
+  .place__place-history .place__history--visitor-name .place__history-item { grid-template-columns: 28px max-content minmax(0, 1fr) max-content max-content 28px; }
+  .place__place-history .place__history--visitor-name .place__history-item time { grid-column: 3 / span 2; }
+  .place__place-history .place__history--visitor-name .place__history-item > .place__history-remove { grid-column: 6; }
 }
 
 .place__dialog-header { align-items: center; border-bottom: 1px solid var(--border); display: flex; flex: 0 0 auto; gap: 12px; justify-content: space-between; padding: 16px 20px; }
@@ -995,8 +995,9 @@
 
 .place__details-rating {
   align-items: center;
-  display: flex;
-  justify-content: center;
+  display: grid;
+  gap: 4px;
+  justify-items: center;
   margin: 0;
   min-height: 48px;
 }
@@ -1005,6 +1006,7 @@
   font-size: 2rem;
   justify-content: center;
 }
+.place__average-rating { color: var(--text-muted); font-size: 1rem; font-weight: 600; }
 
 .place__chip {
   align-items: center;
@@ -1324,6 +1326,8 @@
 .star-rating--lg .star-rating__readout { flex-basis: 100%; margin-left: 0; }
 .star-rating__star { color: var(--border-control); line-height: 1; }
 .star-rating svg { display: block; width: 1em; height: 1em; }
+.star-rating__icon { display: inline-flex; position: relative; }
+.star-rating__partial { color: #F2B705; inset: 0; position: absolute; }
 .star-rating__button { display: inline-flex; align-items: center; justify-content: center; }
 .star-rating__star[data-filled="true"] { color: #F2B705; }
 
@@ -1357,7 +1361,7 @@
 @media (max-width: 640px) {
   .place__list { grid-template-columns: minmax(0, 1fr); }
   .place__history--visitor-name .place__history-item {
-    grid-template-columns: 48px 28px max-content max-content 28px;
+    grid-template-columns: 48px max-content minmax(0, 1fr) max-content 28px;
   }
   .place__history--visitor-name .place__history-details,
   .place__history--visitor-name .place__history-visitor-name { display: none; }

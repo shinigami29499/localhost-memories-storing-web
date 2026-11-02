@@ -536,7 +536,10 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
                 <div>
                   {selected.address && <p className="place__address">{selected.address}</p>}
                   <div className="place__details-rating">
-                    <StarRating value={selected.rating} filledOnly />
+                    <StarRating value={selected.rating} hideReadout />
+                    <span className="place__average-rating">
+                      {t("{rating} out of 5", { rating: selected.rating.toFixed(1) })}
+                    </span>
                   </div>
                   {selected.note && <p className="place__note">{selected.note}</p>}
                   <div className="place__form-actions place__details-actions">

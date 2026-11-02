@@ -120,11 +120,13 @@ public sealed class PlaceRepository(ApplicationDbContext db) : IPlaceRepository
         var averages = await db.PlaceVisits.AsNoTracking()
             .Where(visit => ids.Contains(visit.PlaceId) && visit.Rating > 0)
             .GroupBy(visit => visit.PlaceId)
-            .Select(group => new { PlaceId = group.Key, Rating = (int)Math.Round(group.Average(visit => visit.Rating), MidpointRounding.AwayFromZero) })
+            .Select(group => new { PlaceId = group.Key, Rating = group.Average(visit => visit.Rating) })
             .ToDictionaryAsync(item => item.PlaceId, item => item.Rating, cancellationToken);
-        foreach (var result in results)
-            result.Place.Rating = averages.GetValueOrDefault(result.Place.Id);
-        return results;
+        return results.Select(result => result with
+        {
+            AverageRating = Math.Round(
+                averages.GetValueOrDefault(result.Place.Id), 1, MidpointRounding.AwayFromZero),
+        }).ToList();
     }
 
     public async Task<IReadOnlySet<Guid>> GetActiveImageIdsAsync(
@@ -154,5 +156,6 @@ public sealed class PlaceRepository(ApplicationDbContext db) : IPlaceRepository
                 .OrderBy(item => item.Position)
                 .ThenBy(item => item.CreatedAt)
                 .Select(item => item.MediaFileId)
-                .ToList()));
+                .ToList(),
+            0));
 }

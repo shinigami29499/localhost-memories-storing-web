@@ -9,6 +9,7 @@ export interface Place {
   name: string;
   address: string;
   note: string;
+  rating: number;
   latitude: number;
   longitude: number;
   markerIcon: string;

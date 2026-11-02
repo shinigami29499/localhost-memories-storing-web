@@ -86,6 +86,7 @@ export function PlaceVisitHistory({ visits, showPlaceDetails = true, showVisitor
               </div>
             )
           )}
+          {showVisitorName && <StarRating value={visit.rating} size="sm" />}
           <time dateTime={visit.visitedAt}>
             <span className="place__history-date" data-column="date">
               {new Date(visit.visitedAt).toLocaleDateString(language, { dateStyle: "medium" })}
@@ -133,7 +134,7 @@ export function PlaceVisitHistory({ visits, showPlaceDetails = true, showVisitor
           {selectedVisit.note ? (
             <p className="place__note"><strong>{t("Note")}:</strong><span>{selectedVisit.note}</span></p>
           ) : null}
-          {selectedVisit.rating > 0 ? <StarRating value={selectedVisit.rating} filledOnly size="sm" /> : null}
+          <StarRating value={selectedVisit.rating} size="sm" />
           {!selectedVisit.note && selectedVisit.rating === 0 && (
             <p className="place__visit-no-review">{t("No review yet")}</p>
           )}

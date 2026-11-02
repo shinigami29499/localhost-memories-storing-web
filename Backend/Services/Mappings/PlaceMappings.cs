@@ -12,7 +12,7 @@ internal static class PlaceMappings
         source.Place.Note,
         source.Place.Latitude,
         source.Place.Longitude,
-        source.Place.Rating,
+        source.AverageRating,
         source.Place.MarkerIcon,
         source.Place.MarkerColor,
         new UserSummaryDto(source.Owner.Id, source.Owner.Username, source.Owner.AvatarSeed),

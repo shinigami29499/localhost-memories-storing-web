@@ -299,6 +299,7 @@ const vietnamese: Record<string, string> = {
   "Bubble tea": "Trà sữa",
   "Marker color": "Màu đánh dấu",
   "Rated {rating} of 5 stars": "Đánh giá {rating} trên 5 sao",
+  "{rating} out of 5": "{rating} trên 5",
   "Rate {rating} of 5 stars": "Chấm {rating} trên 5 sao",
   "Not rated yet": "Chưa đánh giá",
   "No note yet.": "Chưa có ghi chú.",
