@@ -17,7 +17,6 @@ import { Settings } from "@/components/animate-ui/icons/settings";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
 import { Upload } from "@/components/animate-ui/icons/upload";
 import { Users } from "@/components/animate-ui/icons/users";
-import { Key } from "@/components/animate-ui/icons/key";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
 import { authService } from "../../features/auth";
@@ -215,25 +214,13 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
                 <div className="sidebar__sub-nav">
                   <AnimateIcon animateOnTap completeOnStop asChild>
                     <NavLink
-                      to="/location/travel"
-                      className={`sidebar__link sidebar__sub-link${location.pathname === "/location/travel" ? " sidebar__link--active" : ""}`}
-                      data-sidebar="menu-sub-button"
-                      aria-label={t("Scenery")}
-                      title={t("Scenery")}
-                    >
-                      <PlaneTakeoff size={16} aria-hidden="true" />
-                      <span>{t("Scenery")}</span>
-                    </NavLink>
-                  </AnimateIcon>
-                  <AnimateIcon animateOnTap completeOnStop asChild>
-                    <NavLink
                       to="/location/place"
                       className={`sidebar__link sidebar__sub-link${location.pathname === "/location/place" ? " sidebar__link--active" : ""}`}
                       data-sidebar="menu-sub-button"
                       aria-label={t("Places")}
                       title={t("Places")}
                     >
-                      <Key size={16} aria-hidden="true" />
+                      <PlaneTakeoff size={16} aria-hidden="true" />
                       <span>{t("Places")}</span>
                     </NavLink>
                   </AnimateIcon>
@@ -310,7 +297,8 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
                       <span>{t("Download")}</span>
                       {(downloadCounts.success > 0 || downloadCounts.pending > 0 || downloadCounts.failed > 0) && <span className="sidebar__upload-counts" style={countStyle}>
                         {(["success", "pending", "failed"] as const).map((status) => <span key={status} className={`sidebar__upload-count sidebar__upload-count--${status}${String(downloadCounts[status]).length < String(uploadCounts[status]).length ? " sidebar__upload-count--right" : ""}`} aria-label={`${t(status === "success" ? "Success" : status === "pending" ? "Pending download" : "Failed")}: ${downloadCounts[status]}`} title={t(status === "success" ? "Success" : status === "pending" ? "Pending download" : "Failed")}>{downloadCounts[status]}</span>)}
-                      </span>}
+                      </span>}
+
                     </NavLink>
                   </AnimateIcon>
                 </div>

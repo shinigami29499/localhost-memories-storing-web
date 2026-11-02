@@ -3,8 +3,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useMedia } from "../../media/hooks/useMedia";
 import { locationService } from "../services/locationService";
 
-export function useLocations() {
-  const query = useMedia(100, "all", "image");
+export function useLocations(enabled = true) {
+  const query = useMedia(100, "all", "image", false, enabled);
   const queryClient = useQueryClient();
   const media = useMemo(() => query.data?.pages.flatMap((page) => page.items) ?? [], [query.data]);
   const [scanning, setScanning] = useState(false);
@@ -14,9 +14,10 @@ export function useLocations() {
   const scanController = useRef<AbortController | null>(null);
 
   useEffect(() => {
+    if (!enabled) return;
     if (query.hasNextPage && !query.isFetching && !query.isFetchNextPageError)
       void query.fetchNextPage();
-  }, [query.hasNextPage, query.isFetching, query.isFetchNextPageError, query.fetchNextPage]);
+  }, [enabled, query.hasNextPage, query.isFetching, query.isFetchNextPageError, query.fetchNextPage]);
 
   useEffect(() => () => scanController.current?.abort(), []);
 

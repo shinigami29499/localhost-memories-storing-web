@@ -389,7 +389,20 @@ function PhotoClusterMarker({ cluster, selected, onSelect, canMove, onMove, home
   );
 }
 
-function PhotoMarkers({ media, selected, ready, onSelect, canMove, onMove, homeLocation, homeHovered, onHomeHoverChange, hidePreview }: Pick<Props, "media" | "selected" | "onSelect" | "canMove" | "onMove"> & { ready: boolean; homeLocation: HomeLocation | null; homeHovered: boolean; onHomeHoverChange: (hovered: boolean) => void; hidePreview: boolean }) {
+export interface PhotoMarkersProps {
+  media: MediaFile[];
+  selected: MediaFile | undefined;
+  ready: boolean;
+  onSelect: (media: MediaFile) => void;
+  canMove: (media: MediaFile) => boolean;
+  onMove: (media: MediaFile, location: PickedLocation) => void;
+  homeLocation: HomeLocation | null;
+  homeHovered: boolean;
+  onHomeHoverChange: (hovered: boolean) => void;
+  hidePreview: boolean;
+}
+
+export function PhotoMarkers({ media, selected, ready, onSelect, canMove, onMove, homeLocation, homeHovered, onHomeHoverChange, hidePreview }: PhotoMarkersProps) {
   const { current: map } = useMap();
   const [project, setProject] = useState<MapProjector | null>(null);
   useEffect(() => {

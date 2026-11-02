@@ -11,6 +11,7 @@ import { Settings } from "../../../components/animate-ui/icons/settings";
 import { ChevronDown } from "../../../components/animate-ui/icons/chevron-down";
 import { SlidersHorizontal } from "../../../components/animate-ui/icons/sliders-horizontal";
 import { Key } from "../../../components/animate-ui/icons/key";
+import { MapPin } from "../../../components/animate-ui/icons/map-pin";
 import { Plus } from "../../../components/animate-ui/icons/plus";
 import { useLocale } from "../../../context/LocaleContext";
 import { useMediaQuery } from "../../../hooks/useMediaQuery";
@@ -39,11 +40,21 @@ import type { LocationSearchResult } from "../../locations/services/locationSear
 import { findPlaceAt } from "../../locations/utils/findPlaceAt";
 import type { HomeLocation } from "../../locations/types";
 import type { PlaceCoordinate, Place } from "../types";
+import type { MediaFile } from "../../media/types";
+import { PhotoMarkers } from "../../locations/components/LocationMap";
 import { DisabledNavigationToolbar, MapNavigation } from "../../navigation/components/MapNavigation";
 import { NavigationFallback } from "../../navigation/components/NavigationOptions";
 
 interface Props {
   places: Place[];
+  photos?: MediaFile[];
+  selectedPhoto?: MediaFile;
+  photoRelocating?: boolean;
+  canMovePhoto: (media: MediaFile) => boolean;
+  onSelectPhoto: (media: MediaFile) => void;
+  onMovePhoto: (media: MediaFile, coordinate: PlaceCoordinate) => void;
+  onEditPhoto: (media: MediaFile) => void;
+  onConfirmPhotoMove: () => void;
   selectedId: string | null;
   draft: PlaceCoordinate | null;
   relocatingPlace?: Place | null;
@@ -539,10 +550,11 @@ function PlaceMarkers({ places, selectedId, ready, onSelect, canChange, onMove, 
 }
 
 function MapContent({
-  places, selectedId, draft, picking, relocatingPlace, homeLocation,
+  places, photos = [], selectedPhoto, photoRelocating = false, selectedId, draft, picking, relocatingPlace, homeLocation,
   homeLocationReady, homePicking, homeActionDisabled, onSelect, onPick, onPickHome,
   onHomeClick, onCreateAtCurrentLocation, token,
   canChange, onMove, onDelete, onEdit, onEditDraft, onConfirmRelocation, onCancelRelocation, onCancelSelection, onCancelDraft,
+  canMovePhoto, onSelectPhoto, onMovePhoto, onEditPhoto, onConfirmPhotoMove,
 }: Props & { token: string }) {
   const { t } = useLocale();
   const shouldReduceMotion = useShouldReduceMotion();
@@ -557,12 +569,15 @@ function MapContent({
   const [hasInitialCenter, setHasInitialCenter] = useState(false);
   const [scene, setScene] = useState<MapScene>("3d");
   const [showMarkers, setShowMarkers] = useState(true);
+  const [showPhotoMarkers, setShowPhotoMarkers] = useState(true);
   const mapAppearance = useMapAppearance();
   const [appearanceOpen, setAppearanceOpen] = useState(false);
   const [homeRequest, setHomeRequest] = useState(0);
   const { homeHovered, onHomeHoverChange } = useHomeMarkerHover();
   const [focusRequest, setFocusRequest] = useState(0);
-  const relocating = !!relocatingPlace;
+  const relocating = !!relocatingPlace || photoRelocating;
+  const photoDraftChanged = !!photoRelocating && !!selectedPhoto?.location && !!draft
+    && (draft.latitude !== selectedPhoto.location.latitude || draft.longitude !== selectedPhoto.location.longitude);
   const mapPlaces = relocatingPlace ? places.filter((place) => place.id === relocatingPlace.id) : places;
   const focusCoordinate = (coordinate: PlaceCoordinate) => {
     mapRef.current?.easeTo({
@@ -651,6 +666,10 @@ function MapContent({
             onPickHome(point);
             return;
           }
+          if (photoRelocating) {
+            onMovePhoto(selectedPhoto!, point);
+            return;
+          }
           if (relocating) {
             onPick(point);
             return;
@@ -694,25 +713,29 @@ function MapContent({
           ready={loaded && !navigationOpen}
           allowFit={initialLocationResolved && !hasInitialCenter && !draft}
         />
-        <MapCameraScene scene={scene} selected={selected} draft={draft} ready={loaded && !navigationOpen}
+        <MapCameraScene scene={scene} selected={selected}
+          draft={selectedPhoto?.location ? { latitude: selectedPhoto.location.latitude, longitude: selectedPhoto.location.longitude } : draft}
+          ready={loaded && !navigationOpen}
           homeLocation={homeLocation} homeRequest={homeRequest} focusRequest={focusRequest} />
         <MapResizer />
-        {loaded && !homePicking && (selected && !picking || !selected && (picking || relocating) && draft) && (
+        {loaded && !homePicking && (selected && !picking || selectedPhoto && !picking || !selected && !selectedPhoto && (picking || relocating) && draft) && (
           <MapNavigation destination={selected
             ? { latitude: selected.latitude, longitude: selected.longitude, name: selected.name }
+            : selectedPhoto ? { latitude: (photoRelocating && draft ? draft : selectedPhoto.location!).latitude, longitude: (photoRelocating && draft ? draft : selectedPhoto.location!).longitude, name: selectedPhoto.originalFilename }
             : { ...draft!, name: relocatingPlace?.name ?? t("New place") }}
             accessToken={token} homeLocation={homeLocation} onMapboxPreviewChange={setMapboxPreview}
             onEdit={selected
               ? canChange(selected) ? () => onEdit(selected) : undefined
+              : selectedPhoto ? photoRelocating ? onConfirmPhotoMove : canMovePhoto(selectedPhoto) ? () => onEditPhoto(selectedPhoto) : undefined
               : relocating ? onConfirmRelocation : () => { if (draft) focusCoordinate(draft); onEditDraft(); }}
             onOpenChange={(open) => {
-              if (open && !selected && draft) focusCoordinate(draft);
+              if (open && !selected && !selectedPhoto && draft) focusCoordinate(draft);
               setNavigationOpen(open);
             }}
-            editAction={relocating ? "confirm" : selected ? "edit" : "add"}
-            onCancel={relocating ? onCancelRelocation : selected ? onCancelSelection : onCancelDraft} />
+            editAction={photoRelocating || relocatingPlace ? "confirm" : selected || selectedPhoto ? "edit" : "add"}
+            onCancel={photoRelocating ? onCancelSelection : relocatingPlace ? onCancelRelocation : selected || selectedPhoto ? onCancelSelection : onCancelDraft} />
         )}
-        {(!loaded || homePicking || (picking && (!!selected || !draft)) || (!selected && !draft))
+        {(!loaded || homePicking || (picking && (!!selected || !draft)) || (!selected && !selectedPhoto && !draft))
           && <DisabledNavigationToolbar />}
         {homeLocation && !relocating && (
           <HomeLocationMarker location={homeLocation} variant="place" onHoverChange={onHomeHoverChange} onClick={() => {
@@ -725,7 +748,7 @@ function MapContent({
             });
           }} />
         )}
-        {showMarkers && (
+        {showMarkers && !photoRelocating && (
           <PlaceMarkers places={mapPlaces} selectedId={selectedId} ready={loaded}
             homeLocation={homeLocation} homeHovered={homeHovered} onHomeHoverChange={onHomeHoverChange}
             hidePreview={mapboxPreview || relocating}
@@ -735,7 +758,16 @@ function MapContent({
             onSelect(item);
           }} />
         )}
-        {draft && (
+        {showPhotoMarkers && <PhotoMarkers
+          media={photoRelocating && selectedPhoto ? photos.filter((item) => item.id === selectedPhoto.id) : photos}
+          selected={selectedPhoto} ready={loaded} homeLocation={homeLocation} homeHovered={homeHovered}
+          onHomeHoverChange={onHomeHoverChange} hidePreview={mapboxPreview || photoRelocating}
+          onSelect={(photo) => {
+            if (selectedPhoto?.id !== photo.id) setFocusRequest((request) => request + 1);
+            onSelectPhoto(photo);
+          }}
+          canMove={(photo) => !navigationOpen && canMovePhoto(photo)} onMove={onMovePhoto} />}
+        {draft && (picking || !!relocatingPlace || photoDraftChanged) && (
           <MapDraftMarker location={draft} label={t("Click the map or drag to set a location")}
             draggable={picking || relocating} onPick={onPick}
             onClick={picking ? onCancelDraft : undefined} />
@@ -839,6 +871,13 @@ function MapContent({
               }}>
               <span className="place__scene-icon" aria-hidden="true"><Globe size={20} animation="spin" /></span>
               <span className="place__scene-copy"><strong>{t("3D Basemap")}</strong></span>
+            </button>
+          </AnimateIcon>
+          <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
+            <button type="button" className="place__scene" aria-pressed={showPhotoMarkers}
+              onClick={() => setShowPhotoMarkers((visible) => !visible)}>
+              <span className="place__scene-icon" aria-hidden="true"><MapPin size={20} /></span>
+              <span className="place__scene-copy"><strong>{t("Photo markers")}</strong></span>
             </button>
           </AnimateIcon>
           <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>

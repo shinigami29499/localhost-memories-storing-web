@@ -1,4 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { startTransition, useCallback, useEffect, useRef, useState, useMemo, type CSSProperties } from "react";
 import { Highlight, HighlightItem } from "@animate-ui/react/primitives/effects/highlight";
 import { Pagination, DEFAULT_PAGE_SIZE } from "../../components/ui/Pagination";
@@ -20,6 +21,9 @@ import { useLocale } from "../../context/LocaleContext";
 import { useAuthStore } from "../../store/authStore";
 import { ApiError } from "../../services/api";
 import { useHomeLocation } from "../../features/locations/hooks/useHomeLocation";
+import { useLocations } from "../../features/locations/hooks/useLocations";
+import { locationService } from "../../features/locations/services/locationService";
+import { LocationEditor } from "../../features/locations/components/LocationEditor";
 import { HomeLocationPhotoConfirmation } from "../../features/locations/components/HomeLocationPhotoConfirmation";
 import { PlaceMap } from "../../features/place/components/PlaceMap";
 import { PlaceDialog } from "../../features/place/components/PlaceDialog";
@@ -44,6 +48,7 @@ import {
   type PlaceCoordinate,
   type Place,
 } from "../../features/place/types";
+import type { MediaFile, PickedLocation } from "../../features/media/types";
 import "./place.css";
 
 interface EditorState {
@@ -78,11 +83,13 @@ function toEditorState(place: Place): EditorState {
 
 export function PlacePage({ saved = false }: { saved?: boolean }) {
   const { t } = useLocale();
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
   const user = useAuthStore((state) => state.user);
   const isAdmin = user?.role?.toLowerCase() === "admin";
   const home = useHomeLocation(user?.id);
+  const { media: photos } = useLocations(!saved);
   const query = usePlaces();
   const save = useSavePlace();
   const remove = useDeletePlace();
@@ -113,10 +120,14 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
   const [manualHomePick, setManualHomePick] = useState(false);
   const [homeDialogOpen, setHomeDialogOpen] = useState(false);
   const [confirmHomeRemoval, setConfirmHomeRemoval] = useState(false);
+  const [photoSelection, setPhotoSelection] = useState<{ id: string; draft: PickedLocation | null; editing: boolean } | null>(null);
+  const [photoMoveConfirmationOpen, setPhotoMoveConfirmationOpen] = useState(false);
 
   const places = query.data ?? [];
   const homePicking = manualHomePick;
   const selected = places.find((place) => place.id === selectedId);
+  const selectedPhoto = photos.find((photo) => photo.id === photoSelection?.id);
+  const photoRelocating = !!photoSelection?.editing;
   const canEdit = (place: Place) => place.owner.id === user?.id || isAdmin;
   const canChangeMarker = (place: Place) => canEdit(place) && !editor && !homePicking
     && !placeToMove && !placeToDelete && !save.isPending && !remove.isPending;
@@ -128,22 +139,48 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
   );
   const clearPreview = useCallback(() => {
     if (document.activeElement instanceof HTMLElement
-      && document.activeElement.closest(".place__marker")) document.activeElement.blur();
+      && document.activeElement.closest(".place__marker, .locations__marker")) document.activeElement.blur();
     setSelectedId(null);
     setDetailsOpen(false);
+    setPhotoSelection(null);
   }, []);
 
+  const canMovePhoto = (photo: MediaFile) => !saved && !homePicking && !photoMoveConfirmationOpen
+    && (photo.ownerId === user?.id || isAdmin);
+  const selectPhoto = (photo: MediaFile) => {
+    if (photoSelection?.id === photo.id) {
+      setPhotoSelection(null);
+      return;
+    }
+    setSelectedId(null);
+    setDetailsOpen(false);
+    setPhotoSelection({ id: photo.id, draft: photo.location ?? null, editing: false });
+  };
+  const movePhoto = (photo: MediaFile, coordinate: PlaceCoordinate) => {
+    if (!canMovePhoto(photo)) return;
+    setPhotoSelection({ id: photo.id, draft: coordinate, editing: true });
+  };
+  const confirmPhotoMove = async () => {
+    if (!selectedPhoto || !photoSelection?.draft || !photoRelocating) return;
+    await locationService.set(selectedPhoto.id, photoSelection.draft);
+    await queryClient.invalidateQueries({ queryKey: ["media"] });
+    await queryClient.invalidateQueries({ queryKey: ["albums"] });
+    showToast.success(t("Location saved."));
+    setPhotoMoveConfirmationOpen(false);
+    setPhotoSelection(null);
+  };
+
   useEffect(() => {
-    if (!selectedId || editor || save.isPending || remove.isPending) return;
+    if ((!selectedId && !photoSelection) || photoSelection?.editing || editor || save.isPending || remove.isPending) return;
     const dismissPreview = (event: MouseEvent) => {
       if (!(event.target instanceof Element)
         || document.querySelector('[role="dialog"], [role="alertdialog"]')
-        || event.target.closest(".place__marker, .place__card, .place__map-home-control, .map-navigation")) return;
+        || event.target.closest(".place__marker, .locations__marker, .locations__cluster-toggle, .place__card, .place__map-home-control, .map-navigation")) return;
       clearPreview();
     };
     document.addEventListener("click", dismissPreview);
     return () => document.removeEventListener("click", dismissPreview);
-  }, [selectedId, editor, save.isPending, remove.isPending, clearPreview]);
+  }, [selectedId, photoSelection, editor, save.isPending, remove.isPending, clearPreview]);
 
   const pickHome = async (coordinate: PlaceCoordinate) => {
     try {
@@ -200,6 +237,7 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
   };
 
   const selectPlace = (place: Place) => {
+    setPhotoSelection(null);
     if (editor?.id && editor.id !== place.id) return;
     if (editor && !editor.id) {
       setEditor(null);
@@ -212,6 +250,11 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
 
   /** Moves the temporary marker or starts one at the selected map point. */
   const pickOnMap = (coordinate: PlaceCoordinate, placeName?: string) => {
+    if (photoRelocating && selectedPhoto) {
+      setPhotoSelection((current) => current?.id === selectedPhoto.id ? { ...current, draft: coordinate } : current);
+      return;
+    }
+    setPhotoSelection(null);
     if (!editor) {
       setSelectedId(null);
       setDetailsOpen(false);
@@ -252,7 +295,7 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
         || document.querySelector('[role="dialog"], [role="alertdialog"]')
         || workspaceRef.current?.contains(event.target)
         || (event.target instanceof Element && event.target.closest(".place__notice, .map-navigation"))) return;
-      if (editor || manualHomePick) cancel();
+      if (editor || manualHomePick || photoSelection) cancel();
     };
     window.addEventListener("keydown", escape);
     document.addEventListener("pointerdown", outside);
@@ -260,7 +303,7 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
       window.removeEventListener("keydown", escape);
       document.removeEventListener("pointerdown", outside);
     };
-  }, [editor, manualHomePick, placeToMove, save.isPending, remove.isPending, home.save.isPending, clearPreview]);
+  }, [editor, manualHomePick, placeToMove, photoSelection, save.isPending, remove.isPending, home.save.isPending, clearPreview]);
 
   const movePlace = (place: Place, coordinate: PlaceCoordinate) => {
     if (!canChangeMarker(place)) return;
@@ -391,8 +434,16 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
                   <div className="place__map-panel">
                     <PlaceMap
                       places={mapPlaces}
+                      photos={photos}
+                      selectedPhoto={selectedPhoto}
+                      photoRelocating={photoRelocating}
+                      canMovePhoto={canMovePhoto}
+                      onSelectPhoto={selectPhoto}
+                      onMovePhoto={movePhoto}
+                      onEditPhoto={(photo) => setPhotoSelection({ id: photo.id, draft: photo.location ?? null, editing: true })}
+                      onConfirmPhotoMove={() => setPhotoMoveConfirmationOpen(true)}
                       selectedId={selectedId}
-                      draft={placeToMove?.coordinate ?? editor?.coordinate ?? null}
+                      draft={photoRelocating ? photoSelection?.draft ?? null : placeToMove?.coordinate ?? editor?.coordinate ?? null}
                       relocatingPlace={placeToMove?.place ?? null}
                       picking={!!editor}
                       homeLocation={home.query.data ?? null}
@@ -404,7 +455,7 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
                       onEditDraft={() => setEditorOpen(true)}
                       onConfirmRelocation={() => setMoveConfirmationOpen(true)}
                       onCancelRelocation={() => { setMoveConfirmationOpen(false); setPlaceToMove(null); }}
-                      onCancelSelection={clearPreview}
+                      onCancelSelection={() => { clearPreview(); setPhotoMoveConfirmationOpen(false); }}
                       onCancelDraft={cancelMapPick}
                       canChange={canChangeMarker}
                       onMove={movePlace}
@@ -418,6 +469,7 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
                         setEditorOpen(true);
                       }}
                       onHomeClick={() => {
+                        setPhotoSelection(null);
                         setSelectedId(null);
                         setEditor(null);
                         setEditorOpen(false);
@@ -426,7 +478,8 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
                         if (!home.query.data) openHomeDialog();
                       }}
                       onPick={(coordinate, placeName, source) => {
-                        if (placeToMove) setPlaceToMove((current) => current ? { ...current, coordinate } : current);
+                        if (photoRelocating && selectedPhoto) setPhotoSelection((current) => current?.id === selectedPhoto.id ? { ...current, draft: coordinate } : current);
+                        else if (placeToMove) setPlaceToMove((current) => current ? { ...current, coordinate } : current);
                         else pickOnMap(coordinate, placeName, source);
                       }}
                     />
@@ -641,6 +694,19 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
                   name: placeToMove.place.name,
                   latitude: placeToMove.coordinate.latitude.toFixed(6),
                   longitude: placeToMove.coordinate.longitude.toFixed(6),
+                })}</p>
+              </ConfirmationDialog>
+            )}
+            {selectedPhoto && photoRelocating && photoMoveConfirmationOpen && photoSelection?.draft && (
+              <ConfirmationDialog
+                title="Move this photo?"
+                onConfirm={confirmPhotoMove}
+                onClose={() => setPhotoMoveConfirmationOpen(false)}
+              >
+                <p>{t("{name} will move to {latitude}, {longitude}.", {
+                  name: selectedPhoto.originalFilename,
+                  latitude: photoSelection.draft.latitude.toFixed(6),
+                  longitude: photoSelection.draft.longitude.toFixed(6),
                 })}</p>
               </ConfirmationDialog>
             )}
