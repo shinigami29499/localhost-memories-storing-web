@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { Bell } from "@/components/animate-ui/icons/bell";
@@ -6,6 +7,8 @@ import { CheckCheckIcon } from "@/components/animate-ui/icons/check-check";
 import { useAlbumNotificationStore } from "../../features/notifications/albumNotificationStore";
 import { useUploadNotificationStore } from "../../features/notifications/uploadNotificationStore";
 import { useDownloadNotificationStore } from "../../features/notifications/downloadNotificationStore";
+import { uploadService } from "../../features/uploads/services/uploadService";
+import { markAllDownloadBatchesViewed, markDownloadBatchViewed } from "../../features/downloads/services/downloadHistory";
 import { uploadMessage } from "../../features/notifications/uploadMessage";
 import { useAuthStore } from "../../store/authStore";
 import { formatTimestamp } from "../../utils/media";
@@ -26,6 +29,7 @@ export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const queryClient = useQueryClient();
   const userId = useAuthStore((state) => state.user?.id);
   const uploadItems = useUploadNotificationStore((state) => state.items);
   const markUploadsRead = useUploadNotificationStore((state) => state.markRead);
@@ -95,7 +99,7 @@ export function NotificationBell() {
           <div className="notification-bar__header">
             <h2>{t("Notifications")}</h2>
             <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
-              <button type="button" className="notification-bar__mark-read" aria-label={t("Mark all as read")} title={t("Mark all as read")} disabled={!unreadCount} onClick={() => { if (userId) { markUploadsRead(userId); markDownloadsRead(userId); markAlbumsRead(userId); } }}>
+              <button type="button" className="notification-bar__mark-read" aria-label={t("Mark all as read")} title={t("Mark all as read")} disabled={!unreadCount} onClick={() => { if (userId) { markUploadsRead(userId); markDownloadsRead(userId); markAlbumsRead(userId); void Promise.all([uploadService.markAllBatchesViewed(), markAllDownloadBatchesViewed()]).then(() => Promise.all([queryClient.invalidateQueries({ queryKey: ["uploads"] }), queryClient.invalidateQueries({ queryKey: ["download-batches"] })])).catch(() => undefined); } }}>
                 <CheckCheckIcon size={18} aria-hidden="true" />
               </button>
             </AnimateIcon>
@@ -116,12 +120,31 @@ export function NotificationBell() {
                 return (
                 <li key={notification.kind === "album" ? notification.eventId : notification.id}>
                   <Link
-                    to={notification.kind === "album" ? `/library/album/${notification.albumId}` : notification.kind === "download" ? "/sync/download" : notification.username ? "/library/gallery" : "/sync/upload"}
+                    to={notification.kind === "album" ? `/library/album/${notification.albumId}` : notification.kind === "download" ? "/sync/download" : "/library/gallery"}
                     className={`notification-bar__item${notification.readAt ? "" : " notification-bar__item--unread"}`}
-                    onClick={() => {
+                    onClick={(event) => {
                       setOpen(false);
-                      if (userId && !notification.readAt && notification.kind === "upload") markUploadsRead(userId, notification.id);
-                      if (userId && !notification.readAt && notification.kind === "download") markDownloadsRead(userId, notification.id);
+                      if (notification.kind === "upload") {
+                        event.preventDefault();
+                        let markViewed = Promise.resolve();
+                        if (userId && !notification.readAt) {
+                          markUploadsRead(userId, notification.id);
+                          if (!notification.username) {
+                            markViewed = uploadService.markBatchViewed(
+                              notification.id.slice(notification.id.lastIndexOf(":") + 1),
+                            );
+                          }
+                        }
+                        void markViewed.catch(() => undefined).finally(() => {
+                          window.location.assign("/library/gallery");
+                        });
+                        return;
+                      }
+                      if (userId && !notification.readAt && notification.kind === "download") {
+                        markDownloadsRead(userId, notification.id);
+                        void markDownloadBatchViewed(notification.id.slice(notification.id.lastIndexOf(":") + 1))
+                          .then(() => queryClient.invalidateQueries({ queryKey: ["download-batches"] })).catch(() => undefined);
+                      }
                       if (userId && !notification.readAt && notification.kind === "album") markAlbumsRead(userId, notification.eventId);
                     }}
                   >

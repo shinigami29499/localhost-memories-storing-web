@@ -178,6 +178,19 @@ export function AlbumFeedPost({ album, canDelete }: Props) {
             <motion.div
               id={captionId}
               className="album-feed-post__caption"
+              role={captionHasOverflow || captionExpanded ? "button" : undefined}
+              tabIndex={captionHasOverflow || captionExpanded ? 0 : undefined}
+              aria-expanded={captionExpanded}
+              aria-label={t(captionExpanded ? "Show less" : "Show more")}
+              onClick={() => {
+                if (captionHasOverflow || captionExpanded) setCaptionExpanded((expanded) => !expanded);
+              }}
+              onKeyDown={(event) => {
+                if ((event.key === "Enter" || event.key === " ") && (captionHasOverflow || captionExpanded)) {
+                  event.preventDefault();
+                  setCaptionExpanded((expanded) => !expanded);
+                }
+              }}
               initial={false}
               animate={{ height: captionExpanded || !captionHasOverflow ? "auto" : collapsedCaptionHeight }}
               transition={shouldReduceMotion ? { duration: 0 } : captionTransition}

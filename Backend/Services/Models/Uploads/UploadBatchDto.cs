@@ -15,4 +15,5 @@ public sealed record UploadBatchDto(
     int UploadingFiles,
     int CancelledFiles,
     int ProgressPercent,
-    IReadOnlyList<UploadItemDto> Items);
+    IReadOnlyList<UploadItemDto> Items,
+    DateTime? ViewedAt = null);

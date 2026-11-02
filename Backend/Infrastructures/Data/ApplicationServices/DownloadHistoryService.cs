@@ -51,14 +51,38 @@ public class DownloadHistoryService(ApplicationDbContext db) : IDownloadHistoryS
 
     public async Task<DownloadBatchStatePage> ListBatchesAsync(Guid userId, bool isAdmin, int offset, int limit, CancellationToken cancellationToken)
     {
-        var query = db.DownloadBatchStates.AsNoTracking().Where(batch => isAdmin || batch.UserId == userId);
+        var query = db.DownloadBatchStates.AsNoTracking().Where(batch => batch.UserId == userId);
         var total = await query.CountAsync(cancellationToken);
         var rows = await query.OrderByDescending(batch => batch.CreatedAt).ThenByDescending(batch => batch.Id)
             .Skip(Math.Max(0, offset)).Take(Math.Clamp(limit, 1, 100))
-            .Select(batch => new { batch.Id, batch.UserId, batch.User.Username, batch.CreatedAt, batch.ItemsJson })
+            .Select(batch => new { batch.Id, batch.UserId, batch.User.Username, batch.CreatedAt, batch.ItemsJson, batch.ViewedAt })
             .ToListAsync(cancellationToken);
         return new DownloadBatchStatePage(rows.Select(batch => new DownloadBatchStateDto(batch.Id, batch.UserId, batch.Username, batch.CreatedAt,
-            JsonSerializer.Deserialize<List<DownloadItemStateDto>>(batch.ItemsJson, JsonOptions) ?? [])).ToList(), total);
+            JsonSerializer.Deserialize<List<DownloadItemStateDto>>(batch.ItemsJson, JsonOptions) ?? [], batch.ViewedAt)).ToList(), total);
+    }
+
+    public async Task<bool> MarkBatchViewedAsync(Guid userId, Guid batchId, CancellationToken cancellationToken)
+    {
+        var batch = await db.DownloadBatchStates.FirstOrDefaultAsync(
+            entry => entry.Id == batchId && entry.UserId == userId, cancellationToken);
+        if (batch is null) return false;
+        if (batch.ViewedAt is null)
+        {
+            batch.ViewedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        return true;
+    }
+
+    public async Task MarkAllBatchesViewedAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var viewedAt = DateTime.UtcNow;
+        await db.DownloadBatchStates
+            .Where(batch => batch.UserId == userId && batch.ViewedAt == null)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(batch => batch.ViewedAt, viewedAt)
+                .SetProperty(batch => batch.UpdatedAt, viewedAt)
+                .SetProperty(batch => batch.UpdatedBy, userId), cancellationToken);
     }
 
     public async Task<bool> SaveBatchAsync(Guid userId, Guid batchId, IReadOnlyList<DownloadItemStateDto> items, CancellationToken cancellationToken)
@@ -86,7 +110,7 @@ public class DownloadHistoryService(ApplicationDbContext db) : IDownloadHistoryS
 
     public async Task<DownloadHistoryResponse> ListAsync(Guid userId, bool isAdmin, int offset, int limit, CancellationToken cancellationToken)
     {
-        var query = db.Set<DownloadRecord>().AsNoTracking().Where(record => isAdmin || record.UserId == userId);
+        var query = db.Set<DownloadRecord>().AsNoTracking().Where(record => record.UserId == userId);
         var total = await query.CountAsync(cancellationToken);
         var items = await query.OrderByDescending(record => record.CreatedAt).ThenByDescending(record => record.Id)
             .Skip(Math.Max(0, offset)).Take(Math.Clamp(limit, 1, 100))

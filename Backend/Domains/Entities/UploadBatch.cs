@@ -9,5 +9,6 @@ public class UploadBatch : AuditableEntity
     public UploadBatchStatus Status { get; set; } = UploadBatchStatus.Pending;
     public DateTime? StartedAt { get; set; }
     public DateTime? CompletedAt { get; set; }
+    public DateTime? ViewedAt { get; set; }
     public ICollection<UploadItem> Items { get; set; } = [];
 }

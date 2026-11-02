@@ -14,6 +14,9 @@ public interface IUploadRepository
         Guid actorId, bool isAdmin, CancellationToken cancellationToken = default,
         DateTime? createdFrom = null, DateTime? createdBefore = null);
     Task<UploadBatch?> FindBatchAsync(Guid batchId, CancellationToken cancellationToken = default);
+    Task<bool> MarkBatchViewedAsync(Guid ownerId, Guid batchId, CancellationToken cancellationToken = default);
+    Task MarkBatchesViewedAsync(Guid ownerId, IReadOnlyCollection<Guid> batchIds, CancellationToken cancellationToken = default);
+    Task MarkAllBatchesViewedAsync(Guid ownerId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<UploadBatch>> GetActiveBatchesAsync(
         Guid ownerId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<UploadItem>> GetPendingItemsAsync(

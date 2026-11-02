@@ -43,9 +43,7 @@ public sealed class UploadRepository(ApplicationDbContext db) : IUploadRepositor
     private IQueryable<UploadBatch> QueryBatches(
         Guid actorId, bool isAdmin, DateTime? createdFrom, DateTime? createdBefore)
     {
-        var query = db.UploadBatches.AsQueryable();
-        if (!isAdmin)
-            query = query.Where(batch => batch.OwnerId == actorId);
+        var query = db.UploadBatches.Where(batch => batch.OwnerId == actorId);
         if (createdFrom.HasValue)
             query = query.Where(batch => batch.CreatedAt >= createdFrom.Value);
         if (createdBefore.HasValue)
@@ -58,6 +56,43 @@ public sealed class UploadRepository(ApplicationDbContext db) : IUploadRepositor
             .Include(batch => batch.Owner)
             .Include(batch => batch.Items.OrderBy(item => item.CreatedAt))
             .FirstOrDefaultAsync(batch => batch.Id == batchId, cancellationToken);
+
+    public async Task<bool> MarkBatchViewedAsync(Guid ownerId, Guid batchId, CancellationToken cancellationToken = default)
+    {
+        var batch = await db.UploadBatches.FirstOrDefaultAsync(
+            entry => entry.Id == batchId && entry.OwnerId == ownerId, cancellationToken);
+        if (batch is null) return false;
+        if (batch.ViewedAt is null)
+        {
+            batch.ViewedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        return true;
+    }
+
+    public async Task MarkBatchesViewedAsync(Guid ownerId, IReadOnlyCollection<Guid> batchIds, CancellationToken cancellationToken = default)
+    {
+        if (batchIds.Count == 0) return;
+
+        var viewedAt = DateTime.UtcNow;
+        await db.UploadBatches
+            .Where(batch => batch.OwnerId == ownerId && batchIds.Contains(batch.Id) && batch.ViewedAt == null)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(batch => batch.ViewedAt, viewedAt)
+                .SetProperty(batch => batch.UpdatedAt, viewedAt)
+                .SetProperty(batch => batch.UpdatedBy, ownerId), cancellationToken);
+    }
+
+    public async Task MarkAllBatchesViewedAsync(Guid ownerId, CancellationToken cancellationToken = default)
+    {
+        var viewedAt = DateTime.UtcNow;
+        await db.UploadBatches
+            .Where(batch => batch.OwnerId == ownerId && batch.ViewedAt == null)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(batch => batch.ViewedAt, viewedAt)
+                .SetProperty(batch => batch.UpdatedAt, viewedAt)
+                .SetProperty(batch => batch.UpdatedBy, ownerId), cancellationToken);
+    }
 
     public async Task<IReadOnlyList<UploadBatch>> GetActiveBatchesAsync(
         Guid ownerId, CancellationToken cancellationToken = default)

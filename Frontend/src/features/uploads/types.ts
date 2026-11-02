@@ -23,6 +23,7 @@ export interface UploadBatch {
   createdAt: string;
   startedAt: string | null;
   completedAt: string | null;
+  viewedAt?: string | null;
   totalFiles: number;
   successfulFiles: number;
   failedFiles: number;

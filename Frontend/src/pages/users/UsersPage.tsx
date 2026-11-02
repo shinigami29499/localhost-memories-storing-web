@@ -22,7 +22,7 @@ import "./users.css";
 import { useLocale } from "../../context/LocaleContext";
 import { UserAvatar } from "../../components/common/UserAvatar";
 
-const ONLINE_WINDOW_MS = 120_000;
+const ONLINE_WINDOW_MS = 300_000;
 
 function formatLastActive(value: string | null | undefined, language: "en" | "vi", now: number): string {
   if (!value) return "—";

@@ -6,7 +6,7 @@ import { motionTokens } from "@animate-ui/react/utils/motion";
 import { Image } from "@/components/animate-ui/icons/image";
 import { Video } from "@/components/animate-ui/icons/video";
 import { FileText } from "@/components/animate-ui/icons/file-text";
-import { formatBytes } from "../../uploads/components/UploadBatchCard";
+import { formatBytes, formatCompactDate } from "../../uploads/components/UploadBatchCard";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import { RotateCcw } from "@/components/animate-ui/icons/rotate-ccw";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
@@ -19,6 +19,7 @@ import { UserAvatar } from "../../../components/common/UserAvatar";
 import { showToast } from "../../../components/ui/Toast";
 import { useAuthStore } from "../../../store/authStore";
 import { downloadCategory, downloadReadKey, useDownloadReadStore } from "../hooks/useUnreadDownloads";
+import { markDownloadBatchViewed, saveDownloadBatch } from "../services/downloadHistory";
 import { useLocale } from "../../../context/LocaleContext";
 import { pauseDownloadBatch, pauseDownloadItem, resumeDownloadBatch, resumeDownloadItem, removeDownloadRecord, retryDownload, retryHistoryDownload, useDownloadStore, type DownloadBatch } from "../services/downloadQueue";
 
@@ -29,7 +30,7 @@ export function DownloadBatchCard({ batch, showUsername = false, avatarSeed, can
   const userId = useAuthStore((state) => state.user?.id) ?? "";
   const read = useDownloadReadStore((state) => state.read);
   const markRead = useDownloadReadStore((state) => state.markRead);
-  const unreadItems = batch.items.filter((item) => { const category = downloadCategory(item); return category && read[downloadReadKey(userId, batch, item)] !== category; });
+  const unreadItems = batch.viewedAt ? [] : batch.items.filter((item) => { const category = downloadCategory(item); return category && read[downloadReadKey(userId, batch, item)] !== category; });
   const queryClient = useQueryClient();
   const [deleting, setDeleting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -50,6 +51,18 @@ export function DownloadBatchCard({ batch, showUsername = false, avatarSeed, can
   const filteredItems = batch.items;
   const currentPage = Math.min(page, Math.max(1, Math.ceil(filteredItems.length / ITEMS_PER_PAGE)));
   const panelId = `download-batch-${batch.id}`;
+  const markBatchRead = () => {
+    if (!unreadItems.length) return;
+    markRead(userId, batch, unreadItems);
+    void (async () => {
+      if (useDownloadStore.getState().batches.some((entry) => entry.id === batch.id)) await saveDownloadBatch(batch);
+      await markDownloadBatchViewed(batch.id);
+      useDownloadStore.setState((state) => ({
+        batches: state.batches.map((entry) => entry.id === batch.id ? { ...entry, viewedAt: new Date().toISOString() } : entry),
+      }));
+      await queryClient.invalidateQueries({ queryKey: ["download-batches"] });
+    })().catch(() => undefined);
+  };
   const toggleLabel = t(expanded ? "Hide files" : "View files");
   const retry = (itemId: string) => {
     try {
@@ -74,8 +87,8 @@ export function DownloadBatchCard({ batch, showUsername = false, avatarSeed, can
     <Collapsible.Root render={<article />} className="upload-batch" open={expanded} onOpenChange={setExpanded}>
       <div
         className={`upload-batch__summary${showUsername ? " upload-batch__summary--admin" : ""}${unreadItems.length ? " upload-batch__summary--unread" : ""}`}
-        onMouseEnter={() => { if (unreadItems.length) markRead(userId, batch, unreadItems); }}
-        onFocus={() => { if (unreadItems.length) markRead(userId, batch, unreadItems); }}
+        onMouseEnter={markBatchRead}
+        onFocus={markBatchRead}
         onClick={(event) => {
           if ((event.target as HTMLElement).closest("button, input, a, select, [role='combobox']")) return;
           setExpanded((current) => !current);
@@ -93,6 +106,8 @@ export function DownloadBatchCard({ batch, showUsername = false, avatarSeed, can
           <time className="upload-batch__value" dateTime={batch.createdAt}>
             <span className="upload-batch__date-time">{new Date(batch.createdAt).toLocaleString(language)}</span>
             <span className="upload-batch__date-only">{new Date(batch.createdAt).toLocaleDateString(language)}</span>
+            <span className="upload-batch__date-value">{formatCompactDate(batch.createdAt)}</span>
+            <span className="upload-batch__time-value">{new Date(batch.createdAt).toLocaleTimeString(language, { hour: "2-digit", minute: "2-digit" })}</span>
           </time>
         </div>
         <div className="upload-batch__field upload-batch__status-field">

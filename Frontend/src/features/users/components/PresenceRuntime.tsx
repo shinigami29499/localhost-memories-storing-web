@@ -4,9 +4,9 @@ import { CustomDialog as AlertDialog, useCustomDialog } from "../../../component
 import { useLocale } from "../../../context/LocaleContext";
 import { useAuthStore } from "../../../store/authStore";
 import { useAlbumNotificationStore, type AlbumNotification } from "../../notifications/albumNotificationStore";
-import { showBrowserNotification } from "../../notifications/browserNotifications";
 import { useUploadNotificationStore } from "../../notifications/uploadNotificationStore";
 import { uploadMessage } from "../../notifications/uploadMessage";
+import { showBrowserNotification } from "../../notifications/browserNotifications";
 import { showToast } from "../../../components/ui/Toast";
 import { userService } from "../services/userService";
 import { api } from "../../../services/api";
@@ -77,6 +77,25 @@ export function PresenceRuntime() {
           } });
         }
       });
+      connection.on("UploadCompleted", (event: { batchId: string; ownerId: string; username: string; images: number; videos: number; createdAt: string }) => {
+        const userId = useAuthStore.getState().user?.id;
+        if (!userId || userId === event.ownerId || !event.username) return;
+        useUploadNotificationStore.getState().addRemote(userId, event);
+        const message = uploadMessage(t, event.images, event.videos, event.username);
+        void showBrowserNotification(t("New uploads"), message, "/library/gallery").catch(() => undefined);
+        const onGallery = isGalleryPath(window.location.pathname);
+        showToast.info(message, {
+          description: t(onGallery ? "Click to refresh." : "Click to go to gallery."),
+          highlight: [event.username],
+          onClick: () => {
+            if (isGalleryPath(window.location.pathname)) {
+              void queryClient.invalidateQueries({ queryKey: ["media"] });
+            } else {
+              window.location.assign("/library/gallery");
+            }
+          },
+        });
+      });
       connection.on("AlbumChanged", (event: { albumId: string; albumName: string; ownerId: string; actorId: string; username: string; action: "updated" | "deleted" | "private" }) => {
         const userId = useAuthStore.getState().user?.id;
         if (!userId || userId === event.actorId) return;
@@ -108,19 +127,6 @@ export function PresenceRuntime() {
         showToast.info(message, { description: t("Click to refresh."), onClick: () => {
           if (window.location.pathname === path) void queryClient.invalidateQueries({ queryKey: ["media", path.endsWith("/trash") ? "deleted" : "all"] });
         } });
-      });
-      connection.on("UploadBatchCompleted", (event: { batchId: string; ownerId: string; username: string; images: number; videos: number; createdAt: string }) => {
-        const userId = useAuthStore.getState().user?.id;
-        if (!userId || userId === event.ownerId) return;
-        useUploadNotificationStore.getState().addRemote(userId, event);
-        const message = uploadMessage(t, event.images, event.videos, event.username);
-        const path = window.location.pathname;
-        if (path === "/library/gallery") showToast.info(message, {
-          highlight: [event.username], description: t("Click to refresh."), onClick: () => {
-            if (window.location.pathname === path) void queryClient.invalidateQueries({ queryKey: ["media", "all"] });
-          },
-        });
-        void showBrowserNotification(t("New uploads"), message, "/library/gallery").catch(() => undefined);
       });
       connection.on("AccountChanged", (reason: string) => {
         if (reason === "disabled" || reason === "roleUpdated") setAccountChange(reason);
@@ -214,4 +220,10 @@ export function PresenceRuntime() {
       </AlertDialog.Portal>
     </AlertDialog.Root>
   );
+}
+
+function isGalleryPath(pathname: string): boolean {
+  return pathname === "/library/gallery"
+    || pathname === "/library/gallery/videos"
+    || pathname === "/library/gallery/favorites";
 }

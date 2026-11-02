@@ -134,10 +134,19 @@ public sealed class UploadService(
         Guid actorId, bool isAdmin, Guid batchId, CancellationToken cancellationToken = default)
     {
         var batch = await _repository.FindBatchAsync(batchId, cancellationToken);
-        if (batch is null || (!isAdmin && batch.OwnerId != actorId))
+        if (batch is null || batch.OwnerId != actorId)
             throw new NotFoundException($"Upload batch '{batchId}' was not found.");
         return MapBatch(batch, actorId, isAdmin);
     }
+
+    public Task<bool> MarkBatchViewedAsync(Guid ownerId, Guid batchId, CancellationToken cancellationToken = default)
+        => _repository.MarkBatchViewedAsync(ownerId, batchId, cancellationToken);
+
+    public Task MarkBatchesViewedAsync(Guid ownerId, IReadOnlyCollection<Guid> batchIds, CancellationToken cancellationToken = default)
+        => _repository.MarkBatchesViewedAsync(ownerId, batchIds, cancellationToken);
+
+    public Task MarkAllBatchesViewedAsync(Guid ownerId, CancellationToken cancellationToken = default)
+        => _repository.MarkAllBatchesViewedAsync(ownerId, cancellationToken);
 
     public async Task<IReadOnlyList<UploadItemDto>> GetPendingItemsAsync(
         Guid ownerId, CancellationToken cancellationToken = default)
@@ -515,7 +524,8 @@ public sealed class UploadService(
             files.Count(item => item.Status == UploadItemStatus.Uploading),
             files.Count(item => item.Status == UploadItemStatus.Cancelled),
             progress,
-            files.Select(MapItem).ToList());
+            files.Select(MapItem).ToList(),
+            batch.ViewedAt);
     }
 
     private static UploadItemDto MapItem(UploadItem item)

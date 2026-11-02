@@ -14,7 +14,6 @@ import { useAuthStore } from "../../store/authStore";
 import { useLocale } from "../../context/LocaleContext";
 import { stopUploadLocally, requestUploadRetry, setUploadPaused } from "../../features/uploads/services/uploadRuntime";
 import { uploadService } from "../../features/uploads/services/uploadService";
-import { userService } from "../../features/users/services/userService";
 import { removeUploadFile, saveUploadFile } from "../../features/uploads/services/uploadFileStore";
 import { UploadActivityDialog } from "../../features/uploads/components/UploadActivityDialog";
 import { UploadBatchCard } from "../../features/uploads/components/UploadBatchCard";
@@ -29,7 +28,6 @@ export function UploadManagementPage() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
-  const isAdmin = user?.role.toLowerCase() === "admin";
   const [offset, setOffset] = useState(0);
   const [selectedDate, setSelectedDate] = useState("");
   const [limit, setLimit] = useState<number>(() => {
@@ -42,22 +40,11 @@ export function UploadManagementPage() {
   const retryTargets = useRef<{ batch: UploadBatch; item: UploadItem }[]>([]);
   const retryInput = useRef<HTMLInputElement>(null);
   const uploadInput = useRef<HTMLInputElement>(null);
-  const usersQuery = useQuery({
-    queryKey: ["users", "upload-avatars"],
-    queryFn: userService.list,
-    enabled: isAdmin,
-    staleTime: 5 * 60 * 1000,
-  });
-  const avatarUsersByUsername = new Map(
-    (usersQuery.data ?? []).map((account) => [account.username.toLowerCase(), account] as const),
-  );
   const query = useQuery({
-    queryKey: ["uploads", isAdmin, offset, limit, selectedDate, user?.id],
-    queryFn: () => (isAdmin
-      ? uploadService.listAll(offset, limit, selectedDate || undefined)
-      : uploadService.list(offset, limit, selectedDate || undefined)),
+    queryKey: ["uploads", offset, limit, selectedDate, user?.id],
+    queryFn: () => uploadService.list(offset, limit, selectedDate || undefined),
     placeholderData: (previousData, previousQuery) =>
-      previousQuery?.queryKey[4] === selectedDate && previousQuery?.queryKey[5] === user?.id
+      previousQuery?.queryKey[3] === selectedDate && previousQuery?.queryKey[4] === user?.id
         ? previousData
         : undefined,
   });
@@ -84,11 +71,11 @@ export function UploadManagementPage() {
 
     setSubmitting(true);
     try {
-      await uploadService.submit(selectedFiles);
+      const batch = await uploadService.submit(selectedFiles);
       setSelectedFiles([]);
       if (uploadInput.current) uploadInput.current.value = "";
       await queryClient.invalidateQueries({ queryKey: ["uploads"] });
-      showToast.success(t("Begin uploading {count} media", { count: selectedFiles.length }));
+      showToast.success(t("Begin uploading {count} media", { count: selectedFiles.length }), { id: `upload-start:${batch.id}` });
     } catch (error) {
       showToast.error(t("Could not start this upload."), error instanceof Error ? error.message : undefined);
     } finally {
@@ -198,6 +185,10 @@ export function UploadManagementPage() {
   const data = query.data;
   const batches = data?.items ?? [];
 
+  useEffect(() => () => {
+    void unread.syncSeenStatus();
+  }, [unread.syncSeenStatus]);
+
   return (
     <main className="upload-page" aria-labelledby="upload-page-title">
       <div className="upload-page__content">
@@ -269,7 +260,7 @@ export function UploadManagementPage() {
             ) : null}
           </div>
           <div className="upload-page__filters">
-            <AnimateIcon animateOnHover animateOnTap completeOnStop asChild><Button type="button" variant="ghost" className="upload-page__activity-button" aria-label={t("Mark all as read")} title={t("Mark all as read")} disabled={!unread.success && !unread.pending && !unread.failed} onClick={unread.markAllRead}>
+            <AnimateIcon animateOnHover animateOnTap completeOnStop asChild><Button type="button" variant="ghost" className="upload-page__activity-button" aria-label={t("Mark all as read")} title={t("Mark all as read")} disabled={!unread.success && !unread.pending && !unread.failed && !unread.hasUnseenBatches(batches)} onClick={() => unread.markAllRead(batches)}>
               <CheckCheckIcon size={18} aria-hidden="true" /><span className="upload-page__button-label">{t("Mark all as read")}</span>
             </Button></AnimateIcon>
             <DatePicker
@@ -310,10 +301,10 @@ export function UploadManagementPage() {
             {batches.map((batch, index) => (
               <UploadBatchCard
                 key={batch.id}
-                batch={isAdmin ? batch : { ...batch, username: batch.username ?? user?.username }}
+                batch={batch}
                 displayId={offset + index + 1}
-                showUsername
-                avatarUser={isAdmin && batch.username ? avatarUsersByUsername.get(batch.username.toLowerCase()) : user ?? undefined}
+                showUsername={false}
+                avatarUser={user ?? undefined}
                 busyItemIds={busyItemIds}
                 onRetry={(batch, item) => retryItems(batch, [item])}
                 onDelete={(batch, item) => removeRecord(batch, item)}

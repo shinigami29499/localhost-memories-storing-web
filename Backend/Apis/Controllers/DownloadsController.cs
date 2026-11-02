@@ -29,6 +29,19 @@ public class DownloadsController(IDownloadHistoryService history, ICurrentUserCo
     public async Task<ActionResult<DownloadBatchStatePage>> ListBatchesAsync([FromQuery] int offset = 0, [FromQuery] int limit = 100, CancellationToken cancellationToken = default)
         => Ok(await history.ListBatchesAsync(currentUser.RequireUserId(), currentUser.IsAdmin, offset, limit, cancellationToken));
 
+    [HttpPut("batches/{batchId:guid}/viewed")]
+    public async Task<IActionResult> MarkBatchViewedAsync(Guid batchId, CancellationToken cancellationToken)
+        => await history.MarkBatchViewedAsync(currentUser.RequireUserId(), batchId, cancellationToken)
+            ? NoContent()
+            : NotFound();
+
+    [HttpPut("batches/viewed")]
+    public async Task<IActionResult> MarkAllBatchesViewedAsync(CancellationToken cancellationToken)
+    {
+        await history.MarkAllBatchesViewedAsync(currentUser.RequireUserId(), cancellationToken);
+        return NoContent();
+    }
+
     [HttpPut("batches/{batchId:guid}")]
     public async Task<IActionResult> SaveBatchAsync(Guid batchId, [FromBody] SaveDownloadBatchRequest request, CancellationToken cancellationToken)
     {

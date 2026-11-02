@@ -22,6 +22,7 @@ export interface DownloadItem {
 export interface DownloadBatch {
   id: string;
   createdAt: string;
+  viewedAt?: string | null;
   username?: string;
   userId?: string;
   items: DownloadItem[];
@@ -32,6 +33,7 @@ export const useDownloadStore = create<{ batches: DownloadBatch[] }>(() => ({ ba
 let running = false;
 let active: { itemId: string; controller: AbortController } | undefined;
 const objectUrls = new Map<string, ReturnType<typeof setTimeout>>();
+const ITEM_INACTIVITY_TIMEOUT_MS = 30_000;
 
 const pendingSaves = new Map<string, Promise<void>>();
 
@@ -111,6 +113,16 @@ async function runQueue() {
       const controller = new AbortController();
       active = { itemId, controller };
       updateItem(itemId, { status: "Downloading", loaded: 0, error: undefined });
+      let timedOut = false;
+      let timeout: ReturnType<typeof setTimeout> | undefined;
+      const resetTimeout = () => {
+        if (timeout !== undefined) clearTimeout(timeout);
+        timeout = setTimeout(() => {
+          timedOut = true;
+          controller.abort();
+        }, ITEM_INACTIVITY_TIMEOUT_MS);
+      };
+      resetTimeout();
       try {
         const batchId = useDownloadStore.getState().batches.find((batch) => batch.items.some((entry) => entry.id === itemId))?.id;
         const query = new URLSearchParams({ download: "true" });
@@ -120,7 +132,10 @@ async function runQueue() {
           `/api/library/gallery/${encodeURIComponent(item.mediaId)}/file?${query}`,
           controller.signal,
           (loaded) => {
-            if (!controller.signal.aborted) updateItem(itemId, { loaded });
+            if (!controller.signal.aborted) {
+              resetTimeout();
+              updateItem(itemId, { loaded });
+            }
           },
         );
         controller.signal.throwIfAborted();
@@ -130,13 +145,20 @@ async function runQueue() {
         sendToBrowser(blob, item.originalFilename);
         updateItem(itemId, { status: "Sent to browser", loaded: blob.size });
       } catch (error) {
-        if (!controller.signal.aborted) {
+        if (timedOut) {
+          updateItem(itemId, {
+            status: "Failed",
+            loaded: 0,
+            error: "Download timed out after 30 seconds without progress.",
+          });
+        } else if (!controller.signal.aborted) {
           updateItem(itemId, {
             status: "Failed",
             error: error instanceof Error ? error.message : "The download failed.",
           });
         }
       } finally {
+        if (timeout !== undefined) clearTimeout(timeout);
         active = undefined;
       }
     }

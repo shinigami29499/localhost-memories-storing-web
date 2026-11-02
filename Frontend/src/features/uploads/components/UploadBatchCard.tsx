@@ -15,6 +15,7 @@ import { FileText } from "../../../components/animate-ui/icons/file-text";
 import { UserAvatar } from "../../../components/common/UserAvatar";
 import { useLocale } from "../../../context/LocaleContext";
 import { useAuthStore } from "../../../store/authStore";
+import { useUploadNotificationStore } from "../../notifications/uploadNotificationStore";
 import { uploadCategory, useUploadReadStore } from "../hooks/useUnreadUploads";
 import type { UploadBatch, UploadBatchStatus, UploadItem, UploadItemStatus } from "../types";
 
@@ -65,8 +66,13 @@ export function UploadBatchCard({
   const { t, language } = useLocale();
   const userId = useAuthStore((state) => state.user?.id) ?? "";
   const read = useUploadReadStore((state) => state.read);
-  const markRead = useUploadReadStore((state) => state.markRead);
-  const unreadItems = batch.items.filter((item) => { const category = uploadCategory(item); return category && read[`${userId}:${item.id}`] !== category; });
+  const markBatchSeenLocally = useUploadReadStore((state) => state.markBatchRead);
+  const unreadItems = batch.viewedAt ? [] : batch.items.filter((item) => { const category = uploadCategory(item); return category && read[`${userId}:${item.id}`] !== category; });
+  const markBatchRead = () => {
+    if (!unreadItems.length) return;
+    markBatchSeenLocally(userId, batch.id, unreadItems);
+    useUploadNotificationStore.getState().markRead(userId, `upload:${userId}:${batch.id}`);
+  };
   const active = batch.status === "Uploading" || batch.status === "Pending";
   const [expanded, setExpanded] = useState(active);
   const [itemPage, setItemPage] = useState(1);
@@ -98,8 +104,8 @@ export function UploadBatchCard({
     >
       <div
         className={`upload-batch__summary${showUsername ? " upload-batch__summary--admin" : ""}${unreadItems.length ? " upload-batch__summary--unread" : ""}`}
-        onMouseEnter={() => { if (unreadItems.length) markRead(userId, unreadItems); }}
-        onFocus={() => { if (unreadItems.length) markRead(userId, unreadItems); }}
+        onMouseEnter={markBatchRead}
+        onFocus={markBatchRead}
         onClick={(event) => {
           if ((event.target as HTMLElement).closest("button, input, a, select, [role='combobox']")) return;
           setExpanded((current) => !current);
@@ -128,6 +134,8 @@ export function UploadBatchCard({
           <time className="upload-batch__value" dateTime={batch.createdAt}>
             <span className="upload-batch__date-time">{new Date(batch.createdAt).toLocaleString(language)}</span>
             <span className="upload-batch__date-only">{new Date(batch.createdAt).toLocaleDateString(language)}</span>
+            <span className="upload-batch__date-value">{formatCompactDate(batch.createdAt)}</span>
+            <span className="upload-batch__time-value">{new Date(batch.createdAt).toLocaleTimeString(language, { hour: "2-digit", minute: "2-digit" })}</span>
           </time>
         </div>
         <div className="upload-batch__field upload-batch__status-field">
@@ -200,7 +208,7 @@ export function UploadBatchCard({
                     </strong>
                     <div className="upload-item__meta-row">
                       <span className="upload-item__meta">
-                        <span className="upload-item__meta-type">{item.contentType} · </span>
+                        <span className="upload-item__meta-type">{item.contentType}</span>
                         <span>{formatBytes(item.fileSizeBytes)}</span>
                       </span>
                     </div>
@@ -278,4 +286,9 @@ export function formatBytes(bytes: number): string {
     unitIndex++;
   }
   return `${value.toFixed(value >= 10 ? 0 : 1)} ${units[unitIndex]}`;
+}
+
+export function formatCompactDate(value: string): string {
+  const date = new Date(value);
+  return `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, "0")}/${String(date.getDate()).padStart(2, "0")}`;
 }

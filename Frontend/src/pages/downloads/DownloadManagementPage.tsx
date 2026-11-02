@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, useReducedMotion } from "motion/react";
 import { motionTokens } from "@animate-ui/react/utils/motion";
-import { useQuery } from "@tanstack/react-query";
 import { EmptyState, ErrorState, Spinner } from "../../components/ui/Status";
 import { Pagination, DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS } from "../../components/ui/Pagination";
 import { Button, DatePicker } from "../../components/ui";
@@ -16,7 +15,6 @@ import { useLocale } from "../../context/LocaleContext";
 import { DownloadBatchCard } from "../../features/downloads/components/DownloadBatchCard";
 import { useDownloadBatches } from "../../features/downloads/hooks/useDownloadBatches";
 import { useAuthStore } from "../../store/authStore";
-import { userService } from "../../features/users/services/userService";
 import "../../features/uploads/uploads.css";
 import "./downloads.css";
 
@@ -28,16 +26,6 @@ export function DownloadManagementPage() {
   const highlightBatchId = (location.state as { highlightBatchId?: string } | null)?.highlightBatchId;
   const handledHighlight = useRef<string | null>(null);
   const user = useAuthStore((state) => state.user);
-  const isAdmin = user?.role.toLowerCase() === "admin";
-  const usersQuery = useQuery({
-    queryKey: ["users", "upload-avatars"],
-    queryFn: userService.list,
-    enabled: isAdmin,
-    staleTime: 5 * 60 * 1000,
-  });
-  const avatarSeedsByUsername = new Map(
-    (usersQuery.data ?? []).map((account) => [account.username.toLowerCase(), account.avatarSeed] as const),
-  );
   const [page, setPage] = useState(1);
   const [selectedDate, setSelectedDate] = useState("");
   const [activityOpen, setActivityOpen] = useState(false);
@@ -108,7 +96,7 @@ export function DownloadManagementPage() {
             <div className="upload-list" aria-live="polite">
               {visibleBatches.map((batch, index) => (
                 <motion.div key={`${batch.userId}:${batch.id}`} className="download-page__batch" initial={batch.id === highlightBatchId && !reducedMotion ? { boxShadow: "0 0 0 3px var(--upload-status-success-border, #2fa66a)" } : false} animate={{ boxShadow: "0 0 0 0px transparent" }} transition={{ ...motionTokens.transition.reveal, delay: 0.8 }}>
-                  <DownloadBatchCard batch={batch} displayId={(page - 1) * limit + index + 1} showUsername avatarSeed={batch.username ? avatarSeedsByUsername.get(batch.username.toLowerCase()) : undefined} canRetry={!batch.userId || batch.userId === user?.id} />
+                  <DownloadBatchCard batch={batch} displayId={(page - 1) * limit + index + 1} showUsername={false} canRetry={!batch.userId || batch.userId === user?.id} />
                 </motion.div>
               ))}
             </div>

@@ -31,6 +31,18 @@ export const uploadService = {
     return api(`${BASE_PATH}/batches/${batchId}`);
   },
 
+  markBatchViewed(batchId: string): Promise<void> {
+    return api(`${BASE_PATH}/batches/${batchId}/viewed`, { method: "PUT" });
+  },
+
+  markBatchesViewed(batchIds: string[]): Promise<void> {
+    return api(`${BASE_PATH}/batches/viewed/selected`, { method: "PUT", body: { batchIds } });
+  },
+
+  markAllBatchesViewed(): Promise<void> {
+    return api(`${BASE_PATH}/batches/viewed`, { method: "PUT" });
+  },
+
   active(): Promise<UploadBatch[]> {
     return api(`${BASE_PATH}/active`);
   },
@@ -72,8 +84,8 @@ export const uploadService = {
     }
   },
 
-  start(batchId: string, itemId: string): Promise<UploadItem> {
-    return api(`${BASE_PATH}/batches/${batchId}/items/${itemId}/start`, { method: "POST" });
+  start(batchId: string, itemId: string, signal?: AbortSignal): Promise<UploadItem> {
+    return api(`${BASE_PATH}/batches/${batchId}/items/${itemId}/start`, { method: "POST", signal });
   },
 
   reportProgress(batchId: string, itemId: string, progressPercent: number): Promise<UploadItem> {

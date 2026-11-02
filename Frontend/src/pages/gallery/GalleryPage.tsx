@@ -136,9 +136,9 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
     if (!files.length || uploading) return;
     setUploading(true);
     try {
-      await uploadService.submit(files);
+      const batch = await uploadService.submit(files);
       await queryClient.invalidateQueries({ queryKey: ["uploads"] });
-      showToast.success(t("Begin uploading {count} media", { count: files.length }));
+      showToast.success(t("Begin uploading {count} media", { count: files.length }), { id: `upload-start:${batch.id}` });
     } catch (error) {
       showToast.error(t("Could not start this upload."), error instanceof Error ? error.message : undefined);
     } finally {

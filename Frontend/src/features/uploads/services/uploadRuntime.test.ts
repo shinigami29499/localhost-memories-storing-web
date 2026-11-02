@@ -8,7 +8,7 @@ import type { UploadBatch, UploadItem } from "../types";
 import { useUploadNotificationStore } from "../../notifications/uploadNotificationStore";
 
 vi.mock("../../../components/ui", () => ({
-  showToast: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
+  showToast: { success: vi.fn(), error: vi.fn(), info: vi.fn(), dismiss: vi.fn() },
 }));
 vi.mock("./uploadFileStore", () => ({
   getUploadFile: vi.fn(),

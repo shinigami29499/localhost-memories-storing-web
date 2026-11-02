@@ -3,6 +3,8 @@ import { persist } from "zustand/middleware";
 import { useAuthStore } from "../../../store/authStore";
 import { useDownloadStore, type DownloadBatch, type DownloadItem } from "../services/downloadQueue";
 import { useDownloadNotificationStore } from "../../notifications/downloadNotificationStore";
+import { useQueryClient } from "@tanstack/react-query";
+import { markAllDownloadBatchesViewed } from "../services/downloadHistory";
 
 type Category = "success" | "pending" | "failed";
 
@@ -38,9 +40,16 @@ export function useUnreadDownloads() {
   const userId = useAuthStore((state) => state.user?.id) ?? "";
   const items = useDownloadNotificationStore((state) => state.items);
   const markRead = useDownloadNotificationStore((state) => state.markRead);
+  const queryClient = useQueryClient();
   const unread = items.filter((item) => item.userId === userId && !item.readAt);
   const success = unread.filter((item) => item.successfulFiles > 0).length;
   const failed = unread.filter((item) => item.failedFiles > 0).length;
-  const markAllRead = () => { if (userId) markRead(userId); };
+  const markAllRead = () => {
+    if (!userId) return;
+    markRead(userId);
+    void markAllDownloadBatchesViewed()
+      .then(() => queryClient.invalidateQueries({ queryKey: ["download-batches"] }))
+      .catch(() => undefined);
+  };
   return { success, pending: 0, failed, markAllRead };
 }

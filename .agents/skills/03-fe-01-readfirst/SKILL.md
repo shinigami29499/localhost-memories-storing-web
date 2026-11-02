@@ -52,6 +52,7 @@ This is a guide, not a requirement to create every directory. Prefer colocating 
 - Prefix custom hooks with `use`.
 - Prefer named exports for components and hooks.
 - When reusing or referring to an existing component, compare the original and final implementations. If they are equivalent, use one shared component and remove the unused duplicate after updating its references.
+- For new features, reuse shared UI components from `src/components/ui`. If a reusable primitive does not exist, add it there and export it from the UI barrel before using it in feature components. Keep feature-specific components inside their feature.
 - Components must not call `fetch` directly; use services.
 - Use TanStack Query for remote/server state and Zustand for shared client state.
 - Use local animated icon components from `src/components/animate-ui/icons`.

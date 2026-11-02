@@ -32,6 +32,14 @@ export function listAllDownloadBatches(): Promise<DownloadBatch[]> {
   return listAllPages((offset) => api<{ items: DownloadBatch[]; totalItems: number }>(`/api/downloads/batches?offset=${offset}&limit=100`));
 }
 
+export function markDownloadBatchViewed(batchId: string): Promise<void> {
+  return api(`/api/downloads/batches/${encodeURIComponent(batchId)}/viewed`, { method: "PUT" });
+}
+
+export function markAllDownloadBatchesViewed(): Promise<void> {
+  return api("/api/downloads/batches/viewed", { method: "PUT" });
+}
+
 export function saveDownloadBatch(batch: DownloadBatch) {
   return api<void>(`/api/downloads/batches/${encodeURIComponent(batch.id)}`, { method: "PUT", body: { items: batch.items } });
 }

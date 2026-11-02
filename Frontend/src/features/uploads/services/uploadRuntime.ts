@@ -16,6 +16,8 @@ const retryRequests = new Map<string, RetryRequest>();
 const activeRequests = new Map<string, AbortController>();
 const notifiedBatches = new Set<string>();
 const wakeRunners = new Set<() => void>();
+const ITEM_INACTIVITY_TIMEOUT_MS = 30_000;
+const batchStartAttempts = new Map<string, number>();
 
 export function wakeUploadRuntime(): void {
   for (const wake of wakeRunners) wake();
@@ -43,7 +45,7 @@ export function stopUploadLocally(itemId: string): void {
 export function startUploadRuntime(
   userId: string,
   translate: (key: string, values?: Record<string, string | number>) => string,
-  onMediaChanged: () => void,
+  onBatchCompleted: () => void,
 ): () => void {
   const controller = new AbortController();
   let wake: (() => void) | undefined;
@@ -70,6 +72,8 @@ export function startUploadRuntime(
     if (notifiedBatches.has(key) || localStorage.getItem(key)) return;
     notifiedBatches.add(key);
     localStorage.setItem(key, "1");
+    onBatchCompleted();
+    showToast.dismiss(`upload-start:${batch.id}`);
 
     const summary = translate("{success} success, {failed} failed.", {
       success: batch.successfulFiles,
@@ -86,7 +90,16 @@ export function startUploadRuntime(
       ).catch((error: unknown) => {
         console.error("Could not show upload notification.", error);
       });
-      showToast.success(title, summary);
+      showToast.success(title, {
+        id: `upload-completed:${batch.id}`,
+        description: translate(isGalleryPath(window.location.pathname)
+          ? "Click to refresh."
+          : "Click to go to gallery."),
+        onClick: () => {
+          if (isGalleryPath(window.location.pathname)) window.location.reload();
+          else window.location.assign("/library/gallery");
+        },
+      });
     } else if (batch.status === "Cancelled") {
       showToast.info(translate("Upload batch cancelled"), summary);
     } else {
@@ -191,6 +204,7 @@ export function startUploadRuntime(
     controller.abort();
     for (const active of activeRequests.values()) active.abort();
     activeRequests.clear();
+    batchStartAttempts.clear();
     retryRequests.clear();
     wake?.();
     wakeRunners.delete(handleChange);
@@ -198,33 +212,11 @@ export function startUploadRuntime(
 
   async function processItem(batchId: string, itemId: string, signal: AbortSignal): Promise<boolean> {
     if (signal.aborted) return false;
-
-    try {
-      await uploadService.start(batchId, itemId);
-    } catch (error) {
-      if (!(error instanceof ApiError && error.status === 409)) {
-        console.error("Could not start the upload item.", error);
-      }
-      return false;
-    }
-
-    let file: File | undefined;
-    try {
-      file = await getUploadFile(itemId);
-    } catch (error) {
-      console.error("Could not read the file for upload.", error);
-    }
-
-    if (!file) {
-      try {
-        await uploadService.fail(
-          batchId,
-          itemId,
-          "The file is no longer available on this device. Select it again before retrying.",
-        );
-      } catch (error) {
-        console.error("Could not mark the missing upload file as failed.", error);
-      }
+    const firstAttemptAt = batchStartAttempts.get(batchId) ?? Date.now();
+    batchStartAttempts.set(batchId, firstAttemptAt);
+    if (Date.now() - firstAttemptAt >= ITEM_INACTIVITY_TIMEOUT_MS) {
+      await failBatch(batchId, itemId, "Upload batch did not start within 30 seconds.");
+      batchStartAttempts.delete(batchId);
       return true;
     }
 
@@ -232,15 +224,46 @@ export function startUploadRuntime(
     const abortFromRuntime = () => itemController.abort();
     signal.addEventListener("abort", abortFromRuntime, { once: true });
     activeRequests.set(itemId, itemController);
+    let timedOut = false;
+    let timeout: number | undefined;
+    const resetTimeout = () => {
+      if (timeout !== undefined) window.clearTimeout(timeout);
+      timeout = window.setTimeout(() => {
+        timedOut = true;
+        itemController.abort();
+      }, ITEM_INACTIVITY_TIMEOUT_MS);
+    };
+    resetTimeout();
 
     let lastReportedPercent = -1;
     let lastReportedAt = 0;
+    let uploadStarted = false;
     try {
+      await uploadService.start(batchId, itemId, itemController.signal);
+      uploadStarted = true;
+      batchStartAttempts.delete(batchId);
+      let file: File | undefined;
+      try {
+        file = await getUploadFile(itemId);
+      } catch (error) {
+        console.error("Could not read the file for upload.", error);
+      }
+
+      if (!file) {
+        await uploadService.fail(
+          batchId,
+          itemId,
+          "The file is no longer available on this device. Select it again before retrying.",
+        );
+        return true;
+      }
+
       await uploadService.upload(
         batchId,
         itemId,
         file,
         (loaded, total) => {
+          resetTimeout();
           const percent = Math.min(99, Math.floor((loaded / total) * 100));
           const now = Date.now();
           if (percent === lastReportedPercent
@@ -257,7 +280,6 @@ export function startUploadRuntime(
         },
         itemController.signal,
       );
-      onMediaChanged();
       try {
         await removeUploadFile(itemId);
       } catch (error) {
@@ -265,13 +287,31 @@ export function startUploadRuntime(
       }
       return true;
     } catch (error) {
+      if (timedOut) {
+        if (!uploadStarted) {
+          await failBatch(batchId, itemId, "Upload batch did not start within 30 seconds.");
+          batchStartAttempts.delete(batchId);
+        } else {
+          try {
+            await uploadService.fail(batchId, itemId, "Upload timed out after 30 seconds without progress.");
+          } catch (failError) {
+            console.error("Could not mark the timed out upload item as failed.", failError);
+          }
+        }
+        return true;
+      }
       if (itemController.signal.aborted || signal.aborted) return false;
+      if (!uploadStarted) {
+        if (!(error instanceof ApiError && error.status === 409)) {
+          console.error("Could not start the upload item.", error);
+        }
+        return false;
+      }
 
       try {
         const batch = await uploadService.get(batchId);
         const item = batch.items.find((candidate) => candidate.id === itemId);
         if (item?.status === "Success") {
-          onMediaChanged();
           await removeUploadFile(itemId);
         } else if (item?.status === "Pending" || item?.status === "Uploading") {
           const message = error instanceof Error ? error.message : "Upload failed.";
@@ -282,8 +322,29 @@ export function startUploadRuntime(
       }
       return true;
     } finally {
+      if (timeout !== undefined) window.clearTimeout(timeout);
       signal.removeEventListener("abort", abortFromRuntime);
       activeRequests.delete(itemId);
     }
   }
+
+  async function failBatch(batchId: string, processingItemId: string, message: string) {
+    try {
+      const batch = await uploadService.get(batchId);
+      const activeItems = batch.items.filter((item) => item.status === "Uploading");
+      const itemsToFail = activeItems.length > 0
+        ? activeItems.filter((item) => item.id === processingItemId)
+        : batch.items.filter((item) => item.status === "Pending");
+      await Promise.allSettled(itemsToFail
+        .map((item) => uploadService.fail(batchId, item.id, message)));
+    } catch (error) {
+      console.error("Could not fail the timed out upload batch.", error);
+    }
+  }
+}
+
+function isGalleryPath(pathname: string): boolean {
+  return pathname === "/library/gallery"
+    || pathname === "/library/gallery/videos"
+    || pathname === "/library/gallery/favorites";
 }

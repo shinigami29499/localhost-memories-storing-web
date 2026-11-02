@@ -1,12 +1,12 @@
 using Microsoft.AspNetCore.Authorization;
-using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using System.Security.Claims;
+using Services.Core;
 using Apis.Authorization;
 using Apis.Interfaces;
 using Apis.Realtime;
 using Services.Interfaces;
-using Services.Core;
 using Services.Models.Uploads;
 using Services.Requests.Uploads;
 using Services.Responses.Uploads;
@@ -61,6 +61,32 @@ public sealed class UploadsController(
         CancellationToken cancellationToken)
         => Ok(await _uploadService.GetBatchAsync(
             _currentUser.RequireUserId(), _currentUser.IsAdmin, batchId, cancellationToken));
+
+    [HttpPut("batches/{batchId:guid}/viewed")]
+    public async Task<IActionResult> MarkBatchViewedAsync(Guid batchId, CancellationToken cancellationToken)
+        => await _uploadService.MarkBatchViewedAsync(_currentUser.RequireUserId(), batchId, cancellationToken)
+            ? NoContent()
+            : NotFound();
+
+    [HttpPut("batches/viewed/selected")]
+    public async Task<IActionResult> MarkBatchesViewedAsync(
+        MarkUploadBatchesViewedRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (request.BatchIds is null)
+            return BadRequest();
+
+        await _uploadService.MarkBatchesViewedAsync(
+            _currentUser.RequireUserId(), request.BatchIds, cancellationToken);
+        return NoContent();
+    }
+
+    [HttpPut("batches/viewed")]
+    public async Task<IActionResult> MarkAllBatchesViewedAsync(CancellationToken cancellationToken)
+    {
+        await _uploadService.MarkAllBatchesViewedAsync(_currentUser.RequireUserId(), cancellationToken);
+        return NoContent();
+    }
 
     [HttpGet("queue")]
     public async Task<ActionResult<IReadOnlyList<UploadItemDto>>> GetQueueAsync(
@@ -141,10 +167,10 @@ public sealed class UploadsController(
             {
                 var images = batch.Items.Count(item => item.Status == "Success" && item.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase));
                 var videos = batch.Items.Count(item => item.Status == "Success" && item.ContentType.StartsWith("video/", StringComparison.OrdinalIgnoreCase));
-                await notificationsHub.Clients.All.SendAsync("UploadBatchCompleted", new
+                await notificationsHub.Clients.All.SendAsync("UploadCompleted", new
                 {
                     batchId, ownerId, username = User.FindFirstValue(Constants.Auth.UsernameClaim) ?? "User", images, videos, createdAt = batch.CompletedAt,
-                }, CancellationToken.None);
+                }, cancellationToken);
             }
         }
         catch (Exception exception)
