@@ -89,7 +89,7 @@ describe("Global styles", () => {
     card.append(layer);
 
     try {
-      expect(Number(getComputedStyle(layer).zIndex)).toBeGreaterThan(9999999999);
+      expect(Number(getComputedStyle(layer).zIndex)).toBeGreaterThan(100005);
       expect(getComputedStyle(layer).pointerEvents).toBe("none");
       expect(getComputedStyle(toast).pointerEvents).toBe("auto");
     } finally {

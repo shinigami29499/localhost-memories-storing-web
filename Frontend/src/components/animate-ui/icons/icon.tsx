@@ -117,7 +117,7 @@ export function useAnimateIconOnChange(value: unknown, animateOnMount = false) {
 export function AnimatedAction({ animationRevision, children }: { animationRevision: number; children: ReactNode }) {
   return (
     <AnimateIcon key={animationRevision} animate={animationRevision > 0 ? "default" : undefined}
-      animateOnHover animateOnTap initialOnAnimateEnd completeOnStop asChild>
+      animateOnHover animateOnTap={false} initialOnAnimateEnd completeOnStop asChild>
       <span className="animated-icon-action">{children}</span>
     </AnimateIcon>
   );

@@ -190,19 +190,6 @@ public sealed class UploadsController(
         return Ok(batch);
     }
 
-    [HttpPost("batches/{batchId:guid}/items/{itemId:guid}/cancel")]
-    public async Task<ActionResult<UploadItemDto>> CancelItemAsync(
-        Guid batchId,
-        Guid itemId,
-        CancellationToken cancellationToken)
-    {
-        var item = await _uploadService.CancelItemAsync(
-            _currentUser.RequireUserId(), batchId, itemId, cancellationToken);
-        await notificationsHub.NotifyUploadsChangedAsync(
-            _currentUser.RequireUserId(), logger, cancellationToken);
-        return Ok(item);
-    }
-
     [HttpPost("batches/{batchId:guid}/items/{itemId:guid}/fail")]
     public async Task<ActionResult<UploadItemDto>> FailItemAsync(
         Guid batchId,

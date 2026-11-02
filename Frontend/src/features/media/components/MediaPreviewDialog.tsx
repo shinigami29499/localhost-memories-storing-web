@@ -159,7 +159,14 @@ return (
           if (event.target === event.currentTarget) setBurst(0);
         }}>
           <Particles animate={!reduceMotion}>
-            <span className="media-preview-dialog__heart-burst-icon"><Heart size={96} fill="currentColor" animate={false} /></span>
+            <span className="media-preview-dialog__heart-burst-icon">
+              <Heart size={96} fill="currentColor" animate={false} />
+              <span className="media-preview-dialog__heart-blossom">
+                {Array.from({ length: 8 }, (_, index) => (
+                  <Heart key={index} size={14} fill="currentColor" animate={false} />
+                ))}
+              </span>
+            </span>
             <ParticlesEffect style={{ top: "50%", left: "50%" }} className="media-preview-dialog__favorite-particle" />
           </Particles>
         </span>
@@ -335,6 +342,9 @@ export function MediaPreviewDialog({
   };
   const toggleFavorite = () => {
     if (current && !favoriteBusy) onToggleFavorite?.(current.id, current.isFavorited);
+  };
+  const addToFavorites = () => {
+    if (current && !favoriteBusy) onToggleFavorite?.(current.id, false);
   };
   const copyImage = async () => {
     if (!current || current.mediaKind !== "image" || copyingImage) return;
@@ -527,7 +537,7 @@ export function MediaPreviewDialog({
                   active={item.id === current?.id}
                   preloadOriginal={nearbyDistance <= 2}
                   includeDeleted={Boolean(trashActions)}
-                  onFavorite={toggleFavorite}
+                  onFavorite={addToFavorites}
                 />
               </div>
               );

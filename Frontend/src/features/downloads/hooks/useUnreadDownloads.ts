@@ -1,8 +1,8 @@
-﻿import { create } from "zustand";
+import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { useAuthStore } from "../../../store/authStore";
-import type { DownloadBatch, DownloadItem } from "../services/downloadQueue";
-import { useDownloadBatches } from "./useDownloadBatches";
+import { useDownloadStore, type DownloadBatch, type DownloadItem } from "../services/downloadQueue";
+import { useDownloadNotificationStore } from "../../notifications/downloadNotificationStore";
 
 type Category = "success" | "pending" | "failed";
 
@@ -36,18 +36,11 @@ export const useDownloadReadStore = create<ReadState>()(persist((set) => ({
 
 export function useUnreadDownloads() {
   const userId = useAuthStore((state) => state.user?.id) ?? "";
-  const read = useDownloadReadStore((state) => state.read);
-  const { mergedBatches } = useDownloadBatches();
-  const counts = { success: 0, pending: 0, failed: 0 };
-  for (const batch of mergedBatches) {
-    for (const item of batch.items) {
-      const category = downloadCategory(item);
-      if (category && read[downloadReadKey(userId, batch, item)] !== category) counts[category]++;
-    }
-  }
-  const markAllRead = () => {
-    if (!userId) return;
-    for (const batch of mergedBatches) useDownloadReadStore.getState().markRead(userId, batch, batch.items);
-  };
-  return { ...counts, markAllRead };
+  const items = useDownloadNotificationStore((state) => state.items);
+  const markRead = useDownloadNotificationStore((state) => state.markRead);
+  const unread = items.filter((item) => item.userId === userId && !item.readAt);
+  const success = unread.filter((item) => item.successfulFiles > 0).length;
+  const failed = unread.filter((item) => item.failedFiles > 0).length;
+  const markAllRead = () => { if (userId) markRead(userId); };
+  return { success, pending: 0, failed, markAllRead };
 }

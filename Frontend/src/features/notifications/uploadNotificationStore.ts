@@ -11,6 +11,8 @@ export interface UploadNotification {
   username?: string;
   images?: number;
   videos?: number;
+  failedFiles?: number;
+  cancelledFiles?: number;
 }
 
 interface UploadNotificationState {
@@ -33,6 +35,8 @@ export const useUploadNotificationStore = create<UploadNotificationState>()(
           notificationType: "UploadCompleted",
           images: batch.items.filter((item) => item.status === "Success" && item.contentType.startsWith("image/")).length,
           videos: batch.items.filter((item) => item.status === "Success" && item.contentType.startsWith("video/")).length,
+          failedFiles: batch.failedFiles,
+          cancelledFiles: batch.cancelledFiles,
           createdAt: batch.completedAt ?? new Date().toISOString(),
           readAt: null,
         };

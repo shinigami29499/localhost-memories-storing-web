@@ -40,6 +40,20 @@ const TOAST_CLICK_MOVE_THRESHOLD = 8;
 
 export const toastManager = AnimateToast.createToastManager();
 
+const activeToasts = new Map<string, { title: unknown; description: unknown }>();
+toastManager[' subscribe']((event) => {
+  if (event.action === 'add') {
+    const toast = event.options;
+    activeToasts.set(toast.id, { title: toast.title, description: toast.description });
+  } else if (event.action === 'update') {
+    const toast = activeToasts.get(event.options.id);
+    if (toast) activeToasts.set(event.options.id, { ...toast, ...event.options.updates });
+  } else if (event.action === 'close') {
+    if (event.options.id) activeToasts.delete(event.options.id);
+    else activeToasts.clear();
+  }
+});
+
 function normalizeToastMessage(message: string) {
   return message.trim().replace(/[.!?…]+$/u, '').trim().toLocaleLowerCase();
 }
@@ -47,12 +61,16 @@ function normalizeToastMessage(message: string) {
 function addToast(type: 'success' | 'error' | 'info' | 'warning' | 'delete', title: string, details?: string | ToastOptions) {
   if (!useToastPreferencesStore.getState().enabled) return '';
   const options: ToastOptions = typeof details === 'string' ? { description: details } : details ?? {};
+  const description = options.description && normalizeToastMessage(options.description) !== normalizeToastMessage(title)
+    ? options.description
+    : undefined;
+  for (const [id, toast] of activeToasts) {
+    if (toast.title === title && toast.description === description) toastManager.close(id);
+  }
   return toastManager.add<ToastData>({
     id: options.id,
     title,
-    description: options.description && normalizeToastMessage(options.description) !== normalizeToastMessage(title)
-      ? options.description
-      : undefined,
+    description,
     type,
     timeout: options.timeout ?? (options.undo ? UNDOABLE_TOAST_TIMEOUT : undefined),
     data: options.undo || options.onClick || options.highlight?.length || options.icon

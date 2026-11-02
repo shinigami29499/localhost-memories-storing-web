@@ -147,6 +147,25 @@ public sealed class MediaRepository(ApplicationDbContext db) : IMediaRepository
             cancellationToken);
     }
 
+    public async Task<IReadOnlyCollection<Guid>> GetExistingMediaIdsAsync(
+        IReadOnlyCollection<Guid> mediaIds, CancellationToken cancellationToken = default)
+        => await db.MediaFiles.Where(media => mediaIds.Contains(media.Id) && !media.IsPreviewOnly)
+            .Select(media => media.Id).ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<MediaFavorite>> GetMediaFavoritesAsync(
+        Guid userId, IReadOnlyCollection<Guid> mediaIds, bool includeDeleted,
+        CancellationToken cancellationToken = default)
+    {
+        var query = db.MediaFavorites.AsQueryable();
+        if (includeDeleted)
+            query = query.IgnoreQueryFilters();
+        return await query.Where(favorite => favorite.UserId == userId && mediaIds.Contains(favorite.MediaFileId))
+            .OrderBy(favorite => favorite.DeletedAt != null)
+            .ThenByDescending(favorite => favorite.DeletedAt)
+            .ThenBy(favorite => favorite.Id)
+            .ToListAsync(cancellationToken);
+    }
+
     public void AddMediaFile(MediaFile mediaFile) => db.MediaFiles.Add(mediaFile);
 
     public void AddMediaFavorite(MediaFavorite favorite) => db.MediaFavorites.Add(favorite);

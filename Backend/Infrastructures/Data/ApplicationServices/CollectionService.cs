@@ -206,6 +206,68 @@ public sealed class CollectionService(
         return await GetCollectionAsync(collectionId, ownerId, cancellationToken);
     }
 
+    public async Task<CollectionDto> UpdateMediaBatchAsync(
+        Guid collectionId, Guid ownerId, IReadOnlyCollection<Guid> mediaIds, bool add,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = mediaIds.Distinct().ToArray();
+        if (ids.Length == 0)
+            throw new ValidationException("At least one media item is required.",
+                new Dictionary<string, string[]> { ["mediaIds"] = ["Select at least one media item."] });
+
+        var collection = await FindOwnedCollectionAsync(collectionId, ownerId, cancellationToken);
+        var existingIds = (await mediaRepository.GetExistingMediaIdsAsync(ids, cancellationToken)).ToHashSet();
+        var missingId = ids.FirstOrDefault(id => !existingIds.Contains(id));
+        if (missingId != Guid.Empty)
+            throw new NotFoundException($"Media '{missingId}' was not found.");
+
+        var entries = await repository.GetCollectionMediaEntriesAsync(
+            collectionId, ids, includeDeleted: add, cancellationToken);
+        var entryByMediaId = entries.GroupBy(item => item.MediaFileId)
+            .ToDictionary(group => group.Key, group => group.First());
+        var changed = false;
+        var now = DateTime.UtcNow;
+        foreach (var mediaId in ids)
+        {
+            entryByMediaId.TryGetValue(mediaId, out var entry);
+            if (add)
+            {
+                if (entry is { DeletedAt: null })
+                    continue;
+                if (entry is not null)
+                {
+                    entry.DeletedAt = null;
+                    entry.DeletedBy = null;
+                    entry.UpdatedAt = now;
+                    entry.UpdatedBy = ownerId;
+                }
+                else
+                {
+                    repository.AddCollectionMedia(new CollectionMedia
+                    {
+                        CollectionId = collectionId,
+                        MediaFileId = mediaId,
+                    });
+                }
+                changed = true;
+            }
+            else if (entry is { DeletedAt: null })
+            {
+                entry.DeletedAt = now;
+                entry.DeletedBy = ownerId;
+                entry.UpdatedAt = now;
+                entry.UpdatedBy = ownerId;
+                if (collection.PreviewMediaFileId == mediaId)
+                    collection.PreviewMediaFileId = null;
+                changed = true;
+            }
+        }
+
+        if (changed)
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+        return await GetCollectionAsync(collectionId, ownerId, cancellationToken);
+    }
+
     public async Task<CollectionDto> UploadPreviewImageAsync(
         Guid collectionId,
         Guid ownerId,

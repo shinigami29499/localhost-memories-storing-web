@@ -6,8 +6,8 @@ import { listAllDownloadBatches, listAllDownloadHistory } from "../services/down
 export function useDownloadBatches() {
   const user = useAuthStore((state) => state.user);
   const batches = useDownloadStore((state) => state.batches);
-  const query = useQuery({ queryKey: ["download-history", user?.id], queryFn: listAllDownloadHistory, refetchInterval: 5000, enabled: Boolean(user?.id) });
-  const batchesQuery = useQuery({ queryKey: ["download-batches", user?.id], queryFn: listAllDownloadBatches, refetchInterval: 5000, enabled: Boolean(user?.id) });
+  const query = useQuery({ queryKey: ["download-history", user?.id], queryFn: listAllDownloadHistory, enabled: Boolean(user?.id) });
+  const batchesQuery = useQuery({ queryKey: ["download-batches", user?.id], queryFn: listAllDownloadBatches, enabled: Boolean(user?.id) });
   const grouped = new Map<string, NonNullable<typeof query.data>>();
   for (const record of query.data ?? []) {
     const key = record.batchId ? `${record.userId}:${record.batchId}` : record.id;

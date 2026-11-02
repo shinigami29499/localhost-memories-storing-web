@@ -30,6 +30,11 @@ public interface IMediaRepository
         Guid userId, IReadOnlyCollection<Guid> mediaIds, CancellationToken cancellationToken = default);
     Task<MediaFavorite?> FindMediaFavoriteAsync(
         Guid userId, Guid mediaId, bool includeDeleted, CancellationToken cancellationToken = default);
+    Task<IReadOnlyCollection<Guid>> GetExistingMediaIdsAsync(
+        IReadOnlyCollection<Guid> mediaIds, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<MediaFavorite>> GetMediaFavoritesAsync(
+        Guid userId, IReadOnlyCollection<Guid> mediaIds, bool includeDeleted,
+        CancellationToken cancellationToken = default);
     void AddMediaFile(MediaFile mediaFile);
     void AddMediaFavorite(MediaFavorite favorite);
 }

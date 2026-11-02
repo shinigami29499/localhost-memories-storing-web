@@ -34,17 +34,10 @@ export async function setUploadPaused(batchId: string, itemId: string | undefine
   wakeUploadRuntime();
 }
 
-export async function cancelRunningUpload(batchId: string, itemId: string): Promise<UploadItem> {
-  const item = await uploadService.cancel(batchId, itemId);
+export function stopUploadLocally(itemId: string): void {
   activeRequests.get(itemId)?.abort();
   retryRequests.delete(itemId);
   wakeUploadRuntime();
-  try {
-    await removeUploadFile(itemId);
-  } catch (error) {
-    console.error("Cancelled upload remains in local browser storage.", error);
-  }
-  return item;
 }
 
 export function startUploadRuntime(
@@ -82,6 +75,7 @@ export function startUploadRuntime(
       success: batch.successfulFiles,
       failed: batch.failedFiles,
     });
+    useUploadNotificationStore.getState().add(userId, batch);
     if (batch.status === "Completed") {
       const images = batch.items.filter((item) => item.status === "Success" && item.contentType.startsWith("image/")).length;
       const videos = batch.items.filter((item) => item.status === "Success" && item.contentType.startsWith("video/")).length;
@@ -93,9 +87,6 @@ export function startUploadRuntime(
         console.error("Could not show upload notification.", error);
       });
       showToast.success(title, summary);
-      if (window.location.pathname !== "/") {
-        useUploadNotificationStore.getState().add(userId, batch);
-      }
     } else if (batch.status === "Cancelled") {
       showToast.info(translate("Upload batch cancelled"), summary);
     } else {

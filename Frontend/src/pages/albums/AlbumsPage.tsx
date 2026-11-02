@@ -7,7 +7,6 @@ import { ScrollFade } from "@animate-ui/react/primitives/effects/scroll-fade";
 import { Plus } from "@/components/animate-ui/icons/plus";
 import { Download } from "@/components/animate-ui/icons/download";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
-import { X } from "@/components/animate-ui/icons/x";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import { ConfirmationDialog, EmptyState, ErrorState, Spinner, showToast } from "../../components/ui";
 import { PageTransition } from "../../components/layout/PageTransition";
@@ -111,7 +110,14 @@ export function AlbumsPage() {
   const dateFormatter = new Intl.DateTimeFormat(language, { year: "numeric", month: "long", day: "numeric" });
 
   return (
-    <main className="gallery-page album-page" aria-label={t("Album")} {...selectionDragHandlers}>
+    <main className="gallery-page album-page" aria-label={t("Album")} {...selectionDragHandlers}
+      onClickCapture={(event) => {
+        selectionDragHandlers.onClickCapture(event);
+        if (event.defaultPrevented) return;
+        if (selectionMode && !(event.target instanceof Element && event.target.closest("[data-media-id], .gallery-selection-bar"))) {
+          cancelSelection();
+        }
+      }}>
       <div className="gallery-page__fixed-layout">
           <header className="gallery-page__header">
             <p className="gallery-page__eyebrow">{t("Keep what matters")}</p>
@@ -197,10 +203,10 @@ export function AlbumsPage() {
       </ScrollFade>
       </div>
       <footer className="gallery-page__footer albums-page__footer">
-        <div className="gallery-selection-bar">
+        <div className="gallery-selection-bar gallery-selection-bar--compact" role="group" aria-label={t("{count} selected", { count: selectedIds.size })}>
+          <span className="gallery-selection-bar__status" role="status">{t("{count} selected", { count: selectedIds.size })}</span>
           <AnimatedAction animationRevision={selectionAnimationRevision}><button type="button" className="gallery-selection-bar__action" aria-label={t("New album")} title={t("New album")} disabled={saving || deleting} onClick={() => setCreating(true)}>
             <Plus size={20} aria-hidden="true" />
-            <span className="album-page__create-label">{t("New album")}</span>
           </button></AnimatedAction>
           <AnimatedAction animationRevision={selectionAnimationRevision}><button type="button" className="gallery-selection-bar__action" aria-label={t("Download selected")} title={t("Download selected")}
             disabled={!selectedAlbums.some((album) => album.mediaCount > 0) || saving || deleting} aria-busy={saving || undefined} onClick={() => void downloadSelected()}>
@@ -208,8 +214,6 @@ export function AlbumsPage() {
           </button></AnimatedAction>
           <AnimatedAction animationRevision={selectionAnimationRevision}><button type="button" className="gallery-selection-bar__action gallery-selection-bar__action--danger" aria-label={t("Delete selected albums")} title={t("Delete selected albums")}
             disabled={!canDelete || saving || deleting} onClick={() => setDeleting(true)}><Trash2 size={20} aria-hidden="true" /></button></AnimatedAction>
-          <AnimatedAction animationRevision={selectionAnimationRevision}><button type="button" className="gallery-selection-bar__cancel" aria-label={t("Cancel selection")} title={t("Cancel selection")}
-            disabled={!selectionMode || saving || deleting} onClick={cancelSelection}><X size={20} aria-hidden="true" /></button></AnimatedAction>
         </div>
       </footer>
       {deleting && <ConfirmationDialog title="Delete selected albums?" danger onClose={() => setDeleting(false)} onConfirm={async () => {

@@ -21,14 +21,9 @@ interface Props {
 }
 
 async function updateAlbumMedia(albumId: string, mediaIds: string[], action: "add" | "remove") {
-  const results: PromiseSettledResult<unknown>[] = [];
-  for (let offset = 0; offset < mediaIds.length; offset += 5) {
-    const batch = mediaIds.slice(offset, offset + 5);
-    results.push(...await Promise.allSettled(batch.map((mediaId) =>
-      action === "remove" ? albumService.removeMedia(albumId, mediaId) : albumService.addMedia(albumId, mediaId),
-    )));
-  }
-  return results;
+  if (mediaIds.length === 0) return;
+  if (action === "remove") await albumService.removeMediaBatch(albumId, mediaIds);
+  else await albumService.addMediaBatch(albumId, mediaIds);
 }
 
 export function BulkSaveToAlbumDialog({ mediaIds, onSaved, onClose }: Props) {
@@ -49,13 +44,8 @@ export function BulkSaveToAlbumDialog({ mediaIds, onSaved, onClose }: Props) {
     albumQueries[index]?.data?.find((item) => item.id === album.id)?.containsMedia,
   );
 
-  const reportSaveResults = async (results: PromiseSettledResult<unknown>[], albumName: string, undo: () => Promise<void>) => {
+  const reportSaveResults = async (albumName: string, undo: () => Promise<void>) => {
     await invalidate();
-    const failed = results.filter((result) => result.status === "rejected").length;
-    if (failed > 0) {
-      showToast.error(t("{failed} of {total} media items could not be saved.", { failed, total: selectedMediaIds.length }));
-      return false;
-    }
     showToast.success(t("Successfully saved to album {name}", { name: albumName }), { undo, highlight: [albumName] });
     onSaved?.();
     return true;
@@ -70,16 +60,13 @@ export function BulkSaveToAlbumDialog({ mediaIds, onSaved, onClose }: Props) {
       const mediaIdsToUpdate = remove
         ? saved
         : selectedMediaIds.filter((mediaId) => !saved.includes(mediaId));
-      const results = await updateAlbumMedia(album.id, mediaIdsToUpdate, remove ? "remove" : "add");
+      await updateAlbumMedia(album.id, mediaIdsToUpdate, remove ? "remove" : "add");
       await invalidate();
-      const failed = results.filter((result) => result.status === "rejected").length;
       const undo = async () => {
         await updateAlbumMedia(album.id, mediaIdsToUpdate, remove ? "add" : "remove");
         await invalidate();
       };
-      if (failed > 0) {
-        showToast.error(t("{count} media items could not be updated.", { count: failed }));
-      } else if (remove) {
+      if (remove) {
         showToast.delete(t("Removed from album"), { undo });
       } else {
         showToast.success(t("Successfully saved to album {name}", { name: album.name }), { undo, highlight: [album.name] });
@@ -100,8 +87,8 @@ export function BulkSaveToAlbumDialog({ mediaIds, onSaved, onClose }: Props) {
     try {
       const album = await albumService.create({ name: trimmed });
       setName("");
+      await updateAlbumMedia(album.id, selectedMediaIds, "add");
       await reportSaveResults(
-        await updateAlbumMedia(album.id, selectedMediaIds, "add"),
         album.name,
         async () => {
           await albumService.remove(album.id);

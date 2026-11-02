@@ -1,9 +1,8 @@
-﻿import { create } from "zustand";
+import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "../../../store/authStore";
-import { uploadService } from "../services/uploadService";
-import type { UploadBatch, UploadItem } from "../types";
+import type { UploadItem } from "../types";
+import { useUploadNotificationStore } from "../../notifications/uploadNotificationStore";
 
 type Category = "success" | "pending" | "failed";
 
@@ -32,32 +31,10 @@ export const useUploadReadStore = create<ReadState>()(persist((set) => ({
 }), { name: "uploads.read-status" }));
 
 export function useUnreadUploads() {
-  const user = useAuthStore((state) => state.user);
-  const read = useUploadReadStore((state) => state.read);
-  const isAdmin = user?.role.toLowerCase() === "admin";
-  const query = useQuery({
-    queryKey: ["uploads", "unread", user?.id, isAdmin],
-    enabled: !!user?.id,
-    queryFn: async () => {
-      const batches: UploadBatch[] = [];
-      let offset = 0;
-      while (true) {
-        const page = isAdmin ? await uploadService.listAll(offset, 100) : await uploadService.list(offset, 100);
-        batches.push(...page.items);
-        offset += page.items.length;
-        if (!page.items.length || offset >= page.totalItems) return batches;
-      }
-    },
-  });
-  const counts = { success: 0, pending: 0, failed: 0 };
-  for (const batch of query.data ?? []) {
-    for (const item of batch.items) {
-      const category = uploadCategory(item);
-      if (category && read[`${user?.id}:${item.id}`] !== category) counts[category]++;
-    }
-  }
-  const markAllRead = () => {
-    if (user?.id && query.data) useUploadReadStore.getState().markRead(user.id, query.data.flatMap((batch) => batch.items));
-  };
-  return { ...counts, markAllRead };
+  const userId = useAuthStore((state) => state.user?.id) ?? "";
+  const items = useUploadNotificationStore((state) => state.items);
+  const markRead = useUploadNotificationStore((state) => state.markRead);
+  const success = items.filter((item) => item.userId === userId && !item.readAt).length;
+  const markAllRead = () => { if (userId) markRead(userId); };
+  return { success, pending: 0, failed: 0, markAllRead };
 }

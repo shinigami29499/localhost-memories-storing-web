@@ -12,7 +12,7 @@ import { UploadIcon } from "../../components/animate-ui/icons/upload";
 import { XIcon } from "../../components/animate-ui/icons/x";
 import { useAuthStore } from "../../store/authStore";
 import { useLocale } from "../../context/LocaleContext";
-import { cancelRunningUpload, requestUploadRetry, setUploadPaused } from "../../features/uploads/services/uploadRuntime";
+import { stopUploadLocally, requestUploadRetry, setUploadPaused } from "../../features/uploads/services/uploadRuntime";
 import { uploadService } from "../../features/uploads/services/uploadService";
 import { userService } from "../../features/users/services/userService";
 import { removeUploadFile, saveUploadFile } from "../../features/uploads/services/uploadFileStore";
@@ -173,9 +173,7 @@ export function UploadManagementPage() {
     const targets = selected ?? (item ? [item] : batch.items);
     for (const target of targets) markBusy(target.id);
     try {
-      for (const target of targets) {
-        if (target.status === "Pending" || target.status === "Uploading" || target.status === "Paused") await cancelRunningUpload(batch.id, target.id);
-      }
+      for (const target of targets) stopUploadLocally(target.id);
       if (selected) await uploadService.deleteRecords(batch.id, selected.map((target) => target.id));
       else await uploadService.deleteRecord(batch.id, item?.id);
       await Promise.allSettled(targets.map((target) => removeUploadFile(target.id)));

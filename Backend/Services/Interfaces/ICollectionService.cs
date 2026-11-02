@@ -35,6 +35,9 @@ public interface ICollectionService
         Guid collectionId, Guid actorId, bool isAdmin, CancellationToken cancellationToken = default);
     Task<CollectionDto> AddMediaAsync(
         Guid collectionId, Guid ownerId, Guid mediaId, CancellationToken cancellationToken = default);
+    Task<CollectionDto> UpdateMediaBatchAsync(
+        Guid collectionId, Guid ownerId, IReadOnlyCollection<Guid> mediaIds, bool add,
+        CancellationToken cancellationToken = default);
     Task<CollectionDto> UploadPreviewImageAsync(
         Guid collectionId,
         Guid ownerId,

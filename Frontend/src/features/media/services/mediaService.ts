@@ -28,6 +28,13 @@ export const mediaService = {
     return api(`/api/library/gallery/${mediaId}/favorite`, { method: "DELETE" });
   },
 
+  setFavorites(mediaIds: string[], isFavorite: boolean): Promise<void> {
+    return api("/api/library/gallery/favorites/batch", {
+      method: "PUT",
+      body: { mediaIds, isFavorite },
+    });
+  },
+
   remove(mediaId: string): Promise<void> {
     return api(`/api/library/gallery/${mediaId}`, { method: "DELETE" });
   },

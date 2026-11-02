@@ -98,6 +98,5 @@ public class DownloadHistoryService(ApplicationDbContext db) : IDownloadHistoryS
     private static void ValidateDeletable(IEnumerable<DownloadItemStateDto> items)
     {
         if (items.Any(item => item.Status == "Sent to browser")) throw new Services.Exceptions.ConflictException("Successful downloads cannot be deleted.");
-        if (items.Any(item => item.Status is "Pending" or "Downloading" or "Paused")) throw new Services.Exceptions.ConflictException("Active downloads cannot be deleted.");
     }
 }

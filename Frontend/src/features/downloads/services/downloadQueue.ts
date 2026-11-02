@@ -3,6 +3,7 @@ import { showToast } from "../../../components/ui/Toast";
 import { deleteDownloadRecord, deleteDownloadRecords, saveDownloadBatch } from "./downloadHistory";
 import { downloadBlob } from "../../../services/api";
 import { useAuthStore } from "../../../store/authStore";
+import { useDownloadNotificationStore } from "../../notifications/downloadNotificationStore";
 import type { MediaFile } from "../../media/types";
 
 export type DownloadStatus = "Pending" | "Downloading" | "Sent to browser" | "Failed" | "Cancelled" | "Paused" | "Recorded";
@@ -51,12 +52,20 @@ function persistBatch(batch: DownloadBatch) {
 }
 
 function updateItem(itemId: string, changes: Partial<DownloadItem>) {
-  useDownloadStore.setState((state) => ({
-    batches: state.batches.map((batch) => ({
+  const previousBatches = useDownloadStore.getState().batches;
+  const batches = previousBatches.map((batch) => ({
       ...batch,
       items: batch.items.map((item) => item.id === itemId ? { ...item, ...changes } : item),
-    })),
   }));
+  useDownloadStore.setState({ batches });
+  for (const batch of batches) {
+    const previous = previousBatches.find((candidate) => candidate.id === batch.id);
+    const isComplete = batch.items.length > 0 && batch.items.every((item) => ["Sent to browser", "Failed", "Cancelled"].includes(item.status));
+    const wasComplete = previous?.items.length && previous.items.every((item) => ["Sent to browser", "Failed", "Cancelled"].includes(item.status));
+    if (isComplete && !wasComplete && batch.items.some((item) => item.status === "Sent to browser" || item.status === "Failed")) {
+      useDownloadNotificationStore.getState().add(batch.userId ?? "", batch);
+    }
+  }
   if (changes.status) {
     const batch = useDownloadStore.getState().batches.find((entry) => entry.items.some((item) => item.id === itemId));
     if (batch) persistBatch(batch);
@@ -177,9 +186,21 @@ export function retryHistoryDownload(batch: DownloadBatch, itemId: string) {
 export async function removeDownloadRecord(batch: DownloadBatch, itemId?: string, itemIds?: string[]) {
   const targets = itemIds ? batch.items.filter((item) => itemIds.includes(item.id)) : itemId ? batch.items.filter((item) => item.id === itemId) : batch.items;
   if (targets.some((item) => item.status === "Sent to browser")) throw new Error("Successful downloads cannot be deleted.");
-  if (targets.some((item) => item.status === "Pending" || item.status === "Downloading" || item.status === "Paused")) {
-    useDownloadStore.setState((state) => ({ batches: state.batches.some((entry) => entry.id === batch.id) ? state.batches : [batch, ...state.batches] }));
-    targets.forEach((item) => cancelDownload(item.id));
+  const targetIds = new Set(targets.map((item) => item.id));
+  const shouldStop = targets.some((item) => item.status === "Pending" || item.status === "Downloading" || item.status === "Paused");
+  const previousBatch = useDownloadStore.getState().batches.find((entry) => entry.id === batch.id);
+  if (shouldStop) {
+    useDownloadStore.setState((state) => ({
+      batches: (state.batches.some((entry) => entry.id === batch.id) ? state.batches : [batch, ...state.batches])
+        .map((entry) => entry.id !== batch.id ? entry : {
+          ...entry,
+          items: entry.items.map((item) => targetIds.has(item.id)
+            && (item.status === "Pending" || item.status === "Downloading" || item.status === "Paused")
+            ? { ...item, status: "Cancelled", loaded: 0 }
+            : item),
+        }),
+    }));
+    if (active && targetIds.has(active.itemId)) active.controller.abort();
   }
   const previous = pendingSaves.get(batch.id) ?? Promise.resolve();
   const deletion = previous.then(async () => {
@@ -194,6 +215,25 @@ export async function removeDownloadRecord(batch: DownloadBatch, itemId?: string
   });
   pendingSaves.set(batch.id, deletion);
   try { await deletion; }
+  catch (error) {
+    if (shouldStop) {
+      useDownloadStore.setState((state) => ({
+        batches: state.batches.map((entry) => entry.id !== batch.id ? entry : {
+          ...entry,
+          items: entry.items.map((item) => targetIds.has(item.id)
+            ? (() => {
+              const previousItem = previousBatch?.items.find((candidate) => candidate.id === item.id) ?? item;
+              return previousItem.status === "Downloading"
+                ? { ...previousItem, status: "Pending" as const, loaded: 0 }
+                : previousItem;
+            })()
+            : item),
+        }),
+      }));
+      void runQueue();
+    }
+    throw error;
+  }
   finally { if (pendingSaves.get(batch.id) === deletion) pendingSaves.delete(batch.id); }
 }
 
@@ -234,14 +274,6 @@ export function resumeDownloadBatch(batch: DownloadBatch) {
     if (item.status === "Paused") updateItem(item.id, { status: "Pending", loaded: 0, error: undefined });
   }
   void runQueue();
-}
-
-export function cancelDownload(itemId: string) {
-  const item = useDownloadStore.getState().batches.flatMap((batch) => batch.items)
-    .find((candidate) => candidate.id === itemId);
-  if (!item || (item.status !== "Pending" && item.status !== "Downloading" && item.status !== "Paused")) return;
-  updateItem(itemId, { status: "Cancelled" });
-  if (active?.itemId === itemId) active.controller.abort();
 }
 
 export function retryDownload(itemId: string) {

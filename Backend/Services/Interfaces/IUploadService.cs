@@ -30,8 +30,6 @@ public interface IUploadService
     Task DeleteRecordsAsync(Guid ownerId, Guid batchId, IReadOnlyCollection<Guid> itemIds, CancellationToken cancellationToken = default);
     Task DeleteRecordAsync(Guid ownerId, Guid batchId, Guid? itemId, CancellationToken cancellationToken = default);
     Task<UploadBatchDto> SetPausedAsync(Guid ownerId, Guid batchId, Guid? itemId, bool paused, CancellationToken cancellationToken = default);
-    Task<UploadItemDto> CancelItemAsync(
-        Guid ownerId, Guid batchId, Guid itemId, CancellationToken cancellationToken = default);
     Task<UploadItemDto> FailItemAsync(
         Guid ownerId, Guid batchId, Guid itemId, string errorDetails, CancellationToken cancellationToken = default);
 }

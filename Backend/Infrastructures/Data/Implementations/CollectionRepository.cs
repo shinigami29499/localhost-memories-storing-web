@@ -97,6 +97,20 @@ public sealed class CollectionRepository(ApplicationDbContext db) : ICollectionR
             item => item.CollectionId == collectionId && item.MediaFileId == mediaId,
             cancellationToken);
 
+    public async Task<IReadOnlyList<CollectionMedia>> GetCollectionMediaEntriesAsync(
+        Guid collectionId, IReadOnlyCollection<Guid> mediaIds, bool includeDeleted,
+        CancellationToken cancellationToken = default)
+    {
+        var query = db.CollectionMedia.AsQueryable();
+        if (includeDeleted)
+            query = query.IgnoreQueryFilters();
+        return await query.Where(item => item.CollectionId == collectionId && mediaIds.Contains(item.MediaFileId))
+            .OrderBy(item => item.DeletedAt != null)
+            .ThenByDescending(item => item.DeletedAt)
+            .ThenBy(item => item.Id)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task DeleteCollectionMediaAsync(
         Guid collectionId, Guid actorId, DateTime utcNow, CancellationToken cancellationToken = default)
         => await db.CollectionMedia

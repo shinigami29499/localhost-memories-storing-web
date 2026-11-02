@@ -4,7 +4,6 @@ import { Particles, ParticlesEffect } from "@animate-ui/react/primitives/effects
 import { useShouldReduceMotion } from "@animate-ui/react/utils/motion";
 import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { Heart } from "@/components/animate-ui/icons/heart";
-import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import { useLocale } from "@/context/LocaleContext";
 import { useAnimationStore } from "@/store/animationStore";
 
@@ -32,7 +31,7 @@ export function MediaFavoriteButton({ isFavorited, busy, onToggle }: Props) {
 
   return (
     <Particles animate={animateFavorite}>
-      <AnimateIcon animateOnHover completeOnStop asChild>
+      <AnimateIcon animateOnHover animateOnTap={false} completeOnStop asChild>
         <button
           type="button"
           className="viewer-icon-btn media-preview-dialog__action"
@@ -53,15 +52,11 @@ export function MediaFavoriteButton({ isFavorited, busy, onToggle }: Props) {
               ease: ["easeOut", [0.34, 1.56, 0.64, 1]],
             }}
           >
-            {busy ? (
-              <LoaderCircle size={20} className="spinner__wheel" aria-hidden="true" />
-            ) : (
-              <Heart
-                size={20}
-                fill={isFavorited ? "currentColor" : "none"}
-                aria-hidden="true"
-              />
-            )}
+            <Heart
+              size={20}
+              fill={isFavorited ? "currentColor" : "none"}
+              aria-hidden="true"
+            />
           </motion.span>
         </button>
       </AnimateIcon>

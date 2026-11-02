@@ -333,8 +333,8 @@ public sealed class UploadService(
         var ids = itemIds.ToHashSet();
         var items = batch.Items.Where(item => ids.Contains(item.Id)).ToList();
         if (ids.Count == 0 || items.Count != ids.Count) throw new NotFoundException("Upload record was not found.");
-        if (items.Any(item => item.Status is UploadItemStatus.Success or UploadItemStatus.Pending or UploadItemStatus.Uploading or UploadItemStatus.Paused))
-            throw new ConflictException("Only failed or cancelled upload records can be deleted.");
+        if (items.Any(item => item.Status == UploadItemStatus.Success))
+            throw new ConflictException("Successful upload records cannot be deleted.");
         var now = DateTime.UtcNow;
         foreach (var item in items) { item.DeletedAt = now; item.DeletedBy = ownerId; item.Revision++; }
         if (items.Count == batch.Items.Count) { batch.DeletedAt = now; batch.DeletedBy = ownerId; }
@@ -351,8 +351,8 @@ public sealed class UploadService(
         if (batch is null || batch.OwnerId != ownerId) throw new NotFoundException($"Upload batch '{batchId}' was not found.");
         var items = batch.Items.Where(item => !itemId.HasValue || item.Id == itemId.Value).ToList();
         if (items.Count == 0) throw new NotFoundException("Upload record was not found.");
-        if (items.Any(item => item.Status is UploadItemStatus.Success or UploadItemStatus.Pending or UploadItemStatus.Uploading or UploadItemStatus.Paused))
-            throw new ConflictException("Only failed or cancelled upload records can be deleted.");
+        if (items.Any(item => item.Status == UploadItemStatus.Success))
+            throw new ConflictException("Successful upload records cannot be deleted.");
         var now = DateTime.UtcNow;
         foreach (var item in items) { item.DeletedAt = now; item.DeletedBy = ownerId; item.Revision++; }
         if (items.Count == batch.Items.Count) { batch.DeletedAt = now; batch.DeletedBy = ownerId; }
@@ -386,25 +386,6 @@ public sealed class UploadService(
         try { await _unitOfWork.SaveChangesAsync(cancellationToken); await transaction.CommitAsync(cancellationToken); }
         catch (DbUpdateConcurrencyException) { throw new ConflictException("This upload changed in another request. Refresh and try again."); }
         return MapBatch(batch, ownerId, includeUsername: false);
-    }
-
-    public async Task<UploadItemDto> CancelItemAsync(
-        Guid ownerId, Guid batchId, Guid itemId, CancellationToken cancellationToken = default)
-    {
-        await using var transaction = await _unitOfWork.BeginTransactionAsync(cancellationToken);
-        await _repository.LockBatchAsync(ownerId, batchId, cancellationToken);
-        var item = await FindOwnedItemAsync(ownerId, batchId, itemId, cancellationToken);
-        if (item.Status is not (UploadItemStatus.Pending or UploadItemStatus.Uploading or UploadItemStatus.Paused))
-            throw new ConflictException("Only pending, uploading or paused files can be cancelled.");
-
-        item.Status = UploadItemStatus.Cancelled;
-        item.ErrorDetails = null;
-        item.CompletedAt = DateTime.UtcNow;
-        item.Revision++;
-        RefreshBatchStatus(item.Batch, item.CompletedAt.Value);
-        await SaveStateAsync(item, cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
-        return MapItem(item);
     }
 
     public async Task<UploadItemDto> FailItemAsync(

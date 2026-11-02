@@ -41,4 +41,13 @@ public sealed class MediaFavoritesController(IMediaService mediaService, ICurren
             mediaId, currentUser.RequireUserId(), isFavorite: false, cancellationToken);
         return NoContent();
     }
+
+    [HttpPut("favorites/batch")]
+    public async Task<IActionResult> SetFavoritesAsync(
+        SetMediaFavoritesRequest request, CancellationToken cancellationToken)
+    {
+        await mediaService.SetMediaFavoritesAsync(
+            request.MediaIds, currentUser.RequireUserId(), request.IsFavorite, cancellationToken);
+        return NoContent();
+    }
 }

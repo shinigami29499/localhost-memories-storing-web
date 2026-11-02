@@ -273,20 +273,47 @@
 .media-preview-dialog__heart-burst {
   grid-area: 1 / 1;
   z-index: 1;
-  color: var(--danger);
+  color: var(--heart);
   filter: drop-shadow(0 2px 12px rgba(0, 0, 0, 0.4));
   pointer-events: none;
   animation: media-heart-burst 800ms ease-out forwards;
 }
 
 .media-preview-dialog__heart-burst-icon {
+  position: relative;
   display: grid;
   width: 120px;
   height: 120px;
   place-items: center;
   border-radius: 50%;
-  background: radial-gradient(circle, rgb(0 0 0 / 40%) 0%, transparent 70%);
+  color: var(--heart);
+  background: radial-gradient(circle, rgb(0 0 0 / 30%) 0%, transparent 70%);
 }
+
+.media-preview-dialog__heart-blossom {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.media-preview-dialog__heart-blossom svg {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  color: var(--heart);
+  transform: translate(-50%, -50%);
+}
+
+.media-preview-dialog__heart-blossom svg:nth-child(1) { transform: translate(-50%, -50%) translateY(-64px); }
+.media-preview-dialog__heart-blossom svg:nth-child(2) { transform: translate(-50%, -50%) rotate(45deg) translateY(-64px); }
+.media-preview-dialog__heart-blossom svg:nth-child(3) { transform: translate(-50%, -50%) rotate(90deg) translateY(-64px); }
+.media-preview-dialog__heart-blossom svg:nth-child(4) { transform: translate(-50%, -50%) rotate(135deg) translateY(-64px); }
+.media-preview-dialog__heart-blossom svg:nth-child(5) { transform: translate(-50%, -50%) rotate(180deg) translateY(-64px); }
+.media-preview-dialog__heart-blossom svg:nth-child(6) { transform: translate(-50%, -50%) rotate(225deg) translateY(-64px); }
+.media-preview-dialog__heart-blossom svg:nth-child(7) { transform: translate(-50%, -50%) rotate(270deg) translateY(-64px); }
+.media-preview-dialog__heart-blossom svg:nth-child(8) { transform: translate(-50%, -50%) rotate(315deg) translateY(-64px); }
 
 @keyframes media-heart-burst {
   0% { opacity: 0; transform: scale(0.3); }

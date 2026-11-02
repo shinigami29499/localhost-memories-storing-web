@@ -49,4 +49,12 @@ export const albumService = {
   removeMedia(albumId: string, mediaId: string): Promise<Album> {
     return api<Album>(`/api/library/album/${albumId}/media/${mediaId}`, { method: "DELETE" });
   },
+
+  addMediaBatch(albumId: string, mediaIds: string[]): Promise<Album> {
+    return api<Album>(`/api/library/album/${albumId}/media/batch`, { method: "POST", body: { mediaIds } });
+  },
+
+  removeMediaBatch(albumId: string, mediaIds: string[]): Promise<Album> {
+    return api<Album>(`/api/library/album/${albumId}/media/batch/remove`, { method: "POST", body: { mediaIds } });
+  },
 };

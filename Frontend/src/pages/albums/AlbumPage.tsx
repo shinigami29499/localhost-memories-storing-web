@@ -12,7 +12,6 @@ import { CopyButton, CopyButtonIcon } from "@animate-ui/react/primitives/buttons
 import { PencilLine } from "@/components/animate-ui/icons/pencil-line";
 import { NotebookPen } from "@/components/animate-ui/icons/notebook-pen";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
-import { X } from "@/components/animate-ui/icons/x";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import { Heart } from "@/components/animate-ui/icons/heart";
 import { Button, ConfirmationDialog, EmptyState, ErrorState, Spinner, showToast } from "../../components/ui";
@@ -21,6 +20,7 @@ import { useLocale } from "../../context/LocaleContext";
 import {
   AlbumCaptionDialog,
   AlbumFormDialog,
+  albumKeys,
   albumService,
   useAlbum,
   useInfiniteAlbumMedia,
@@ -44,6 +44,20 @@ import "./albums.css";
 export function AlbumPage() {
   const { albumId } = useParams<{ albumId: string }>();
   return <AlbumDetail key={albumId} albumId={albumId} />;
+}
+
+function updateFavoriteData<T>(data: T, mediaIds: ReadonlySet<string>, isFavorited: boolean): T {
+  if (!data || typeof data !== "object") return data;
+  const value = data as { items?: MediaFile[]; pages?: { items: MediaFile[] }[] };
+  const updateItems = (items: MediaFile[]) => items.map((item) => mediaIds.has(item.id)
+    ? { ...item, isFavorited }
+    : item);
+  if (Array.isArray(value.pages)) {
+    return { ...value, pages: value.pages.map((page) => ({ ...page, items: updateItems(page.items) })) } as T;
+  }
+  if (Array.isArray(value.items))
+    return { ...value, items: updateItems(value.items) } as T;
+  return data;
 }
 
 function AlbumDetail({ albumId }: { albumId: string | undefined }) {
@@ -138,27 +152,43 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
   const removeSelected = async () => {
     if (!albumId || !isOwner) return;
     try {
-      for (const item of selectedMedia) {
-        await albumService.removeMedia(albumId, item.id);
-        setSelectedItems((current) => { const next = new Map(current); next.delete(item.id); return next; });
-      }
-      cancelSelection();
+      const removedIds = new Set(selectedMedia.map((item) => item.id));
+      await albumService.removeMediaBatch(albumId, [...removedIds]);
+      setSelectedItems((current) => new Map([...current].filter(([id]) => !removedIds.has(id))));
     } finally {
       await invalidate();
     }
   };
 
   const favoriteSelected = async () => {
+    if (selectedMedia.length === 0) return;
     setBulkFavoriteBusy(true);
     try {
-      for (const item of selectedMedia) {
-        if (allSelectedFavorited) await mediaService.unfavorite(item.id); else if (!item.isFavorited) await mediaService.favorite(item.id);
+      const favorite = !allSelectedFavorited;
+      const ids = selectedMedia.filter((item) => item.isFavorited !== favorite).map((item) => item.id);
+      if (ids.length > 0) {
+        await mediaService.setFavorites(ids, favorite);
+        const changedIds = new Set(ids);
+        setSelectedItems((current) => {
+          const next = new Map(current);
+          for (const id of changedIds) {
+            const item = next.get(id);
+            if (item) next.set(id, { ...item, isFavorited: favorite });
+          }
+          return next;
+        });
+        queryClient.setQueriesData({ queryKey: albumKeys.detail(albumId ?? "") }, (data: unknown) =>
+          updateFavoriteData(data, changedIds, favorite));
+        queryClient.setQueriesData({ queryKey: ["media"] }, (data: unknown) =>
+          updateFavoriteData(data, changedIds, favorite));
+        queryClient.setQueryData(albumKeys.detail(albumId ?? ""), (current) => current?.previewMediaId && changedIds.has(current.previewMediaId)
+          ? { ...current, previewIsFavorited: favorite }
+          : current);
       }
-      cancelSelection();
     } catch (error) {
       showToast.error(error instanceof ApiError ? error.message : t("Could not update favorites."));
     } finally {
-      await Promise.all([queryClient.invalidateQueries({ queryKey: ["media"] }), invalidate()]);
+      await queryClient.invalidateQueries({ queryKey: ["media"] });
       setBulkFavoriteBusy(false);
     }
   };
@@ -219,7 +249,14 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
   const data = album.data;
 
   return (
-    <main className="gallery-page album-page" aria-label={data.name} {...selectionDragHandlers}>
+    <main className="gallery-page album-page" aria-label={data.name} {...selectionDragHandlers}
+      onClickCapture={(event) => {
+        selectionDragHandlers.onClickCapture(event);
+        if (event.defaultPrevented) return;
+        if (selectionMode && !(event.target instanceof Element && event.target.closest("[data-media-id], .gallery-selection-bar"))) {
+          cancelSelection();
+        }
+      }}>
       <ScrollProgressProvider>
         <div className="gallery-page__scroll-track" aria-hidden="true">
           <ScrollProgress mode="scaleX" className="gallery-page__scroll-progress" />
@@ -378,13 +415,11 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
           <AnimatedAction animationRevision={selectionAnimationRevision}><button type="button" className="gallery-selection-bar__action gallery-selection-bar__action--favorite"
             aria-label={t(allSelectedFavorited ? "Remove from favorites" : "Add to favorites")} title={t(allSelectedFavorited ? "Remove from favorites" : "Add to favorites")}
             aria-pressed={allSelectedFavorited} disabled={!selectedMedia.length || bulkFavoriteBusy || favoriteBusyMediaId !== null} onClick={() => void favoriteSelected()}>
-            {bulkFavoriteBusy ? <LoaderCircle size={20} className="spinner__wheel" aria-hidden="true" /> : <Heart size={20} fill={allSelectedFavorited ? "currentColor" : "none"} aria-hidden="true" />}
+            <Heart size={20} fill={allSelectedFavorited ? "currentColor" : "none"} aria-hidden="true" />
           </button></AnimatedAction>
           {isOwner && <AnimatedAction animationRevision={selectionAnimationRevision}><button type="button" className="gallery-selection-bar__action gallery-selection-bar__action--danger"
             aria-label={t("Remove from album")} title={t("Remove from album")} disabled={!selectedMedia.length || bulkFavoriteBusy}
             onClick={() => setRemovingSelection(true)}><Trash2 size={20} aria-hidden="true" /></button></AnimatedAction>}
-          <AnimatedAction animationRevision={selectionAnimationRevision}><button type="button" className="gallery-selection-bar__cancel" aria-label={t("Cancel selection")} title={t("Cancel selection")}
-            disabled={!selectionMode || bulkFavoriteBusy} onClick={cancelSelection}><X size={20} aria-hidden="true" /><span className="gallery-selection-bar__cancel-text">{t("Cancel")}</span></button></AnimatedAction>
         </div>
       </footer>
       {removingSelection && <ConfirmationDialog title="Remove selected media from album?" danger onConfirm={removeSelected} onClose={() => setRemovingSelection(false)}>

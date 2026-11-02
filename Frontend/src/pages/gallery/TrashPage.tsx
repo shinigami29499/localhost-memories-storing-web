@@ -5,7 +5,6 @@ import { AnimatePresence, motion } from "motion/react";
 import { AnimatedAction, useAnimateIconOnChange } from "@/components/animate-ui/icons/icon";
 import { RotateCcw } from "@/components/animate-ui/icons/rotate-ccw";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
-import { X } from "@/components/animate-ui/icons/x";
 import { infiniteQueryOptions, useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { ConfirmationDialog } from "../../components/ui/ConfirmationDialog";
 import { EmptyState, ErrorState, Spinner } from "../../components/ui";
@@ -203,7 +202,13 @@ export function TrashPage() {
 
   return (
     <>
-      <main ref={galleryRef} className="gallery-page gallery-page--trash" {...selectionDragHandlers}>
+      <main ref={galleryRef} className="gallery-page gallery-page--trash" {...selectionDragHandlers}
+        onClickCapture={(event) => {
+          selectionDragHandlers.onClickCapture(event);
+          if (event.defaultPrevented) return;
+          if (!selectionMode || (event.target instanceof Element && event.target.closest("[data-media-id], .gallery-selection-bar"))) return;
+          cancelSelection();
+        }}>
         <div className="gallery-page__content">
           <div className="gallery-page__inner">
             <header className="gallery-page__header">
@@ -332,16 +337,6 @@ export function TrashPage() {
                 onClick={() => requestAction("delete", [...selectedIds])}
               >
                 <Trash2 size={20} aria-hidden="true" />
-              </button></AnimatedAction>
-              <AnimatedAction animationRevision={selectionAnimationRevision}><button
-                type="button"
-                className="gallery-selection-bar__cancel"
-                aria-label={t("Cancel selection")}
-                title={t("Cancel selection")}
-                onClick={cancelSelection}
-              >
-                <X size={20} aria-hidden="true" />
-                <span className="gallery-selection-bar__cancel-text">{t("Cancel")}</span>
               </button></AnimatedAction>
             </div>
           </motion.footer>

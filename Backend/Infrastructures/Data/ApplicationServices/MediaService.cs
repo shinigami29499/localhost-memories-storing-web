@@ -283,4 +283,60 @@ public partial class MediaService(
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
+
+    public async Task SetMediaFavoritesAsync(
+        IReadOnlyCollection<Guid> mediaIds, Guid userId, bool isFavorite,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = mediaIds.Distinct().ToArray();
+        if (ids.Length == 0)
+            throw new ValidationException("At least one media item is required.",
+                new Dictionary<string, string[]> { ["mediaIds"] = ["Select at least one media item."] });
+
+        var existingIds = (await _repository.GetExistingMediaIdsAsync(ids, cancellationToken)).ToHashSet();
+        var missingId = ids.FirstOrDefault(id => !existingIds.Contains(id));
+        if (missingId != Guid.Empty)
+            throw new NotFoundException($"Media '{missingId}' was not found.");
+
+        var favorites = await _repository.GetMediaFavoritesAsync(userId, ids, isFavorite, cancellationToken);
+        var favoriteByMediaId = favorites.GroupBy(item => item.MediaFileId)
+            .ToDictionary(group => group.Key, group => group.First());
+        var changed = false;
+        var now = DateTime.UtcNow;
+        foreach (var mediaId in ids)
+        {
+            favoriteByMediaId.TryGetValue(mediaId, out var favorite);
+            if (isFavorite)
+            {
+                if (favorite is { DeletedAt: null })
+                    continue;
+                if (favorite is not null)
+                {
+                    favorite.DeletedAt = null;
+                    favorite.DeletedBy = null;
+                    favorite.UpdatedAt = now;
+                    favorite.UpdatedBy = userId;
+                }
+                else
+                {
+                    _repository.AddMediaFavorite(new MediaFavorite { MediaFileId = mediaId, UserId = userId });
+                }
+            }
+            else if (favorite is { DeletedAt: null })
+            {
+                favorite.DeletedAt = now;
+                favorite.DeletedBy = userId;
+                favorite.UpdatedAt = now;
+                favorite.UpdatedBy = userId;
+            }
+            else
+            {
+                continue;
+            }
+            changed = true;
+        }
+
+        if (changed)
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
 }

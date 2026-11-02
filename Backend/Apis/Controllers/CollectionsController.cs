@@ -132,6 +132,25 @@ public class CollectionsController(
         return Ok(album);
     }
 
+    [HttpPost("{collectionId:guid}/media/batch")]
+    public Task<ActionResult<CollectionDto>> AddMediaBatchAsync(
+        Guid collectionId, UpdateCollectionMediaBatchRequest request, CancellationToken cancellationToken)
+        => UpdateMediaBatchAsync(collectionId, request, add: true, cancellationToken);
+
+    [HttpPost("{collectionId:guid}/media/batch/remove")]
+    public Task<ActionResult<CollectionDto>> RemoveMediaBatchAsync(
+        Guid collectionId, UpdateCollectionMediaBatchRequest request, CancellationToken cancellationToken)
+        => UpdateMediaBatchAsync(collectionId, request, add: false, cancellationToken);
+
+    private async Task<ActionResult<CollectionDto>> UpdateMediaBatchAsync(
+        Guid collectionId, UpdateCollectionMediaBatchRequest request, bool add, CancellationToken cancellationToken)
+    {
+        var album = await collectionService.UpdateMediaBatchAsync(
+            collectionId, currentUser.RequireUserId(), request.MediaIds, add, cancellationToken);
+        await NotifyAlbumChangedAsync(album, "updated", album.IsPublic);
+        return Ok(album);
+    }
+
     [HttpPost("{collectionId:guid}/preview")]
     [Consumes("multipart/form-data")]
     public async Task<ActionResult<CollectionDto>> UploadPreviewImageAsync(

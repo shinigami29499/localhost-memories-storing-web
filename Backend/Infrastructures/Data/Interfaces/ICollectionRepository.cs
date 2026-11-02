@@ -27,6 +27,9 @@ public interface ICollectionRepository
     Task<bool> MediaExistsAsync(Guid mediaId, CancellationToken cancellationToken = default);
     Task<CollectionMedia?> FindCollectionMediaAsync(
         Guid collectionId, Guid mediaId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<CollectionMedia>> GetCollectionMediaEntriesAsync(
+        Guid collectionId, IReadOnlyCollection<Guid> mediaIds, bool includeDeleted,
+        CancellationToken cancellationToken = default);
     Task DeleteCollectionMediaAsync(
         Guid collectionId, Guid actorId, DateTime utcNow, CancellationToken cancellationToken = default);
     void AddCollection(Collection collection);

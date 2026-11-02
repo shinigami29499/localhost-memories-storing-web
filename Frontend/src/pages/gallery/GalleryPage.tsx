@@ -10,7 +10,6 @@ import { Heart } from "@/components/animate-ui/icons/heart";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import { Plus } from "@/components/animate-ui/icons/plus";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
-import { X } from "@/components/animate-ui/icons/x";
 import { BulkSaveToAlbumDialog } from "../../features/albums/components/BulkSaveToAlbumDialog";
 import { albumKeys } from "../../features/albums/hooks/useAlbums";
 import { albumService } from "../../features/albums/services/albumService";
@@ -70,17 +69,7 @@ const filters: { value: MediaKindFilter; label: string }[] = [
 
 /** Applies favorite state in small batches and returns the media ids that failed. */
 async function applyFavorites(mediaIds: string[], favorite: boolean) {
-  const failedIds: string[] = [];
-  for (let offset = 0; offset < mediaIds.length; offset += 5) {
-    const batch = mediaIds.slice(offset, offset + 5);
-    const results = await Promise.allSettled(batch.map((mediaId) =>
-      favorite ? mediaService.favorite(mediaId) : mediaService.unfavorite(mediaId),
-    ));
-    results.forEach((result, index) => {
-      if (result.status === "rejected") failedIds.push(batch[index]);
-    });
-  }
-  return failedIds;
+  if (mediaIds.length > 0) await mediaService.setFavorites(mediaIds, favorite);
 }
 
 export function GalleryPage({ view = "pictures", initialFilter }: { view?: GalleryView; initialFilter?: MediaKindFilter }) {
@@ -272,8 +261,8 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
     const favorite = !allSelectedFavorited;
     setBulkFavoriteBusy(true);
     try {
-      const failedIds = await applyFavorites(items.map((item) => item.id), favorite);
-      const changedItems = items.filter((item) => !failedIds.includes(item.id));
+      await applyFavorites(items.map((item) => item.id), favorite);
+      const changedItems = items;
       setSelectedItems((current) => {
         const next = new Map(current);
         for (const item of changedItems) {
@@ -282,22 +271,20 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
         return next;
       });
       await refreshFavoriteQueries();
-      if (failedIds.length > 0) showToast.error(t("Could not update favorites."));
       if (changedItems.length > 0) {
         showToast.success(t(favorite ? "Media added to favorites" : "Favorites removed"), {
           undo: async () => {
-            const undoFailedIds = await applyFavorites(changedItems.map((item) => item.id), !favorite);
+            await applyFavorites(changedItems.map((item) => item.id), !favorite);
             setSelectedItems((current) => {
               const next = new Map(current);
               for (const item of changedItems) {
-                if (!undoFailedIds.includes(item.id) && next.has(item.id)) {
+                if (next.has(item.id)) {
                   next.set(item.id, { ...item, isFavorited: !favorite });
                 }
               }
               return next;
             });
             await refreshFavoriteQueries();
-            if (undoFailedIds.length > 0) throw new Error(t("Could not update favorites."));
           },
         });
       }
@@ -421,7 +408,13 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
   );
 
   return (
-    <main ref={galleryRef} className="gallery-page" {...selectionDragHandlers}>
+    <main ref={galleryRef} className="gallery-page" {...selectionDragHandlers}
+      onClickCapture={(event) => {
+        selectionDragHandlers.onClickCapture(event);
+        if (event.defaultPrevented) return;
+        if (!selectionMode || (event.target instanceof Element && event.target.closest("[data-media-id], .gallery-selection-bar"))) return;
+        cancelSelection();
+      }}>
       <ScrollProgressProvider>
         <div className="gallery-page__scroll-track" aria-hidden="true">
           <ScrollProgress mode="scaleX" className="gallery-page__scroll-progress" />
@@ -540,17 +533,6 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
                 onClick={() => setDeleteDialogOpen(true)}
               >
                 <Trash2 size={20} aria-hidden="true" />
-              </button></AnimatedAction>
-              <AnimatedAction animationRevision={selectionAnimationRevision}><button
-                type="button"
-                className="gallery-selection-bar__cancel"
-                aria-label={t("Cancel selection")}
-                title={t("Cancel selection")}
-                disabled={!selectionMode || bulkFavoriteBusy}
-                onClick={cancelSelection}
-              >
-                <X size={20} aria-hidden="true" />
-                <span className="gallery-selection-bar__cancel-text">{t("Cancel")}</span>
               </button></AnimatedAction>
           </div>
         </footer>

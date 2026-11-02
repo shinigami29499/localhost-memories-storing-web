@@ -29,4 +29,7 @@ public interface IMediaService
         Guid viewerId, bool isAdmin, DateTime? since, CancellationToken cancellationToken = default);
     Task SetMediaFavoriteAsync(
         Guid mediaId, Guid userId, bool isFavorite, CancellationToken cancellationToken = default);
+    Task SetMediaFavoritesAsync(
+        IReadOnlyCollection<Guid> mediaIds, Guid userId, bool isFavorite,
+        CancellationToken cancellationToken = default);
 }

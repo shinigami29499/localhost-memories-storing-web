@@ -107,10 +107,6 @@ export const uploadService = {
   setPaused(batchId: string, itemId: string | undefined, paused: boolean): Promise<UploadBatch> {
     return api(`${BASE_PATH}/batches/${batchId}${itemId ? `/items/${itemId}` : ""}/${paused ? "pause" : "resume"}`, { method: "POST" });
   },
-  cancel(batchId: string, itemId: string): Promise<UploadItem> {
-    return api(`${BASE_PATH}/batches/${batchId}/items/${itemId}/cancel`, { method: "POST" });
-  },
-
   fail(batchId: string, itemId: string, errorDetails: string): Promise<UploadItem> {
     return api(`${BASE_PATH}/batches/${batchId}/items/${itemId}/fail`, {
       method: "POST",

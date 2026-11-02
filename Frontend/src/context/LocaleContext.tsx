@@ -25,6 +25,7 @@ const LocaleContext = createContext<LocaleContextValue>({
 });
 
 const vietnamese: Record<string, string> = {
+  "Upload batch finished: {failed} failed, {cancelled} cancelled.": "Đợt tải lên kết thúc: {failed} tệp lỗi, {cancelled} tệp đã hủy.",
   "Toast notifications": "Thông báo nhanh",
   "Show temporary notifications throughout the app.": "Hiển thị thông báo tạm thời trong ứng dụng.",
   "Signed out": "Đã đăng xuất",
@@ -43,6 +44,7 @@ const vietnamese: Record<string, string> = {
   "Could not start this download.": "Không thể bắt đầu tải xuống.",
   "Current tab downloads": "T\u1ea3i xu\u1ed1ng trong th\u1ebb hi\u1ec7n t\u1ea1i",
   "Download history": "L\u1ecbch s\u1eed t\u1ea3i xu\u1ed1ng",
+  "Download batch finished: {success} sent to browser, {failed} failed.": "L\u01b0\u1ee3t t\u1ea3i xu\u1ed1ng xong: {success} t\u1ec7p chuy\u1ec3n cho tr\u00ecnh duy\u1ec7t, {failed} t\u1ec7p l\u1ed7i.",
   "Loading download history...": "\u0110ang t\u1ea3i l\u1ecbch s\u1eed t\u1ea3i xu\u1ed1ng...",
   "Could not load download history.": "Kh\u00f4ng th\u1ec3 t\u1ea3i l\u1ecbch s\u1eed t\u1ea3i xu\u1ed1ng.",
   "Keep this tab open while downloads are in progress. History is saved to your account.": "Gi\u1eef th\u1ebb n\u00e0y m\u1edf trong khi t\u1ea3i xu\u1ed1ng. L\u1ecbch s\u1eed \u0111\u01b0\u1ee3c l\u01b0u v\u00e0o t\u00e0i kho\u1ea3n c\u1ee7a b\u1ea1n.",
