@@ -124,6 +124,7 @@
   display: grid;
   gap: 12px;
   grid-template-columns: repeat(6, minmax(0, 1fr));
+  padding: 8px;
 }
 .gallery-window-cell { aspect-ratio: 1; min-width: 0; }
 
