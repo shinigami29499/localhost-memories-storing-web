@@ -22,9 +22,9 @@ import {
 } from "./MapAppearanceSettings";
 import { LocationSearch } from "./LocationSearch";
 import { useHomeMarkerHover } from "../hooks/useHomeMarkerHover";
-import { MARKER_DRAG_HOLD_MS, useMarkerDrag } from "../hooks/useMarkerDrag";
 import { HomeLocationMarker } from "./HomeLocationMarker";
 import { MapLoadingOverlay } from "./MapLoadingOverlay";
+import { MapDraftMarker } from "./MapDraftMarker";
 import type { LocationSearchResult } from "../services/locationSearchService";
 import { useLocale } from "../../../context/LocaleContext";
 import { useMediaQuery } from "../../../hooks/useMediaQuery";
@@ -42,6 +42,9 @@ interface Props {
   focused?: MediaFile;
   draft: PickedLocation | null;
   editable: boolean;
+  editing?: boolean;
+  relocating?: boolean;
+  onConfirmRelocation?: () => void;
   homeLocation: HomeLocation | null;
   homeLocationReady: boolean;
   homePicking: boolean;
@@ -65,7 +68,6 @@ function MapViewport({ media, selected, ready, allowFit }: Pick<Props, "media" |
   allowFit: boolean;
 }) {
   const { current: map } = useMap();
-  const isMobile = useMediaQuery("(max-width: 640px)");
   useEffect(() => {
     if (!map || !ready || !allowFit || selected?.location) return;
     const locations = media.flatMap((item) => item.location ? [item.location] : []);
@@ -82,15 +84,6 @@ function MapViewport({ media, selected, ready, allowFit }: Pick<Props, "media" |
     map.fitBounds([[west, south], [east, north]], { padding: 48, maxZoom: 16, duration: 0 });
   }, [map, ready, allowFit, media, selected?.location]);
 
-  useEffect(() => {
-    if (map && ready && selected?.location) {
-      map.jumpTo({
-        center: [selected.location.longitude, selected.location.latitude],
-        zoom: Math.max(map.getZoom(), 12),
-        ...(isMobile ? { padding: MOBILE_PREVIEW_PADDING, retainPadding: false } : {}),
-      });
-    }
-  }, [map, ready, selected?.id, selected?.location, isMobile]);
   return null;
 }
 
@@ -242,11 +235,42 @@ function PhotoPin({ item, selected, movable, onSelect, onMove }: {
 }) {
   const { current: map } = useMap();
   const animateMarker = useAnimationStore((state) => state.enabled && state.iconsEnabled);
-  const gesture = useRef<{ id: number; x: number; y: number; startedAt: number; dragging: boolean; cancelled: boolean } | null>(null);
+  const pinRef = useRef<HTMLButtonElement>(null);
+  const gesture = useRef<{ id: number; x: number; y: number; dragging: boolean } | null>(null);
   const suppressClick = useRef(false);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const cancelGesture = useCallback(() => {
+    const start = gesture.current;
+    if (!start) return;
+    gesture.current = null;
+    suppressClick.current = true;
+    if (pinRef.current?.hasPointerCapture(start.id)) pinRef.current.releasePointerCapture(start.id);
+    setOffset({ x: 0, y: 0 });
+  }, []);
+
+  useEffect(() => {
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") cancelGesture();
+    };
+    const outside = (event: PointerEvent) => {
+      if (event.target instanceof Node && !pinRef.current?.contains(event.target)) cancelGesture();
+    };
+    window.addEventListener("keydown", escape, true);
+    window.addEventListener("blur", cancelGesture);
+    document.addEventListener("pointerdown", outside, true);
+    return () => {
+      window.removeEventListener("keydown", escape, true);
+      window.removeEventListener("blur", cancelGesture);
+      document.removeEventListener("pointerdown", outside, true);
+    };
+  }, [cancelGesture]);
+
+  useEffect(() => {
+    if (!movable) cancelGesture();
+  }, [movable, cancelGesture]);
+
   return (
-    <button type="button" className="locations__pin" title={item.originalFilename}
+    <button ref={pinRef} type="button" className="locations__pin" title={item.originalFilename}
       data-marker-motion={animateMarker}
       aria-label={item.originalFilename} aria-pressed={selected}
       data-movable={movable}
@@ -256,19 +280,14 @@ function PhotoPin({ item, selected, movable, onSelect, onMove }: {
         if (!movable || !map || event.button !== 0 || !event.isPrimary) return;
         event.preventDefault();
         event.stopPropagation();
-        gesture.current = { id: event.pointerId, x: event.clientX, y: event.clientY, startedAt: performance.now(), dragging: false, cancelled: false };
+        gesture.current = { id: event.pointerId, x: event.clientX, y: event.clientY, dragging: false };
         event.currentTarget.setPointerCapture(event.pointerId);
       }}
       onPointerMove={(event) => {
         const start = gesture.current;
         if (!start || start.id !== event.pointerId) return;
         const x = event.clientX - start.x, y = event.clientY - start.y;
-        if (Math.hypot(x, y) > 8 && !start.dragging) {
-          if (performance.now() - start.startedAt < MARKER_DRAG_HOLD_MS) {
-            start.cancelled = true;
-            suppressClick.current = true;
-          } else if (!start.cancelled) start.dragging = true;
-        }
+        if (Math.hypot(x, y) > 8) start.dragging = true;
         if (start.dragging) setOffset({ x, y });
       }}
       onPointerUp={(event) => {
@@ -286,15 +305,8 @@ function PhotoPin({ item, selected, movable, onSelect, onMove }: {
         ]).wrap();
         onMove(item, { latitude: point.lat, longitude: point.lng });
       }}
-      onLostPointerCapture={() => {
-        gesture.current = null;
-        setOffset({ x: 0, y: 0 });
-      }}
-      onPointerCancel={() => {
-        suppressClick.current = true;
-        gesture.current = null;
-        setOffset({ x: 0, y: 0 });
-      }}
+      onLostPointerCapture={cancelGesture}
+      onPointerCancel={cancelGesture}
       onClick={(event) => {
         if (suppressClick.current) {
           event.preventDefault();
@@ -309,23 +321,7 @@ function PhotoPin({ item, selected, movable, onSelect, onMove }: {
   );
 }
 
-function DraftMarker({ location, onPick }: { location: PickedLocation; onPick: Props["onPick"] }) {
-  const { t } = useLocale();
-  const drag = useMarkerDrag(location, onPick);
-  return (
-    <Marker latitude={location.latitude} longitude={location.longitude} style={{ zIndex: 3 }}
-      onClick={(event) => event.originalEvent.stopPropagation()}>
-      <span className="locations__pin locations__pin--draft" title={t("Drag to adjust location")}
-        aria-label={t("Drag to adjust location")}
-        style={{ translate: `${drag.offset.x}px ${drag.offset.y}px`, touchAction: "none" }}
-        onPointerDown={drag.onPointerDown} onPointerMove={drag.onPointerMove}
-        onPointerUp={drag.onPointerUp} onPointerCancel={drag.onPointerCancel}
-        onLostPointerCapture={drag.onLostPointerCapture}>+</span>
-    </Marker>
-  );
-}
-
-function PhotoClusterMarker({ cluster, selected, onSelect, canMove, onMove, homeExpanded, nearHome, onHomeHoverChange }: {
+function PhotoClusterMarker({ cluster, selected, onSelect, canMove, onMove, homeExpanded, nearHome, onHomeHoverChange, hidePreview }: {
   homeExpanded: boolean;
   nearHome: boolean;
   onHomeHoverChange?: (hovered: boolean) => void;
@@ -334,6 +330,7 @@ function PhotoClusterMarker({ cluster, selected, onSelect, canMove, onMove, home
   onSelect: (media: MediaFile) => void;
   canMove: Props["canMove"];
   onMove: Props["onMove"];
+  hidePreview: boolean;
 }) {
   const { t } = useLocale();
   const [open, setOpen] = useState(false);
@@ -373,12 +370,12 @@ function PhotoClusterMarker({ cluster, selected, onSelect, canMove, onMove, home
           style={{ "--fan-index": index, "--marker-color": markerColors[Array.from(item.id).reduce((hash, char) => (hash * 31 + char.charCodeAt(0)) >>> 0, 0) % markerColors.length] } as CSSProperties}>
           <PhotoPin item={item} selected={selected?.id === item.id} movable={canMove(item)}
             onSelect={onSelect} onMove={onMove} />
-          <article className="locations__popup" aria-label={item.originalFilename}>
+          {!hidePreview && <article className="locations__popup" aria-label={item.originalFilename}>
             <img src={mediaPreviewUrl(item.id)} alt={item.originalFilename} loading="lazy" />
             <div>
               <small>{t("By {username}", { username: item.ownerUsername ?? t("Unknown") })}</small>
             </div>
-          </article>
+          </article>}
         </div>
       ))}
       {count > 1 && (
@@ -392,7 +389,7 @@ function PhotoClusterMarker({ cluster, selected, onSelect, canMove, onMove, home
   );
 }
 
-function PhotoMarkers({ media, selected, ready, onSelect, canMove, onMove, homeLocation, homeHovered, onHomeHoverChange }: Pick<Props, "media" | "selected" | "onSelect" | "canMove" | "onMove"> & { ready: boolean; homeLocation: HomeLocation | null; homeHovered: boolean; onHomeHoverChange: (hovered: boolean) => void }) {
+function PhotoMarkers({ media, selected, ready, onSelect, canMove, onMove, homeLocation, homeHovered, onHomeHoverChange, hidePreview }: Pick<Props, "media" | "selected" | "onSelect" | "canMove" | "onMove"> & { ready: boolean; homeLocation: HomeLocation | null; homeHovered: boolean; onHomeHoverChange: (hovered: boolean) => void; hidePreview: boolean }) {
   const { current: map } = useMap();
   const [project, setProject] = useState<MapProjector | null>(null);
   useEffect(() => {
@@ -427,6 +424,7 @@ function PhotoMarkers({ media, selected, ready, onSelect, canMove, onMove, homeL
         >
           <PhotoClusterMarker cluster={cluster}
             homeExpanded={homeExpanded} nearHome={nearHome}
+            hidePreview={hidePreview}
             onHomeHoverChange={homeExpanded ? onHomeHoverChange : undefined}
             selected={selected} onSelect={onSelect} canMove={canMove} onMove={onMove} />
         </Marker>
@@ -446,7 +444,7 @@ function PhotoMarkers({ media, selected, ready, onSelect, canMove, onMove, homeL
 }
 
 function MapContent({
-  media, selected, focused, draft, editable, homeLocation, homeLocationReady, homePicking, homeActionDisabled,
+  media, selected, focused, draft, editable, editing, relocating, onConfirmRelocation, homeLocation, homeLocationReady, homePicking, homeActionDisabled,
   onSelect, onEdit, onCancelSelection, canMove, onMove, onPick, onPickHome, onHomeClick, onAddPhotos, onOpenCamera, token,
 }: Props & { token: string }) {
   const { t } = useLocale();
@@ -458,6 +456,7 @@ function MapContent({
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
   const [navigationOpen, setNavigationOpen] = useState(false);
+  const [mapboxPreview, setMapboxPreview] = useState(false);
   const [mapStyle, setMapStyle] = useState<MapScene>("3d");
   const [showMarkers, setShowMarkers] = useState(true);
   const mapAppearance = useMapAppearance();
@@ -468,6 +467,12 @@ function MapContent({
   const [initialLocationResolved, setInitialLocationResolved] = useState(false);
   const [hasInitialCenter, setHasInitialCenter] = useState(false);
   const located = useMemo(() => media.filter((item) => item.location), [media]);
+  const markerMedia = useMemo(
+    () => relocating && selected ? located.filter((item) => item.id === selected.id) : located,
+    [relocating, selected?.id, located],
+  );
+  const draftDiffers = !!draft && (!selected?.location
+    || draft.latitude !== selected.location.latitude || draft.longitude !== selected.location.longitude);
   const cameraTarget = selected ?? focused;
   const resolveInitialLocation = useCallback((hasCenter: boolean) => {
     setHasInitialCenter(hasCenter);
@@ -519,7 +524,7 @@ function MapContent({
     </>;
 
   return (
-    <div className="locations__map map-controls" role="region" aria-label={t("Photo locations")}>
+    <div className="locations__map map-controls" data-scene={mapStyle} data-mapbox-preview={mapboxPreview} data-relocating={relocating || undefined} role="region" aria-label={t("Photo locations")}>
       <Map
         style={{ minHeight: "inherit" }}
         ref={mapRef}
@@ -578,13 +583,14 @@ function MapContent({
           homeLocation={homeLocation} homeRequest={homeRequest} focusRequest={focusRequest} />
         <MapResizer />
         {loaded && selected?.location && !homePicking && (
-          <MapNavigation destination={{ ...selected.location, name: selected.originalFilename }} accessToken={token}
+          <MapNavigation destination={{ ...(relocating && draft ? draft : selected.location), name: selected.originalFilename }} accessToken={token}
             homeLocation={homeLocation}
-            onEdit={canMove(selected) ? () => onEdit(selected) : undefined} onCancel={onCancelSelection}
-            onOpenChange={setNavigationOpen} />
+            onEdit={relocating ? onConfirmRelocation : canMove(selected) ? () => onEdit(selected) : undefined}
+            editAction={relocating ? "confirm" : "edit"} onCancel={onCancelSelection}
+            onOpenChange={setNavigationOpen} onMapboxPreviewChange={setMapboxPreview} />
         )}
         {(!loaded || !selected?.location || homePicking) && <DisabledNavigationToolbar />}
-        {homeLocation && (
+        {homeLocation && !relocating && (
           <HomeLocationMarker location={homeLocation} variant="locations" onHoverChange={onHomeHoverChange} onClick={() => {
             mapRef.current?.easeTo({
               center: [homeLocation.longitude, homeLocation.latitude],
@@ -595,13 +601,14 @@ function MapContent({
             });
           }} />
         )}
-        {showMarkers && <PhotoMarkers homeLocation={homeLocation} homeHovered={homeHovered} onHomeHoverChange={onHomeHoverChange} media={located} selected={selected} ready={loaded}
+        {showMarkers && <PhotoMarkers homeLocation={homeLocation} homeHovered={homeHovered} onHomeHoverChange={onHomeHoverChange} media={markerMedia} selected={selected} ready={loaded} hidePreview={mapboxPreview || !!relocating}
           onSelect={(item) => {
             if (selected?.id !== item.id) setFocusRequest((request) => request + 1);
             onSelect(item);
           }} canMove={(item) => !navigationOpen && canMove(item)} onMove={onMove} />}
-        {editable && draft && !navigationOpen && (
-          <DraftMarker location={draft} onPick={onPick} />
+          {editable && draft && !navigationOpen && (relocating || editing && draftDiffers) && (
+          <MapDraftMarker location={draft} label={t("Click the map or drag to set a location")}
+            draggable={editable} onPick={onPick} />
         )}
       </Map>
       <MapLoadingOverlay ready={loaded} className="map-loading-overlay" />
@@ -704,7 +711,11 @@ function MapContent({
           </AnimateIcon>
           <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
             <button type="button" className="locations__scene" aria-pressed={mapStyle === "3d"}
-              onClick={() => setMapStyle("3d")}>
+              onClick={() => {
+                mapAppearance.selectLighting("day");
+                mapAppearance.selectColorTheme("default");
+                setMapStyle("3d");
+              }}>
               <span className="locations__scene-icon" aria-hidden="true">
                 <Globe size={20} animation="spin" />
               </span>

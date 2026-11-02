@@ -781,7 +781,6 @@
 }
 .place__cluster--group[data-open="true"] .place__cluster-count { position: static; }
 .place__marker { height: 54px; position: relative; width: 44px; z-index: 1; }
-.place__marker--draft { --marker-color: #E53935; }
 .place__marker::before {
   content: "";
   position: absolute;
@@ -793,10 +792,6 @@
   border-radius: 50%;
   box-shadow: 0 0 0 2px #fff, 0 3px 8px rgb(0 0 0 / 45%);
   pointer-events: none;
-}
-.place__marker--draft::before {
-  background: #9f2528;
-  box-shadow: 0 0 0 2px #fff, 0 3px 8px rgb(0 0 0 / 55%);
 }
 .place__marker:hover,
 .place__marker:focus-within,
@@ -838,24 +833,6 @@
 
 .place__pin[data-changeable="true"] { cursor: grab; touch-action: none; user-select: none; }
 .place__pin[data-changeable="true"]:active { cursor: grabbing; }
-
-.place__pin--draft {
-  background: var(--marker-color, #E2572B);
-  border: 0;
-  border-radius: 50% 50% 50% 0;
-  cursor: grab;
-  transform: rotate(-45deg);
-  box-shadow: 0 0 0 2px #fff, 0 3px 8px rgb(0 0 0 / 45%);
-}
-.place__pin--draft::after {
-  content: "";
-  position: absolute;
-  inset: 7px;
-  border-radius: 50%;
-  background: #fff;
-  transform: rotate(45deg);
-}
-.place__pin--draft > span { display: none; }
 
 .place__home-pin {
   touch-action: none;
@@ -1417,7 +1394,7 @@
   .place__header { margin-bottom: 16px; }
   .place__workspace { margin-top: 16px; }
   .place__map-panel { height: max(360px, calc(100dvh - var(--app-topbar-height, 68px) - 220px)); }
-  .place__pin:not(.place__pin--draft) > span { width: 30px; height: 30px; }
+  .place__pin > span { width: 30px; height: 30px; }
   .place__map-home-control { bottom: 96px; }
   .place__scenes { left: 8px; max-height: calc(100% - 16px); top: 8px; }
   .place__scenes:not([open]) { width: 54px; }

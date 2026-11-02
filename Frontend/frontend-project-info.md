@@ -255,7 +255,12 @@ client has no SignalR subscription. The upload runtime refreshes local query sta
   support the same gestures. Right-click and focused Delete/Backspace also request
   deletion. Both actions require confirmation; outside click or Escape cancels
   without changing the saved place. Escape or window blur also cancels an active
-  pin gesture. Outside the map or Escape cancels manual map picking.
+  pin gesture. During relocation, the original pin stays at its saved location,
+  unrelated markers and previews are hidden, and a draggable draft pin previews the
+  new location. The map toolbar's Edit action becomes Confirm and opens the move
+  confirmation. Travel uses the same map mode while keeping its editor side panel
+  open for the existing save confirmation. Outside the map or Escape cancels manual
+  map picking.
   Street view stays flat; 3D view tilts toward the selected marker.
   The Home control clears marker focus and editing, closes map settings, switches
   to Street map, and returns to the saved home location at zoom 14 with no tilt.

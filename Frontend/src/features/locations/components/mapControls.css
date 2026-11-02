@@ -27,16 +27,81 @@
   z-index: 50;
 }
 
-@keyframes map-marker-squash {
-  0%, 100% { scale: 1; }
-  33% { scale: 1.08 0.85; }
-  67% { scale: 0.97 1.04; }
+@keyframes map-marker-bounce {
+  0%, 100% { transform: translateY(-4px) rotate(-45deg); }
+  12.5% { transform: translateY(-1.2px) rotate(-45deg); }
+  25% { transform: translateY(0) rotate(-45deg); }
+  37.5% { transform: translateY(-1.2px) rotate(-45deg); }
+  50% { transform: translateY(-4px) rotate(-45deg); }
+  62.5% { transform: translateY(-6.8px) rotate(-45deg); }
+  75% { transform: translateY(-8px) rotate(-45deg); }
+  87.5% { transform: translateY(-6.8px) rotate(-45deg); }
+}
+
+@keyframes map-marker-drop {
+  0% { opacity: 0; transform: translateY(-28px) rotate(-45deg) scale(0.9); }
+  70% { opacity: 1; transform: translateY(3px) rotate(-45deg) scale(1.04); }
+  88% { transform: translateY(-4px) rotate(-45deg) scale(1); }
+  100% { opacity: 1; transform: translateY(-4px) rotate(-45deg); }
+}
+
+
+.map-draft-marker {
+  height: 54px;
+  position: relative;
+  width: 44px;
+  z-index: 1;
+}
+.map-draft-marker::before {
+  background: #9f2528;
+  border-radius: 50%;
+  bottom: -6px;
+  box-shadow: 0 0 0 2px #fff, 0 3px 8px rgb(0 0 0 / 55%);
+  content: "";
+  height: 9px;
+  left: 12px;
+  pointer-events: none;
+  position: absolute;
+  width: 20px;
+}
+.map-draft-marker__pin {
+  background: #ef4444;
+  border-radius: 50% 50% 50% 0;
+  box-shadow: 0 0 0 2px #fff, 0 3px 8px rgb(0 0 0 / 45%);
+  height: 44px;
+  left: 0;
+  position: absolute;
+  top: 0;
+  transform: rotate(-45deg);
+  width: 44px;
+}
+.map-draft-marker__pin::after {
+  background: #fff;
+  border-radius: 50%;
+  content: "";
+  inset: 7px;
+  position: absolute;
+  transform: rotate(45deg);
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  :is(.place__pin, .locations__pin)[data-marker-motion="true"]:is(:hover, :focus-visible, :active) {
-    animation: map-marker-squash 0.6s ease-in-out;
+  :is(.place__pin, .locations__pin)[data-marker-motion="true"]:is(:hover, :focus-visible):not([aria-pressed="true"]) {
+    animation: map-marker-bounce 0.8s linear infinite;
   }
+  :is(.place__pin, .locations__pin)[data-marker-motion="true"][aria-pressed="true"] {
+    animation: map-marker-bounce 0.8s linear infinite;
+  }
+  :is(.place__home-pin, .locations__home-pin):is(:hover, :focus-visible) {
+    animation: map-marker-bounce 0.8s linear infinite;
+  }
+  .map-draft-marker__pin {
+    animation: map-marker-drop 480ms ease-out, map-marker-bounce 0.8s linear 480ms infinite;
+    animation-fill-mode: forwards, both;
+  }
+}
+
+:is(.place__map, .locations__map)[data-relocating="true"] :is(.place__pin, .locations__pin) {
+  animation: none !important;
 }
 
 :is(.place, .locations) .map-controls .mapboxgl-ctrl-group:has(.mapboxgl-ctrl-geolocate) {
@@ -85,6 +150,12 @@
 :is(.place, .locations) .map-controls .map-appearance-control {
   top: 68px;
 }
+
+:is(.place, .locations) .map-controls[data-scene="streets"] .map-appearance-control { display: none; }
+.place .map-controls[data-scene="streets"] .place__add-marker-control,
+.locations .map-controls[data-scene="streets"] :is(.locations__add-marker-control, .locations__camera-control) { top: 68px; }
+.place .map-controls[data-scene="streets"] .place__map-home-control,
+.locations .map-controls[data-scene="streets"] .locations__map-home-control { top: 128px; }
 
 :is(.place, .locations) .map-appearance {
   display: grid;
@@ -558,6 +629,11 @@
   .place .map-controls .place__map-home-control { top: 158px; }
   .locations .map-controls .locations__camera-control { top: 158px; width: 44px; height: 44px; }
   .locations .map-controls .locations__map-home-control { top: 208px; }
+
+  .place .map-controls[data-scene="streets"] .place__add-marker-control,
+  .locations .map-controls[data-scene="streets"] :is(.locations__add-marker-control, .locations__camera-control) { top: 58px; }
+  .place .map-controls[data-scene="streets"] .place__map-home-control,
+  .locations .map-controls[data-scene="streets"] .locations__map-home-control { top: 108px; }
 
   :is(.place, .locations) .map-controls :is(.place__scenes-title, .locations__scenes-title) {
     grid-template-columns: 34px minmax(0, 1fr) 16px;

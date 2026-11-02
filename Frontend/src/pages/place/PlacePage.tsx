@@ -108,6 +108,7 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
   const [formError, setFormError] = useState<string | null>(null);
   const [placeToDelete, setPlaceToDelete] = useState<Place | null>(null);
   const [placeToMove, setPlaceToMove] = useState<{ place: Place; coordinate: PlaceCoordinate } | null>(null);
+  const [moveConfirmationOpen, setMoveConfirmationOpen] = useState(false);
   const workspaceRef = useRef<HTMLDivElement>(null);
   const [manualHomePick, setManualHomePick] = useState(false);
   const [homeDialogOpen, setHomeDialogOpen] = useState(false);
@@ -120,9 +121,10 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
   const canChangeMarker = (place: Place) => canEdit(place) && !editor && !homePicking
     && !placeToMove && !placeToDelete && !save.isPending && !remove.isPending;
   const mapPlaces = useMemo(
-    () => places.filter((place) => place.id !== placeToMove?.place.id
-      && !(editor?.id === place.id && editor.coordinate)),
-    [places, editor?.id, editor?.coordinate, placeToMove?.place.id],
+    () => placeToMove
+      ? places.filter((place) => place.id === placeToMove.place.id)
+      : places.filter((place) => !(editor?.id === place.id && editor.coordinate)),
+    [places, editor?.id, editor?.coordinate, placeToMove],
   );
   const clearPreview = useCallback(() => {
     if (document.activeElement instanceof HTMLElement
@@ -236,6 +238,8 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
       if (save.isPending || remove.isPending || home.save.isPending) return;
       cancelMapPick();
       setManualHomePick(false);
+      setMoveConfirmationOpen(false);
+      setPlaceToMove(null);
       clearPreview();
     };
     const escape = (event: KeyboardEvent) => {
@@ -256,7 +260,7 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
       window.removeEventListener("keydown", escape);
       document.removeEventListener("pointerdown", outside);
     };
-  }, [editor, manualHomePick, save.isPending, remove.isPending, home.save.isPending, clearPreview]);
+  }, [editor, manualHomePick, placeToMove, save.isPending, remove.isPending, home.save.isPending, clearPreview]);
 
   const movePlace = (place: Place, coordinate: PlaceCoordinate) => {
     if (!canChangeMarker(place)) return;
@@ -278,6 +282,8 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
       input: { ...toEditorState(place).values, ...coordinate },
     });
     showToast.success(t("Place updated."));
+    setMoveConfirmationOpen(false);
+    setPlaceToMove(null);
   };
 
   const submit = async () => {
@@ -386,8 +392,8 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
                     <PlaceMap
                       places={mapPlaces}
                       selectedId={selectedId}
-                      focusZoom={selectedId === (location.state as { focusPlaceId?: string } | null)?.focusPlaceId}
                       draft={placeToMove?.coordinate ?? editor?.coordinate ?? null}
+                      relocatingPlace={placeToMove?.place ?? null}
                       picking={!!editor}
                       homeLocation={home.query.data ?? null}
                       homeLocationReady={home.query.isFetched}
@@ -396,6 +402,8 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
                       onSelect={selectPlace}
                       onEdit={startEdit}
                       onEditDraft={() => setEditorOpen(true)}
+                      onConfirmRelocation={() => setMoveConfirmationOpen(true)}
+                      onCancelRelocation={() => { setMoveConfirmationOpen(false); setPlaceToMove(null); }}
                       onCancelSelection={clearPreview}
                       onCancelDraft={cancelMapPick}
                       canChange={canChangeMarker}
@@ -417,7 +425,10 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
                         setManualHomePick(false);
                         if (!home.query.data) openHomeDialog();
                       }}
-                      onPick={pickOnMap}
+                      onPick={(coordinate, placeName, source) => {
+                        if (placeToMove) setPlaceToMove((current) => current ? { ...current, coordinate } : current);
+                        else pickOnMap(coordinate, placeName, source);
+                      }}
                     />
                   </div>
                 </div>
@@ -620,11 +631,11 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
               </PlaceDialog>
             )}
 
-            {placeToMove && (
+            {placeToMove && moveConfirmationOpen && (
               <ConfirmationDialog
                 title="Move this place?"
                 onConfirm={confirmMove}
-                onClose={() => setPlaceToMove(null)}
+                onClose={() => setMoveConfirmationOpen(false)}
               >
                 <p>{t("{name} will move to {latitude}, {longitude}.", {
                   name: placeToMove.place.name,

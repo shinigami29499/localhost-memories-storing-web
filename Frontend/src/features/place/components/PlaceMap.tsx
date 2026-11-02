@@ -33,20 +33,20 @@ import { StarRating } from "./StarRating";
 import { LocationSearch } from "../../locations/components/LocationSearch";
 import { HomeLocationMarker } from "../../locations/components/HomeLocationMarker";
 import { MapLoadingOverlay } from "../../locations/components/MapLoadingOverlay";
+import { MapDraftMarker } from "../../locations/components/MapDraftMarker";
 import { useHomeMarkerHover } from "../../locations/hooks/useHomeMarkerHover";
 import type { LocationSearchResult } from "../../locations/services/locationSearchService";
 import { findPlaceAt } from "../../locations/utils/findPlaceAt";
 import type { HomeLocation } from "../../locations/types";
 import type { PlaceCoordinate, Place } from "../types";
 import { DisabledNavigationToolbar, MapNavigation } from "../../navigation/components/MapNavigation";
-import { MARKER_DRAG_HOLD_MS } from "../../locations/hooks/useMarkerDrag";
 import { NavigationFallback } from "../../navigation/components/NavigationOptions";
 
 interface Props {
   places: Place[];
   selectedId: string | null;
-  focusZoom?: boolean;
   draft: PlaceCoordinate | null;
+  relocatingPlace?: Place | null;
   picking: boolean;
   homeLocation: HomeLocation | null;
   homeLocationReady: boolean;
@@ -58,6 +58,8 @@ interface Props {
   onSelect: (place: Place) => void;
   onEdit: (place: Place) => void;
   onEditDraft: () => void;
+  onConfirmRelocation?: () => void;
+  onCancelRelocation?: () => void;
   onCancelSelection: () => void;
   onCancelDraft: () => void;
   onPickHome: (coordinate: HomeLocation) => void;
@@ -71,15 +73,13 @@ type MapScene = "streets" | "3d";
 
 const MOBILE_PREVIEW_PADDING = { top: 300, bottom: 0, left: 0, right: 0 };
 
-function MapViewport({ places, selected, ready, allowFit, focusZoom }: {
+function MapViewport({ places, selected, ready, allowFit }: {
   places: Place[];
   selected: Place | undefined;
   ready: boolean;
   allowFit: boolean;
-  focusZoom?: boolean;
 }) {
   const { current: map } = useMap();
-  const isMobile = useMediaQuery("(max-width: 640px)");
   const fittedCount = useRef(-1);
   const hadSelection = useRef(false);
   useEffect(() => {
@@ -101,14 +101,6 @@ function MapViewport({ places, selected, ready, allowFit, focusZoom }: {
     map.fitBounds([[west, south], [east, north]], { padding: 64, maxZoom: 16, duration: 0 });
   }, [map, ready, allowFit, places, selected]);
 
-  useEffect(() => {
-    if (!map || !ready || !selected) return;
-    map.jumpTo({
-      center: [selected.longitude, selected.latitude],
-      zoom: Math.max(map.getZoom(), focusZoom ? 18 : 13),
-      ...(isMobile ? { padding: MOBILE_PREVIEW_PADDING, retainPadding: false } : {}),
-    });
-  }, [map, ready, selected?.id, selected?.latitude, selected?.longitude, isMobile, focusZoom]);
   return null;
 }
 
@@ -181,9 +173,10 @@ function MapResizer() {
   return null;
 }
 
-function MapCameraScene({ scene, selected, ready, homeLocation, homeRequest, focusRequest }: {
+function MapCameraScene({ scene, selected, draft, ready, homeLocation, homeRequest, focusRequest }: {
   scene: MapScene;
   selected: Place | undefined;
+  draft: PlaceCoordinate | null;
   ready: boolean;
   homeLocation: HomeLocation | null;
   homeRequest: number;
@@ -194,6 +187,7 @@ function MapCameraScene({ scene, selected, ready, homeLocation, homeRequest, foc
   const { current: map } = useMap();
   const handledHomeRequest = useRef(homeRequest);
   const previousScene = useRef(scene);
+  const handledFocusRequest = useRef(focusRequest);
   const hasBeenReady = useRef(false);
   const pausedAfterReady = useRef(false);
   useEffect(() => {
@@ -211,6 +205,8 @@ function MapCameraScene({ scene, selected, ready, homeLocation, homeRequest, foc
     }
     const sceneChanged = previousScene.current !== scene;
     previousScene.current = scene;
+    const shouldFocusDraft = focusRequest !== handledFocusRequest.current;
+    handledFocusRequest.current = focusRequest;
     if (homeRequest !== handledHomeRequest.current && homeLocation) {
       handledHomeRequest.current = homeRequest;
       map.easeTo({
@@ -223,33 +219,39 @@ function MapCameraScene({ scene, selected, ready, homeLocation, homeRequest, foc
       });
       return;
     }
-    if (!selected && !sceneChanged) return;
+    if (!selected && !(shouldFocusDraft && draft) && !sceneChanged) return;
     map.easeTo({
       ...(selected
         ? {
             center: [selected.longitude, selected.latitude] as [number, number],
             zoom: Math.max(map.getZoom(), 18),
           }
+        : shouldFocusDraft && draft
+          ? {
+              center: [draft.longitude, draft.latitude] as [number, number],
+              zoom: Math.max(map.getZoom(), 18),
+            }
         : {}),
-      pitch: scene === "3d" && selected ? 55 : 0,
-      bearing: scene === "3d" && selected ? -20 : 0,
+      pitch: scene === "3d" && (selected || (shouldFocusDraft && draft)) ? 55 : 0,
+      bearing: scene === "3d" && (selected || (shouldFocusDraft && draft)) ? -20 : 0,
       duration: shouldReduceMotion ? 0 : 400,
-      ...(isMobile && selected ? { padding: MOBILE_PREVIEW_PADDING, retainPadding: false } : {}),
+      ...(isMobile && (selected || (shouldFocusDraft && draft)) ? { padding: MOBILE_PREVIEW_PADDING, retainPadding: false } : {}),
     });
-  }, [map, ready, scene, selected?.id, selected?.latitude, selected?.longitude, shouldReduceMotion, isMobile, homeLocation, homeRequest, focusRequest]);
+  }, [map, ready, scene, selected?.id, selected?.latitude, selected?.longitude, draft?.latitude, draft?.longitude, shouldReduceMotion, isMobile, homeLocation, homeRequest, focusRequest]);
   return null;
 }
 
-function PlaceMarker({ place, selected, onSelect, canChange, onMove, onDelete }: {
+function PlaceMarker({ place, selected, onSelect, canChange, onMove, onDelete, hidePreview }: {
   place: Place;
   selected: boolean;
   onSelect: (place: Place) => void;
+  hidePreview: boolean;
 } & Pick<Props, "canChange" | "onMove" | "onDelete">) {
   const { t } = useLocale();
   const animateMarker = useAnimationStore((state) => state.enabled && state.iconsEnabled);
   const { current: map } = useMap();
   const pinRef = useRef<HTMLButtonElement>(null);
-  const gesture = useRef<{ id: number; x: number; y: number; startedAt: number; dragging: boolean; cancelled: boolean } | null>(null);
+  const gesture = useRef<{ id: number; x: number; y: number; dragging: boolean } | null>(null);
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const suppressClick = useRef(false);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -296,7 +298,7 @@ function PlaceMarker({ place, selected, onSelect, canChange, onMove, onDelete }:
         ref={pinRef}
         type="button"
         className="place__pin"
-        data-marker-motion={animateMarker}
+      data-marker-motion={animateMarker}
         data-changeable={changeable}
         title={changeable ? t("Drag to move this place. Hold or right-click to delete.") : place.name}
         aria-label={place.name}
@@ -308,7 +310,7 @@ function PlaceMarker({ place, selected, onSelect, canChange, onMove, onDelete }:
           event.preventDefault();
           event.stopPropagation();
           cancelHold();
-          gesture.current = { id: event.pointerId, x: event.clientX, y: event.clientY, startedAt: performance.now(), dragging: false, cancelled: false };
+          gesture.current = { id: event.pointerId, x: event.clientX, y: event.clientY, dragging: false };
           event.currentTarget.setPointerCapture(event.pointerId);
           holdTimer.current = setTimeout(() => {
             cancelGesture();
@@ -322,10 +324,7 @@ function PlaceMarker({ place, selected, onSelect, canChange, onMove, onDelete }:
           const x = event.clientX - start.x, y = event.clientY - start.y;
           if (Math.hypot(x, y) > 8) {
             cancelHold();
-            if (!start.dragging && performance.now() - start.startedAt < MARKER_DRAG_HOLD_MS) {
-              start.cancelled = true;
-              suppressClick.current = true;
-            } else if (!start.cancelled) start.dragging = true;
+            start.dragging = true;
           }
           if (start.dragging) setOffset({ x, y });
         }}
@@ -375,7 +374,7 @@ function PlaceMarker({ place, selected, onSelect, canChange, onMove, onDelete }:
       >
         <span aria-hidden="true">{place.markerIcon}</span>
       </button>
-      <button type="button" className="place__popup" aria-label={place.name} tabIndex={selected ? 0 : -1} onClick={(event) => { event.stopPropagation(); onSelect(place); }}>
+      {!hidePreview && <button type="button" className="place__popup" aria-label={place.name} tabIndex={selected ? 0 : -1} onClick={(event) => { event.stopPropagation(); onSelect(place); }}>
         <div className="place__popup-cover">
           {place.mediaIds.length > 0 ? (
             <>
@@ -390,18 +389,19 @@ function PlaceMarker({ place, selected, onSelect, canChange, onMove, onDelete }:
         {place.address && <small>{place.address}</small>}
         <small className="place__popup-author">{t("By {username}", { username: place.owner.username })}</small>
         <StarRating value={place.rating} size="sm" />
-      </button>
+      </button>}
     </div>
   );
 }
 
-function PlaceClusterMarker({ group, selectedId, onSelect, canChange, onMove, onDelete, homeExpanded, nearHome, onHomeHoverChange }: {
+function PlaceClusterMarker({ group, selectedId, onSelect, canChange, onMove, onDelete, homeExpanded, nearHome, onHomeHoverChange, hidePreview }: {
   homeExpanded: boolean;
   nearHome: boolean;
   onHomeHoverChange?: (hovered: boolean) => void;
   group: MapMarkerGroup<Place>;
   selectedId: string | null;
   onSelect: (place: Place) => void;
+  hidePreview: boolean;
 } & Pick<Props, "canChange" | "onMove" | "onDelete">) {
   const { t } = useLocale();
   const [open, setOpen] = useState(false);
@@ -442,7 +442,7 @@ function PlaceClusterMarker({ group, selectedId, onSelect, canChange, onMove, on
             } as CSSProperties}
           >
             <PlaceMarker place={place} selected={place.id === selectedId} onSelect={onSelect}
-              canChange={canChange} onMove={onMove} onDelete={onDelete} />
+              canChange={canChange} onMove={onMove} onDelete={onDelete} hidePreview={hidePreview} />
           </div>
         );
       })}
@@ -465,10 +465,11 @@ function PlaceClusterMarker({ group, selectedId, onSelect, canChange, onMove, on
   );
 }
 
-function PlaceMarkers({ places, selectedId, ready, onSelect, canChange, onMove, onDelete, homeLocation, homeHovered, onHomeHoverChange }: {
+function PlaceMarkers({ places, selectedId, ready, onSelect, canChange, onMove, onDelete, homeLocation, homeHovered, onHomeHoverChange, hidePreview }: {
   homeLocation: HomeLocation | null;
   homeHovered: boolean;
   onHomeHoverChange: (hovered: boolean) => void;
+  hidePreview: boolean;
   places: Place[];
   selectedId: string | null;
   ready: boolean;
@@ -490,11 +491,22 @@ function PlaceMarkers({ places, selectedId, ready, onSelect, canChange, onMove, 
     () => clusterMapMarkers(places, (place) => place, project),
     [places, project],
   );
+  const homeGroups = homeLocation
+    ? groups.filter((group) => group.items.some((place) => mapMarkersOverlap(place, homeLocation, project)))
+    : [];
+  const homeItems = homeGroups.flatMap((group) => group.items);
+  const homeGroup: MapMarkerGroup<Place> | null = homeLocation && homeItems.length
+    ? { location: homeLocation, items: homeItems }
+    : null;
+  const visibleGroups = [
+    ...(homeGroup ? [homeGroup] : []),
+    ...groups.filter((group) => !homeGroups.includes(group)),
+  ];
 
   return (
     <>
-      {groups.map((group) => {
-        const nearHome = !!homeLocation && mapMarkersOverlap(group.location, homeLocation, project);
+      {visibleGroups.map((group) => {
+        const nearHome = group === homeGroup;
         const homeExpanded = homeHovered && nearHome;
         return (
         <Fragment key={group.items[0].id}>
@@ -507,6 +519,7 @@ function PlaceMarkers({ places, selectedId, ready, onSelect, canChange, onMove, 
         >
           <PlaceClusterMarker group={group} selectedId={selectedId} onSelect={onSelect}
             homeExpanded={homeExpanded} nearHome={nearHome}
+            hidePreview={hidePreview}
             onHomeHoverChange={homeExpanded ? onHomeHoverChange : undefined}
             canChange={canChange} onMove={onMove} onDelete={onDelete} />
         </Marker>
@@ -526,10 +539,10 @@ function PlaceMarkers({ places, selectedId, ready, onSelect, canChange, onMove, 
 }
 
 function MapContent({
-  places, selectedId, focusZoom, draft, picking, homeLocation,
+  places, selectedId, draft, picking, relocatingPlace, homeLocation,
   homeLocationReady, homePicking, homeActionDisabled, onSelect, onPick, onPickHome,
   onHomeClick, onCreateAtCurrentLocation, token,
-  canChange, onMove, onDelete, onEdit, onEditDraft, onCancelSelection, onCancelDraft,
+  canChange, onMove, onDelete, onEdit, onEditDraft, onConfirmRelocation, onCancelRelocation, onCancelSelection, onCancelDraft,
 }: Props & { token: string }) {
   const { t } = useLocale();
   const shouldReduceMotion = useShouldReduceMotion();
@@ -539,6 +552,7 @@ function MapContent({
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
   const [navigationOpen, setNavigationOpen] = useState(false);
+  const [mapboxPreview, setMapboxPreview] = useState(false);
   const [initialLocationResolved, setInitialLocationResolved] = useState(false);
   const [hasInitialCenter, setHasInitialCenter] = useState(false);
   const [scene, setScene] = useState<MapScene>("3d");
@@ -548,6 +562,18 @@ function MapContent({
   const [homeRequest, setHomeRequest] = useState(0);
   const { homeHovered, onHomeHoverChange } = useHomeMarkerHover();
   const [focusRequest, setFocusRequest] = useState(0);
+  const relocating = !!relocatingPlace;
+  const mapPlaces = relocatingPlace ? places.filter((place) => place.id === relocatingPlace.id) : places;
+  const focusCoordinate = (coordinate: PlaceCoordinate) => {
+    mapRef.current?.easeTo({
+      center: [coordinate.longitude, coordinate.latitude],
+      zoom: Math.max(mapRef.current.getZoom(), 18),
+      pitch: scene === "3d" ? 55 : 0,
+      bearing: scene === "3d" ? -20 : 0,
+      duration: shouldReduceMotion ? 0 : 400,
+      ...(window.matchMedia("(max-width: 640px)").matches ? { padding: MOBILE_PREVIEW_PADDING, retainPadding: false } : {}),
+    });
+  };
   const resolveInitialLocation = useCallback((hasCenter: boolean) => {
     setHasInitialCenter(hasCenter);
     setInitialLocationResolved(true);
@@ -598,7 +624,7 @@ function MapContent({
     </>;
 
   return (
-    <div className="place__map map-controls" role="region" aria-label={t("Places map")}>
+    <div className="place__map map-controls" data-scene={scene} data-mapbox-preview={mapboxPreview} data-relocating={relocating || undefined} role="region" aria-label={t("Places map")}>
       <Map
         style={{ minHeight: "inherit" }}
         ref={mapRef}
@@ -607,7 +633,7 @@ function MapContent({
         mapStyle={scene === "3d" ? "mapbox://styles/mapbox/standard" : "mapbox://styles/mapbox/streets-v12"}
         config={{ basemap: getMapAppearanceConfig(mapAppearance.lighting, mapAppearance.colorTheme) }}
         initialViewState={{ latitude: 20, longitude: 0, zoom: 2, pitch: 0, bearing: 0 }}
-        cursor={picking || homePicking ? "crosshair" : undefined}
+        cursor={picking || homePicking || relocating ? "crosshair" : undefined}
         cooperativeGestures={false}
         onLoad={(event) => { event.target.setCooperativeGestures(false); setLoaded(true); }}
         onError={() => setFailed(true)}
@@ -623,6 +649,10 @@ function MapContent({
               })();
           if (homePicking) {
             onPickHome(point);
+            return;
+          }
+          if (relocating) {
+            onPick(point);
             return;
           }
           if (place) {
@@ -648,7 +678,7 @@ function MapContent({
               longitude: event.coords.longitude,
             };
             if (homePicking) onPickHome(coordinate);
-            else onPick(coordinate);
+            else if (!relocating) onPick(coordinate);
           }}
           onError={() => showToast.error(t("Could not determine your current location. Check location permission and try again."))}
         />
@@ -659,29 +689,32 @@ function MapContent({
           onResolved={resolveInitialLocation}
         />
         <MapViewport
-          focusZoom={focusZoom}
           places={places}
           selected={selected}
           ready={loaded && !navigationOpen}
           allowFit={initialLocationResolved && !hasInitialCenter && !draft}
         />
-        <MapCameraScene scene={scene} selected={selected} ready={loaded && !navigationOpen}
+        <MapCameraScene scene={scene} selected={selected} draft={draft} ready={loaded && !navigationOpen}
           homeLocation={homeLocation} homeRequest={homeRequest} focusRequest={focusRequest} />
         <MapResizer />
-        {loaded && !homePicking && (selected && !picking || !selected && picking && draft) && (
+        {loaded && !homePicking && (selected && !picking || !selected && (picking || relocating) && draft) && (
           <MapNavigation destination={selected
             ? { latitude: selected.latitude, longitude: selected.longitude, name: selected.name }
-            : { ...draft!, name: t("New place") }}
-            accessToken={token} homeLocation={homeLocation} onOpenChange={setNavigationOpen}
+            : { ...draft!, name: relocatingPlace?.name ?? t("New place") }}
+            accessToken={token} homeLocation={homeLocation} onMapboxPreviewChange={setMapboxPreview}
             onEdit={selected
               ? canChange(selected) ? () => onEdit(selected) : undefined
-              : onEditDraft}
-            editAction={selected ? "edit" : "add"}
-            onCancel={selected ? onCancelSelection : onCancelDraft} />
+              : relocating ? onConfirmRelocation : () => { if (draft) focusCoordinate(draft); onEditDraft(); }}
+            onOpenChange={(open) => {
+              if (open && !selected && draft) focusCoordinate(draft);
+              setNavigationOpen(open);
+            }}
+            editAction={relocating ? "confirm" : selected ? "edit" : "add"}
+            onCancel={relocating ? onCancelRelocation : selected ? onCancelSelection : onCancelDraft} />
         )}
         {(!loaded || homePicking || (picking && (!!selected || !draft)) || (!selected && !draft))
           && <DisabledNavigationToolbar />}
-        {homeLocation && (
+        {homeLocation && !relocating && (
           <HomeLocationMarker location={homeLocation} variant="place" onHoverChange={onHomeHoverChange} onClick={() => {
             mapRef.current?.easeTo({
               center: [homeLocation.longitude, homeLocation.latitude],
@@ -693,37 +726,19 @@ function MapContent({
           }} />
         )}
         {showMarkers && (
-          <PlaceMarkers places={places} selectedId={selectedId} ready={loaded}
+          <PlaceMarkers places={mapPlaces} selectedId={selectedId} ready={loaded}
             homeLocation={homeLocation} homeHovered={homeHovered} onHomeHoverChange={onHomeHoverChange}
-            canChange={(place) => !navigationOpen && canChange(place)} onMove={onMove} onDelete={onDelete} onSelect={(item) => {
+            hidePreview={mapboxPreview || relocating}
+            canChange={(place) => !navigationOpen && !relocating && canChange(place)} onMove={onMove} onDelete={onDelete} onSelect={(item) => {
+            if (relocating) return;
             setFocusRequest((request) => request + 1);
             onSelect(item);
           }} />
         )}
         {draft && (
-          <Marker
-            latitude={draft.latitude}
-            longitude={draft.longitude}
-            anchor="bottom"
-            draggable={picking}
-            style={{ zIndex: 3 }}
-            onClick={(event) => {
-              event.originalEvent.stopPropagation();
-              if (picking) onCancelDraft();
-            }}
-            onDragEnd={(event) => {
-              const point = event.lngLat.wrap();
-              onPick({ latitude: point.lat, longitude: point.lng });
-            }}
-          >
-            <div
-              className="place__marker place__marker--draft"
-              role="img"
-              aria-label={t("Drag to adjust this place")}
-            >
-              <span className="place__pin place__pin--draft" aria-hidden="true" />
-            </div>
-          </Marker>
+          <MapDraftMarker location={draft} label={t("Click the map or drag to set a location")}
+            draggable={picking || relocating} onPick={onPick}
+            onClick={picking ? onCancelDraft : undefined} />
         )}
       </Map>
       <MapLoadingOverlay ready={loaded} className="map-loading-overlay" />
@@ -817,7 +832,11 @@ function MapContent({
           </AnimateIcon>
           <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
             <button type="button" className="place__scene" aria-pressed={scene === "3d"}
-              onClick={() => setScene("3d")}>
+              onClick={() => {
+                mapAppearance.selectLighting("day");
+                mapAppearance.selectColorTheme("default");
+                setScene("3d");
+              }}>
               <span className="place__scene-icon" aria-hidden="true"><Globe size={20} animation="spin" /></span>
               <span className="place__scene-copy"><strong>{t("3D Basemap")}</strong></span>
             </button>

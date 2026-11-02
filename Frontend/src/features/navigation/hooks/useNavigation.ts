@@ -51,6 +51,7 @@ export function useNavigation(
   const [locating, setLocating] = useState(false);
   const [gpsUnreliable, setGpsUnreliable] = useState(false);
   const [usingHomeOrigin, setUsingHomeOrigin] = useState(false);
+  const [mapboxPreview, setMapboxPreview] = useState(false);
   const modeRef = useRef(mode);
   const request = useRef(0);
   const controller = useRef<AbortController | null>(null);
@@ -117,6 +118,7 @@ export function useNavigation(
   };
 
   const preview = () => {
+    setMapboxPreview(true);
     cancelRequest();
     setTracking(false);
     setRoute(null);
@@ -200,6 +202,7 @@ export function useNavigation(
   }, [tracking, position, route, loading, gpsUnreliable]);
 
   const reset = () => {
+    setMapboxPreview(false);
     cancelRequest();
     setTracking(false);
     setRoute(null);
@@ -229,15 +232,17 @@ export function useNavigation(
     arrived,
     gpsUnreliable,
     usingHomeOrigin,
+    mapboxPreview,
     error,
     preview,
     start: () => {
+      setMapboxPreview(false);
       setError(null);
       setGpsUnreliable(true);
       lastReroute.current = 0;
       setTracking(true);
     },
-    stop: () => { cancelRequest(); setTracking(false); },
+    stop: () => { setMapboxPreview(false); cancelRequest(); setTracking(false); },
     reset,
   };
 }

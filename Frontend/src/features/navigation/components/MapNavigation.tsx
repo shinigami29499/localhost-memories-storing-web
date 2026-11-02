@@ -2,11 +2,12 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Layer, Marker, Source, useMap } from "react-map-gl/mapbox";
 import { Button } from "../../../components/ui";
-import { AnimateIcon } from "../../../components/animate-ui/icons/icon";
+import { AnimateIcon, AnimatedAction, useAnimateIconOnChange } from "../../../components/animate-ui/icons/icon";
 import { XIcon } from "../../../components/animate-ui/icons/x";
 import { Compass } from "../../../components/animate-ui/icons/compass";
 import { Pencil } from "../../../components/animate-ui/icons/pencil";
 import { Plus } from "../../../components/animate-ui/icons/plus";
+import { Check } from "../../../components/animate-ui/icons/check";
 import { useLocale } from "../../../context/LocaleContext";
 import { useMediaQuery } from "../../../hooks/useMediaQuery";
 import { useNavigation } from "../hooks/useNavigation";
@@ -24,8 +25,9 @@ interface Props {
   accessToken: string;
   homeLocation?: Coordinate | null;
   onOpenChange: (open: boolean) => void;
+  onMapboxPreviewChange?: (previewing: boolean) => void;
   onEdit?: () => void;
-  editAction?: "edit" | "add";
+  editAction?: "edit" | "add" | "confirm";
   onCancel?: () => void;
 }
 
@@ -33,28 +35,33 @@ export function NavigationToolbar({ onEdit, onNavigate, onCancel, editAction = "
   onEdit?: () => void;
   onNavigate?: () => void;
   onCancel?: () => void;
-  editAction?: "edit" | "add";
+  editAction?: "edit" | "add" | "confirm";
 }) {
   const { t } = useLocale();
-  const editLabel = editAction === "add" ? "Add" : "Edit";
+  const editLabel = editAction === "add" ? "Add" : editAction === "confirm" ? "Confirm" : "Edit";
+  const actionAnimationRevision = useAnimateIconOnChange(
+    `${editAction}:${Boolean(onEdit)}:${Boolean(onNavigate)}:${Boolean(onCancel)}`,
+    true,
+  );
   return (
     <div className="map-navigation__toolbar">
       <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
         <Button type="button" variant="ghost" aria-label={t(editLabel)} title={t(editLabel)} disabled={!onEdit} onClick={onEdit}>
-          {editAction === "add" ? <Plus size={20} aria-hidden="true" /> : <Pencil size={20} aria-hidden="true" />}
-          <span className="map-navigation__desktop-label">{t(editLabel)}</span>
+          <AnimatedAction animationRevision={actionAnimationRevision}>
+            {editAction === "add" ? <Plus size={20} aria-hidden="true" /> : editAction === "confirm" ? <Check size={20} aria-hidden="true" /> : <Pencil size={20} aria-hidden="true" />}
+          </AnimatedAction>
         </Button>
       </AnimateIcon>
       <span className="map-navigation__divider" aria-hidden="true" />
       <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
         <Button type="button" variant="ghost" className="map-navigation__trigger" disabled={!onNavigate} onClick={onNavigate}>
-          <Compass size={22} aria-hidden="true" /> {t("Navigate")}
+          <AnimatedAction animationRevision={actionAnimationRevision}><Compass size={22} aria-hidden="true" /></AnimatedAction> {t("Navigate")}
         </Button>
       </AnimateIcon>
       <span className="map-navigation__divider" aria-hidden="true" />
       <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
         <Button type="button" variant="ghost" className="map-navigation__dismiss" aria-label={t("Cancel")} title={t("Cancel")} disabled={!onCancel} onClick={onCancel}>
-          <XIcon size={20} aria-hidden="true" /><span className="map-navigation__desktop-label">{t("Cancel")}</span>
+          <AnimatedAction animationRevision={actionAnimationRevision}><XIcon size={20} aria-hidden="true" /></AnimatedAction>
         </Button>
       </AnimateIcon>
     </div>
@@ -69,18 +76,19 @@ export function DisabledNavigationToolbar() {
   );
 }
 
-export function MapNavigation({ destination, accessToken, homeLocation, onOpenChange, onEdit, editAction, onCancel }: Props) {
+export function MapNavigation({ destination, accessToken, homeLocation, onOpenChange, onMapboxPreviewChange, onEdit, editAction, onCancel }: Props) {
   const { t, language } = useLocale();
   // Changing the destination or language must cancel requests and release the GPS watch.
   return <NavigationSession
     key={`${destination.latitude}:${destination.longitude}:${language}:${accessToken}`}
     destination={destination} accessToken={accessToken} homeLocation={homeLocation}
     onOpenChange={onOpenChange} name={t("Navigation")}
+    onMapboxPreviewChange={onMapboxPreviewChange}
     onEdit={onEdit} editAction={editAction} onCancel={onCancel}
   />;
 }
 
-function NavigationSession({ destination, accessToken, homeLocation, onOpenChange, onEdit, editAction, onCancel, name }: Props & { name: string }) {
+function NavigationSession({ destination, accessToken, homeLocation, onOpenChange, onMapboxPreviewChange, onEdit, editAction, onCancel, name }: Props & { name: string }) {
   const { t, language } = useLocale();
   const { current: map } = useMap();
   const mobile = useMediaQuery("(max-width: 640px)");
@@ -115,6 +123,10 @@ function NavigationSession({ destination, accessToken, homeLocation, onOpenChang
     }
   }, [expanded, onOpenChange]);
   useEffect(() => () => onOpenChange(false), [onOpenChange]);
+  useEffect(() => {
+    onMapboxPreviewChange?.(navigation.mapboxPreview);
+  }, [navigation.mapboxPreview, onMapboxPreviewChange]);
+  useEffect(() => () => onMapboxPreviewChange?.(false), [onMapboxPreviewChange]);
 
   useEffect(() => {
     if (!map || !route) return;

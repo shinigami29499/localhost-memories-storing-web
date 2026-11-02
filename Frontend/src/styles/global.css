@@ -865,10 +865,10 @@ textarea::placeholder {
 }
 
 .confirmation-dialog__title {
-  margin: -24px -24px 16px;
+  margin: -24px -24px 0;
   padding: 20px 24px;
-  background: var(--surface-card);
-  box-shadow: 0 3px 10px rgb(0 0 0 / 12%);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
   font-size: 1.125rem;
   font-weight: 600;
   color: var(--text);
@@ -876,9 +876,10 @@ textarea::placeholder {
 
 .confirmation-dialog__message {
   min-width: 0;
-  margin: 0 0 24px;
-  padding: 0;
+  margin: 0 -24px;
+  padding: 16px 24px;
   border: 0;
+  background: var(--bg);
   font-size: 0.9375rem;
   color: var(--text-muted);
   line-height: 1.6;
@@ -914,8 +915,7 @@ textarea::placeholder {
   gap: 8px;
   margin: 0 -24px;
   padding: 16px 24px;
-  background: var(--surface-card);
-  box-shadow: 0 -3px 10px rgb(0 0 0 / 12%);
+  background: var(--bg);
 }
 
 .confirmation-dialog__actions > .btn {

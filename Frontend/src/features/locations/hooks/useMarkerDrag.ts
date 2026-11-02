@@ -1,11 +1,9 @@
 ﻿import { useRef, useState, type PointerEvent } from "react";
 import { useMap } from "react-map-gl/mapbox";
 
-export const MARKER_DRAG_HOLD_MS = 150;
-
 export function useMarkerDrag(location: { latitude: number; longitude: number }, onMove: (location: { latitude: number; longitude: number }) => void, enabled = true) {
   const { current: map } = useMap();
-  const gesture = useRef<{ id: number; x: number; y: number; startedAt: number; dragging: boolean; cancelled: boolean } | null>(null);
+  const gesture = useRef<{ id: number; x: number; y: number; dragging: boolean } | null>(null);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const suppressClick = useRef(false);
 
@@ -16,19 +14,14 @@ export function useMarkerDrag(location: { latitude: number; longitude: number },
       if (!enabled || !map || event.button !== 0 || !event.isPrimary) return;
       event.stopPropagation();
       suppressClick.current = false;
-      gesture.current = { id: event.pointerId, x: event.clientX, y: event.clientY, startedAt: performance.now(), dragging: false, cancelled: false };
+      gesture.current = { id: event.pointerId, x: event.clientX, y: event.clientY, dragging: false };
       event.currentTarget.setPointerCapture(event.pointerId);
     },
     onPointerMove: (event: PointerEvent<HTMLElement>) => {
       const start = gesture.current;
       if (!start || start.id !== event.pointerId) return;
       const x = event.clientX - start.x, y = event.clientY - start.y;
-      if (Math.hypot(x, y) > 8 && !start.dragging) {
-        if (performance.now() - start.startedAt < MARKER_DRAG_HOLD_MS) {
-          start.cancelled = true;
-          suppressClick.current = true;
-        } else if (!start.cancelled) start.dragging = true;
-      }
+      if (Math.hypot(x, y) > 8) start.dragging = true;
       if (start.dragging) setOffset({ x, y });
     },
     onPointerUp: (event: PointerEvent<HTMLElement>) => {

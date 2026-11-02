@@ -505,17 +505,6 @@
 .locations__pin > span svg circle { stroke: #fff; }
 .locations__pin[data-movable="true"] { cursor: grab; touch-action: none; user-select: none; }
 .locations__pin[data-movable="true"]:active { cursor: grabbing; }
-.locations__pin--draft {
-  background: var(--surface);
-  border-color: var(--accent-strong);
-  border-style: dashed;
-  border-radius: 50%;
-  cursor: grab;
-  font-size: 1.25rem;
-  justify-content: center;
-  position: relative;
-  transform: none;
-}
 .locations__popup {
   background: #fff;
   border: 4px solid #fff;

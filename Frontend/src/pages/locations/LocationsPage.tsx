@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useIsMutating, useQueryClient } from "@tanstack/react-query";
 import { ScrollProgress, ScrollProgressContainer, ScrollProgressProvider } from "@animate-ui/react/primitives/scroll-progress";
 import { useSearchParams } from "react-router-dom";
-import { Button, ErrorState, showToast, Spinner } from "../../components/ui";
+import { Button, ConfirmationDialog, ErrorState, showToast, Spinner } from "../../components/ui";
 import { useLocale } from "../../context/LocaleContext";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { useAuthStore } from "../../store/authStore";
@@ -32,6 +32,7 @@ export function LocationsPage() {
   const home = useHomeLocation(user?.id);
   const { query, media, scanning, scanProgress, scanResult, scanError } = useLocations();
   const [selection, setSelection] = useState<{ id: string; draft: PickedLocation | null; editing: boolean } | null>(null);
+  const [relocatingId, setRelocatingId] = useState<string | null>(null);
   const [homePicking, setHomePicking] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
@@ -39,10 +40,14 @@ export function LocationsPage() {
   const uploadLocation = useRef<{ latitude: number; longitude: number } | null>(null);
   const uploadInput = useRef<HTMLInputElement>(null);
   const workspaceRef = useRef<HTMLDivElement>(null);
+  const [moveConfirmationOpen, setMoveConfirmationOpen] = useState(false);
   useEffect(() => {
     if (!requestedMediaId || selection) return;
     const requestedMedia = media.find((item) => item.id === requestedMediaId);
-    if (requestedMedia) setSelection({ id: requestedMedia.id, draft: requestedMedia.location ?? null, editing: true });
+    if (requestedMedia) {
+      setSelection({ id: requestedMedia.id, draft: requestedMedia.location ?? null, editing: true });
+      setRelocatingId(requestedMedia.location ? requestedMedia.id : null);
+    }
   }, [media, requestedMediaId, selection]);
   const selectedId = selection?.id;
   const draft = selection?.draft ?? null;
@@ -50,7 +55,8 @@ export function LocationsPage() {
   const [failedPreviews, setFailedPreviews] = useState<Set<string>>(() => new Set());
   const selected = media.find((item) => item.id === selectedId);
   const focused = media.find((item) => item.id === focusedMediaId);
-  const showDetails = !!selected && !!selection?.editing;
+  const relocating = relocatingId === selected?.id;
+  const showDetails = !!selected && !!selection?.editing && !relocating;
   const canMove = (item: MediaFile) => !isMobile && !saving
     && (item.ownerId === user?.id || user?.role.toLowerCase() === "admin");
   const canEdit = !!selected && !!selection?.editing && canMove(selected);
@@ -59,6 +65,7 @@ export function LocationsPage() {
     if (document.activeElement instanceof HTMLElement
       && document.activeElement.closest(".locations__marker")) document.activeElement.blur();
     setSelection(null);
+    setRelocatingId(null);
     const nextSearchParams = new URLSearchParams(searchParams);
     nextSearchParams.delete("mediaId");
     if (selected?.location) nextSearchParams.set("focusMediaId", selected.id);
@@ -111,6 +118,7 @@ export function LocationsPage() {
       return;
     }
     setSelection({ id: item.id, draft: item.location ?? null, editing });
+    setRelocatingId(null);
   };
   const updateDraft = (id: string, location: PickedLocation | null) => {
     setSelection((current) => current?.id === id ? { ...current, draft: location } : current);
@@ -122,6 +130,26 @@ export function LocationsPage() {
     nextSearchParams.delete("focusMediaId");
     setSearchParams(nextSearchParams, { replace: true });
     setSelection({ id: item.id, draft: location, editing: true });
+    setRelocatingId(item.id);
+  };
+  const startRelocating = (item: MediaFile) => {
+    if (!item.location || !canMove(item)) return;
+    setSelection({ id: item.id, draft: item.location, editing: true });
+    setRelocatingId(item.id);
+  };
+  const confirmRelocation = async () => {
+    if (!selected || !draft || !relocating) return;
+    await locationService.set(selected.id, draft);
+    await queryClient.invalidateQueries({ queryKey: ["media"] });
+    await queryClient.invalidateQueries({ queryKey: ["albums"] });
+    showToast.success(t("Location saved."));
+    setMoveConfirmationOpen(false);
+    setSelection(null);
+    setRelocatingId(null);
+    const nextSearchParams = new URLSearchParams(searchParams);
+    nextSearchParams.delete("mediaId");
+    nextSearchParams.set("focusMediaId", selected.id);
+    setSearchParams(nextSearchParams, { replace: true });
   };
   const pickHome = async (location: HomeLocation) => {
     try {
@@ -250,17 +278,20 @@ export function LocationsPage() {
               <div ref={workspaceRef} className={`locations__workspace${showDetails ? "" : " locations__workspace--map-only"}`}>
             <div className="locations__map-panel">
               <LocationMap media={media} selected={selected} focused={focused} draft={draft} editable={canEdit && !saving}
+                editing={!!selection?.editing} relocating={relocating}
+                onConfirmRelocation={() => setMoveConfirmationOpen(true)}
                 homeLocation={home.query.data ?? null} homeLocationReady={home.query.isFetched}
                 homeActionDisabled={saving || home.save.isPending || uploading}
                 homePicking={homePicking} onSelect={select} canMove={canMove} onMove={movePhoto}
                 onAddPhotos={() => void startWithCurrentLocation(() => uploadInput.current?.click())}
                 onOpenCamera={() => void startWithCurrentLocation(() => setCameraOpen(true))}
-                onEdit={(item) => setSelection({ id: item.id, draft: item.location ?? null, editing: true })}
+                onEdit={startRelocating}
                 onCancelSelection={clearSelection}
                 onPick={(location) => { if (selected) updateDraft(selected.id, location); }}
                 onPickHome={(location) => void pickHome(location)}
                 onHomeClick={() => {
                   setSelection(null);
+                  setRelocatingId(null);
                   const nextSearchParams = new URLSearchParams(searchParams);
                   nextSearchParams.delete("mediaId");
                   nextSearchParams.delete("focusMediaId");
@@ -297,6 +328,7 @@ export function LocationsPage() {
                       nextSearchParams.set("focusMediaId", selected.id);
                       setSearchParams(nextSearchParams, { replace: true });
                       setSelection(null);
+                      setRelocatingId(null);
                     }} />
                 ) : <p className="locations__hint">{t("Only the uploader or an administrator can change this location.")}</p>}
               </aside>
@@ -310,6 +342,20 @@ export function LocationsPage() {
           </div>
         </ScrollProgressContainer>
       </ScrollProgressProvider>
+
+      {selected && draft && relocating && moveConfirmationOpen && (
+        <ConfirmationDialog
+          title="Move this photo?"
+          onConfirm={confirmRelocation}
+          onClose={() => setMoveConfirmationOpen(false)}
+        >
+          <p>{t("{name} will move to {latitude}, {longitude}.", {
+            name: selected.originalFilename,
+            latitude: draft.latitude.toFixed(6),
+            longitude: draft.longitude.toFixed(6),
+          })}</p>
+        </ConfirmationDialog>
+      )}
 
       <HomeLocationPhotoConfirmation
         location={home.photosHomeLocation}

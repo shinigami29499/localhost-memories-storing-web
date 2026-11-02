@@ -178,9 +178,9 @@ describe("Custom dialog migration", () => {
     expect(document.querySelector('[role="alertdialog"]')).not.toBeNull();
     expect(document.querySelector(".confirmation-dialog__close")).toBeNull();
     const actions = Array.from(document.querySelectorAll(".confirmation-dialog__actions button"));
-    expect(actions.map((button) => button.textContent)).toEqual(["Continue", "Cancel"]);
+    expect(actions.map((button) => button.textContent)).toEqual(["Confirm", "Cancel"]);
     expect(document.activeElement).toBe(actions[1]);
-    await click("Continue");
+    await click("Confirm");
     await outsideClick();
     await escape();
     expect(onClose).not.toHaveBeenCalled();
@@ -200,11 +200,11 @@ describe("Custom dialog migration", () => {
         Test message
       </ConfirmationDialog>,
     );
-    await click("Continue");
+    await click("Confirm");
     await settle();
     expect(onClose).not.toHaveBeenCalled();
     expect(document.querySelector(".confirmation-dialog__actions .btn--danger")?.hasAttribute("disabled")).toBe(false);
-    await click("Continue");
+    await click("Confirm");
     await settle();
     expect(onConfirm).toHaveBeenCalledTimes(2);
     expect(onClose).toHaveBeenCalledTimes(1);

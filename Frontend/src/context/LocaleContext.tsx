@@ -602,6 +602,7 @@ const vietnamese: Record<string, string> = {
   "Cancel action": "Hủy thao tác",
   Cancel: "Hủy",
   Continue: "Tiếp tục",
+  Confirm: "Xác nhận",
   "Could not complete this action. Please retry.": "Không thể hoàn tất thao tác. Vui lòng thử lại.",
   "Loading…": "Đang tải…",
   "Loading content…": "Đang tải nội dung…",

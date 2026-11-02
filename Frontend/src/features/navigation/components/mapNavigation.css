@@ -19,8 +19,8 @@
 .map-navigation__toolbar {
   background: #191d21;
   display: grid;
-  grid-template-columns: 1fr 1px 1.5fr 1px 1fr;
-  width: 455px;
+  grid-template-columns: 72px 1px max-content 1px 72px;
+  width: max-content;
   max-width: 100%;
   align-items: center;
   border-radius: 999px;
@@ -54,6 +54,11 @@
 }
 
 .map-navigation__divider { align-self: stretch; width: 1px; margin-block: 12px; background: rgba(255, 255, 255, 0.2); }
+
+@media (min-width: 641px) {
+  .map-navigation__toolbar { grid-template-columns: 90px 1px 200px 1px 90px; }
+  .map-navigation__trigger { justify-content: center; width: 100%; }
+}
 
 .map-navigation[data-expanded="false"] {
   position: fixed;
@@ -208,9 +213,12 @@
     width: calc(100% - 32px);
     max-width: none;
   }
-  .map-navigation__toolbar { width: 100%; grid-template-columns: 25fr 1px 50fr 1px 25fr; }
+  .map-navigation__toolbar {
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr) 1px minmax(0, 2fr) 1px minmax(0, 1fr);
+  }
+  .map-navigation[data-expanded="false"] { display: flex; justify-content: center; }
   .map-navigation__toolbar > .btn { min-width: 0; padding-inline: 8px; }
-  .map-navigation__desktop-label { display: none; }
   .map-navigation[data-expanded="true"] {
     width: calc(100% - 72px);
     max-height: 46%;
