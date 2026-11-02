@@ -110,6 +110,67 @@
 .place__search-bar input::placeholder { color: currentColor; opacity: 0.72; }
 .place__search-bar:focus-within { outline: 0; outline-offset: 0; }
 .place__search-divider { align-self: stretch; background: var(--border-card); margin-block: 6px; width: 1px; }
+.place__rating-filter {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  gap: 3px;
+  justify-content: center;
+  min-height: 36px;
+  min-width: 40px;
+  padding: 6px 8px;
+}
+.place__rating-filter svg { color: #f2b705; }
+.place__rating-filter:hover,
+.place__rating-filter[aria-pressed="true"] { background: var(--surface-hover); }
+.place__rating-filter:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.place__rating-controls {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 40px;
+  height: 36px;
+  justify-content: center;
+  position: relative;
+  transition: margin 180ms ease;
+}
+.place__rating-filter-clear {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 36px;
+  height: 36px;
+  justify-content: center;
+  left: 2px;
+  padding: 6px;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  transform: translateX(-10px);
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+.place__rating-filter-clear:hover { background: var(--surface-hover); }
+.place__rating-filter-clear svg { height: 18px; width: 18px; }
+.place__search-bar:has(input:focus) .place__rating-controls { margin-left: auto; }
+.place__rating-filter { position: absolute; right: 0; transition: opacity 180ms ease, transform 180ms ease; }
+.place__search-bar:has(input:focus) .place__rating-filter { opacity: 0; pointer-events: none; transform: translateX(10px); }
+.place__search-bar:has(input:focus) .place__rating-filter-clear { opacity: 1; pointer-events: auto; transform: translateX(0); }
+@media (prefers-reduced-motion: reduce) {
+  .place__rating-filter,
+  .place__rating-filter-clear { animation: none !important; transition: none; }
+}
 .place__search-clear {
   align-items: center;
   background: transparent;

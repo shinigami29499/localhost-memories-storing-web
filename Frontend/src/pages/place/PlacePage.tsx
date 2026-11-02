@@ -35,6 +35,8 @@ import {
   type PlaceFormValues,
 } from "../../features/place/components/PlaceEditor";
 import { StarRating } from "../../features/place/components/StarRating";
+import { Star } from "../../components/animate-ui/icons/star";
+import { SlidingNumber } from "@animate-ui/react/primitives/texts/sliding-number";
 import {
   useCheckInPlace,
   useDeletePlace,
@@ -102,6 +104,7 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [view, setView] = useState<"map" | "history">("map");
   const [placeSearch, setPlaceSearch] = useState("");
+  const [minimumRating, setMinimumRating] = useState(0);
   const [historyPage, setHistoryPage] = useState(1);
   const [historyPageSize, setHistoryPageSize] = useState(DEFAULT_PAGE_SIZE);
   const viewRequestRef = useRef(0);
@@ -128,11 +131,11 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
   const places = query.data ?? [];
   const filteredPlaces = useMemo(() => {
     const search = placeSearch.trim().toLocaleLowerCase();
-    return search
-      ? places.filter((place) => place.name.toLocaleLowerCase().includes(search)
+    return places.filter((place) =>
+      (!search || place.name.toLocaleLowerCase().includes(search)
         || place.owner.username.toLocaleLowerCase().includes(search))
-      : places;
-  }, [places, placeSearch]);
+      && (minimumRating === 0 || place.rating >= minimumRating));
+  }, [places, placeSearch, minimumRating]);
   const homePicking = manualHomePick;
   const selected = places.find((place) => place.id === selectedId);
   const selectedPhoto = photos.find((photo) => photo.id === photoSelection?.id);
@@ -750,10 +753,26 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
           </div>
         </ScrollProgressContainer>
         {saved && view === "map" && (
-          <form className="place__search-bar" role="search" onSubmit={(event) => event.preventDefault()}>
+          <form className={`place__search-bar${minimumRating > 0 ? " place__search-bar--rating-filtered" : ""}`} role="search" onSubmit={(event) => event.preventDefault()}>
             <input type="search" aria-label={t("Search saved places")}
               placeholder={t("Search places or users")} value={placeSearch}
               onChange={(event) => setPlaceSearch(event.target.value)} />
+            <div className="place__rating-controls">
+              {minimumRating > 0 && (
+                <button type="button" className="place__rating-filter-clear" aria-label={t("Clear rating filter")}
+                  title={t("Clear rating filter")} onClick={() => setMinimumRating(0)}>
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
+                  </svg>
+                </button>
+              )}
+              <button type="button" className="place__rating-filter" aria-label={t("Filter places by average rating")}
+                title={t("Filter places by average rating")} aria-pressed={minimumRating > 0}
+                onClick={() => setMinimumRating((rating) => rating === 5 ? 0 : rating + 1)}>
+                <SlidingNumber number={minimumRating} aria-hidden="true" />
+                <Star size={17} fill="currentColor" aria-hidden="true" />
+              </button>
+            </div>
             {placeSearch && (
               <>
                 <span className="place__search-divider" aria-hidden="true" />

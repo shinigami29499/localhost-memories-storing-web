@@ -237,6 +237,8 @@ const vietnamese: Record<string, string> = {
   "Search locations": "Tìm địa điểm",
   "Search saved places": "Tìm địa điểm đã lưu",
   "Search places or users": "Tìm địa điểm hoặc người dùng",
+  "Filter places by average rating": "Lọc địa điểm theo điểm đánh giá trung bình",
+  "Clear rating filter": "Xóa bộ lọc đánh giá",
   "Clear search": "Xóa nội dung tìm kiếm",
   "No saved places match your search.": "Không tìm thấy địa điểm đã lưu phù hợp.",
   "Search a city or address": "Tìm thành phố hoặc địa chỉ",
