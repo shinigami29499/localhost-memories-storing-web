@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useIsMutating } from "@tanstack/react-query";
+import { useIsMutating, useQueryClient } from "@tanstack/react-query";
 import { ScrollProgress, ScrollProgressContainer, ScrollProgressProvider } from "@animate-ui/react/primitives/scroll-progress";
 import { useSearchParams } from "react-router-dom";
 import { Button, ErrorState, showToast, Spinner } from "../../components/ui";
@@ -11,14 +11,19 @@ import { mediaPreviewUrl } from "../../utils/media";
 import { useHomeLocation } from "../../features/locations/hooks/useHomeLocation";
 import { HomeLocationPhotoConfirmation } from "../../features/locations/components/HomeLocationPhotoConfirmation";
 import { useLocations } from "../../features/locations/hooks/useLocations";
+import { locationService } from "../../features/locations/services/locationService";
 import { LocationMap } from "../../features/locations/components/LocationMap";
+import { CameraCaptureDialog } from "../../features/locations/components/CameraCaptureDialog";
 import { LocationEditor } from "../../features/locations/components/LocationEditor";
+import { uploadService } from "../../features/uploads/services/uploadService";
+import { registerUploadCompletionAction } from "../../features/uploads/services/uploadRuntime";
 import type { MediaFile, PickedLocation } from "../../features/media/types";
 import type { HomeLocation } from "../../features/locations/types";
 import "./locations.css";
 
 export function LocationsPage() {
   const { t } = useLocale();
+  const queryClient = useQueryClient();
   const isMobile = useMediaQuery("(max-width: 640px)");
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedMediaId = searchParams.get("mediaId");
@@ -28,6 +33,11 @@ export function LocationsPage() {
   const { query, media, scanning, scanProgress, scanResult, scanError } = useLocations();
   const [selection, setSelection] = useState<{ id: string; draft: PickedLocation | null; editing: boolean } | null>(null);
   const [homePicking, setHomePicking] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const uploadInFlight = useRef(false);
+  const uploadLocation = useRef<{ latitude: number; longitude: number } | null>(null);
+  const uploadInput = useRef<HTMLInputElement>(null);
   const workspaceRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!requestedMediaId || selection) return;
@@ -122,6 +132,78 @@ export function LocationsPage() {
       showToast.error(error instanceof ApiError ? error.message : t("Could not save your home location."));
     }
   };
+
+  const startWithCurrentLocation = async (action: () => void) => {
+    if (!navigator.geolocation) {
+      showToast.error(t("Could not determine your current location. Check location permission and try again."));
+      return;
+    }
+    try {
+      uploadLocation.current = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(
+          ({ coords }) => resolve({ latitude: coords.latitude, longitude: coords.longitude }),
+          () => reject(new Error(t("Could not determine your current location. Check location permission and try again."))),
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+        );
+      });
+      action();
+    } catch (error) {
+      uploadLocation.current = null;
+      showToast.error(error instanceof Error ? error.message : t("Could not determine your current location. Check location permission and try again."));
+    }
+  };
+
+  const uploadPhotos = async (files: File[]) => {
+    if (!files.length || uploadInFlight.current) return;
+    const coordinate = uploadLocation.current;
+    uploadLocation.current = null;
+    if (!coordinate) {
+      showToast.error(t("Could not determine your current location. Check location permission and try again."));
+      return;
+    }
+    uploadInFlight.current = true;
+    setUploading(true);
+    const existingIds = new Set(media.map((item) => item.id));
+    try {
+      const batch = await uploadService.submit(files, (createdBatch) => {
+        registerUploadCompletionAction(createdBatch.id, async (completedBatch) => {
+          const successfulNames = completedBatch.items
+            .filter((item) => item.status === "Success")
+            .map((item) => item.originalFilename);
+          if (!successfulNames.length) return;
+
+          const refreshed = await query.refetch();
+          const newMedia = refreshed.data?.pages.flatMap((page) => page.items)
+            .filter((item) => !existingIds.has(item.id)) ?? [];
+          const matched: MediaFile[] = [];
+          for (const filename of successfulNames) {
+            const item = newMedia.find((candidate) => candidate.originalFilename === filename
+              && !matched.some((current) => current.id === candidate.id));
+            if (item) matched.push(item);
+          }
+
+          const tagged = await Promise.allSettled(
+            matched.map((item) => locationService.set(item.id, coordinate)),
+          );
+          const taggedIds = matched.filter((_item, index) => tagged[index].status === "fulfilled").map((item) => item.id);
+          await queryClient.invalidateQueries({ queryKey: ["media"] });
+          if (!taggedIds.length) {
+            showToast.error(t("Photos uploaded, but could not mark their location."));
+            return;
+          }
+          if (taggedIds.length < matched.length) showToast.error(t("Some uploaded photos could not be marked."));
+          return `/location/travel?focusMediaId=${encodeURIComponent(taggedIds[0])}`;
+        });
+      });
+      await queryClient.invalidateQueries({ queryKey: ["uploads"] });
+      showToast.success(t("Begin uploading {count} media", { count: files.length }), { id: `upload-start:${batch.id}` });
+    } catch (error) {
+      showToast.error(t("Could not upload and mark these photos."), error instanceof Error ? error.message : undefined);
+    } finally {
+      uploadInFlight.current = false;
+      setUploading(false);
+    }
+  };
   return (
     <main className="locations">
       <ScrollProgressProvider>
@@ -169,8 +251,10 @@ export function LocationsPage() {
             <div className="locations__map-panel">
               <LocationMap media={media} selected={selected} focused={focused} draft={draft} editable={canEdit && !saving}
                 homeLocation={home.query.data ?? null} homeLocationReady={home.query.isFetched}
-                homeActionDisabled={saving || home.save.isPending}
+                homeActionDisabled={saving || home.save.isPending || uploading}
                 homePicking={homePicking} onSelect={select} canMove={canMove} onMove={movePhoto}
+                onAddPhotos={() => void startWithCurrentLocation(() => uploadInput.current?.click())}
+                onOpenCamera={() => void startWithCurrentLocation(() => setCameraOpen(true))}
                 onEdit={(item) => setSelection({ id: item.id, draft: item.location ?? null, editing: true })}
                 onCancelSelection={clearSelection}
                 onPick={(location) => { if (selected) updateDraft(selected.id, location); }}
@@ -232,6 +316,15 @@ export function LocationsPage() {
         onConfirm={(location) => home.applyToPhotos.mutateAsync(location)}
         onClose={home.dismissPhotosConfirmation}
       />
+      <input ref={uploadInput} type="file" accept="image/*" multiple hidden onChange={(event) => {
+        const files = Array.from(event.currentTarget.files ?? []);
+        event.currentTarget.value = "";
+        void uploadPhotos(files);
+      }} />
+      {cameraOpen ? <CameraCaptureDialog
+        onCapture={(file) => void uploadPhotos([file])}
+        onClose={() => setCameraOpen(false)}
+      /> : null}
     </main>
   );
 }

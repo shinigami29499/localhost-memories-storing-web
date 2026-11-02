@@ -7,6 +7,7 @@ import { AnimateIcon } from "../../../components/animate-ui/icons/icon";
 import { UploadLift } from "../../../components/animate-ui/icons/upload-lift";
 import { Button, ErrorState, Spinner, showToast } from "../../../components/ui";
 import { useLocale } from "../../../context/LocaleContext";
+import { useDialogViewportStyle } from "../../../hooks/useDialogViewportStyle";
 import { mediaPreviewUrl } from "../../../utils/media";
 import { mediaQueryOptions } from "../hooks/useMedia";
 import { previewService } from "../services/previewService";
@@ -83,6 +84,7 @@ export function PhotoPicker({
   });
   const busy = uploadingPreview || galleryBatchId !== null;
   const { dialogProps, close } = useCustomDialog(onClose, { blocked: busy });
+  const viewportStyle = useDialogViewportStyle();
   const full = selectedIds.length >= maxImages && !initialImage.data?.isPreviewOnly;
   const pageImages = query.data?.pages.flatMap((page) => page.items) ?? [];
   const availableImages = [...(source === "preview" ? uploaded : []), ...pageImages];
@@ -171,7 +173,7 @@ export function PhotoPicker({
     <Dialog.Root {...dialogProps}>
       <Dialog.Portal>
         <Dialog.Backdrop className={`confirmation-dialog-backdrop ${backdropClassName}`} />
-        <Dialog.Viewport className={`confirmation-dialog-viewport ${viewportClassName}`}>
+        <Dialog.Viewport className={`confirmation-dialog-viewport ${viewportClassName}`} style={viewportStyle}>
           <Dialog.Popup className="place-picker" aria-busy={busy} initialFocus={() => selectedRef.current ?? bodyRef.current}>
             <header className="place-picker__header">
               <div>

@@ -89,10 +89,10 @@ export function PlaceVisitHistory({ visits, showPlaceDetails = true, showVisitor
           {showVisitorName && <StarRating value={visit.rating} size="sm" />}
           <time dateTime={visit.visitedAt}>
             <span className="place__history-date" data-column="date">
-              {new Date(visit.visitedAt).toLocaleDateString(language, { dateStyle: "medium" })}
+              {new Date(visit.visitedAt).toLocaleDateString(language, { month: "short", day: "2-digit", year: "numeric" })}
             </span>
             <span data-column="time">
-              {new Date(visit.visitedAt).toLocaleTimeString(language, { timeStyle: "short" })}
+              {new Date(visit.visitedAt).toLocaleTimeString(language, { hour: "2-digit", minute: "2-digit", hourCycle: "h23" })}
             </span>
           </time>
           {onRemove && visit.userId === currentUserId && (

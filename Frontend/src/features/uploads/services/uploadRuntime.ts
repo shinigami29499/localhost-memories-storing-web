@@ -18,6 +18,14 @@ const notifiedBatches = new Set<string>();
 const wakeRunners = new Set<() => void>();
 const ITEM_INACTIVITY_TIMEOUT_MS = 30_000;
 const batchStartAttempts = new Map<string, number>();
+const completionActions = new Map<string, (batch: UploadBatch) => Promise<string | void>>();
+
+export function registerUploadCompletionAction(
+  batchId: string,
+  action: (batch: UploadBatch) => Promise<string | void>,
+): void {
+  completionActions.set(batchId, action);
+}
 
 export function wakeUploadRuntime(): void {
   for (const wake of wakeRunners) wake();
@@ -67,11 +75,21 @@ export function startUploadRuntime(
     controller.signal.addEventListener("abort", done, { once: true });
   });
 
-  const reportBatch = (batch: UploadBatch) => {
+  const reportBatch = async (batch: UploadBatch) => {
     const key = `shinigacim.upload-notified.${userId}.${batch.id}`;
     if (notifiedBatches.has(key) || localStorage.getItem(key)) return;
     notifiedBatches.add(key);
     localStorage.setItem(key, "1");
+    let completionUrl: string | undefined;
+    const completionAction = completionActions.get(batch.id);
+    completionActions.delete(batch.id);
+    if (batch.status === "Completed" && completionAction) {
+      try {
+        completionUrl = await completionAction(batch) || undefined;
+      } catch (error) {
+        console.error("Could not finish upload completion action.", error);
+      }
+    }
     onBatchCompleted();
     showToast.dismiss(`upload-start:${batch.id}`);
 
@@ -84,19 +102,20 @@ export function startUploadRuntime(
       const images = batch.items.filter((item) => item.status === "Success" && item.contentType.startsWith("image/")).length;
       const videos = batch.items.filter((item) => item.status === "Success" && item.contentType.startsWith("video/")).length;
       const title = uploadMessage(translate, images, videos);
-      void showBrowserNotification(
-        title,
-        summary,
-      ).catch((error: unknown) => {
+      const destination = completionUrl ?? "/sync/upload";
+      void showBrowserNotification(title, summary, destination).catch((error: unknown) => {
         console.error("Could not show upload notification.", error);
       });
       showToast.success(title, {
         id: `upload-completed:${batch.id}`,
-        description: translate(isGalleryPath(window.location.pathname)
+        description: completionUrl
+          ? translate("Click to view on the map.")
+          : translate(isGalleryPath(window.location.pathname)
           ? "Click to refresh."
           : "Click to go to gallery."),
         onClick: () => {
-          if (isGalleryPath(window.location.pathname)) window.location.reload();
+          if (completionUrl) window.location.assign(completionUrl);
+          else if (isGalleryPath(window.location.pathname)) window.location.reload();
           else window.location.assign("/library/gallery");
         },
       });
@@ -132,7 +151,7 @@ export function startUploadRuntime(
           for (const batchId of observedBatches) {
             if (activeIds.has(batchId)) continue;
             const batch = await uploadService.get(batchId);
-            if (batch.completedAt) reportBatch(batch);
+            if (batch.completedAt) await reportBatch(batch);
             observedBatches.delete(batchId);
           }
         }

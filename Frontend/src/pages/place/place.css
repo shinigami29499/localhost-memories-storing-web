@@ -104,6 +104,34 @@
 }
 
 .place__history-panel .place__history { margin-top: 0; }
+.place__history-panel .place__history--place-visitor.place__history--visitor-name {
+  grid-template-columns: 56px minmax(0, 1fr) 28px max-content max-content max-content max-content 52px;
+  column-gap: 12px;
+}
+.place__history-panel .place__history--place-visitor.place__history--visitor-name .place__history-item {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+}
+.place__history-panel .place__history--place-visitor.place__history--visitor-name .place__history-visitor-avatar {
+  align-self: center;
+  justify-self: center;
+}
+.place__history-panel .place__history--place-visitor.place__history--visitor-name .place__history-icon {
+  align-self: center;
+  justify-self: center;
+  flex-basis: 40px;
+  width: 40px;
+  height: 40px;
+  font-size: 1.25rem;
+}
+.place__history-panel .place__history--place-visitor.place__history--visitor-name .place__history-item time {
+  grid-column: 6 / span 2;
+}
+.place__history-panel .place__history--place-visitor.place__history--visitor-name .place__history-item > .place__history-remove {
+  grid-column: 8;
+  justify-self: center;
+}
 
 .place__history-item {
   align-items: center;
@@ -199,14 +227,26 @@
   margin: 0;
 }
 
-.place__place-history .place__history { gap: 0; margin-top: 8px; }
+.place__place-history .place__history {
+  height: 13rem;
+  grid-template-rows: repeat(5, minmax(0, 1fr));
+  gap: 0;
+  margin-top: 8px;
+}
 .place__place-history .place__history-item {
+  align-items: center;
+  box-sizing: border-box;
   background: transparent;
   border: 0;
   border-radius: 6px;
   box-shadow: none;
-  padding: 8px 6px;
+  min-height: 0;
+  padding: 4px 6px;
   transition: background-color 160ms ease, transform 160ms ease;
+}
+.place__place-history .place__history-item > :not(.place__history-select) {
+  align-self: center;
+  margin-block: 0;
 }
 .place__place-history .place__history-item:hover,
 .place__place-history .place__history-item:focus-within {
@@ -497,7 +537,13 @@
   .place__dialog--visit .place__dialog-body { padding: 12px 8px; }
   .place__place-history .place__history--visitor-name .place__history-visitor-name { display: none; }
   .place__place-history .place__history--visitor-name .place__history-item { grid-template-columns: 28px max-content minmax(0, 1fr) max-content max-content 28px; }
-  .place__place-history .place__history--visitor-name .place__history-item time { grid-column: 3 / span 2; }
+  .place__place-history .place__history--visitor-name .place__history-item time {
+    grid-column: 3 / span 2;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    font-size: 0.75rem;
+    line-height: 1.1;
+  }
   .place__place-history .place__history--visitor-name .place__history-item > .place__history-remove { grid-column: 6; }
 }
 
@@ -1401,4 +1447,46 @@
   .place__form > .place__form-actions { grid-column: auto; }
   .place__dialog-header { padding: 12px 16px; }
   .place__dialog-body { padding: 16px; }
+  .place__history-panel .place__history--place-visitor.place__history--visitor-name {
+    grid-template-columns: 56px 28px max-content minmax(0, 1fr) 44px;
+    column-gap: 8px;
+  }
+  .place__history-panel .place__history--place-visitor.place__history--visitor-name .place__history-item {
+    grid-template-columns: subgrid;
+    grid-template-rows: min-content;
+    column-gap: 12px;
+    row-gap: 0;
+  }
+  .place__history-panel .place__history--place-visitor.place__history--visitor-name .place__history-icon {
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: center;
+    flex-basis: 40px;
+    width: 40px;
+    height: 40px;
+    font-size: 1.25rem;
+  }
+  .place__history-panel .place__history--place-visitor.place__history--visitor-name .place__history-visitor-avatar {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: start;
+  }
+  .place__history-panel .place__history--place-visitor.place__history--visitor-name .star-rating {
+    grid-column: 3;
+    grid-row: 1;
+    justify-self: start;
+  }
+  .place__history-panel .place__history--place-visitor.place__history--visitor-name .place__history-item time {
+    grid-column: 4;
+    grid-row: 1;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    font-size: 0.75rem;
+    line-height: 1.1;
+  }
+  .place__history-panel .place__history--place-visitor.place__history--visitor-name .place__history-item > .place__history-remove {
+    grid-column: 5;
+    grid-row: 1;
+    justify-self: center;
+  }
 }

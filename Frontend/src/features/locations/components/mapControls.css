@@ -374,7 +374,9 @@
   background: #30343a;
 }
 
-.place .map-controls .place__add-marker-control {
+.place .map-controls .place__add-marker-control,
+.locations .map-controls .locations__add-marker-control,
+.locations .map-controls .locations__camera-control {
   align-items: center;
   bottom: auto;
   display: inline-flex;
@@ -395,11 +397,14 @@
   cursor: pointer;
 }
 
-.place .map-controls .place__add-marker-control:is(:hover, :active):not(:disabled) {
+.place .map-controls .place__add-marker-control:is(:hover, :active):not(:disabled),
+.locations .map-controls .locations__add-marker-control:is(:hover, :active):not(:disabled),
+.locations .map-controls .locations__camera-control:is(:hover, :active):not(:disabled) {
   background: #30343a;
 }
 
-.place .map-controls .place__map-home-control { top: 188px; }
+.place .map-controls .place__map-home-control,
+.locations .map-controls .locations__map-home-control { top: 188px; }
 
 :is(.place, .locations) .home-location-marker {
   height: 54px;
@@ -503,16 +508,16 @@
 }
 
 @media (max-width: 640px) {
-  :is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes, .place__location-search, .place__map-home-control, .locations__map-home-control, .place__add-marker-control, .mapboxgl-ctrl-group:has(.mapboxgl-ctrl-geolocate)) {
+  :is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes, .place__location-search, .place__map-home-control, .locations__map-home-control, .place__add-marker-control, .locations__add-marker-control, .locations__camera-control, .mapboxgl-ctrl-group:has(.mapboxgl-ctrl-geolocate)) {
     transition: opacity 180ms ease, visibility 180ms ease;
   }
-  :is(.place, .locations) .map-controls:has(:is(.place__marker, .locations__marker)[data-selected="true"]) :is(.place__scenes, .locations__scenes, .place__location-search, .place__map-home-control, .locations__map-home-control, .place__add-marker-control, .mapboxgl-ctrl-group:has(.mapboxgl-ctrl-geolocate)) {
+  :is(.place, .locations) .map-controls:has(:is(.place__marker, .locations__marker)[data-selected="true"]) :is(.place__scenes, .locations__scenes, .place__location-search, .place__map-home-control, .locations__map-home-control, .place__add-marker-control, .locations__add-marker-control, .locations__camera-control, .mapboxgl-ctrl-group:has(.mapboxgl-ctrl-geolocate)) {
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
   }
   @media (prefers-reduced-motion: reduce) {
-    :is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes, .place__location-search, .place__map-home-control, .locations__map-home-control, .place__add-marker-control, .mapboxgl-ctrl-group:has(.mapboxgl-ctrl-geolocate)) { transition: none; }
+    :is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes, .place__location-search, .place__map-home-control, .locations__map-home-control, .place__add-marker-control, .locations__add-marker-control, .locations__camera-control, .mapboxgl-ctrl-group:has(.mapboxgl-ctrl-geolocate)) { transition: none; }
   }
   :is(.place, .locations) .home-location-marker::before { bottom: -6px; left: 12px; height: 9px; }
   :is(.place, .locations) .home-location-marker :is(.place__home-pin, .locations__home-pin) {
@@ -549,8 +554,10 @@
     height: 44px;
   }
 
-  .place .map-controls .place__add-marker-control { top: 108px; width: 44px; height: 44px; }
+  :is(.place .map-controls .place__add-marker-control, .locations .map-controls .locations__add-marker-control) { top: 108px; width: 44px; height: 44px; }
   .place .map-controls .place__map-home-control { top: 158px; }
+  .locations .map-controls .locations__camera-control { top: 158px; width: 44px; height: 44px; }
+  .locations .map-controls .locations__map-home-control { top: 208px; }
 
   :is(.place, .locations) .map-controls :is(.place__scenes-title, .locations__scenes-title) {
     grid-template-columns: 34px minmax(0, 1fr) 16px;

@@ -10,6 +10,7 @@ import { MapPin } from "../../../components/animate-ui/icons/map-pin";
 import { Camera } from "../../../components/animate-ui/icons/camera";
 import { Globe } from "../../../components/animate-ui/icons/globe";
 import { Home } from "../../../components/animate-ui/icons/home";
+import { Plus } from "../../../components/animate-ui/icons/plus";
 import { Settings } from "../../../components/animate-ui/icons/settings";
 import { SlidersHorizontal } from "../../../components/animate-ui/icons/sliders-horizontal";
 import { ChevronDown } from "../../../components/animate-ui/icons/chevron-down";
@@ -53,6 +54,8 @@ interface Props {
   onPick: (location: PickedLocation) => void;
   onPickHome: (location: HomeLocation) => void;
   onHomeClick: () => void;
+  onAddPhotos: () => void;
+  onOpenCamera: () => void;
 }
 
 const MOBILE_PREVIEW_PADDING = { top: 300, bottom: 0, left: 0, right: 0 };
@@ -444,10 +447,11 @@ function PhotoMarkers({ media, selected, ready, onSelect, canMove, onMove, homeL
 
 function MapContent({
   media, selected, focused, draft, editable, homeLocation, homeLocationReady, homePicking, homeActionDisabled,
-  onSelect, onEdit, onCancelSelection, canMove, onMove, onPick, onPickHome, onHomeClick, token,
+  onSelect, onEdit, onCancelSelection, canMove, onMove, onPick, onPickHome, onHomeClick, onAddPhotos, onOpenCamera, token,
 }: Props & { token: string }) {
   const { t } = useLocale();
   const shouldReduceMotion = useShouldReduceMotion();
+  const isMobile = useMediaQuery("(max-width: 640px)");
   const mapRef = useRef<MapRef>(null);
   const scenesRef = useRef<HTMLDetailsElement>(null);
   const appearanceRef = useRef<HTMLDetailsElement>(null);
@@ -611,6 +615,38 @@ function MapContent({
         }}
         onSelect={selectSearchResult}
       />
+      <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
+        <button
+          type="button"
+          className="locations__add-marker-control"
+          aria-label={t("Upload photos")}
+          title={t("Upload photos")}
+          disabled={!loaded || homeActionDisabled}
+          onClick={() => {
+            if (scenesRef.current) scenesRef.current.open = false;
+            if (appearanceRef.current) appearanceRef.current.open = false;
+            onAddPhotos();
+          }}
+        >
+          <Plus size={20} aria-hidden="true" />
+        </button>
+      </AnimateIcon>
+      {isMobile && <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
+        <button
+          type="button"
+          className="locations__camera-control"
+          aria-label={t("Capture photo")}
+          title={t("Capture photo")}
+          disabled={!loaded || homeActionDisabled}
+          onClick={() => {
+            if (scenesRef.current) scenesRef.current.open = false;
+            if (appearanceRef.current) appearanceRef.current.open = false;
+            onOpenCamera();
+          }}
+        >
+          <Camera size={20} aria-hidden="true" />
+        </button>
+      </AnimateIcon>}
       <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
         <button
           type="button"

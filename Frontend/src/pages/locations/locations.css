@@ -184,6 +184,26 @@
 
 .locations__map { height: 100%; min-height: 360px; width: 100%; }
 .locations__map-message { padding: 24px; }
+.locations-camera-dialog {
+  max-width: min(480px, calc(100vw - 32px));
+  width: 100%;
+}
+.locations-camera-dialog__preview {
+  aspect-ratio: 3 / 4;
+  background: #111315;
+  overflow: hidden;
+  width: 100%;
+}
+.locations-camera-dialog__preview :is(video, img) {
+  display: block;
+  height: 100%;
+  object-fit: contain;
+  width: 100%;
+}
+.locations-camera-dialog__error {
+  color: var(--danger);
+  margin: 12px 0 0;
+}
 .locations__map-home-control {
   align-items: center;
   background: var(--surface-raised);

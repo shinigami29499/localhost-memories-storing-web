@@ -47,14 +47,15 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
+  const targetUrl = new URL(event.notification.data?.url ?? "/sync/upload", self.location.origin).href;
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
       for (const client of clients) {
         if ("focus" in client && "navigate" in client) {
-          return client.navigate(url).then(() => client.focus());
+          return client.navigate(targetUrl).then(() => client.focus());
         }
       }
-      return self.clients.openWindow(url);
+      return self.clients.openWindow(targetUrl);
     }),
   );
 });

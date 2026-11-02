@@ -474,7 +474,6 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
                               <strong>{place.name}</strong>
                               {place.address && <small>{place.address}</small>}
                               <StarRating value={place.rating} size="sm" />
-                              {place.note && <small>{place.note}</small>}
                               <small className="place__card-owner">{place.owner.username}</small>
                             </span>
                           </button>
@@ -541,7 +540,6 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
                       {t("{rating} out of 5", { rating: selected.rating.toFixed(1) })}
                     </span>
                   </div>
-                  {selected.note && <p className="place__note">{selected.note}</p>}
                   <div className="place__form-actions place__details-actions">
                     <Button
                       type="button"

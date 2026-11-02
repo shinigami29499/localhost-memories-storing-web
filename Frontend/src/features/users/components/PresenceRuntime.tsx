@@ -14,6 +14,26 @@ import { useQueryClient } from "@tanstack/react-query";
 
 const PRESENCE_INTERVAL_MS = 25_000;
 const ACTIVITY_WINDOW_MS = 120_000;
+const presenceStorageKey = "shinigacim.user-presence";
+
+function readPresenceCache(): Map<string, boolean> {
+  try {
+    const value = sessionStorage.getItem(presenceStorageKey);
+    const parsed: unknown = value ? JSON.parse(value) : {};
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return new Map();
+    return new Map(Object.entries(parsed).filter((entry): entry is [string, boolean] => typeof entry[1] === "boolean"));
+  } catch {
+    return new Map();
+  }
+}
+
+function writePresenceCache(presence: Map<string, boolean>): void {
+  try {
+    sessionStorage.setItem(presenceStorageKey, JSON.stringify(Object.fromEntries(presence)));
+  } catch {
+    // Presence toasts still work for the lifetime of the current runtime.
+  }
+}
 
 export function PresenceRuntime() {
   const token = useAuthStore((state) => state.accessToken);
@@ -34,7 +54,7 @@ export function PresenceRuntime() {
     let interval: number | undefined;
     let retryTimer: number | undefined;
     let lastActivity = Date.now();
-    const presence = new Map<string, boolean>();
+    const presence = readPresenceCache();
     const apiBase = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
     const heartbeat = () => {
       if (!stopped && document.visibilityState === "visible") void userService.heartbeat().catch(() => undefined);
@@ -59,7 +79,8 @@ export function PresenceRuntime() {
         if (event.userId === useAuthStore.getState().user?.id || !event.username) return;
         const previous = presence.get(event.userId);
         presence.set(event.userId, event.online);
-        if (previous === event.online) return;
+        writePresenceCache(presence);
+        if (previous === undefined || previous === event.online) return;
         const message = t(event.online ? "{username} is online" : "{username} went offline", { username: event.username });
         const options = { timeout: 5000, highlight: [event.username] };
         if (event.online) showToast.success(message, options);

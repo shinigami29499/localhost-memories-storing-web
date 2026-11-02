@@ -388,7 +388,6 @@ function PlaceMarker({ place, selected, onSelect, canChange, onMove, onDelete }:
         </div>
         <strong>{place.name}</strong>
         {place.address && <small>{place.address}</small>}
-        {place.note && <small>{place.note}</small>}
         <small className="place__popup-author">{t("By {username}", { username: place.owner.username })}</small>
         <StarRating value={place.rating} size="sm" />
       </button>

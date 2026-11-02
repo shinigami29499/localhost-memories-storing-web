@@ -55,7 +55,7 @@ export const uploadService = {
     return api(`${BASE_PATH}/recover`, { method: "POST" });
   },
 
-  async submit(files: File[]): Promise<UploadBatch> {
+  async submit(files: File[], onBatchCreated?: (batch: UploadBatch) => void): Promise<UploadBatch> {
     const items: UploadItemMetadata[] = files.map((file) => ({
       id: crypto.randomUUID(),
       originalFilename: file.name,
@@ -70,6 +70,11 @@ export const uploadService = {
         method: "POST",
         body: { items },
       });
+      try {
+        onBatchCreated?.(batch);
+      } catch (error) {
+        console.error("Could not register upload completion handling.", error);
+      }
       wakeUploadRuntime();
       return batch;
     } catch (error) {

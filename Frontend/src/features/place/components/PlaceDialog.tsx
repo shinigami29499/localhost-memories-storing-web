@@ -4,6 +4,7 @@ import { AnimateIcon } from "../../../components/animate-ui/icons/icon";
 import { XIcon } from "../../../components/animate-ui/icons/x";
 import { useLocale } from "../../../context/LocaleContext";
 import { useAnimationStore } from "../../../store/animationStore";
+import { useDialogViewportStyle } from "../../../hooks/useDialogViewportStyle";
 
 interface Props {
   title: string;
@@ -22,6 +23,7 @@ export function PlaceDialog({ title, icon, subtitle, subtitleSecondLine, childre
   const { t } = useLocale();
   const animationsEnabled = useAnimationStore((state) => state.enabled);
   const [open, setOpen] = useState(true);
+  const viewportStyle = useDialogViewportStyle();
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen && closeDisabled) return;
     setOpen(nextOpen);
@@ -31,7 +33,7 @@ export function PlaceDialog({ title, icon, subtitle, subtitleSecondLine, childre
     <Dialog.Root open={open} onOpenChange={handleOpenChange} onOpenChangeComplete={(nextOpen) => { if (!nextOpen) onClose(); }}>
       <Dialog.Portal>
         <Dialog.Backdrop className="confirmation-dialog-backdrop" />
-        <Dialog.Viewport className="confirmation-dialog-viewport">
+        <Dialog.Viewport className="confirmation-dialog-viewport" style={viewportStyle}>
           <Dialog.Popup className={`place__dialog${animationsEnabled ? " place__dialog--animated" : ""} ${className}`}>
             <header className="place__dialog-header">
               {icon}

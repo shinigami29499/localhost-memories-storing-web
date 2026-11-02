@@ -53,9 +53,7 @@ export function SinglePlaceVisitHistory({ placeId, onShowOnMap }: Props) {
             onRemove={(visit) => void handleRemove(visit)}
             removingVisitId={removeVisit.isPending ? removeVisit.variables : null}
           />
-          {totalPages > 1 && (
-            <Pagination page={currentPage} pageSize={PAGE_SIZE} total={visits.length} itemLabel="visits" onPageChange={setPage} />
-          )}
+          <Pagination page={currentPage} pageSize={PAGE_SIZE} total={visits.length} itemLabel="visits" onPageChange={setPage} />
         </div>
       ) : null}
     </section>
