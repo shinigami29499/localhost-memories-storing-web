@@ -488,8 +488,9 @@
 }
 
 .gallery-selection-bar {
+  --selection-bar-hover: rgba(255, 255, 255, 0.14);
   align-items: center;
-  background: var(--surface);
+  background: #000;
   border: 0;
   border-radius: 999px;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.3), var(--shadow-popover);
@@ -499,10 +500,13 @@
   overflow-x: auto;
   padding: 6px;
   pointer-events: auto;
+  color: #fff;
 }
 
 .dark .gallery-selection-bar {
-  background: #292e33;
+  --selection-bar-hover: rgba(0, 0, 0, 0.12);
+  background: #ebeced;
+  color: #17191d;
 }
 
 .gallery-selection-bar__count {
@@ -526,7 +530,7 @@
   background: transparent;
   border: 0;
   border-radius: 999px;
-  color: var(--text);
+  color: inherit;
   cursor: pointer;
   display: inline-flex;
   font: inherit;
@@ -544,6 +548,12 @@
 .gallery-selection-bar__cancel:hover {
   background: var(--surface-hover);
   color: var(--text-strong);
+}
+
+.gallery-selection-bar .gallery-selection-bar__action:hover:not(:disabled):not(.gallery-selection-bar__action--danger),
+.gallery-selection-bar .gallery-selection-bar__cancel:hover {
+  background: var(--selection-bar-hover);
+  color: inherit;
 }
 
 .gallery-selection-bar__action:focus-visible,
@@ -600,7 +610,7 @@
 .gallery-selection-bar--compact .gallery-selection-bar__action--download,
 .gallery-selection-bar--compact .gallery-selection-bar__cancel,
 .gallery-selection-bar--compact .gallery-selection-bar__cancel:hover {
-  color: var(--text);
+  color: inherit;
 }
 
 .gallery-selection-bar--compact .gallery-selection-bar__action:disabled {

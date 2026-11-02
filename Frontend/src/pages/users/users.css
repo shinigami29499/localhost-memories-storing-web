@@ -367,11 +367,16 @@
 
 .admin-users__header {
   align-items: center;
+  background: var(--bg);
   display: flex;
   gap: 24px;
   justify-content: space-between;
   margin: 0 auto;
   max-width: 1600px;
+  padding-block: 8px;
+  position: sticky;
+  top: -40px;
+  z-index: 20;
 }
 
 .admin-users__eyebrow {
@@ -962,6 +967,8 @@
   .admin-users__content {
     padding: 16px 12px 24px;
   }
+
+  .admin-users__header { top: -16px; }
 
   .admin-posts__header {
     align-items: flex-start;

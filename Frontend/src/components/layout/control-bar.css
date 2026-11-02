@@ -52,12 +52,10 @@
   color: var(--control-bar-fg);
 }
 
-.control-bar .theme-toggler[data-theme="light"] .theme-toggler__icon {
-  color: #f59e0b;
-  opacity: 1;
+.control-bar .theme-toggler[data-theme="light"] .theme-toggler__icon svg {
+  color: #f59e0b !important;
 }
 
-.control-bar .theme-toggler[data-theme="dark"] .theme-toggler__icon {
-  color: #2563eb;
-  opacity: 1;
+.control-bar .theme-toggler[data-theme="dark"] .theme-toggler__icon svg {
+  color: #2563eb !important;
 }

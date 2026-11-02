@@ -188,6 +188,19 @@ body > div[style*="position: fixed"][style*="inset: 0px"][style*="pointer-events
   view-transition-name: none !important;
 }
 
+:root[data-theme-transition] body .theme-toggler__icon {
+  view-transition-name: theme-toggle-icon !important;
+}
+
+:root[data-theme-transition]::view-transition-group(theme-toggle-icon),
+:root[data-theme-transition]::view-transition-new(theme-toggle-icon) {
+  animation: none;
+}
+
+:root[data-theme-transition]::view-transition-old(theme-toggle-icon) {
+  display: none;
+}
+
 :root[data-theme-transition],
 :root[data-theme-transition] *,
 :root[data-theme-transition] *::before,
