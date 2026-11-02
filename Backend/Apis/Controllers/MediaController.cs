@@ -57,6 +57,13 @@ public class MediaController(
             includeDeleted: false,
             cancellationToken));
 
+    /// <summary>Returns compact media change markers for local gallery reconciliation.</summary>
+    [HttpGet("changes")]
+    public async Task<ActionResult<MediaChangesResponse>> GetMediaChangesAsync(
+        [FromQuery] DateTime? since, CancellationToken cancellationToken)
+        => Ok(await _mediaService.GetMediaChangesAsync(
+            _currentUser.RequireUserId(), _currentUser.IsAdmin, since, cancellationToken));
+
     [RequireAdmin]
     [HttpGet("deleted")]
     public async Task<ActionResult<PagedMediaResponse<MediaFileDto>>> GetDeletedMediaAsync(
@@ -74,7 +81,8 @@ public class MediaController(
     [HttpGet("{mediaId:guid}/file")]
     public async Task<IActionResult> GetFileAsync(
         Guid mediaId, CancellationToken cancellationToken, [FromQuery] bool includeDeleted = false,
-        [FromQuery] bool preview = false, [FromQuery] bool download = false, [FromQuery] Guid? batchId = null)
+        [FromQuery] bool preview = false, [FromQuery] bool download = false, [FromQuery] Guid? batchId = null,
+        [FromQuery] int previewSize = 640)
     {
 
         if (includeDeleted && !_currentUser.IsAdmin)
@@ -83,8 +91,12 @@ public class MediaController(
         if (includeDeleted || preview)
             Response.Headers.CacheControl = "no-store";
 
+        if (preview && previewSize is not (320 or 640))
+            throw new Services.Exceptions.ValidationException(
+                "Invalid preview size.", new Dictionary<string, string[]> { ["previewSize"] = ["Choose 320 or 640 pixels."] });
+
         var media = await _mediaService.GetMediaFileAsync(
-            mediaId, includeDeleted, _currentUser.IsAdmin, cancellationToken, preview, _currentUser.RequireUserId());
+            mediaId, includeDeleted, _currentUser.IsAdmin, cancellationToken, preview, _currentUser.RequireUserId(), previewSize);
         if (download && !preview)
             await downloadHistory.RecordAsync(_currentUser.RequireUserId(), mediaId, media.OriginalFilename, batchId, cancellationToken);
         return File(

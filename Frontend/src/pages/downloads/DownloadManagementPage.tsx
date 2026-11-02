@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { motion, useReducedMotion } from "motion/react";
 import { motionTokens } from "@animate-ui/react/utils/motion";
 import { useQuery } from "@tanstack/react-query";
-import { ErrorState, Spinner } from "../../components/ui/Status";
+import { EmptyState, ErrorState, Spinner } from "../../components/ui/Status";
 import { Pagination, DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS } from "../../components/ui/Pagination";
 import { Button, DatePicker } from "../../components/ui";
 import { AnimateIcon } from "../../components/animate-ui/icons/icon";
@@ -98,7 +98,12 @@ export function DownloadManagementPage() {
           {(query.isPending || batchesQuery.isPending) && batches.length === 0 ? <Spinner label="Loading download history..." /> : (query.isError || batchesQuery.isError) && batches.length === 0 ? (
             <ErrorState message="Could not load download history." onRetry={() => { void query.refetch(); void batchesQuery.refetch(); }} />
           ) : totalItems === 0 ? (
-            null
+            <EmptyState
+              title={selectedDate ? "No downloads on this date" : "No downloads yet"}
+              hint={selectedDate
+                ? "Choose another date or clear the filter to see other downloads."
+                : "Use the download icon in the full-screen viewer or select media to download a batch."}
+            />
           ) : (
             <div className="upload-list" aria-live="polite">
               {visibleBatches.map((batch, index) => (

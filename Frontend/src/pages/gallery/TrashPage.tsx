@@ -6,7 +6,7 @@ import { Trash2 } from "@/components/animate-ui/icons/trash-2";
 import { X } from "@/components/animate-ui/icons/x";
 import { infiniteQueryOptions, useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { ConfirmationDialog } from "../../components/ui/ConfirmationDialog";
-import { ErrorState, Spinner } from "../../components/ui";
+import { EmptyState, ErrorState, Spinner } from "../../components/ui";
 import { PageTransition } from "../../components/layout/PageTransition";
 import { showToast } from "../../components/ui/Toast";
 import { useLocale } from "../../context/LocaleContext";
@@ -37,6 +37,8 @@ function trashQueryOptions(filter: MediaKindFilter) {
       const nextOffset = lastPage.offset + lastPage.items.length;
       return nextOffset < lastPage.total ? nextOffset : undefined;
     },
+    staleTime: Infinity,
+    gcTime: Infinity,
   });
 }
 export function TrashPage() {
@@ -52,11 +54,23 @@ export function TrashPage() {
   const returnToMediaId = useRef<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const query = useInfiniteQuery(trashQueryOptions(filter));
+  useEffect(() => {
+    const key = ["media", "deleted", filter, TRASH_PAGE_SIZE] as const;
+    const current = queryClient.getQueryData<{ pages?: unknown; pageParams?: unknown }>(key);
+    if (!current) return;
+    if (!Array.isArray(current.pages) || !Array.isArray(current.pageParams)
+      || current.pages.length !== current.pageParams.length
+      || current.pages.some((page) => !page || !Array.isArray((page as { items?: unknown }).items))) {
+      queryClient.removeQueries({ queryKey: key, exact: true });
+      void query.refetch();
+    }
+  }, [filter, queryClient]);
   const requestRef = useRef(0);
   const [tabLoading, setTabLoading] = useState(false);
   useEffect(() => () => { requestRef.current += 1; }, []);
   const media = useMemo(
-    () => (query.data?.pages ?? []).flatMap((page) => page.items),
+    () => (Array.isArray(query.data?.pages) ? query.data.pages : [])
+      .filter((page) => page && Array.isArray(page.items)).flatMap((page) => page.items),
     [query.data],
   );
   const groups = useMemo(() => {
@@ -230,6 +244,14 @@ export function TrashPage() {
                   {query.isLoading ? <Spinner label={t("Loading media…")} /> : null}
                   {query.isError && media.length === 0 ? (
                     <ErrorState message={t("Could not load media.")} onRetry={() => void query.refetch()} />
+                  ) : null}
+                  {!query.isLoading && !query.isError && media.length === 0 ? (
+                    <EmptyState
+                      title={filter === "all" ? "Trash is empty" : "No matching media"}
+                      hint={filter === "all"
+                        ? "Deleted media will appear here until restored or permanently deleted."
+                        : "Try another media type to see deleted items."}
+                    />
                   ) : null}
 
                   {media.length > 0 ? (

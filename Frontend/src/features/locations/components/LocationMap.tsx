@@ -175,8 +175,21 @@ function MapCameraScene({ scene, selected, ready, homeLocation, homeRequest, foc
   const { current: map } = useMap();
   const handledHomeRequest = useRef(homeRequest);
   const previousScene = useRef(scene);
+  const hasBeenReady = useRef(false);
+  const pausedAfterReady = useRef(false);
   useEffect(() => {
-    if (!map || !ready) return;
+    if (!map) return;
+    if (!ready) {
+      if (hasBeenReady.current) pausedAfterReady.current = true;
+      return;
+    }
+    hasBeenReady.current = true;
+    if (pausedAfterReady.current) {
+      pausedAfterReady.current = false;
+      previousScene.current = scene;
+      handledHomeRequest.current = homeRequest;
+      return;
+    }
     const sceneChanged = previousScene.current !== scene;
     previousScene.current = scene;
     if (homeRequest !== handledHomeRequest.current && homeLocation) {
@@ -234,7 +247,7 @@ function PhotoPin({ item, selected, movable, onSelect, onMove }: {
       data-marker-motion={animateMarker}
       aria-label={item.originalFilename} aria-pressed={selected}
       data-movable={movable}
-      style={{ translate: `calc(22px + ${offset.x}px) calc(9.1127px + ${offset.y}px)` }}
+      style={{ translate: `${offset.x}px ${offset.y}px` }}
       onPointerDown={(event) => {
         suppressClick.current = false;
         if (!movable || !map || event.button !== 0 || !event.isPrimary) return;
@@ -439,7 +452,6 @@ function MapContent({
   const scenesRef = useRef<HTMLDetailsElement>(null);
   const appearanceRef = useRef<HTMLDetailsElement>(null);
   const [loaded, setLoaded] = useState(false);
-  const [initialViewReady, setInitialViewReady] = useState(false);
   const [failed, setFailed] = useState(false);
   const [navigationOpen, setNavigationOpen] = useState(false);
   const [mapStyle, setMapStyle] = useState<MapScene>("3d");
@@ -457,12 +469,6 @@ function MapContent({
     setHasInitialCenter(hasCenter);
     setInitialLocationResolved(true);
   }, []);
-  useEffect(() => {
-    if (loaded && !initialViewReady && (initialLocationResolved || cameraTarget?.location || homeRequest > 0)) {
-      mapRef.current?.getMap().triggerRepaint();
-    }
-  }, [loaded, initialViewReady, initialLocationResolved, cameraTarget?.location, homeRequest]);
-
   const styleUrl = mapStyle === "3d"
     ? "mapbox://styles/mapbox/standard"
     : "mapbox://styles/mapbox/streets-v12";
@@ -483,10 +489,10 @@ function MapContent({
       }
     };
 
-    document.addEventListener("pointerdown", closeOnOutsideClick);
+    document.addEventListener("pointerdown", closeOnOutsideClick, true);
     document.addEventListener("keydown", closeOnEscape);
     return () => {
-      document.removeEventListener("pointerdown", closeOnOutsideClick);
+      document.removeEventListener("pointerdown", closeOnOutsideClick, true);
       document.removeEventListener("keydown", closeOnEscape);
     };
   }, []);
@@ -510,7 +516,6 @@ function MapContent({
 
   return (
     <div className="locations__map map-controls" role="region" aria-label={t("Photo locations")}>
-      <MapLoadingOverlay ready={initialViewReady} className="locations__map-loading" />
       <Map
         style={{ minHeight: "inherit" }}
         ref={mapRef}
@@ -522,12 +527,10 @@ function MapContent({
         cursor={!navigationOpen && (editable || homePicking) ? "crosshair" : undefined}
         cooperativeGestures={false}
         onLoad={(event) => { event.target.setCooperativeGestures(false); setLoaded(true); }}
-        onIdle={() => {
-          if (initialLocationResolved || cameraTarget?.location || homeRequest > 0) setInitialViewReady(true);
-        }}
         onError={() => setFailed(true)}
         onClick={(event) => {
-          if (navigationOpen) return;
+          if (navigationOpen || scenesRef.current?.open || appearanceRef.current?.open
+            || document.querySelector('[role="dialog"], [role="alertdialog"], dialog[open]')) return;
           const place = findPlaceAt(event, mapStyle === "3d" ? "standard" : "classic");
           const point = event.lngLat.wrap();
           const location = place ?? { latitude: point.lat, longitude: point.lng };
@@ -597,6 +600,7 @@ function MapContent({
           <DraftMarker location={draft} onPick={onPick} />
         )}
       </Map>
+      <MapLoadingOverlay ready={loaded} className="map-loading-overlay" />
       <LocationSearch
         disabled={!loaded || navigationOpen}
         onFocus={() => {
@@ -627,7 +631,14 @@ function MapContent({
           <Home size={18} aria-hidden="true" />
         </button>
       </AnimateIcon>
-      <details ref={scenesRef} className="locations__scenes" aria-label={t("Map scenes")}>
+      <details ref={scenesRef} className="locations__scenes" aria-label={t("Map scenes")}
+        onPointerDown={(event) => event.stopPropagation()}
+        onClick={(event) => {
+          event.stopPropagation();
+          if (event.target instanceof Element && event.target.closest("summary")) return;
+          if (scenesRef.current) scenesRef.current.open = false;
+          if (appearanceRef.current) appearanceRef.current.open = false;
+        }}>
         <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
           <summary
             className="locations__scenes-title"
@@ -683,6 +694,13 @@ function MapContent({
         ref={appearanceRef}
         className="locations__scenes map-appearance-control"
         aria-label={t("Map appearance")}
+        onPointerDown={(event) => event.stopPropagation()}
+        onClick={(event) => {
+          event.stopPropagation();
+          if (event.target instanceof Element && event.target.closest("summary")) return;
+          if (scenesRef.current) scenesRef.current.open = false;
+          if (appearanceRef.current) appearanceRef.current.open = false;
+        }}
         onToggle={(event) => setAppearanceOpen(event.currentTarget.open)}
       >
         <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>

@@ -8,7 +8,7 @@ import { Download } from "@/components/animate-ui/icons/download";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
 import { X } from "@/components/animate-ui/icons/x";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
-import { ConfirmationDialog, ErrorState, Spinner, showToast } from "../../components/ui";
+import { ConfirmationDialog, EmptyState, ErrorState, Spinner, showToast } from "../../components/ui";
 import { PageTransition } from "../../components/layout/PageTransition";
 import { readPageTransitionEffect } from "../../utils/pageTransition";
 import { useLocale } from "../../context/LocaleContext";
@@ -153,7 +153,14 @@ export function AlbumsPage() {
           <PageTransition effect={pageTransition} transitionKey={scope}>
           {albums.isPending ? <Spinner label={t("Loading albums…")} /> : albums.isError ? (
             <ErrorState message={t("Could not load albums.")} onRetry={() => void albums.refetch()} />
-          ) : items.length === 0 ? null : (
+          ) : items.length === 0 ? (
+            <EmptyState
+              title={scope === "public" ? "No public albums yet" : "No albums yet"}
+              hint={scope === "public"
+                ? "Albums shared publicly will appear here."
+                : "Use New album to organize your media into collections."}
+            />
+          ) : (
             <div className="gallery-groups" aria-busy={albums.isFetching}>
               {dateGroups.map(([key, group]) => (
                 <section key={key} aria-label={dateFormatter.format(group.date)}>

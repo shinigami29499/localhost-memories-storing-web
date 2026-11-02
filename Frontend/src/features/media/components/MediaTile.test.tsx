@@ -6,14 +6,8 @@ import { MediaTile } from "./MediaTile";
 import { MediaRetryProvider } from "./MediaRetryProvider";
 import type { MediaFile } from "../types";
 
-const { useInView } = vi.hoisted(() => ({ useInView: vi.fn(() => true) }));
-vi.mock("motion/react", async (importOriginal) => ({
-  ...await importOriginal<typeof import("motion/react")>(),
-  useInView,
-}));
-
 vi.mock("../../../utils/media", () => ({
-  mediaPreviewUrl: (id: string, includeDeleted = false) => `/media/${id}?preview=true${includeDeleted ? "&includeDeleted=true" : ""}`,
+  mediaPreviewUrl: (id: string, includeDeleted = false, previewSize = 640) => `/media/${id}?preview=true${includeDeleted ? "&includeDeleted=true" : ""}${previewSize === 640 ? "" : `&previewSize=${previewSize}`}`,
 }));
 
 const image: MediaFile = {
@@ -40,7 +34,6 @@ describe("MediaTile", () => {
     })));
     vi.useFakeTimers();
     vi.clearAllMocks();
-    useInView.mockReturnValue(true);
     container = document.createElement("div");
     document.body.append(container);
     root = createRoot(container);
@@ -84,7 +77,7 @@ describe("MediaTile", () => {
   it("loads a still preview for video without requesting its original", () => {
     const button = render({ media: { ...image, mediaKind: "video" } });
     expect(button.querySelector("video")).toBeNull();
-    expect(button.querySelector("img")?.getAttribute("src")).toBe("/media/image?preview=true");
+    expect(button.querySelector("img")?.getAttribute("src")).toBe("/media/image?preview=true&previewSize=320");
     expect(button.querySelector(".media-tile__video")).toBeNull();
   });
 
@@ -178,38 +171,33 @@ describe("MediaTile", () => {
     expect(onOpen).not.toHaveBeenCalled();
   });
 
-  it("retries failed offscreen previews eagerly without remounting other offscreen media", async () => {
+  it("retries failed previews eagerly and keeps other preview elements mounted", async () => {
     const [first, loaded, clicked] = renderRetryGroup();
     await act(async () => {
       first.querySelector("img")!.dispatchEvent(new Event("error"));
       clicked.querySelector("img")!.dispatchEvent(new Event("error"));
     });
-    useInView.mockReturnValue(false);
     renderRetryGroup();
     click(clicked, 0);
     expect(clicked.querySelector("img")?.getAttribute("loading")).toBe("eager");
     await act(async () => clicked.querySelector("img")!.dispatchEvent(new Event("load")));
     expect(first.querySelector("img")?.getAttribute("loading")).toBe("eager");
-    expect(loaded.querySelector("img")).toBeNull();
+    expect(loaded.querySelector("img")).not.toBeNull();
     await act(async () => first.querySelector("img")!.dispatchEvent(new Event("load")));
   });
 
-  it.each(["image", "video"] as const)("unmounts offscreen %s previews and restores them on re-entry", (mediaKind) => {
+  it.each(["image", "video"] as const)("keeps offscreen %s previews mounted", (mediaKind) => {
     const media = { ...image, mediaKind };
-    useInView.mockReturnValue(false);
     const button = render({ media, selectionMode: true, selected: true });
-    expect(button.querySelectorAll("img, video")).toHaveLength(0);
+    expect(button.querySelectorAll("img, video")).toHaveLength(1);
     expect(button.getAttribute("aria-pressed")).toBe("true");
     expect(button.querySelector(".media-tile__selection")).not.toBeNull();
 
-    useInView.mockReturnValue(true);
+    render({ media, selectionMode: true, selected: true });
+    expect(button.querySelector("img")?.getAttribute("src")).toBe("/media/image?preview=true&previewSize=320");
+
     render({ media, selectionMode: true, selected: true });
     expect(button.querySelectorAll("img, video")).toHaveLength(1);
-    expect(button.querySelector("img")?.getAttribute("src")).toBe("/media/image?preview=true");
-
-    useInView.mockReturnValue(false);
-    render({ media, selectionMode: true, selected: true });
-    expect(button.querySelectorAll("img, video")).toHaveLength(0);
     expect(button.getAttribute("aria-pressed")).toBe("true");
   });
 

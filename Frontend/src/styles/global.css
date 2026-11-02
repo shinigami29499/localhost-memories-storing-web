@@ -1852,9 +1852,7 @@ textarea::placeholder {
 }
 
 .media-lightbox::backdrop {
-  background: var(--overlay-backdrop);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: #0f0f0f;
 }
 
 .media-lightbox > .media-carousel {
@@ -2569,4 +2567,8 @@ textarea::placeholder {
 .error-page__actions .btn--secondary {
   border-color: transparent;
   box-shadow: var(--shadow-popover);
+}
+
+:is(:disabled, [aria-disabled="true"], [data-disabled], [data-state="disabled"]) svg {
+  color: var(--text-muted) !important;
 }

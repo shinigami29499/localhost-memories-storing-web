@@ -320,8 +320,13 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
               <PageTransition effect={pageTransition} transitionKey={mediaKind}>
               {media.isPending ? <Spinner label={t("Loading media…")} /> : media.isError && items.length === 0 ? (
                 <ErrorState message={t("Could not load media.")} onRetry={() => void media.refetch()} />
-              ) : items.length === 0 && mediaKind === "video" ? null : items.length === 0 ? (
-                null
+              ) : items.length === 0 ? (
+                <EmptyState
+                  title={mediaKind === "video" ? "No videos in this album" : "No images in this album"}
+                  hint={mediaKind === "video"
+                    ? "Videos added to this album will appear here."
+                    : "Images added to this album will appear here."}
+                />
               ) : (
                 <MediaRetryProvider key={mediaKind} order={dateGroups.flatMap(([, group]) => group.items.map((item) => item.id))}>
                   <div className="gallery-groups" aria-busy={media.isFetching}>

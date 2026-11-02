@@ -18,8 +18,8 @@ export function mediaUrl(mediaId: string, includeDeleted = false): string {
   return `${base}/api/library/gallery/${mediaId}/file?accessToken=${encodeURIComponent(token)}${includeDeleted ? "&includeDeleted=true" : ""}`;
 }
 
-export function mediaPreviewUrl(mediaId: string, includeDeleted = false): string {
-  return `${mediaUrl(mediaId, includeDeleted)}&preview=true`;
+export function mediaPreviewUrl(mediaId: string, includeDeleted = false, previewSize = 640): string {
+  return `${mediaUrl(mediaId, includeDeleted)}&preview=true${previewSize === 640 ? "" : `&previewSize=${previewSize}`}`;
 }
 
 export function formatTimestamp(iso: string, language: "en" | "vi" = "en"): string {

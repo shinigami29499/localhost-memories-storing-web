@@ -15,6 +15,7 @@ vi.mock("../../downloads/services/downloadQueue", async (importOriginal) => ({
 const state = vi.hoisted(() => ({
   selected: 0,
   select: undefined as (() => void) | undefined,
+  settle: undefined as (() => void) | undefined,
 }));
 
 vi.mock("@animate-ui/react/primitives/carousel", () => {
@@ -22,10 +23,11 @@ vi.mock("@animate-ui/react/primitives/carousel", () => {
     selectedScrollSnap: () => state.selected,
     scrollSnapList: () => [0, 1, 2],
     scrollTo: (index: number) => { state.selected = index; },
-    scrollNext: () => { state.selected++; state.select?.(); },
-    scrollPrev: () => { state.selected--; state.select?.(); },
+    scrollNext: () => { state.selected++; state.select?.(); state.settle?.(); },
+    scrollPrev: () => { state.selected--; state.select?.(); state.settle?.(); },
     on(name: string, listener: () => void) {
       if (name === "select") state.select = listener;
+      if (name === "settle") state.settle = listener;
       return this;
     },
     off() { return this; },
@@ -68,6 +70,7 @@ describe("MediaPreviewDialog resolution loading", () => {
     vi.mocked(enqueueDownloads).mockClear();
     state.selected = 0;
     state.select = undefined;
+    state.settle = undefined;
     vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
     vi.stubGlobal("SVGGeometryElement", class extends SVGElement {});
     vi.stubGlobal("IntersectionObserver", class { observe() {} unobserve() {} disconnect() {} });
@@ -116,9 +119,9 @@ describe("MediaPreviewDialog resolution loading", () => {
     ));
   }
 
-  it.each([false, true])("loads exactly one original and switches it on navigation (trash=%s)", (includeDeleted) => {
+  it.each([false, true])("keeps previews visible while active originals load (trash=%s)", (includeDeleted) => {
     render(includeDeleted);
-    expect(sources().map((url) => url.searchParams.has("preview"))).toEqual([false, true, true]);
+    expect(sources().map((url) => url.searchParams.has("preview"))).toEqual([true, true, true]);
     expect(container.querySelector("video")).toBeNull();
     expect(sources().every((url) => url.searchParams.has("includeDeleted") === includeDeleted)).toBe(true);
 
@@ -128,7 +131,7 @@ describe("MediaPreviewDialog resolution loading", () => {
     expect(container.querySelector("video")?.controls).toBe(true);
 
     navigate("ArrowRight");
-    expect(sources().map((url) => url.searchParams.has("preview"))).toEqual([true, true, false]);
+    expect(sources().map((url) => url.searchParams.has("preview"))).toEqual([true, true, true]);
     expect(container.querySelector("video")).toBeNull();
   });
 

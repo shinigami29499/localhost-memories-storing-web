@@ -1,6 +1,7 @@
 import { useState, type CSSProperties } from "react";
 import { Button, Input } from "../../../components/ui";
 import { UploadIcon } from "../../../components/animate-ui/icons/upload";
+import { Plus } from "../../../components/animate-ui/icons/plus";
 import { useLocale } from "../../../context/LocaleContext";
 import { PlaceMarkerCombobox } from "./PlaceMarkerCombobox";
 import { PhotoPicker } from "../../media/components/PhotoPicker";
@@ -117,7 +118,7 @@ export function PlaceEditor({
       <div className="place__form-actions">
         <div className="place__form-actions-primary">
           <Button type="submit" className="place__save-action" busy={saving} disabled={!coordinate || busy}>
-            {t(isNew ? "Save place" : "Save changes")}
+            {isNew ? <><Plus size={18} aria-hidden="true" />{t("Add")}</> : t("Save changes")}
           </Button>
           <Button type="button" className="place__cancel-action" variant="danger" disabled={busy} onClick={onCancel}>
             {t("Cancel")}

@@ -114,6 +114,15 @@ public sealed class MediaRepository(ApplicationDbContext db) : IMediaRepository
     public Task<bool> MediaExistsAsync(Guid mediaId, CancellationToken cancellationToken = default)
         => db.MediaFiles.AnyAsync(media => media.Id == mediaId && !media.IsPreviewOnly, cancellationToken);
 
+    public async Task<IReadOnlyList<(Guid Id, Guid OwnerId, DateTime? UpdatedAt, bool IsDeleted)>> GetMediaChangesAsync(
+        DateTime? since, Guid viewerId, bool isAdmin, CancellationToken cancellationToken = default)
+        => await db.MediaFiles.IgnoreQueryFilters().AsNoTracking()
+            .Where(media => !media.IsPreviewOnly && (isAdmin || media.OwnerId == viewerId)
+                && (since == null || media.UpdatedAt > since))
+            .OrderBy(media => media.UpdatedAt).ThenBy(media => media.Id)
+            .Select(media => new ValueTuple<Guid, Guid, DateTime?, bool>(media.Id, media.OwnerId, media.UpdatedAt, media.IsDeleted))
+            .ToListAsync(cancellationToken);
+
     public async Task<IReadOnlyCollection<Guid>> GetFavoritedMediaIdsAsync(
         Guid userId, IReadOnlyCollection<Guid> mediaIds, CancellationToken cancellationToken = default)
         => await db.MediaFavorites.AsNoTracking()

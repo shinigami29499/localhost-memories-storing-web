@@ -25,12 +25,12 @@ public partial class MediaService(
 
     public async Task<MediaFileContent> GetMediaFileAsync(
         Guid mediaId, bool includeDeleted, CancellationToken cancellationToken = default, bool preview = false,
-        Guid? viewerId = null)
-        => await GetMediaFileAsync(mediaId, includeDeleted, isAdmin: false, cancellationToken, preview, viewerId);
+        Guid? viewerId = null, int previewSize = 640)
+        => await GetMediaFileAsync(mediaId, includeDeleted, isAdmin: false, cancellationToken, preview, viewerId, previewSize);
 
     public async Task<MediaFileContent> GetMediaFileAsync(
         Guid mediaId, bool includeDeleted, bool isAdmin, CancellationToken cancellationToken = default,
-        bool preview = false, Guid? viewerId = null)
+        bool preview = false, Guid? viewerId = null, int previewSize = 640)
     {
         var media = includeDeleted
             ? await _repository.FindMediaIncludingDeletedAsync(mediaId, cancellationToken)
@@ -54,7 +54,7 @@ public partial class MediaService(
 
         if (preview)
         {
-            var previewStream = await _storage.OpenPreviewAsync(relativePath, cancellationToken);
+            var previewStream = await _storage.OpenPreviewAsync(relativePath, previewSize, cancellationToken);
             return new MediaFileContent(
                 previewStream, "image/jpeg", $"{Path.GetFileNameWithoutExtension(media.OriginalFilename)}.preview.jpg");
         }
@@ -67,7 +67,8 @@ public partial class MediaService(
     {
         var media = await _repository.FindMediaIncludingDeletedAsync(mediaId, cancellationToken);
         return media is null ? null : new MediaFileDto(media.Id, media.MediaKind, media.MimeType,
-            media.OriginalFilename, media.FileSizeBytes, media.CreatedAt, false, media.OwnerId);
+            media.OriginalFilename, media.FileSizeBytes, media.CreatedAt, false, media.OwnerId,
+            UpdatedAt: media.UpdatedAt);
     }
 
     public async Task DeleteMediaAsync(Guid mediaId, Guid actorId, bool isAdmin, CancellationToken cancellationToken = default)
@@ -235,6 +236,15 @@ public partial class MediaService(
             {
                 OwnerUsername = item.OwnerUsername,
             }).ToList());
+    }
+
+    public async Task<MediaChangesResponse> GetMediaChangesAsync(
+        Guid viewerId, bool isAdmin, DateTime? since, CancellationToken cancellationToken = default)
+    {
+        var checkedAt = DateTime.UtcNow;
+        var changes = await _repository.GetMediaChangesAsync(since, viewerId, isAdmin, cancellationToken);
+        return new MediaChangesResponse(checkedAt, changes.Select(item =>
+            new MediaChange(item.Id, item.UpdatedAt, item.IsDeleted)).ToArray());
     }
 
     public async Task SetMediaFavoriteAsync(

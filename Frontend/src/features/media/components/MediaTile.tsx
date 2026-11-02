@@ -19,20 +19,24 @@ interface Props {
   selected: boolean;
   favoriteDisabled?: boolean;
   includeDeleted?: boolean;
+  preload?: boolean;
   onSelect: (mediaId: string) => void;
   onOpen: (mediaId: string) => void;
   onFavorite?: (mediaId: string) => void;
 }
 
 export function MediaTile({
-  media, selectionMode, selectionEnabled = true, selectionDragEnabled = false, selected, favoriteDisabled, includeDeleted = false, onSelect, onOpen, onFavorite,
+  media, selectionMode, selectionEnabled = true, selectionDragEnabled = false, selected, favoriteDisabled, includeDeleted = false, preload = false, onSelect, onOpen, onFavorite,
 }: Props) {
   const { t } = useLocale();
+  const tileRef = useRef<HTMLButtonElement>(null);
+  const inView = useInView(tileRef, { margin: "200px 0px" });
   const retryGroup = useMediaRetry();
   const registerRetry = retryGroup?.register;
   const [failed, setFailed] = useState(false);
   const [retrying, setRetrying] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  const previewUrl = `${mediaPreviewUrl(media.id, includeDeleted)}${attempt ? `&previewRetry=${attempt}` : ""}`;
   const failedRef = useRef(false);
   const pendingRetry = useRef<(() => void) | null>(null);
   const finishPreview = useCallback((hasFailed: boolean) => {
@@ -63,10 +67,6 @@ export function MediaTile({
     const timeout = setTimeout(() => finishPreview(true), 30000);
     return () => clearTimeout(timeout);
   }, [retrying, finishPreview]);
-  const url = mediaPreviewUrl(media.id, includeDeleted);
-  const previewUrl = `${url}${attempt ? `${url.includes("?") ? "&" : "?"}previewRetry=${attempt}` : ""}`;
-  const tileRef = useRef<HTMLButtonElement>(null);
-  const inView = useInView(tileRef, { margin: "200px 0px" });
   const isSelecting = selectionEnabled && selectionMode;
   const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -198,8 +198,8 @@ export function MediaTile({
         </span>
       ) : null}
       <span className="media-tile__motion">
-        {failed || (!inView && !retrying) ? null : (
-          <img key={attempt} className="media-tile__preview" src={previewUrl} onLoad={() => finishPreview(false)} onError={() => finishPreview(true)} alt="" loading={retrying ? "eager" : "lazy"} decoding="async" draggable={false} />
+        {failed || (!inView && !retrying && !preload) ? null : (
+          <img key={attempt} className="media-tile__preview" src={previewUrl} onLoad={() => finishPreview(false)} onError={() => finishPreview(true)} alt="" loading={retrying || preload ? "eager" : "lazy"} decoding="async" draggable={false} />
         )}
       </span>
       {media.mediaKind === "video" && !failed && !retrying ? (

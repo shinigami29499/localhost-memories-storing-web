@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { Bookmark } from "@/components/animate-ui/icons/bookmark";
 import { Camera } from "@/components/animate-ui/icons/camera";
@@ -35,6 +36,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps) {
+  const queryClient = useQueryClient();
   const { t } = useLocale();
   const uploadCounts = useUnreadUploads();
   const downloadCounts = useUnreadDownloads();
@@ -115,6 +117,7 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
       // logout is best-effort
     } finally {
       sessionStorage.setItem("shinigacim-logout-toast", "1");
+      queryClient.clear();
       clear();
       navigate("/login", { replace: true });
     }

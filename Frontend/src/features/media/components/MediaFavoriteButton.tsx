@@ -5,6 +5,7 @@ import { useShouldReduceMotion } from "@animate-ui/react/utils/motion";
 import { Heart } from "@/components/animate-ui/icons/heart";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import { useLocale } from "@/context/LocaleContext";
+import { useAnimationStore } from "@/store/animationStore";
 
 interface Props {
   isFavorited: boolean;
@@ -14,11 +15,12 @@ interface Props {
 
 export function MediaFavoriteButton({ isFavorited, busy, onToggle }: Props) {
   const { t } = useLocale();
+  const iconsEnabled = useAnimationStore((state) => state.iconsEnabled);
   const reduceMotion = useShouldReduceMotion();
   const previousFavorite = useRef(isFavorited);
   const [burst, setBurst] = useState(0);
   const label = t(isFavorited ? "Remove from favorites" : "Add to favorites");
-  const animateFavorite = burst > 0 && isFavorited && !reduceMotion;
+  const animateFavorite = burst > 0 && isFavorited && iconsEnabled && !reduceMotion;
 
   useEffect(() => {
     if (busy) return;
@@ -44,7 +46,7 @@ export function MediaFavoriteButton({ isFavorited, busy, onToggle }: Props) {
           initial={false}
           animate={{ scale: animateFavorite ? [1, 1.3, 1] : 1 }}
           transition={{
-            duration: reduceMotion ? 0 : 0.4,
+            duration: reduceMotion || !iconsEnabled ? 0 : 0.4,
             times: [0, 0.4, 1],
             ease: ["easeOut", [0.34, 1.56, 0.64, 1]],
           }}

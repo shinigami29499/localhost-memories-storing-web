@@ -120,7 +120,7 @@ describe("UploadManagementPage", () => {
       </QueryClientProvider>,
     ));
 
-    await vi.waitFor(() => expect(container.textContent).toContain("No upload batches"));
+    await vi.waitFor(() => expect(container.textContent).toContain("No uploads yet"));
     const file = new File(["image bytes"], "photo.png", { type: "image/png" });
     const input = container.querySelector<HTMLInputElement>("#upload-media-files")!;
     const upload = Array.from(container.querySelectorAll("button")).find((button) => button.textContent === "Upload media")!;
@@ -222,7 +222,7 @@ describe("UploadManagementPage", () => {
       dateInput.dispatchEvent(new Event("change", { bubbles: true }));
     });
     await act(async () => {
-      await vi.waitFor(() => expect(container.textContent).toContain("No upload batches"));
+      await vi.waitFor(() => expect(container.textContent).toContain("No uploads yet"));
     });
     expect(dateInput.value).toBe("");
     expect(list).toHaveBeenLastCalledWith(0, 10, undefined);

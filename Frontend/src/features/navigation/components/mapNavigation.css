@@ -26,12 +26,15 @@
   border-radius: 999px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
   color: #f5f5f5;
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
 }
 
 .map-navigation__toolbar > .btn {
   color: inherit;
   border-radius: 0;
-  font-size: 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.2;
   min-height: 48px;
   padding-block: 0;
   transition: color 0.15s ease, opacity 0.15s ease, scale 140ms ease-out;
@@ -55,8 +58,17 @@
 .map-navigation[data-expanded="false"] {
   position: fixed;
   bottom: calc(28px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
-  left: calc(50% + (var(--sidebar-width) - 16px) / 2);
+  left: calc((100vw + var(--sidebar-width, 0px)) / 2);
   transform: translateX(-50%);
+  transition: left var(--animate-ui-sidebar-duration, 300ms) var(--animate-ui-sidebar-easing, ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-navigation[data-expanded="false"] { transition: none; }
+}
+
+@media (max-width: 640px) {
+  .map-navigation[data-expanded="false"] { left: 50%; }
 }
 
 .map-navigation[data-expanded="true"] {
@@ -182,10 +194,6 @@
   border: 3px solid #ffffff;
   border-radius: 50% 50% 50% 0;
   transform: rotate(-45deg);
-}
-
-.map-controls:has(.map-navigation[data-expanded="true"]) :is(.place__popup, .locations__popup) {
-  display: none;
 }
 
 :is(.place, .locations) :is(.place__map-panel, .locations__map-panel):has(.map-navigation--fallback) {

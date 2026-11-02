@@ -14,10 +14,10 @@ public interface IMediaService
         Guid actorId, bool isAdmin, int offset, CancellationToken cancellationToken = default);
     Task<MediaFileContent> GetMediaFileAsync(
         Guid mediaId, bool includeDeleted, CancellationToken cancellationToken = default, bool preview = false,
-        Guid? viewerId = null);
+        Guid? viewerId = null, int previewSize = 640);
     Task<MediaFileContent> GetMediaFileAsync(
         Guid mediaId, bool includeDeleted, bool isAdmin, CancellationToken cancellationToken = default,
-        bool preview = false, Guid? viewerId = null);
+        bool preview = false, Guid? viewerId = null, int previewSize = 640);
     Task DeleteMediaAsync(Guid mediaId, Guid actorId, bool isAdmin, CancellationToken cancellationToken = default);
     Task RestoreMediaAsync(Guid mediaId, Guid actorId, bool isAdmin, CancellationToken cancellationToken = default);
     Task PermanentlyDeleteMediaAsync(
@@ -25,6 +25,8 @@ public interface IMediaService
     Task<PagedMediaResponse<MediaFileDto>> GetMediaPageAsync(
         Guid viewerId, int offset, int limit, string? mediaKind, bool favoritesOnly, bool includeDeleted,
         CancellationToken cancellationToken = default);
+    Task<MediaChangesResponse> GetMediaChangesAsync(
+        Guid viewerId, bool isAdmin, DateTime? since, CancellationToken cancellationToken = default);
     Task SetMediaFavoriteAsync(
         Guid mediaId, Guid userId, bool isFavorite, CancellationToken cancellationToken = default);
 }

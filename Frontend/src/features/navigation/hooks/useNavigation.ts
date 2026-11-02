@@ -51,14 +51,19 @@ export function useNavigation(
   const [locating, setLocating] = useState(false);
   const [gpsUnreliable, setGpsUnreliable] = useState(false);
   const [usingHomeOrigin, setUsingHomeOrigin] = useState(false);
+  const modeRef = useRef(mode);
   const request = useRef(0);
   const controller = useRef<AbortController | null>(null);
   const lastReroute = useRef(0);
   const mounted = useRef(true);
   const routing = useMutation({ mutationFn: getRoute, gcTime: 0, retry: false });
 
-  async function getRoute({ origin, signal }: { origin: Coordinate; signal: AbortSignal }) {
-    return getDirections(origin, destination, mode, token, language, signal);
+  async function getRoute({ origin, signal, travelMode }: {
+    origin: Coordinate;
+    signal: AbortSignal;
+    travelMode: TravelMode;
+  }) {
+    return getDirections(origin, destination, travelMode, token, language, signal);
   }
 
   useEffect(() => {
@@ -78,14 +83,19 @@ export function useNavigation(
     setLocating(false);
   };
 
-  const loadRoute = async (origin: Coordinate, id: number, rerouting: boolean) => {
+  const loadRoute = async (
+    origin: Coordinate,
+    id: number,
+    rerouting: boolean,
+    travelMode: TravelMode = modeRef.current,
+  ) => {
     const abort = new AbortController();
     controller.current = abort;
     let timedOut = false;
     const timer = window.setTimeout(() => { timedOut = true; abort.abort(); }, 15000);
     setLoading(true);
     try {
-      const next = await routing.mutateAsync({ origin, signal: abort.signal });
+      const next = await routing.mutateAsync({ origin, signal: abort.signal, travelMode });
       if (!mounted.current || request.current !== id) return;
       setRoute(next);
       setArrived(false);
@@ -201,7 +211,16 @@ export function useNavigation(
 
   return {
     mode,
-    setMode: (next: TravelMode) => { reset(); setMode(next); },
+    setMode: (next: TravelMode) => {
+      if (modeRef.current === next) return;
+      modeRef.current = next;
+      setMode(next);
+      if (locating && !position) return;
+      const origin = position ?? (usingHomeOrigin ? homeLocation ?? null : null);
+      if (!origin || (!route && !loading && !error)) return;
+      cancelRequest();
+      void loadRoute(origin, request.current, false, next);
+    },
     route,
     position,
     loading,

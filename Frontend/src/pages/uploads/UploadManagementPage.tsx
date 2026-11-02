@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pagination, DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS } from "../../components/ui/Pagination";
-import { ErrorState, Spinner } from "../../components/ui/Status";
+import { EmptyState, ErrorState, Spinner } from "../../components/ui/Status";
 import { Button, DatePicker, showToast } from "../../components/ui";
 import { AnimateIcon } from "../../components/animate-ui/icons/icon";
 import { ChartColumnIcon } from "../../components/animate-ui/icons/chart-column";
@@ -301,7 +301,12 @@ export function UploadManagementPage() {
         {query.isPending ? <Spinner label="Loading uploads…" /> : query.isError && !query.data ? (
           <ErrorState message="Could not load uploads." onRetry={() => void query.refetch()} />
         ) : batches.length === 0 ? (
-          null
+          <EmptyState
+            title={selectedDate ? "No uploads on this date" : "No uploads yet"}
+            hint={selectedDate
+              ? "Choose another date or clear the filter to see other uploads."
+              : "Choose files above and upload them to create your first batch."}
+          />
         ) : (
           <div className="upload-list" aria-live="polite">
             {batches.map((batch, index) => (

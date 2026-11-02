@@ -13,17 +13,24 @@
 
 :is(.place, .locations) .map-controls > .mapboxgl-map {
   position: relative;
+  z-index: 0;
+}
+
+.map-loading-overlay {
+  align-items: center;
+  background: #1c1f23;
+  border-radius: inherit;
+  display: grid;
+  inset: 0;
+  place-items: center;
+  position: absolute;
+  z-index: 50;
 }
 
 @keyframes map-marker-squash {
   0%, 100% { scale: 1; }
   33% { scale: 1.08 0.85; }
   67% { scale: 0.97 1.04; }
-}
-
-:is(.place__pin, .locations__pin):not(.place__pin--draft):not(.locations__pin--draft) {
-  transform-origin: 0 100%;
-  translate: 22px 9.1127px;
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -367,6 +374,33 @@
   background: #30343a;
 }
 
+.place .map-controls .place__add-marker-control {
+  align-items: center;
+  bottom: auto;
+  display: inline-flex;
+  justify-content: center;
+  position: absolute;
+  left: 8px;
+  right: auto;
+  top: 128px;
+  width: 54px;
+  height: 54px;
+  padding: 0;
+  z-index: 5;
+  background: #1c1f23;
+  border: 0;
+  border-radius: var(--radius);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  color: #dedede;
+  cursor: pointer;
+}
+
+.place .map-controls .place__add-marker-control:is(:hover, :active):not(:disabled) {
+  background: #30343a;
+}
+
+.place .map-controls .place__map-home-control { top: 188px; }
+
 :is(.place, .locations) .home-location-marker {
   height: 54px;
   position: relative;
@@ -469,23 +503,24 @@
 }
 
 @media (max-width: 640px) {
-  :is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes, .place__location-search, .place__map-home-control, .locations__map-home-control, .mapboxgl-ctrl-group:has(.mapboxgl-ctrl-geolocate)) {
+  :is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes, .place__location-search, .place__map-home-control, .locations__map-home-control, .place__add-marker-control, .mapboxgl-ctrl-group:has(.mapboxgl-ctrl-geolocate)) {
     transition: opacity 180ms ease, visibility 180ms ease;
   }
-  :is(.place, .locations) .map-controls:has(:is(.place__marker, .locations__marker)[data-selected="true"]) :is(.place__scenes, .locations__scenes, .place__location-search, .place__map-home-control, .locations__map-home-control, .mapboxgl-ctrl-group:has(.mapboxgl-ctrl-geolocate)) {
+  :is(.place, .locations) .map-controls:has(:is(.place__marker, .locations__marker)[data-selected="true"]) :is(.place__scenes, .locations__scenes, .place__location-search, .place__map-home-control, .locations__map-home-control, .place__add-marker-control, .mapboxgl-ctrl-group:has(.mapboxgl-ctrl-geolocate)) {
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
   }
   @media (prefers-reduced-motion: reduce) {
-    :is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes, .place__location-search, .place__map-home-control, .locations__map-home-control, .mapboxgl-ctrl-group:has(.mapboxgl-ctrl-geolocate)) { transition: none; }
+    :is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes, .place__location-search, .place__map-home-control, .locations__map-home-control, .place__add-marker-control, .mapboxgl-ctrl-group:has(.mapboxgl-ctrl-geolocate)) { transition: none; }
   }
-  :is(.place, .locations) .home-location-marker::before { bottom: -7px; left: 16px; height: 9px; }
+  :is(.place, .locations) .home-location-marker::before { bottom: -6px; left: 12px; height: 9px; }
   :is(.place, .locations) .home-location-marker :is(.place__home-pin, .locations__home-pin) {
     width: 40px;
     height: 40px;
-    left: 4px;
-    top: 6px;
+    left: 0;
+    top: 0;
+    translate: 22px 14px;
   }
   :is(.place, .locations) .map-controls .mapboxgl-ctrl-group .mapboxgl-ctrl-geolocate {
     width: 44px;
@@ -513,6 +548,9 @@
     width: 44px;
     height: 44px;
   }
+
+  .place .map-controls .place__add-marker-control { top: 108px; width: 44px; height: 44px; }
+  .place .map-controls .place__map-home-control { top: 158px; }
 
   :is(.place, .locations) .map-controls :is(.place__scenes-title, .locations__scenes-title) {
     grid-template-columns: 34px minmax(0, 1fr) 16px;

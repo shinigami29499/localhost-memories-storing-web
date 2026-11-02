@@ -11,6 +11,7 @@ import { Settings } from "../../../components/animate-ui/icons/settings";
 import { ChevronDown } from "../../../components/animate-ui/icons/chevron-down";
 import { SlidersHorizontal } from "../../../components/animate-ui/icons/sliders-horizontal";
 import { Key } from "../../../components/animate-ui/icons/key";
+import { Plus } from "../../../components/animate-ui/icons/plus";
 import { useLocale } from "../../../context/LocaleContext";
 import { useMediaQuery } from "../../../hooks/useMediaQuery";
 import { useAnimationStore } from "../../../store/animationStore";
@@ -46,8 +47,6 @@ interface Props {
   selectedId: string | null;
   focusZoom?: boolean;
   draft: PlaceCoordinate | null;
-  draftIcon: string;
-  draftColor: string;
   picking: boolean;
   homeLocation: HomeLocation | null;
   homeLocationReady: boolean;
@@ -58,8 +57,11 @@ interface Props {
   onDelete: (place: Place) => void;
   onSelect: (place: Place) => void;
   onEdit: (place: Place) => void;
+  onEditDraft: () => void;
   onCancelSelection: () => void;
+  onCancelDraft: () => void;
   onPickHome: (coordinate: HomeLocation) => void;
+  onCreateAtCurrentLocation: (coordinate: PlaceCoordinate) => void;
   onHomeClick: () => void;
   /** `placeName` is set when the click snapped to a basemap place label. */
   onPick: (coordinate: PlaceCoordinate, placeName?: string, source?: "search") => void;
@@ -192,8 +194,21 @@ function MapCameraScene({ scene, selected, ready, homeLocation, homeRequest, foc
   const { current: map } = useMap();
   const handledHomeRequest = useRef(homeRequest);
   const previousScene = useRef(scene);
+  const hasBeenReady = useRef(false);
+  const pausedAfterReady = useRef(false);
   useEffect(() => {
-    if (!map || !ready) return;
+    if (!map) return;
+    if (!ready) {
+      if (hasBeenReady.current) pausedAfterReady.current = true;
+      return;
+    }
+    hasBeenReady.current = true;
+    if (pausedAfterReady.current) {
+      pausedAfterReady.current = false;
+      previousScene.current = scene;
+      handledHomeRequest.current = homeRequest;
+      return;
+    }
     const sceneChanged = previousScene.current !== scene;
     previousScene.current = scene;
     if (homeRequest !== handledHomeRequest.current && homeLocation) {
@@ -512,10 +527,10 @@ function PlaceMarkers({ places, selectedId, ready, onSelect, canChange, onMove, 
 }
 
 function MapContent({
-  places, selectedId, focusZoom, draft, draftIcon, draftColor, picking, homeLocation,
+  places, selectedId, focusZoom, draft, picking, homeLocation,
   homeLocationReady, homePicking, homeActionDisabled, onSelect, onPick, onPickHome,
-  onHomeClick, token,
-  canChange, onMove, onDelete, onEdit, onCancelSelection,
+  onHomeClick, onCreateAtCurrentLocation, token,
+  canChange, onMove, onDelete, onEdit, onEditDraft, onCancelSelection, onCancelDraft,
 }: Props & { token: string }) {
   const { t } = useLocale();
   const shouldReduceMotion = useShouldReduceMotion();
@@ -523,7 +538,6 @@ function MapContent({
   const scenesRef = useRef<HTMLDetailsElement>(null);
   const appearanceRef = useRef<HTMLDetailsElement>(null);
   const [loaded, setLoaded] = useState(false);
-  const [initialViewReady, setInitialViewReady] = useState(false);
   const [failed, setFailed] = useState(false);
   const [navigationOpen, setNavigationOpen] = useState(false);
   const [initialLocationResolved, setInitialLocationResolved] = useState(false);
@@ -545,14 +559,6 @@ function MapContent({
   );
 
   useEffect(() => {
-    if (!loaded || initialViewReady || !(initialLocationResolved || selected || homeRequest > 0)) return;
-    const frame = requestAnimationFrame(() => {
-      if (mapRef.current?.getMap().loaded()) setInitialViewReady(true);
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [loaded, initialViewReady, initialLocationResolved, selected, homeRequest]);
-
-  useEffect(() => {
     const closeOnOutsideClick = (event: PointerEvent) => {
       if (!(event.target instanceof Node)) return;
       if (scenesRef.current?.contains(event.target) || appearanceRef.current?.contains(event.target)) return;
@@ -568,10 +574,10 @@ function MapContent({
       }
     };
 
-    document.addEventListener("pointerdown", closeOnOutsideClick);
+    document.addEventListener("pointerdown", closeOnOutsideClick, true);
     document.addEventListener("keydown", closeOnEscape);
     return () => {
-      document.removeEventListener("pointerdown", closeOnOutsideClick);
+      document.removeEventListener("pointerdown", closeOnOutsideClick, true);
       document.removeEventListener("keydown", closeOnEscape);
     };
   }, []);
@@ -595,7 +601,6 @@ function MapContent({
 
   return (
     <div className="place__map map-controls" role="region" aria-label={t("Places map")}>
-      <MapLoadingOverlay ready={initialViewReady} className="place__map-loading" />
       <Map
         style={{ minHeight: "inherit" }}
         ref={mapRef}
@@ -607,12 +612,10 @@ function MapContent({
         cursor={picking || homePicking ? "crosshair" : undefined}
         cooperativeGestures={false}
         onLoad={(event) => { event.target.setCooperativeGestures(false); setLoaded(true); }}
-        onIdle={() => {
-          if (initialLocationResolved || selected || homeRequest > 0) setInitialViewReady(true);
-        }}
         onError={() => setFailed(true)}
         onClick={(event) => {
-          if (navigationOpen) return;
+          if (navigationOpen || scenesRef.current?.open || appearanceRef.current?.open
+            || document.querySelector('[role="dialog"], [role="alertdialog"], dialog[open]')) return;
           const place = findPlaceAt(event, scene === "3d" ? "standard" : "classic");
           const point = place
             ? { latitude: place.latitude, longitude: place.longitude }
@@ -667,12 +670,19 @@ function MapContent({
         <MapCameraScene scene={scene} selected={selected} ready={loaded && !navigationOpen}
           homeLocation={homeLocation} homeRequest={homeRequest} focusRequest={focusRequest} />
         <MapResizer />
-        {loaded && selected && !picking && !homePicking && (
-          <MapNavigation destination={{ latitude: selected.latitude, longitude: selected.longitude, name: selected.name }}
+        {loaded && !homePicking && (selected && !picking || !selected && picking && draft) && (
+          <MapNavigation destination={selected
+            ? { latitude: selected.latitude, longitude: selected.longitude, name: selected.name }
+            : { ...draft!, name: t("New place") }}
             accessToken={token} homeLocation={homeLocation} onOpenChange={setNavigationOpen}
-            onEdit={canChange(selected) ? () => onEdit(selected) : undefined} onCancel={onCancelSelection} />
+            onEdit={selected
+              ? canChange(selected) ? () => onEdit(selected) : undefined
+              : onEditDraft}
+            editAction={selected ? "edit" : "add"}
+            onCancel={selected ? onCancelSelection : onCancelDraft} />
         )}
-        {(!loaded || !selected || picking || homePicking) && <DisabledNavigationToolbar />}
+        {(!loaded || homePicking || (picking && (!!selected || !draft)) || (!selected && !draft))
+          && <DisabledNavigationToolbar />}
         {homeLocation && (
           <HomeLocationMarker location={homeLocation} variant="place" onHoverChange={onHomeHoverChange} onClick={() => {
             mapRef.current?.easeTo({
@@ -699,23 +709,26 @@ function MapContent({
             anchor="bottom"
             draggable={picking}
             style={{ zIndex: 3 }}
-            onClick={(event) => event.originalEvent.stopPropagation()}
+            onClick={(event) => {
+              event.originalEvent.stopPropagation();
+              if (picking) onCancelDraft();
+            }}
             onDragEnd={(event) => {
               const point = event.lngLat.wrap();
               onPick({ latitude: point.lat, longitude: point.lng });
             }}
           >
-            <span
-              className="place__pin place__pin--draft"
-              style={{ "--marker-color": draftColor } as CSSProperties}
-              title={t("Drag to adjust this place")}
+            <div
+              className="place__marker place__marker--draft"
+              role="img"
               aria-label={t("Drag to adjust this place")}
             >
-              <span aria-hidden="true">{draftIcon}</span>
-            </span>
+              <span className="place__pin place__pin--draft" aria-hidden="true" />
+            </div>
           </Marker>
         )}
       </Map>
+      <MapLoadingOverlay ready={loaded} className="map-loading-overlay" />
       <LocationSearch
         disabled={!loaded || navigationOpen}
         onFocus={() => {
@@ -726,6 +739,33 @@ function MapContent({
         }}
         onSelect={selectSearchResult}
       />
+      <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
+        <button
+          type="button"
+          className="place__add-marker-control"
+          aria-label={t("Add place")}
+          title={t("Add place")}
+          disabled={!loaded || homeActionDisabled}
+          onClick={() => {
+            if (scenesRef.current) scenesRef.current.open = false;
+            if (appearanceRef.current) appearanceRef.current.open = false;
+            if (!navigator.geolocation) {
+              showToast.error(t("Could not determine your current location. Check location permission and try again."));
+              return;
+            }
+            navigator.geolocation.getCurrentPosition(
+              ({ coords }) => onCreateAtCurrentLocation({
+                latitude: coords.latitude,
+                longitude: coords.longitude,
+              }),
+              () => showToast.error(t("Could not determine your current location. Check location permission and try again.")),
+              { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+            );
+          }}
+        >
+          <Plus size={20} aria-hidden="true" />
+        </button>
+      </AnimateIcon>
       <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
         <button
           type="button"
@@ -746,7 +786,14 @@ function MapContent({
           <Home size={18} aria-hidden="true" />
         </button>
       </AnimateIcon>
-      <details ref={scenesRef} className="place__scenes" aria-label={t("Map scenes")}>
+      <details ref={scenesRef} className="place__scenes" aria-label={t("Map scenes")}
+        onPointerDown={(event) => event.stopPropagation()}
+        onClick={(event) => {
+          event.stopPropagation();
+          if (event.target instanceof Element && event.target.closest("summary")) return;
+          if (scenesRef.current) scenesRef.current.open = false;
+          if (appearanceRef.current) appearanceRef.current.open = false;
+        }}>
         <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
           <summary
             className="place__scenes-title"
@@ -790,6 +837,13 @@ function MapContent({
         ref={appearanceRef}
         className="place__scenes map-appearance-control"
         aria-label={t("Map appearance")}
+        onPointerDown={(event) => event.stopPropagation()}
+        onClick={(event) => {
+          event.stopPropagation();
+          if (event.target instanceof Element && event.target.closest("summary")) return;
+          if (scenesRef.current) scenesRef.current.open = false;
+          if (appearanceRef.current) appearanceRef.current.open = false;
+        }}
         onToggle={(event) => setAppearanceOpen(event.currentTarget.open)}
       >
         <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>

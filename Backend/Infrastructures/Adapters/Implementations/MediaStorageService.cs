@@ -144,7 +144,8 @@ public sealed partial class MediaStorageService(
         await _previewGate.WaitAsync(cancellationToken);
         try
         {
-            File.Delete(ResolveAbsolute(PreviewRelativePath(trashRelativePath)));
+            foreach (var previewSize in new[] { 320, 640 })
+                File.Delete(ResolveAbsolute(PreviewRelativePath(trashRelativePath, previewSize)));
             var source = ResolveAbsolute(trashRelativePath);
             if (!File.Exists(source))
             {

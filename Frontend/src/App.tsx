@@ -8,6 +8,8 @@ import {
   useParams,
 } from "react-router-dom";
 import { lazy, useEffect, useRef, type ReactNode } from "react";
+import { App as CapacitorApp } from "@capacitor/app";
+import { Capacitor } from "@capacitor/core";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AnimateUIProvider } from "@animate-ui/react/provider";
 import { Click } from "@animate-ui/react/primitives/effects/click";
@@ -118,6 +120,19 @@ function RouteNotifications() {
   const navigate = useNavigate();
   const { t } = useLocale();
   const handledLocation = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    const listener = CapacitorApp.addListener("backButton", () => {
+      const historyIndex = window.history.state?.idx;
+      if (typeof historyIndex === "number" && historyIndex > 0) {
+        navigate(-1);
+      } else if (location.pathname !== "/") {
+        navigate("/", { replace: true });
+      }
+    });
+    return () => { void listener.then((handle) => handle.remove()); };
+  }, [location.pathname, navigate]);
 
   useEffect(() => {
     const state = location.state as { authToast?: { type: "login" | "logout"; username?: string } } | null;

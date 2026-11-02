@@ -11,4 +11,5 @@ public sealed record MediaFileDto(
     Guid OwnerId = default,
     MediaLocationDto? Location = null,
     string? OwnerUsername = null,
-    bool IsPreviewOnly = false);
+    bool IsPreviewOnly = false,
+    DateTime? UpdatedAt = null);

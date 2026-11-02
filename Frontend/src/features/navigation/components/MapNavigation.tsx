@@ -1,9 +1,12 @@
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { Layer, Marker, Source, useMap } from "react-map-gl/mapbox";
 import { Button } from "../../../components/ui";
+import { useAnimateIconContext } from "../../../components/animate-ui/icons/icon";
 import { XIcon } from "../../../components/animate-ui/icons/x";
 import { Compass } from "../../../components/animate-ui/icons/compass";
 import { Pencil } from "../../../components/animate-ui/icons/pencil";
+import { Plus } from "../../../components/animate-ui/icons/plus";
 import { useLocale } from "../../../context/LocaleContext";
 import { useMediaQuery } from "../../../hooks/useMediaQuery";
 import { useNavigation } from "../hooks/useNavigation";
@@ -12,33 +15,66 @@ import { GoogleMapsLink, NavigationModeSelect } from "./NavigationOptions";
 import { distanceBetween, routeProgress } from "../utils/routeProgress";
 import "./mapNavigation.css";
 
+function getNavigationPortal() {
+  return document.querySelector<HTMLElement>(".app-shell") ?? document.body;
+}
+
+function NavigationActionIcon({ enabled, children }: { enabled: boolean; children: ReactNode }) {
+  const { controls } = useAnimateIconContext();
+  const previouslyEnabled = useRef(false);
+  const pendingAnimation = useRef(false);
+
+  useEffect(() => {
+    if (enabled && !previouslyEnabled.current) pendingAnimation.current = true;
+    if (!enabled && previouslyEnabled.current && controls) controls.set("initial");
+    if (enabled && controls && pendingAnimation.current) {
+      pendingAnimation.current = false;
+      controls.set("initial");
+      void controls.start("animate");
+    }
+    previouslyEnabled.current = enabled;
+  }, [enabled, controls]);
+
+  return <span>{children}</span>;
+}
+
 interface Props {
   destination: NavigationDestination;
   accessToken: string;
   homeLocation?: Coordinate | null;
   onOpenChange: (open: boolean) => void;
   onEdit?: () => void;
+  editAction?: "edit" | "add";
   onCancel?: () => void;
 }
 
-export function NavigationToolbar({ onEdit, onNavigate, onCancel }: {
+export function NavigationToolbar({ onEdit, onNavigate, onCancel, editAction = "edit" }: {
   onEdit?: () => void;
   onNavigate?: () => void;
   onCancel?: () => void;
+  editAction?: "edit" | "add";
 }) {
   const { t } = useLocale();
+  const editLabel = editAction === "add" ? "Add" : "Edit";
   return (
     <div className="map-navigation__toolbar">
-      <Button type="button" variant="ghost" aria-label={t("Edit")} title={t("Edit")} disabled={!onEdit} onClick={onEdit}>
-        <Pencil size={20} aria-hidden="true" /><span className="map-navigation__desktop-label">{t("Edit")}</span>
+      <Button type="button" variant="ghost" aria-label={t(editLabel)} title={t(editLabel)} disabled={!onEdit} onClick={onEdit}>
+        <NavigationActionIcon enabled={!!onEdit} key={`${onEdit ? "enabled" : "disabled"}-${editAction}`}>
+          {editAction === "add" ? <Plus size={20} aria-hidden="true" /> : <Pencil size={20} aria-hidden="true" />}
+        </NavigationActionIcon>
+        <span className="map-navigation__desktop-label">{t(editLabel)}</span>
       </Button>
       <span className="map-navigation__divider" aria-hidden="true" />
       <Button type="button" variant="ghost" className="map-navigation__trigger" disabled={!onNavigate} onClick={onNavigate}>
-        <Compass size={22} aria-hidden="true" /> {t("Navigate")}
+        <NavigationActionIcon enabled={!!onNavigate} key={onNavigate ? "enabled" : "disabled"}>
+          <Compass size={22} aria-hidden="true" />
+        </NavigationActionIcon> {t("Navigate")}
       </Button>
       <span className="map-navigation__divider" aria-hidden="true" />
       <Button type="button" variant="ghost" className="map-navigation__dismiss" aria-label={t("Cancel")} title={t("Cancel")} disabled={!onCancel} onClick={onCancel}>
-        <XIcon size={20} aria-hidden="true" /><span className="map-navigation__desktop-label">{t("Cancel")}</span>
+        <NavigationActionIcon enabled={!!onCancel} key={onCancel ? "enabled" : "disabled"}>
+          <XIcon size={20} aria-hidden="true" />
+        </NavigationActionIcon><span className="map-navigation__desktop-label">{t("Cancel")}</span>
       </Button>
     </div>
   );
@@ -46,28 +82,30 @@ export function NavigationToolbar({ onEdit, onNavigate, onCancel }: {
 
 export function DisabledNavigationToolbar() {
   const { t } = useLocale();
-  return <section className="map-navigation" aria-label={t("Navigation")} data-expanded={false}><NavigationToolbar /></section>;
+  return createPortal(
+    <section className="map-navigation" aria-label={t("Navigation")} data-expanded={false}><NavigationToolbar /></section>,
+    getNavigationPortal(),
+  );
 }
 
-export function MapNavigation({ destination, accessToken, homeLocation, onOpenChange, onEdit, onCancel }: Props) {
+export function MapNavigation({ destination, accessToken, homeLocation, onOpenChange, onEdit, editAction, onCancel }: Props) {
   const { t, language } = useLocale();
   // Changing the destination or language must cancel requests and release the GPS watch.
   return <NavigationSession
     key={`${destination.latitude}:${destination.longitude}:${language}:${accessToken}`}
     destination={destination} accessToken={accessToken} homeLocation={homeLocation}
     onOpenChange={onOpenChange} name={t("Navigation")}
-    onEdit={onEdit} onCancel={onCancel}
+    onEdit={onEdit} editAction={editAction} onCancel={onCancel}
   />;
 }
 
-function NavigationSession({ destination, accessToken, homeLocation, onOpenChange, onEdit, onCancel, name }: Props & { name: string }) {
+function NavigationSession({ destination, accessToken, homeLocation, onOpenChange, onEdit, editAction, onCancel, name }: Props & { name: string }) {
   const { t, language } = useLocale();
   const { current: map } = useMap();
   const mobile = useMediaQuery("(max-width: 640px)");
   const navigation = useNavigation(destination, accessToken, language, homeLocation);
   const { route, position, tracking, loading, locating, arrived, error } = navigation;
   const [expanded, setExpanded] = useState(false);
-  const panelRef = useRef<HTMLElement>(null);
   const restoreFocus = useRef(false);
   const id = useId();
   const sourceId = `navigation-${id}`;
@@ -92,7 +130,7 @@ function NavigationSession({ destination, accessToken, homeLocation, onOpenChang
     onOpenChange(expanded);
     if (!expanded && restoreFocus.current) {
       restoreFocus.current = false;
-      panelRef.current?.querySelector<HTMLButtonElement>(".map-navigation__trigger")?.focus();
+      getNavigationPortal().querySelector<HTMLButtonElement>(".map-navigation__trigger")?.focus();
     }
   }, [expanded, onOpenChange]);
   useEffect(() => () => onOpenChange(false), [onOpenChange]);
@@ -166,38 +204,27 @@ function NavigationSession({ destination, accessToken, homeLocation, onOpenChang
           <span className="map-navigation__destination" role="img" aria-label={destination.name} />
         </Marker>
       )}
-      {expanded && (
-        <div className="map-navigation" data-expanded="false"
+      {createPortal(<div className="map-navigation" data-expanded="false"
           onClick={(event) => event.stopPropagation()}
           onPointerDown={(event) => event.stopPropagation()}
           onDoubleClick={(event) => event.stopPropagation()}
           onWheel={(event) => event.stopPropagation()}>
-          <NavigationToolbar onEdit={onEdit} onNavigate={() => setExpanded(true)} onCancel={onCancel} />
-        </div>
-      )}
-      <section ref={panelRef} className="map-navigation" aria-label={name} data-expanded={expanded}
+          <NavigationToolbar onEdit={onEdit} editAction={editAction}
+            onNavigate={() => expanded ? close() : setExpanded(true)} onCancel={onCancel} />
+        </div>, getNavigationPortal())}
+      {expanded && <section className="map-navigation" aria-label={name} data-expanded="true"
         onClick={(event) => event.stopPropagation()}
         onPointerDown={(event) => event.stopPropagation()}
         onDoubleClick={(event) => event.stopPropagation()}
         onWheel={(event) => event.stopPropagation()}
       >
-        {!expanded ? (
-          <NavigationToolbar onEdit={onEdit} onNavigate={() => setExpanded(true)} onCancel={onCancel} />
-        ) : (
           <>
-            <header className="map-navigation__header">
-              <strong>{t("Directions to {name}", { name: destination.name })}</strong>
-              <Button type="button" variant="ghost" aria-label={t("Close navigation")}
-                title={t("Close navigation")} onClick={close}>
-                <XIcon size={18} aria-hidden="true" />
-              </Button>
-            </header>
             <NavigationModeSelect mode={navigation.mode} disabled={tracking || busy} onChange={navigation.setMode} />
-            <p className="map-navigation__hint">
-              {t(navigation.usingHomeOrigin
-                ? "Could not determine your current location. This route starts at your saved home location. The selected provider receives it and your destination."
-                : "Routes start at your current location. The selected provider receives your location and destination.")}
-            </p>
+            {navigation.usingHomeOrigin && (
+              <p className="map-navigation__hint">
+                {t("Could not determine your current location. This route starts at your saved home location. The selected provider receives it and your destination.")}
+              </p>
+            )}
             <div className="map-navigation__actions">
               <GoogleMapsLink destination={destination} mode={navigation.mode}
                 origin={navigation.usingHomeOrigin ? homeLocation ?? undefined : undefined}
@@ -205,11 +232,6 @@ function NavigationSession({ destination, accessToken, homeLocation, onOpenChang
               {!tracking && (
                 <Button type="button" variant="secondary" busy={busy} onClick={navigation.preview}>
                   {t(locating ? "Finding your location…" : loading ? "Loading route…" : "Preview with Mapbox")}
-                </Button>
-              )}
-              {!tracking && !arrived && (
-                <Button type="button" disabled={busy || !route || !!error || navigation.usingHomeOrigin} onClick={navigation.start}>
-                  {t("Start navigation")}
                 </Button>
               )}
             </div>
@@ -254,8 +276,7 @@ function NavigationSession({ destination, accessToken, homeLocation, onOpenChang
               </>
             )}
           </>
-        )}
-      </section>
+      </section>}
     </>
   );
 }

@@ -20,7 +20,7 @@ export function NavigationModeSelect({ mode, disabled, onChange }: {
   return (
     <>
       <span id={id}>{t("Travel mode")}</span>
-      <DropdownMenu.Root>
+      <DropdownMenu.Root modal={false}>
         <DropdownMenu.Trigger className="map-navigation__mode-trigger" disabled={disabled} aria-labelledby={id}>
           <span>{t(modes.find((item) => item.value === mode)?.label ?? "Driving")}</span>
           <span className="map-navigation__mode-chevron" aria-hidden="true" />
@@ -69,9 +69,6 @@ export function NavigationFallback({ destination }: { destination: NavigationDes
       <strong>{t("Directions to {name}", { name: destination.name })}</strong>
       <p className="map-navigation__hint">
         {t("Mapbox navigation is unavailable. You can still open Google Maps.")}
-      </p>
-      <p className="map-navigation__hint">
-        {t("Routes start at your current location. The selected provider receives your location and destination.")}
       </p>
       <NavigationModeSelect mode={mode} onChange={setMode} />
       <GoogleMapsLink destination={destination} mode={mode} />

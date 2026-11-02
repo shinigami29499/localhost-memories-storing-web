@@ -1,4 +1,4 @@
-import { ErrorState, Spinner } from "../../components/ui";
+import { EmptyState, ErrorState, Spinner } from "../../components/ui";
 import { useLocale } from "../../context/LocaleContext";
 import { ScrollProgress, ScrollProgressContainer, ScrollProgressProvider } from "@animate-ui/react/primitives/scroll-progress";
 import { useAlbums, type Album } from "../../features/albums";
@@ -46,7 +46,10 @@ export function HomePage() {
                 }}
               />
             ) : albums.length === 0 ? (
-              null
+              <EmptyState
+                title="No albums yet"
+                hint="Create an album in Albums to start organizing your media."
+              />
             ) : (
               <div className="home-feed" aria-busy={isFetching}>
                 {albums.map((album) => {

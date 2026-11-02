@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { animate, useInView, type TargetAndTransition } from "motion/react";
 import { flushSync } from "react-dom";
 import { Particles, ParticlesEffect } from "@animate-ui/react/primitives/effects/particles";
@@ -82,42 +82,77 @@ type Props = CommonProps & ({
 interface SlideProps {
   media: MediaFile;
   active: boolean;
+  preloadOriginal: boolean;
   includeDeleted: boolean;
   onFavorite: () => void;
 }
 
-function PreviewSlide({ media, active, includeDeleted, onFavorite }: SlideProps) {
+function PreviewSlide({ media, active, preloadOriginal, includeDeleted, onFavorite }: SlideProps) {
   const { t } = useLocale();
   const stageRef = useRef<HTMLDivElement>(null);
   const inView = useInView(stageRef, { margin: "200px 0px" });
-  const url = active ? mediaUrl(media.id, includeDeleted) : mediaPreviewUrl(media.id, includeDeleted);
-  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const previewUrl = mediaPreviewUrl(media.id, includeDeleted);
+  const originalUrl = mediaUrl(media.id, includeDeleted);
+  const [failedUrls, setFailedUrls] = useState<Set<string>>(() => new Set());
+  const [loadedOriginalUrl, setLoadedOriginalUrl] = useState<string | null>(null);
   const [burst, setBurst] = useState(0);
   const reduceMotion = useShouldReduceMotion();
   const favorite = () => {
     setBurst((value) => value + 1);
     onFavorite();
   };
+  const handleOriginalLoad = useCallback((image: HTMLImageElement) => {
+    setLoadedOriginalUrl(originalUrl);
+    stageRef.current?.style.setProperty("--media-aspect", String(image.naturalWidth / image.naturalHeight));
+  }, [originalUrl]);
+  const handlePreviewError = useCallback(() => {
+    setFailedUrls((current) => new Set(current).add(previewUrl));
+  }, [previewUrl]);
+  const handleOriginalError = useCallback(() => {
+    setFailedUrls((current) => new Set(current).add(originalUrl));
+  }, [originalUrl]);
 
 return (
     <div ref={stageRef} className="media-preview-dialog__stage" data-active={active}>
-      {!active && !inView ? null : failedUrl === url ? (
+      {!active && !inView ? null : failedUrls.has(previewUrl) && !active ? (
         <p role={active ? "alert" : undefined}>{t("Could not load this media.")}</p>
       ) : media.mediaKind === "video" && active ? (
-        <VideoPlayer key={url} src={url} name={media.originalFilename} onError={() => setFailedUrl(url)}
+        <VideoPlayer key={originalUrl} src={originalUrl} name={media.originalFilename} onError={() => setFailedUrls((current) => new Set(current).add(originalUrl))}
           onDoubleClick={!includeDeleted ? favorite : undefined} />
       ) : (
-        <img
-          key={url}
-          src={url}
-          alt={media.originalFilename}
-          loading={active ? "eager" : "lazy"}
-          decoding="async"
-          draggable={false}
-          onLoad={(event) => event.currentTarget.style.setProperty("--media-aspect", String(event.currentTarget.naturalWidth / event.currentTarget.naturalHeight))}
-          onDoubleClick={active && !includeDeleted ? favorite : undefined}
-          onError={() => setFailedUrl(url)}
-        />
+        <>
+          <img
+            className="media-preview-dialog__preview-image"
+            src={previewUrl}
+            alt={media.originalFilename}
+            loading={active ? "eager" : "lazy"}
+            decoding="async"
+            draggable={false}
+            onLoad={(event) => event.currentTarget.style.setProperty("--media-aspect", String(event.currentTarget.naturalWidth / event.currentTarget.naturalHeight))}
+            onDoubleClick={active && !includeDeleted ? favorite : undefined}
+            onError={handlePreviewError}
+          />
+          {active && media.mediaKind === "image" && loadedOriginalUrl === originalUrl ? (
+            <img
+              className="media-preview-dialog__original-image"
+              src={originalUrl}
+              alt={media.originalFilename}
+              decoding="async"
+              draggable={false}
+              onLoad={(event) => event.currentTarget.style.setProperty("--media-aspect", String(event.currentTarget.naturalWidth / event.currentTarget.naturalHeight))}
+              onDoubleClick={!includeDeleted ? favorite : undefined}
+              onError={handleOriginalError}
+            />
+          ) : null}
+          {(active || preloadOriginal) && media.mediaKind === "image" && loadedOriginalUrl !== originalUrl ? (
+            <OriginalImageLoader
+              key={originalUrl}
+              src={originalUrl}
+              onLoad={handleOriginalLoad}
+              onError={handleOriginalError}
+            />
+          ) : null}
+        </>
       )}
       {active && burst > 0 ? (
         <span key={burst} className="media-preview-dialog__heart-burst" aria-hidden="true" onAnimationEnd={(event) => {
@@ -131,6 +166,36 @@ return (
       ) : null}
     </div>
   );
+}
+
+function OriginalImageLoader({ src, onLoad, onError }: {
+  src: string;
+  onLoad: (image: HTMLImageElement) => void;
+  onError: () => void;
+}) {
+  const onLoadRef = useRef(onLoad);
+  const onErrorRef = useRef(onError);
+  onLoadRef.current = onLoad;
+  onErrorRef.current = onError;
+  useEffect(() => {
+    const loadedImage = new Image();
+    let cancelled = false;
+    loadedImage.decoding = "async";
+    loadedImage.onload = () => {
+      void loadedImage.decode().catch(() => undefined).then(() => {
+        if (!cancelled) onLoadRef.current(loadedImage);
+      });
+    };
+    loadedImage.onerror = () => onErrorRef.current();
+    loadedImage.src = src;
+    return () => {
+      cancelled = true;
+      loadedImage.onload = null;
+      loadedImage.onerror = null;
+    };
+  }, [src]);
+
+  return null;
 }
 
 export function MediaPreviewDialog({
@@ -156,17 +221,19 @@ export function MediaPreviewDialog({
   const [copyResult, setCopyResult] = useState<{ mediaId: string } | null>(null);
   const isMobile = useMediaQuery("(max-width: 640px)");
   const hasMore = Boolean(onLoadMore) && media.length < total;
+  const loop = !hasMore && media.length >= (isMobile ? 3 : 5);
   const slideCount = media.length + (hasMore ? 1 : 0);
   const [carouselRef, api] = useEmblaCarousel({
-    startIndex: initialIndex,
-    loop: !hasMore && media.length >= (isMobile ? 3 : 5),
+    startIndex: selectedIndex,
+    loop,
     align: "center",
     containScroll: false,
     scale: 0.8,
     visible: isMobile || slideCount === 1 ? 1 : 3,
     watchDrag: (_api, event) => !(event.target instanceof Element && event.target.closest(".video-player")),
   });
-  const current = media[Math.min(selectedIndex, slideCount - 1)];
+  const current = media[selectedIndex];
+  const currentIndex = selectedIndex;
   const albums = useAlbums("mine", Boolean(current) && !trashActions, current?.id);
   const inAlbum = albums.data?.some((album) => album.containsMedia) ?? false;
   const imageCopied = copyResult !== null && copyResult.mediaId === current?.id;
@@ -190,10 +257,10 @@ export function MediaPreviewDialog({
   }, [media.length, onClose]);
 
   useEffect(() => {
-    if (hasMore && selectedIndex >= media.length && !loadingMore && !loadMoreError) {
+    if (hasMore && currentIndex >= media.length && !loadingMore && !loadMoreError) {
       onLoadMore?.();
     }
-  }, [hasMore, selectedIndex, media.length, loadingMore, loadMoreError, onLoadMore]);
+  }, [hasMore, currentIndex, media.length, loadingMore, loadMoreError, onLoadMore]);
 
   useLayoutEffect(() => {
     const dialog = dialogRef.current;
@@ -220,9 +287,9 @@ export function MediaPreviewDialog({
       update();
     };
     update();
-    api.on("select", update).on("reInit", restoreSelection);
+    api.on("settle", update).on("reInit", restoreSelection);
     return () => {
-      api.off("select", update).off("reInit", restoreSelection);
+      api.off("settle", update).off("reInit", restoreSelection);
     };
   }, [api]);
 
@@ -232,6 +299,33 @@ export function MediaPreviewDialog({
     const dialog = dialogRef.current;
     if (!dialog || closingRef.current) return;
     closingRef.current = true;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const sourceTile = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-media-id]"))
+      .find((tile) => tile.dataset.mediaId === lastViewedId.current);
+    const activeMedia = dialog.querySelector<HTMLElement>(
+      '.media-preview-dialog__stage[data-active="true"] .media-preview-dialog__original-image, .media-preview-dialog__stage[data-active="true"] video, .media-preview-dialog__stage[data-active="true"] .media-preview-dialog__preview-image',
+    );
+    const targetMedia = sourceTile?.querySelector<HTMLElement>(".media-tile__preview") ?? sourceTile;
+    const sourceRect = activeMedia?.getBoundingClientRect();
+    const targetRect = targetMedia?.getBoundingClientRect();
+    if (!reducedMotion && activeMedia && sourceRect && targetRect && sourceRect.width > 0 && targetRect.width > 0) {
+      const deltaX = targetRect.left + targetRect.width / 2 - (sourceRect.left + sourceRect.width / 2);
+      const deltaY = targetRect.top + targetRect.height / 2 - (sourceRect.top + sourceRect.height / 2);
+      const scaleX = targetRect.width / sourceRect.width;
+      const scaleY = targetRect.height / sourceRect.height;
+      const exitAnimation = animate(dialog, {
+        opacity: [1, 0],
+        transition: { duration: 0.34, ease: "easeIn" },
+      });
+      const mediaAnimation = activeMedia.animate([
+        { transform: "translate3d(0, 0, 0) scale(1, 1)", borderRadius: getComputedStyle(activeMedia).borderRadius },
+        { transform: `translate3d(${deltaX}px, ${deltaY}px, 0) scale(${scaleX}, ${scaleY})`, borderRadius: getComputedStyle(targetMedia).borderRadius || "8px" },
+      ], { duration: 340, easing: "cubic-bezier(0.22, 0.72, 0.2, 1)", fill: "forwards" });
+      dialog.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 340, fill: "forwards", pseudoElement: "::backdrop" });
+      await Promise.all([exitAnimation, mediaAnimation.finished.catch(() => undefined)]);
+      flushSync(() => onClose(lastViewedId.current));
+      return;
+    }
     const { transition, ...target } = entranceRef.current ?? mediaViewerTransition(dialog, readPageTransitionEffect(), false).enter;
     const reversed = Object.fromEntries(Object.entries(target).map(([key, value]) => [key, Array.isArray(value) ? [...value].reverse() : value]));
     const duration = typeof transition?.duration === "number" ? transition.duration * 1000 : 300;
@@ -414,7 +508,10 @@ export function MediaPreviewDialog({
       >
         <div ref={carouselRef} className="media-preview-dialog__viewport" data-slot="carousel-content">
           <div className="media-preview-dialog__track">
-            {media.map((item, index) => (
+            {media.map((item, index) => {
+              const distance = Math.abs(index - currentIndex);
+              const nearbyDistance = loop ? Math.min(distance, media.length - distance) : distance;
+              return (
               <div
                 key={item.id}
                 className="media-preview-dialog__item"
@@ -423,9 +520,16 @@ export function MediaPreviewDialog({
                 aria-roledescription="slide"
                 aria-label={t("Media {current} of {total}", { current: index + 1, total })}
               >
-                <PreviewSlide media={item} active={item.id === current?.id} includeDeleted={Boolean(trashActions)} onFavorite={toggleFavorite} />
+                <PreviewSlide
+                  media={item}
+                  active={item.id === current?.id}
+                  preloadOriginal={nearbyDistance <= 2}
+                  includeDeleted={Boolean(trashActions)}
+                  onFavorite={toggleFavorite}
+                />
               </div>
-            ))}
+              );
+            })}
             {hasMore ? (
               <div
                 className="media-preview-dialog__item"
@@ -452,7 +556,7 @@ export function MediaPreviewDialog({
             ) : null}
             <CarouselCounter
               className="media-preview-dialog__counter"
-              format={(index) => <>{index} / {total}</>}
+              format={(current, count) => <>{current} / {count}</>}
             />
           </div>
         ) : null}

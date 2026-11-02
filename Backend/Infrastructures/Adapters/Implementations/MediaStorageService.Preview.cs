@@ -8,17 +8,20 @@ public sealed partial class MediaStorageService
     // The storage service is a singleton: bound decoder CPU and coalesce concurrent cache misses.
     private readonly SemaphoreSlim _previewGate = new(1, 1);
 
-    private string PreviewRelativePath(string relativePath)
+    private string PreviewRelativePath(string relativePath, int maxDimension)
     {
+        var version = maxDimension == 640 ? "v1" : $"v2-{maxDimension}";
         var (kind, filename) = ValidateOwnedPath(relativePath);
-        return $"previews/v1/{kind}/{filename}.jpg";
+        return $"previews/{version}/{kind}/{filename}.jpg";
     }
 
     public async Task<FileStream> OpenPreviewAsync(
-        string relativePath, CancellationToken cancellationToken = default)
+        string relativePath, int maxDimension = 640, CancellationToken cancellationToken = default)
     {
+        if (maxDimension is not (320 or 640))
+            throw new ArgumentOutOfRangeException(nameof(maxDimension), "Preview dimension must be 320 or 640 pixels.");
         var source = ResolveAbsolute(relativePath);
-        var destination = ResolveAbsolute(PreviewRelativePath(relativePath));
+        var destination = ResolveAbsolute(PreviewRelativePath(relativePath, maxDimension));
         await _previewGate.WaitAsync(cancellationToken);
         try
         {
@@ -28,7 +31,7 @@ public sealed partial class MediaStorageService
             if (!File.Exists(destination))
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
-                await GeneratePreviewAsync(source, destination, cancellationToken);
+                await GeneratePreviewAsync(source, destination, maxDimension, cancellationToken);
             }
 
             return new FileStream(
@@ -42,7 +45,7 @@ public sealed partial class MediaStorageService
     }
 
     private async Task GeneratePreviewAsync(
-        string source, string destination, CancellationToken cancellationToken)
+        string source, string destination, int maxDimension, CancellationToken cancellationToken)
     {
         var temporary = $"{destination}.{Guid.NewGuid():N}.tmp.jpg";
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -63,7 +66,7 @@ public sealed partial class MediaStorageService
             "-threads", "1", "-filter_threads", "1", "-protocol_whitelist", "file,pipe",
             "-format_whitelist", "image2,jpeg_pipe,png_pipe,gif,webp_pipe,mov,matroska,webm,avi,m4v",
             "-i", source, "-map", "0:v:0", "-frames:v", "1",
-            "-vf", "scale=w='min(640,iw)':h='min(640,ih)':force_original_aspect_ratio=decrease",
+            "-vf", $"scale=w='min({maxDimension},iw)':h='min({maxDimension},ih)':force_original_aspect_ratio=decrease",
             "-threads", "1", "-q:v", "5", "-update", "1", "-f", "image2", temporary,
         ];
         foreach (var argument in arguments)

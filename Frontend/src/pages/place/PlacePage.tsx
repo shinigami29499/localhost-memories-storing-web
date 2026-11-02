@@ -89,6 +89,7 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
   const checkInMutation = useCheckInPlace();
   const removeVisitMutation = useDeletePlaceVisit();
   const [editor, setEditor] = useState<EditorState | null>(null);
+  const [editorOpen, setEditorOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(() => !saved ? (location.state as { focusPlaceId?: string } | null)?.focusPlaceId ?? null : null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [view, setView] = useState<"map" | "history">("map");
@@ -193,24 +194,28 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
     setSelectedId(place.id);
     setFormError(null);
     setEditor(toEditorState(place));
+    setEditorOpen(true);
   };
 
   const selectPlace = (place: Place) => {
-    if (editor && editor.id !== place.id) return;
+    if (editor?.id && editor.id !== place.id) return;
+    if (editor && !editor.id) {
+      setEditor(null);
+      setEditorOpen(false);
+      setFormError(null);
+    }
     setDetailsOpen(saved || selectedId === place.id);
     setSelectedId(place.id);
   };
 
-  /** Moves a draft marker or starts a new place at the selected map point. */
-  const pickOnMap = (coordinate: PlaceCoordinate, placeName?: string, source?: "search") => {
+  /** Moves the temporary marker or starts one at the selected map point. */
+  const pickOnMap = (coordinate: PlaceCoordinate, placeName?: string) => {
     if (!editor) {
-      if (selectedId && source !== "search") {
-        clearPreview();
-        return;
-      }
       setSelectedId(null);
+      setDetailsOpen(false);
       setFormError(null);
       setEditor({ coordinate, values: { ...emptyValues, name: placeName ?? "" } });
+      setEditorOpen(false);
       return;
     }
     setEditor((current) => {
@@ -222,6 +227,7 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
 
   const cancelMapPick = () => {
     setEditor(null);
+    setEditorOpen(false);
     setFormError(null);
   };
 
@@ -241,7 +247,7 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
       if (!(event.target instanceof Node)
         || document.querySelector('[role="dialog"], [role="alertdialog"]')
         || workspaceRef.current?.contains(event.target)
-        || (event.target instanceof Element && event.target.closest(".place__notice"))) return;
+        || (event.target instanceof Element && event.target.closest(".place__notice, .map-navigation"))) return;
       if (editor || manualHomePick) cancel();
     };
     window.addEventListener("keydown", escape);
@@ -296,7 +302,8 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
         },
       });
       setEditor(null);
-      setSelectedId(editor.id ? saved.id : null);
+      setEditorOpen(false);
+      setSelectedId(saved.id);
       showToast.success(t(editor.id ? "Place updated." : "Place saved."));
     } catch (error) {
       setFormError(error instanceof ApiError ? error.message : t("Could not save this place."));
@@ -381,8 +388,6 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
                       selectedId={selectedId}
                       focusZoom={selectedId === (location.state as { focusPlaceId?: string } | null)?.focusPlaceId}
                       draft={placeToMove?.coordinate ?? editor?.coordinate ?? null}
-                      draftIcon={placeToMove?.place.markerIcon ?? editor?.values.markerIcon ?? DEFAULT_PLACE_MARKER_ICON}
-                      draftColor={placeToMove?.place.markerColor ?? editor?.values.markerColor ?? DEFAULT_PLACE_MARKER_COLOR}
                       picking={!!editor}
                       homeLocation={home.query.data ?? null}
                       homeLocationReady={home.query.isFetched}
@@ -390,14 +395,24 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
                       homePicking={homePicking}
                       onSelect={selectPlace}
                       onEdit={startEdit}
+                      onEditDraft={() => setEditorOpen(true)}
                       onCancelSelection={clearPreview}
+                      onCancelDraft={cancelMapPick}
                       canChange={canChangeMarker}
                       onMove={movePlace}
                       onDelete={deletePlace}
                       onPickHome={(coordinate) => void pickHome(coordinate)}
+                      onCreateAtCurrentLocation={(coordinate) => {
+                        setSelectedId(null);
+                        setDetailsOpen(false);
+                        setFormError(null);
+                        setEditor({ coordinate, values: { ...emptyValues } });
+                        setEditorOpen(true);
+                      }}
                       onHomeClick={() => {
                         setSelectedId(null);
                         setEditor(null);
+                        setEditorOpen(false);
                         setFormError(null);
                         setManualHomePick(false);
                         if (!home.query.data) openHomeDialog();
@@ -475,7 +490,7 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
 
             </>}
 
-            {editor?.coordinate && (
+            {editorOpen && editor?.coordinate && (
               <PlaceDialog
                 title={t(editor.id ? "Edit place" : "New place")}
                 className="place__dialog--editor"
@@ -483,6 +498,7 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
                 onClose={() => {
                   if (!save.isPending) {
                     setEditor(null);
+                    setEditorOpen(false);
                     setFormError(null);
                   }
                 }}
@@ -495,7 +511,7 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
                   error={formError}
                   onChange={(values) => setEditor((current) => current ? { ...current, values } : current)}
                   onSubmit={() => void submit()}
-                  onCancel={() => { setEditor(null); setFormError(null); }}
+                  onCancel={() => { setEditor(null); setEditorOpen(false); setFormError(null); }}
                 />
               </PlaceDialog>
             )}

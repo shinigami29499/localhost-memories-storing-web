@@ -24,6 +24,8 @@ public interface IMediaRepository
         string? mediaKind, Guid? favoriteUserId, bool includeDeleted,
         CancellationToken cancellationToken = default);
     Task<bool> MediaExistsAsync(Guid mediaId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<(Guid Id, Guid OwnerId, DateTime? UpdatedAt, bool IsDeleted)>> GetMediaChangesAsync(
+        DateTime? since, Guid viewerId, bool isAdmin, CancellationToken cancellationToken = default);
     Task<IReadOnlyCollection<Guid>> GetFavoritedMediaIdsAsync(
         Guid userId, IReadOnlyCollection<Guid> mediaIds, CancellationToken cancellationToken = default);
     Task<MediaFavorite?> FindMediaFavoriteAsync(

@@ -30,6 +30,10 @@
   width: 100%;
 }
 
+@media (max-width: 640px) {
+  .home-page__scroll-track { top: env(safe-area-inset-top, 0px); }
+}
+
 .home-page__content {
   flex: 1;
   min-height: 0;

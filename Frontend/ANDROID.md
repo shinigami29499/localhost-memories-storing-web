@@ -2,12 +2,13 @@
 
 Install Node.js 22 or newer, JDK 21, Android SDK 36, and frontend dependencies once with `npm ci`.
 
-From either `Frontend/` or `Frontend/android/` in PowerShell, run this whenever you want a fresh APK. Update the SDK or JDK paths if they differ on your machine:
-
 ```powershell
-$env:VITE_API_URL = "https://inc-clubs-acceptable-completely.trycloudflare.com"
+$env:VITE_API_URL = "https://diane-tongue-mediterranean-transmit.trycloudflare.com"
 $env:ANDROID_HOME = "E:\JDK-SDK\Android\SDK"
-$env:JAVA_HOME = "E:\IDE\Android\Android Studio\jbr"
+$env:JAVA_HOME = "E:\JDK-SDK\Java\jdk-21"
+if (-not (Test-Path (Join-Path $env:JAVA_HOME "bin\javac.exe"))) { throw "JDK 21 is required. Install it or update JAVA_HOME to its installation folder." }
+$env:Path = "$env:JAVA_HOME\bin;$env:Path"
+$env:GRADLE_USER_HOME = "E:\JDK-SDK\Gradle"
 $frontend = (Get-Location).Path
 if ((Split-Path $frontend -Leaf) -ieq "android") { $frontend = Split-Path $frontend -Parent }
 Push-Location $frontend

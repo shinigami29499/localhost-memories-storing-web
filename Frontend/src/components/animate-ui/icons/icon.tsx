@@ -33,11 +33,12 @@ type IconTriggers<T extends string> = Pick<IconProps<T>,
 
 function useIconTriggers<T extends string>(props: IconTriggers<T>) {
   const iconsEnabled = useAnimationStore((state) => state.iconsEnabled);
+  const animationsEnabled = useAnimationStore((state) => state.enabled);
   const standalone = useMediaQuery("(display-mode: standalone)");
   const mobile = useMediaQuery("(max-width: 640px)");
   const hover = useMediaQuery("(hover: hover) and (pointer: fine)");
   const installed = standalone || (typeof navigator !== "undefined" && "standalone" in navigator && navigator.standalone === true);
-  const enabled = iconsEnabled && props.animate !== false;
+  const enabled = iconsEnabled && animationsEnabled && props.animate !== false;
 
   return {
     animateOnHover: enabled && !installed && hover ? (props.animateOnHover ?? true) : false,
@@ -101,13 +102,16 @@ export function AnimateIcon(props: AnimateIconProps) {
 }
 
 export function IconWrapper<T extends string>(props: IconWrapperProps<T>) {
+  const iconsEnabled = useAnimationStore((state) => state.iconsEnabled);
   const { controls } = useAnimateIconContext();
   const hasOwnTriggers = props.animate !== undefined
     || props.animateOnHover !== undefined
     || props.animateOnTap !== undefined
     || props.animateOnView !== undefined;
 
-  if (controls && !hasOwnTriggers) return <BaseIconWrapper {...props} />;
+  if (controls && !hasOwnTriggers) {
+    return <BaseIconWrapper {...props} animate={iconsEnabled ? props.animate : false} />;
+  }
 
   const {
     animate, animateOnHover, animateOnTap, animateOnView, animateOnViewMargin,
@@ -119,7 +123,7 @@ export function IconWrapper<T extends string>(props: IconWrapperProps<T>) {
     <AnimateIcon
       asChild
       {...{
-        animate, animateOnHover, animateOnTap, animateOnView, animateOnViewMargin,
+        animate: iconsEnabled ? animate : false, animateOnHover, animateOnTap, animateOnView, animateOnViewMargin,
         animateOnViewOnce, animation, loop, loopDelay, initialOnAnimateEnd,
         completeOnStop, persistOnAnimateEnd, delay, speed,
       }}
