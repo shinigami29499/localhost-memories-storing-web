@@ -16,6 +16,7 @@ import { CalendarCheck } from "../../components/animate-ui/icons/calendar-check"
 import { AnimateIcon } from "../../components/animate-ui/icons/icon";
 import { Send } from "../../components/animate-ui/icons/send";
 import { Pencil } from "../../components/animate-ui/icons/pencil";
+import { Search } from "../../components/animate-ui/icons/search";
 import { readPageTransitionEffect } from "../../utils/pageTransition";
 import { useLocale } from "../../context/LocaleContext";
 import { useAuthStore } from "../../store/authStore";
@@ -100,6 +101,7 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
   const [selectedId, setSelectedId] = useState<string | null>(() => !saved ? (location.state as { focusPlaceId?: string } | null)?.focusPlaceId ?? null : null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [view, setView] = useState<"map" | "history">("map");
+  const [placeSearch, setPlaceSearch] = useState("");
   const [historyPage, setHistoryPage] = useState(1);
   const [historyPageSize, setHistoryPageSize] = useState(DEFAULT_PAGE_SIZE);
   const viewRequestRef = useRef(0);
@@ -124,6 +126,13 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
   const [photoMoveConfirmationOpen, setPhotoMoveConfirmationOpen] = useState(false);
 
   const places = query.data ?? [];
+  const filteredPlaces = useMemo(() => {
+    const search = placeSearch.trim().toLocaleLowerCase();
+    return search
+      ? places.filter((place) => place.name.toLocaleLowerCase().includes(search)
+        || place.owner.username.toLocaleLowerCase().includes(search))
+      : places;
+  }, [places, placeSearch]);
   const homePicking = manualHomePick;
   const selected = places.find((place) => place.id === selectedId);
   const selectedPhoto = photos.find((photo) => photo.id === photoSelection?.id);
@@ -518,7 +527,7 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
                 ) : (
                   <>
                     <ul className="place__list">
-                      {places.map((place) => (
+                      {filteredPlaces.map((place) => (
                         <li key={place.id}>
                           <button
                             type="button"
@@ -545,6 +554,9 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
                       ))}
                     </ul>
                   </>
+                )}
+                {places.length > 0 && filteredPlaces.length === 0 && (
+                  <p className="place__search-empty" role="status">{t("No saved places match your search.")}</p>
                 )}
               </>
             )}
@@ -737,6 +749,29 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
             />
           </div>
         </ScrollProgressContainer>
+        {saved && view === "map" && (
+          <form className="place__search-bar" role="search" onSubmit={(event) => event.preventDefault()}>
+            <input type="search" aria-label={t("Search saved places")}
+              placeholder={t("Search places or users")} value={placeSearch}
+              onChange={(event) => setPlaceSearch(event.target.value)} />
+            {placeSearch && (
+              <>
+                <span className="place__search-divider" aria-hidden="true" />
+                <button type="button" className="place__search-clear" aria-label={t("Clear search")}
+                  title={t("Clear search")} onClick={() => setPlaceSearch("")}>
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
+                  </svg>
+                </button>
+              </>
+            )}
+            <AnimateIcon animateOnHover animateOnTap={false} completeOnStop asChild>
+              <span className="place__search-icon" aria-hidden="true">
+                <Search size={22} />
+              </span>
+            </AnimateIcon>
+          </form>
+        )}
         {saved && view === "history" && visitHistory.data && !visitHistory.isError ? (
           <footer className="place__history-footer">
             <Pagination
