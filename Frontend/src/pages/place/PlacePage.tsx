@@ -23,6 +23,8 @@ import { useAuthStore } from "../../store/authStore";
 import { ApiError } from "../../services/api";
 import { useHomeLocation } from "../../features/locations/hooks/useHomeLocation";
 import { useLocations } from "../../features/locations/hooks/useLocations";
+import { uploadService } from "../../features/uploads/services/uploadService";
+import { registerUploadCompletionAction } from "../../features/uploads/services/uploadRuntime";
 import { locationService } from "../../features/locations/services/locationService";
 import { LocationEditor } from "../../features/locations/components/LocationEditor";
 import { HomeLocationPhotoConfirmation } from "../../features/locations/components/HomeLocationPhotoConfirmation";
@@ -92,7 +94,11 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
   const user = useAuthStore((state) => state.user);
   const isAdmin = user?.role?.toLowerCase() === "admin";
   const home = useHomeLocation(user?.id);
-  const { media: photos } = useLocations(!saved);
+  const { media: photos, query: photosQuery } = useLocations(!saved);
+  const [uploading, setUploading] = useState(false);
+  const uploadInFlight = useRef(false);
+  const uploadLocation = useRef<{ latitude: number; longitude: number } | null>(null);
+  const uploadInput = useRef<HTMLInputElement>(null);
   const query = usePlaces();
   const save = useSavePlace();
   const remove = useDeletePlace();
@@ -128,6 +134,77 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
   const [photoSelection, setPhotoSelection] = useState<{ id: string; draft: PickedLocation | null; editing: boolean } | null>(null);
   const [photoMoveConfirmationOpen, setPhotoMoveConfirmationOpen] = useState(false);
 
+  const startWithCurrentLocation = async (action: () => void) => {
+    if (!navigator.geolocation) {
+      showToast.error(t("Could not determine your current location. Check location permission and try again."));
+      return;
+    }
+    try {
+      uploadLocation.current = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(
+          ({ coords }) => resolve({ latitude: coords.latitude, longitude: coords.longitude }),
+          () => reject(new Error(t("Could not determine your current location. Check location permission and try again."))),
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+        );
+      });
+      action();
+    } catch (error) {
+      uploadLocation.current = null;
+      showToast.error(error instanceof Error ? error.message : t("Could not determine your current location. Check location permission and try again."));
+    }
+  };
+
+  const uploadPhotos = async (files: File[]) => {
+    if (!files.length || uploadInFlight.current) return;
+    const coordinate = uploadLocation.current;
+    uploadLocation.current = null;
+    if (!coordinate) {
+      showToast.error(t("Could not determine your current location. Check location permission and try again."));
+      return;
+    }
+    uploadInFlight.current = true;
+    setUploading(true);
+    const existingIds = new Set(photos.map((item) => item.id));
+    try {
+      const batch = await uploadService.submit(files, (createdBatch) => {
+        registerUploadCompletionAction(createdBatch.id, async (completedBatch) => {
+          const successfulNames = completedBatch.items
+            .filter((item) => item.status === "Success")
+            .map((item) => item.originalFilename);
+          if (!successfulNames.length) return;
+
+          const refreshed = await photosQuery.refetch();
+          const newMedia = refreshed.data?.pages.flatMap((page) => page.items)
+            .filter((item) => !existingIds.has(item.id)) ?? [];
+          const matched: MediaFile[] = [];
+          for (const filename of successfulNames) {
+            const item = newMedia.find((candidate) => candidate.originalFilename === filename
+              && !matched.some((current) => current.id === candidate.id));
+            if (item) matched.push(item);
+          }
+
+          const tagged = await Promise.allSettled(
+            matched.map((item) => locationService.set(item.id, coordinate)),
+          );
+          const taggedIds = matched.filter((_item, index) => tagged[index].status === "fulfilled").map((item) => item.id);
+          await queryClient.invalidateQueries({ queryKey: ["media"] });
+          if (!taggedIds.length) {
+            showToast.error(t("Photos uploaded, but could not mark their location."));
+            return;
+          }
+          if (taggedIds.length < matched.length) showToast.error(t("Some uploaded photos could not be marked."));
+          return `/location/travel?focusMediaId=${encodeURIComponent(taggedIds[0])}`;
+        });
+      });
+      await queryClient.invalidateQueries({ queryKey: ["uploads"] });
+      showToast.success(t("Begin uploading {count} media", { count: files.length }), { id: `upload-start:${batch.id}` });
+    } catch (error) {
+      showToast.error(t("Could not upload and mark these photos."), error instanceof Error ? error.message : undefined);
+    } finally {
+      uploadInFlight.current = false;
+      setUploading(false);
+    }
+  };
   const places = query.data ?? [];
   const filteredPlaces = useMemo(() => {
     const search = placeSearch.trim().toLocaleLowerCase();
@@ -146,8 +223,8 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
   const mapPlaces = useMemo(
     () => placeToMove
       ? places.filter((place) => place.id === placeToMove.place.id)
-      : places.filter((place) => !(editor?.id === place.id && editor.coordinate)),
-    [places, editor?.id, editor?.coordinate, placeToMove],
+      : places.filter((place) => !(editor?.id === place.id && editor.coordinate && !editorOpen)),
+    [places, editor?.id, editor?.coordinate, editorOpen, placeToMove],
   );
   const clearPreview = useCallback(() => {
     if (document.activeElement instanceof HTMLElement
@@ -457,10 +534,11 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
                       selectedId={selectedId}
                       draft={photoRelocating ? photoSelection?.draft ?? null : placeToMove?.coordinate ?? editor?.coordinate ?? null}
                       relocatingPlace={placeToMove?.place ?? null}
-                      picking={!!editor}
+                      picking={!!editor && !editorOpen}
                       homeLocation={home.query.data ?? null}
                       homeLocationReady={home.query.isFetched}
-                      homeActionDisabled={save.isPending || remove.isPending || home.save.isPending}
+                      homeActionDisabled={save.isPending || remove.isPending || home.save.isPending || uploading}
+                      onAddPhotos={() => void startWithCurrentLocation(() => uploadInput.current?.click())}
                       homePicking={homePicking}
                       onSelect={selectPlace}
                       onEdit={startEdit}

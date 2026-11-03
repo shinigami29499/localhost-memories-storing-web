@@ -21,6 +21,7 @@ function getNavigationPortal() {
 }
 
 interface Props {
+  libraryColors?: boolean;
   destination: NavigationDestination;
   accessToken: string;
   homeLocation?: Coordinate | null;
@@ -68,6 +69,17 @@ export function NavigationToolbar({ onEdit, onNavigate, onCancel, editAction = "
   );
 }
 
+export function AddNavigationToolbar({ onAdd, disabled }: { onAdd: () => void; disabled?: boolean }) {
+  const { t } = useLocale();
+  return createPortal(<section className="map-navigation map-navigation--library-colors" aria-label={t("Navigation")} data-expanded={false}>
+    <div className="map-navigation__toolbar map-navigation__toolbar--add">
+      <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
+        <Button type="button" variant="ghost" aria-label={t("Add")} title={t("Add")} disabled={disabled} onClick={onAdd}><Plus size={20} aria-hidden="true" /></Button>
+      </AnimateIcon>
+    </div>
+  </section>, getNavigationPortal());
+}
+
 export function DisabledNavigationToolbar() {
   const { t } = useLocale();
   return createPortal(
@@ -76,19 +88,19 @@ export function DisabledNavigationToolbar() {
   );
 }
 
-export function MapNavigation({ destination, accessToken, homeLocation, onOpenChange, onMapboxPreviewChange, onEdit, editAction, onCancel }: Props) {
+export function MapNavigation({ libraryColors = false, destination, accessToken, homeLocation, onOpenChange, onMapboxPreviewChange, onEdit, editAction, onCancel }: Props) {
   const { t, language } = useLocale();
   // Changing the destination or language must cancel requests and release the GPS watch.
   return <NavigationSession
     key={`${destination.latitude}:${destination.longitude}:${language}:${accessToken}`}
-    destination={destination} accessToken={accessToken} homeLocation={homeLocation}
+    libraryColors={libraryColors} destination={destination} accessToken={accessToken} homeLocation={homeLocation}
     onOpenChange={onOpenChange} name={t("Navigation")}
     onMapboxPreviewChange={onMapboxPreviewChange}
     onEdit={onEdit} editAction={editAction} onCancel={onCancel}
   />;
 }
 
-function NavigationSession({ destination, accessToken, homeLocation, onOpenChange, onMapboxPreviewChange, onEdit, editAction, onCancel, name }: Props & { name: string }) {
+function NavigationSession({ libraryColors, destination, accessToken, homeLocation, onOpenChange, onMapboxPreviewChange, onEdit, editAction, onCancel, name }: Props & { name: string }) {
   const { t, language } = useLocale();
   const { current: map } = useMap();
   const mobile = useMediaQuery("(max-width: 640px)");
@@ -197,7 +209,7 @@ function NavigationSession({ destination, accessToken, homeLocation, onOpenChang
           <span className="map-navigation__destination" role="img" aria-label={destination.name} />
         </Marker>
       )}
-      {createPortal(<div className="map-navigation" data-expanded="false"
+      {createPortal(<div className={`map-navigation${libraryColors ? " map-navigation--library-colors" : ""}`} data-expanded="false"
           onClick={(event) => event.stopPropagation()}
           onPointerDown={(event) => event.stopPropagation()}
           onDoubleClick={(event) => event.stopPropagation()}
@@ -224,7 +236,7 @@ function NavigationSession({ destination, accessToken, homeLocation, onOpenChang
                 onOpen={navigation.stop} />
               {!tracking && (
                 <Button type="button" variant="secondary" busy={busy} onClick={navigation.preview}>
-                  {t(locating ? "Finding your location…" : loading ? "Loading route…" : "Preview with Mapbox")}
+                  {t(locating ? "Finding your locationâ€¦" : loading ? "Loading routeâ€¦" : "Preview with Mapbox")}
                 </Button>
               )}
             </div>
@@ -235,14 +247,14 @@ function NavigationSession({ destination, accessToken, homeLocation, onOpenChang
                 <p className="map-navigation__summary">
                   {formatDistance(arrived ? (arrivalGap > 35 ? arrivalGap : 0)
                     : tracking && progress ? progress.remaining : route.distance)}
-                  {" · "}
+                  {" Â· "}
                   {arrived ? t("Route complete") : formatDuration(tracking && progress ? progress.duration : route.duration)}
                 </p>
                 <div role="status" aria-live="polite">
                   {arrived ? arrivalGap > 35
                     ? t("Route complete. Destination is {distance} away.", { distance: formatDistance(arrivalGap) })
                     : t("You have arrived at your destination.")
-                    : loading ? t("Recalculating route…")
+                    : loading ? t("Recalculating routeâ€¦")
                       : tracking && !gpsUnreliable && progress?.instruction && (
                         <p>{progress.instruction} {t("in {distance}", { distance: formatDistance(progress.nextTurnDistance) })}</p>
                       )}

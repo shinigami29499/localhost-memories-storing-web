@@ -868,3 +868,27 @@
   .locations__popup,
   .locations__pin { transition: none; }
 }
+
+.place .map-controls .place__map-home-control { top: 128px; }
+.place .map-controls[data-scene="streets"] .place__map-home-control { top: 68px; }
+
+@media (max-width: 640px) {
+  .place .map-controls .place__map-home-control { top: 108px; }
+  .place .map-controls[data-scene="streets"] .place__map-home-control { top: 58px; }
+}
+
+.place .map-controls .place__scenes[open]:not(.map-appearance-control) {
+  width: min(200px, calc(100% - 62px));
+}
+.place .map-controls .place__scenes.map-appearance-control[open] {
+  width: min(224px, calc(100% - 62px));
+}
+.place .map-controls .place__scenes[open] > .place__scenes-title {
+  grid-template-columns: 44px minmax(0, 1fr) 20px;
+  justify-content: stretch;
+}
+@media (max-width: 640px) {
+  .place .map-controls .place__scenes[open] > .place__scenes-title {
+    grid-template-columns: 34px minmax(0, 1fr) 16px;
+  }
+}

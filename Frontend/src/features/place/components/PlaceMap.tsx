@@ -3,7 +3,7 @@ import Map, { GeolocateControl, Marker, useMap, type MapRef } from "react-map-gl
 import { useShouldReduceMotion } from "@animate-ui/react/utils/motion";
 import "mapbox-gl/dist/mapbox-gl.css";
 import "../../locations/components/mapControls.css";
-import { ErrorState, showToast } from "../../../components/ui";
+import { Button, ErrorState, showToast } from "../../../components/ui";
 import { AnimateIcon } from "../../../components/animate-ui/icons/icon";
 import { Globe } from "../../../components/animate-ui/icons/globe";
 import { Home } from "../../../components/animate-ui/icons/home";
@@ -12,7 +12,6 @@ import { ChevronDown } from "../../../components/animate-ui/icons/chevron-down";
 import { SlidersHorizontal } from "../../../components/animate-ui/icons/sliders-horizontal";
 import { Key } from "../../../components/animate-ui/icons/key";
 import { MapPin } from "../../../components/animate-ui/icons/map-pin";
-import { Plus } from "../../../components/animate-ui/icons/plus";
 import { useLocale } from "../../../context/LocaleContext";
 import { useMediaQuery } from "../../../hooks/useMediaQuery";
 import { useAnimationStore } from "../../../store/animationStore";
@@ -31,6 +30,7 @@ import {
   useMapAppearance,
 } from "../../locations/components/MapAppearanceSettings";
 import { StarRating } from "./StarRating";
+import { PlaceDialog } from "./PlaceDialog";
 import { LocationSearch } from "../../locations/components/LocationSearch";
 import { HomeLocationMarker } from "../../locations/components/HomeLocationMarker";
 import { MapLoadingOverlay } from "../../locations/components/MapLoadingOverlay";
@@ -42,7 +42,7 @@ import type { HomeLocation } from "../../locations/types";
 import type { PlaceCoordinate, Place } from "../types";
 import type { MediaFile } from "../../media/types";
 import { PhotoMarkers } from "../../locations/components/LocationMap";
-import { DisabledNavigationToolbar, MapNavigation } from "../../navigation/components/MapNavigation";
+import { AddNavigationToolbar, MapNavigation } from "../../navigation/components/MapNavigation";
 import { NavigationFallback } from "../../navigation/components/NavigationOptions";
 
 interface Props {
@@ -75,6 +75,7 @@ interface Props {
   onCancelDraft: () => void;
   onPickHome: (coordinate: HomeLocation) => void;
   onCreateAtCurrentLocation: (coordinate: PlaceCoordinate) => void;
+  onAddPhotos: () => void;
   onHomeClick: () => void;
   /** `placeName` is set when the click snapped to a basemap place label. */
   onPick: (coordinate: PlaceCoordinate, placeName?: string, source?: "search") => void;
@@ -552,7 +553,7 @@ function PlaceMarkers({ places, selectedId, ready, onSelect, canChange, onMove, 
 function MapContent({
   places, photos = [], selectedPhoto, photoRelocating = false, selectedId, draft, picking, relocatingPlace, homeLocation,
   homeLocationReady, homePicking, homeActionDisabled, onSelect, onPick, onPickHome,
-  onHomeClick, onCreateAtCurrentLocation, token,
+  onHomeClick, onCreateAtCurrentLocation, onAddPhotos, token,
   canChange, onMove, onDelete, onEdit, onEditDraft, onConfirmRelocation, onCancelRelocation, onCancelSelection, onCancelDraft,
   canMovePhoto, onSelectPhoto, onMovePhoto, onEditPhoto, onConfirmPhotoMove,
 }: Props & { token: string }) {
@@ -570,6 +571,7 @@ function MapContent({
   const [scene, setScene] = useState<MapScene>("3d");
   const [showMarkers, setShowMarkers] = useState(true);
   const [showPhotoMarkers, setShowPhotoMarkers] = useState(true);
+  const [addChoiceOpen, setAddChoiceOpen] = useState(false);
   const mapAppearance = useMapAppearance();
   const [appearanceOpen, setAppearanceOpen] = useState(false);
   const [homeRequest, setHomeRequest] = useState(0);
@@ -579,6 +581,22 @@ function MapContent({
   const photoDraftChanged = !!photoRelocating && !!selectedPhoto?.location && !!draft
     && (draft.latitude !== selectedPhoto.location.latitude || draft.longitude !== selectedPhoto.location.longitude);
   const mapPlaces = relocatingPlace ? places.filter((place) => place.id === relocatingPlace.id) : places;
+  const addPlace = () => {
+    if (!navigator.geolocation) {
+      showToast.error(t("Could not determine your current location. Check location permission and try again."));
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => onCreateAtCurrentLocation({ latitude: coords.latitude, longitude: coords.longitude }),
+      () => showToast.error(t("Could not determine your current location. Check location permission and try again.")),
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+    );
+  };
+  const add = () => {
+    if (showMarkers && showPhotoMarkers) setAddChoiceOpen(true);
+    else if (showPhotoMarkers) onAddPhotos();
+    else if (showMarkers) addPlace();
+  };
   const focusCoordinate = (coordinate: PlaceCoordinate) => {
     mapRef.current?.easeTo({
       center: [coordinate.longitude, coordinate.latitude],
@@ -719,7 +737,7 @@ function MapContent({
           homeLocation={homeLocation} homeRequest={homeRequest} focusRequest={focusRequest} />
         <MapResizer />
         {loaded && !homePicking && (selected && !picking || selectedPhoto && !picking || !selected && !selectedPhoto && (picking || relocating) && draft) && (
-          <MapNavigation destination={selected
+          <MapNavigation libraryColors destination={selected
             ? { latitude: selected.latitude, longitude: selected.longitude, name: selected.name }
             : selectedPhoto ? { latitude: (photoRelocating && draft ? draft : selectedPhoto.location!).latitude, longitude: (photoRelocating && draft ? draft : selectedPhoto.location!).longitude, name: selectedPhoto.originalFilename }
             : { ...draft!, name: relocatingPlace?.name ?? t("New place") }}
@@ -732,11 +750,11 @@ function MapContent({
               if (open && !selected && !selectedPhoto && draft) focusCoordinate(draft);
               setNavigationOpen(open);
             }}
-            editAction={photoRelocating || relocatingPlace ? "confirm" : selected || selectedPhoto ? "edit" : "add"}
+            editAction={photoRelocating || relocatingPlace || (!selected && !selectedPhoto) ? "confirm" : "edit"}
             onCancel={photoRelocating ? onCancelSelection : relocatingPlace ? onCancelRelocation : selected || selectedPhoto ? onCancelSelection : onCancelDraft} />
         )}
         {(!loaded || homePicking || (picking && (!!selected || !draft)) || (!selected && !selectedPhoto && !draft))
-          && <DisabledNavigationToolbar />}
+          && <AddNavigationToolbar onAdd={add} disabled={!loaded || homePicking || homeActionDisabled || (!showMarkers && !showPhotoMarkers)} />}
         {homeLocation && !relocating && (
           <HomeLocationMarker location={homeLocation} variant="place" onHoverChange={onHomeHoverChange} onClick={() => {
             mapRef.current?.easeTo({
@@ -784,33 +802,12 @@ function MapContent({
         }}
         onSelect={selectSearchResult}
       />
-      <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
-        <button
-          type="button"
-          className="place__add-marker-control"
-          aria-label={t("Add place")}
-          title={t("Add place")}
-          disabled={!loaded || homeActionDisabled}
-          onClick={() => {
-            if (scenesRef.current) scenesRef.current.open = false;
-            if (appearanceRef.current) appearanceRef.current.open = false;
-            if (!navigator.geolocation) {
-              showToast.error(t("Could not determine your current location. Check location permission and try again."));
-              return;
-            }
-            navigator.geolocation.getCurrentPosition(
-              ({ coords }) => onCreateAtCurrentLocation({
-                latitude: coords.latitude,
-                longitude: coords.longitude,
-              }),
-              () => showToast.error(t("Could not determine your current location. Check location permission and try again.")),
-              { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
-            );
-          }}
-        >
-          <Plus size={20} aria-hidden="true" />
-        </button>
-      </AnimateIcon>
+      {addChoiceOpen && <PlaceDialog title={t("Add")} onClose={() => setAddChoiceOpen(false)}>
+        <div className="place__add-choices">
+          <Button onClick={() => { setAddChoiceOpen(false); onAddPhotos(); }}>{t("Add photos")}</Button>
+          <Button onClick={() => { setAddChoiceOpen(false); addPlace(); }}>{t("Add place")}</Button>
+        </div>
+      </PlaceDialog>}
       <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
         <button
           type="button"
@@ -877,14 +874,14 @@ function MapContent({
             <button type="button" className="place__scene" aria-pressed={showPhotoMarkers}
               onClick={() => setShowPhotoMarkers((visible) => !visible)}>
               <span className="place__scene-icon" aria-hidden="true"><MapPin size={20} /></span>
-              <span className="place__scene-copy"><strong>{t("Photo markers")}</strong></span>
+              <span className="place__scene-copy"><strong>{t("Photos")}</strong></span>
             </button>
           </AnimateIcon>
           <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
             <button type="button" className="place__scene" aria-pressed={showMarkers}
               onClick={() => setShowMarkers((visible) => !visible)}>
               <span className="place__scene-icon" aria-hidden="true"><Key size={20} /></span>
-              <span className="place__scene-copy"><strong>{t("Place markers")}</strong></span>
+              <span className="place__scene-copy"><strong>{t("Places")}</strong></span>
             </button>
           </AnimateIcon>
         </div>

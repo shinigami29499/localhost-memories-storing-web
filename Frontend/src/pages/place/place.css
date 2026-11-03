@@ -1621,3 +1621,5 @@ main.place .place__search-bar input[type="search"]:focus-visible {
     justify-self: center;
   }
 }
+
+.place__add-choices { display: flex; flex-wrap: wrap; gap: 0.75rem; }
