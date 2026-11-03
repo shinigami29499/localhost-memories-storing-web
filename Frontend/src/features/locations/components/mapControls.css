@@ -803,6 +803,21 @@
 }
 .locations__cluster--group[data-open="true"] .locations__cluster-count { position: static; }
 .locations__cluster-toggle:hover .locations__cluster-count { background: var(--accent-strong); }
+.place__cluster-next {
+  background: var(--surface-raised);
+  border: 0;
+  border-radius: 999px;
+  bottom: -32px;
+  color: var(--text-strong);
+  cursor: pointer;
+  left: 50%;
+  padding: 4px 8px;
+  position: absolute;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  z-index: 40;
+}
+.place__cluster-next:focus-visible { outline: 2px solid var(--focus-ring); }
 .locations__marker { height: 54px; position: relative; width: 44px; }
 .locations__marker:not(.home-location-marker)::before {
   content: "";

@@ -4,8 +4,6 @@ import { ScrollFade } from "@animate-ui/react/primitives/effects/scroll-fade";
 import { Plus } from "@/components/animate-ui/icons/plus";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
 import { ConfirmationDialog, EmptyState, ErrorState, Spinner, showToast } from "../../components/ui";
-import { PageTransition } from "../../components/layout/PageTransition";
-import { readPageTransitionEffect } from "../../utils/pageTransition";
 import { useLocale } from "../../context/LocaleContext";
 import {
   AlbumCard,
@@ -17,14 +15,12 @@ import {
 } from "../../features/albums";
 import { useAuthStore } from "../../store/authStore";
 import { useMediaSelectionDrag } from "../../features/media/hooks/useMediaSelectionDrag";
-import { GalleryNavigation } from "../gallery/GalleryNavigation";
 import "../gallery/gallery.css";
 import "./albums.css";
 
 export function AlbumsPage() {
   const { t, language } = useLocale();
   const navigate = useNavigate();
-  const pageTransition = readPageTransitionEffect();
   const me = useAuthStore((s) => s.user);
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<Album | null>(null);
@@ -77,17 +73,10 @@ export function AlbumsPage() {
         }
       }}>
       <div className="gallery-page__fixed-layout">
-          <header className="gallery-page__header">
-            <p className="gallery-page__eyebrow">{t("Keep what matters")}</p>
-            <h1>{t("Album")}<span className="brand__dot">.</span></h1>
-            <p>{t("Your memories, organized into albums.")}</p>
-          </header>
-
-          <GalleryNavigation active="album" />
           <ScrollFade asChild blur={0} shrink={0}>
           <div className="gallery-page__content gallery-page__media-scroll">
           <div className="gallery-page__tab-panel--media">
-          <PageTransition effect={pageTransition} transitionKey="albums">
+          <div className="page-transition">
           {ownAlbums.isPending || publicAlbums.isPending ? <Spinner label={t("Loading albums…")} /> : ownAlbums.isError || publicAlbums.isError ? (
             <ErrorState message={t("Could not load albums.")} onRetry={() => { void ownAlbums.refetch(); void publicAlbums.refetch(); }} />
           ) : items.length === 0 ? (
@@ -124,7 +113,7 @@ export function AlbumsPage() {
               ))}
             </div>
           )}
-          </PageTransition>
+          </div>
           </div>
           </div>
       </ScrollFade>

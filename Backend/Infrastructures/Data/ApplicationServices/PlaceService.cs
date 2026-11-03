@@ -25,6 +25,15 @@ public sealed partial class PlaceService(
     public async Task<IReadOnlyList<PlaceDto>> GetPlacesAsync(CancellationToken cancellationToken = default)
         => (await repository.GetPlacesAsync(cancellationToken)).Select(mapper.Map).ToList();
 
+    public async Task<IReadOnlyList<PlaceMapDto>> GetMapPlacesAsync(CancellationToken cancellationToken = default)
+        => (await repository.GetMapPlacesAsync(cancellationToken)).Select(source =>
+        {
+            var place = mapper.Map(source);
+            return new PlaceMapDto(place.Id, place.Name, place.Address, place.Note, place.Latitude,
+                place.Longitude, place.Rating, place.MarkerIcon, place.MarkerColor, place.Owner,
+                place.CreatedAt, place.UpdatedAt);
+        }).ToList();
+
     public async Task<PlaceDto> GetPlaceAsync(
         Guid placeId, CancellationToken cancellationToken = default)
         => mapper.Map(await repository.GetPlaceSourceAsync(placeId, cancellationToken)

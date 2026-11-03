@@ -10,6 +10,12 @@ export interface MapMarkerGroup<T> {
 
 export type MapProjector = (location: MapCoordinate) => { x: number; y: number };
 
+export function isMarkerInViewport(location: MapCoordinate, project: MapProjector | null, width: number, height: number) {
+  if (!project || width <= 0 || height <= 0) return false;
+  const point = project(location);
+  return point.x >= 0 && point.x <= width && point.y >= 0 && point.y <= height;
+}
+
 const CLUSTER_RADIUS_PX = 46;
 const CLUSTER_RADIUS_DEGREES = 0.0008;
 

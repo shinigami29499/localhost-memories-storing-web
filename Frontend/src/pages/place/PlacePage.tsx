@@ -7,6 +7,7 @@ import { ScrollProgress, ScrollProgressContainer, ScrollProgressProvider } from 
 import {
   Button,
   ConfirmationDialog,
+  EmptyState,
   ErrorState,
   Spinner,
   showToast,
@@ -28,7 +29,8 @@ import { registerUploadCompletionAction } from "../../features/uploads/services/
 import { locationService } from "../../features/locations/services/locationService";
 import { LocationEditor } from "../../features/locations/components/LocationEditor";
 import { HomeLocationPhotoConfirmation } from "../../features/locations/components/HomeLocationPhotoConfirmation";
-import { PlaceMap } from "../../features/place/components/PlaceMap";
+import { PlaceMap, type PlaceMapSettings } from "../../features/place/components/PlaceMap";
+import { placeService } from "../../features/place/services/placeService";
 import { PlaceDialog } from "../../features/place/components/PlaceDialog";
 import { SinglePlaceVisitHistory } from "../../features/place/components/SinglePlaceVisitHistory";
 import { PlaceVisitHistory } from "../../features/place/components/PlaceVisitHistory";
@@ -45,6 +47,8 @@ import {
   useDeletePlaceVisit,
   usePlaceVisitHistory,
   usePlaces,
+  useMapPlaces,
+  usePlace,
   useSavePlace,
 } from "../../features/place/hooks/usePlaces";
 import {
@@ -86,6 +90,27 @@ function toEditorState(place: Place): EditorState {
   };
 }
 
+type PlaceView = "map" | "saved" | "history";
+
+function PlaceViewSwitch({ view, onChange }: { view: PlaceView; onChange: (view: PlaceView) => void }) {
+  const { t } = useLocale();
+
+  return (
+    <div className="place__view-switch" role="group" aria-label={t("Place view")}>
+      <Highlight value={view} controlledItems mode="parent" containerClassName="place__view-highlight-container" className="place__view-highlight">
+        {([ ["map", "Map"], ["saved", "Saved"], ["history", "History"] ] as const).map(([value, label]) => (
+          <HighlightItem key={value} value={value} asChild>
+            <button type="button" className="place__view-option" aria-pressed={view === value}
+              onClick={() => onChange(value)}>
+              {t(label)}
+            </button>
+          </HighlightItem>
+        ))}
+      </Highlight>
+    </div>
+  );
+}
+
 export function PlacePage() {
   const { t } = useLocale();
   const queryClient = useQueryClient();
@@ -95,13 +120,54 @@ export function PlacePage() {
   const home = useHomeLocation(user?.id);
   const initialState = location.state as { view?: "map" | "saved" | "history"; focusPlaceId?: string } | null;
   const [view, setView] = useState<"map" | "saved" | "history">(initialState?.view ?? "map");
+  const [transitionView, setTransitionView] = useState<PlaceView>(view);
+  const [contentReady, setContentReady] = useState(true);
+  const requestView = useCallback((nextView: PlaceView) => {
+    if (nextView === transitionView) return;
+    startTransition(() => {
+      setContentReady(false);
+      setTransitionView(nextView);
+    });
+  }, [transitionView]);
+  useEffect(() => {
+    if (contentReady) return;
+    let cancelled = false;
+    let frame = 0;
+    let previous = "";
+    let stableFrames = 0;
+    let frames = 0;
+    let pageFinished = false;
+    const wait = () => {
+      const style = document.querySelector('.place__view-highlight')?.getAttribute("style") ?? "";
+      stableFrames = style === previous ? stableFrames + 1 : 0;
+      previous = style;
+      // Let bounds effects start the spring before checking for completion.
+      if (++frames > 2 && stableFrames >= 3 && pageFinished) {
+        setView(transitionView);
+        setContentReady(true);
+      } else if (!cancelled) frame = requestAnimationFrame(wait);
+    };
+    frame = requestAnimationFrame(() => {
+      const transition = (document as Document & {
+        activeViewTransition?: { finished: Promise<unknown> } | null;
+      }).activeViewTransition;
+      void (transition?.finished ?? Promise.resolve()).catch(() => undefined).then(() => {
+        pageFinished = true;
+      });
+      wait();
+    });
+    return () => { cancelled = true; cancelAnimationFrame(frame); };
+  }, [transitionView, contentReady]);
+  const mapSettings = useRef<PlaceMapSettings>({ scene: "3d", showMarkers: true, showPhotoMarkers: true });
   const saved = view !== "map";
   const { media: photos, query: photosQuery } = useLocations(!saved);
   const [uploading, setUploading] = useState(false);
   const uploadInFlight = useRef(false);
   const uploadLocation = useRef<{ latitude: number; longitude: number } | null>(null);
   const uploadInput = useRef<HTMLInputElement>(null);
-  const query = usePlaces();
+  const savedPlaces = usePlaces(saved);
+  const mapPlacesQuery = useMapPlaces(!saved);
+  const query = saved ? savedPlaces : mapPlacesQuery;
   const save = useSavePlace();
   const remove = useDeletePlace();
   const checkInMutation = useCheckInPlace();
@@ -109,15 +175,13 @@ export function PlacePage() {
   const [editor, setEditor] = useState<EditorState | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(() => !saved ? (location.state as { focusPlaceId?: string } | null)?.focusPlaceId ?? null : null);
+  const selectedPlaceQuery = usePlace(selectedId, !saved);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [placeSearch, setPlaceSearch] = useState("");
   const [minimumRating, setMinimumRating] = useState(0);
   const [historyPage, setHistoryPage] = useState(1);
   const [historyPageSize, setHistoryPageSize] = useState(DEFAULT_PAGE_SIZE);
-  const viewRequestRef = useRef(0);
-  const [viewLoading, setViewLoading] = useState(false);
   const pageTransition = readPageTransitionEffect();
-  useEffect(() => () => { viewRequestRef.current += 1; }, []);
   const visitHistory = usePlaceVisitHistory(view === "history");
   const historyTotal = visitHistory.data?.length ?? 0;
   const currentHistoryPage = Math.min(historyPage, Math.max(1, Math.ceil(historyTotal / historyPageSize)));
@@ -215,7 +279,7 @@ export function PlacePage() {
       && (minimumRating === 0 || place.rating >= minimumRating));
   }, [places, placeSearch, minimumRating]);
   const homePicking = manualHomePick;
-  const selected = places.find((place) => place.id === selectedId);
+  const selected = saved ? places.find((place) => place.id === selectedId) : selectedPlaceQuery.data;
   const selectedPhoto = photos.find((photo) => photo.id === photoSelection?.id);
   const photoRelocating = !!photoSelection?.editing;
   const canEdit = (place: Place) => place.owner.id === user?.id || isAdmin;
@@ -410,9 +474,10 @@ export function PlacePage() {
   const confirmMove = async () => {
     if (!placeToMove) return;
     const { place, coordinate } = placeToMove;
+    const details = await placeService.get(place.id);
     await save.mutateAsync({
       id: place.id,
-      input: { ...toEditorState(place).values, ...coordinate },
+      input: { ...toEditorState(details).values, ...coordinate },
     });
     showToast.success(t("Place updated."));
     setMoveConfirmationOpen(false);
@@ -457,39 +522,6 @@ export function PlacePage() {
     showToast.delete(t("Place deleted."));
   };
 
-  const viewSwitch = (
-    <div className="place__view-switch" role="group" aria-label={t("Place view")}>
-      <Highlight value={view} controlledItems className="place__view-highlight">
-        <HighlightItem value="map" asChild>
-          <button type="button" className="place__view-option" aria-pressed={view === "map"}
-            onClick={() => { viewRequestRef.current += 1; setViewLoading(false); startTransition(() => setView("map")); }}>
-            {t("Map")}
-          </button>
-        </HighlightItem>
-        <HighlightItem value="saved" asChild>
-          <button type="button" className="place__view-option" aria-pressed={view === "saved"}
-            onClick={() => { viewRequestRef.current += 1; setViewLoading(false); startTransition(() => setView("saved")); }}>
-            {t("Saved")}
-          </button>
-        </HighlightItem>
-        <HighlightItem value="history" asChild>
-          <button type="button" className="place__view-option" aria-pressed={view === "history"}
-            onClick={() => {
-              if (view === "history") return;
-              const request = ++viewRequestRef.current;
-              setViewLoading(true);
-              void visitHistory.refetch().then(() => {
-                if (request !== viewRequestRef.current) return;
-                setViewLoading(false);
-                startTransition(() => setView("history"));
-              });
-            }}>
-            {t("History")}
-          </button>
-        </HighlightItem>
-      </Highlight>
-    </div>
-  );
 
   return (
     <main className={`place${saved ? " place--saved" : ""}`}>
@@ -523,13 +555,17 @@ export function PlacePage() {
               </div>
             )}
 
-            {viewSwitch}
+            <PlaceViewSwitch view={transitionView} onChange={requestView} />
+            <div className="place__view-content" aria-busy={!contentReady || view === "history" && visitHistory.isPending || undefined}>
+            <PageTransition effect={pageTransition} transitionKey={transitionView} liveRoot skipUpdates deferRendering={false}>
+            {!contentReady ? null : <>
             {!saved && (query.isLoading ? <Spinner /> : query.isError && !places.length ? (
               <ErrorState message="Could not load places." onRetry={() => void query.refetch()} />
             ) : (
                 <div ref={workspaceRef} className="place__workspace">
                   <div className="place__map-panel">
                     <PlaceMap
+                      settingsRef={mapSettings}
                       places={mapPlaces}
                       photos={photos}
                       selectedPhoto={selectedPhoto}
@@ -549,7 +585,9 @@ export function PlacePage() {
                       onAddPhotos={() => void startWithCurrentLocation(() => uploadInput.current?.click())}
                       homePicking={homePicking}
                       onSelect={selectPlace}
-                      onEdit={startEdit}
+                      onEdit={(place) => {
+                        void placeService.get(place.id).then(startEdit).catch(() => showToast.error(t("Could not load places.")));
+                      }}
                       onEditDraft={() => setEditorOpen(true)}
                       onConfirmRelocation={() => setMoveConfirmationOpen(true)}
                       onCancelRelocation={() => { setMoveConfirmationOpen(false); setPlaceToMove(null); }}
@@ -584,10 +622,8 @@ export function PlacePage() {
                   </div>
                 </div>
             ))}
-            {saved && <>
-            <div className="place__view-content" aria-busy={viewLoading || undefined}>
-            <PageTransition effect={pageTransition} transitionKey={view}>
-            {view === "history" ? (
+            {saved && (
+            view === "history" ? (
               <div className="place__history-panel">
                 {visitHistory.isError ? (
                   <ErrorState
@@ -597,7 +633,7 @@ export function PlacePage() {
                 ) : visitHistory.isPending ? <Spinner /> : visitHistory.data?.length ? (
                   <PlaceVisitHistory
                     visits={visitHistory.data.slice((currentHistoryPage - 1) * historyPageSize, currentHistoryPage * historyPageSize)}
-                    onShowOnMap={(visit) => { setSelectedId(visit.placeId); setDetailsOpen(false); setView("map"); }}
+                    onShowOnMap={(visit) => { setSelectedId(visit.placeId); setDetailsOpen(false); requestView("map"); }}
                     showVisitor
                     showVisitorName
                     onRemove={(visit) => void removeVisit(visit)}
@@ -648,11 +684,63 @@ export function PlacePage() {
                   <EmptyState title="No matching places" hint="Try a different search to find a saved place." />
                 )}
               </>
+            )
             )}
+        {view === "saved" && (
+          <form className={`place__search-bar${minimumRating > 0 ? " place__search-bar--rating-filtered" : ""}`} role="search" onSubmit={(event) => event.preventDefault()}>
+            <input type="search" aria-label={t("Search saved places")}
+              placeholder={t("Search places or users")} value={placeSearch}
+              onChange={(event) => setPlaceSearch(event.target.value)} />
+            <div className="place__rating-controls">
+              {minimumRating > 0 && (
+                <button type="button" className="place__rating-filter-clear" aria-label={t("Clear rating filter")}
+                  title={t("Clear rating filter")} onClick={() => setMinimumRating(0)}>
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
+                  </svg>
+                </button>
+              )}
+              <button type="button" className="place__rating-filter" aria-label={t("Filter places by average rating")}
+                title={t("Filter places by average rating")} aria-pressed={minimumRating > 0}
+                onClick={() => setMinimumRating((rating) => rating === 5 ? 0 : rating + 1)}>
+                <SlidingNumber number={minimumRating} aria-hidden="true" />
+                <Star size={17} fill="currentColor" aria-hidden="true" />
+              </button>
+            </div>
+            {placeSearch && (
+              <>
+                <span className="place__search-divider" aria-hidden="true" />
+                <button type="button" className="place__search-clear" aria-label={t("Clear search")}
+                  title={t("Clear search")} onClick={() => setPlaceSearch("")}>
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
+                  </svg>
+                </button>
+              </>
+            )}
+            <AnimateIcon animateOnHover animateOnTap={false} completeOnStop asChild>
+              <span className="place__search-icon" aria-hidden="true">
+                <Search size={22} />
+              </span>
+            </AnimateIcon>
+          </form>
+        )}
+        {saved && view === "history" && visitHistory.data && !visitHistory.isError ? (
+          <footer className="place__history-footer">
+            <Pagination
+              page={currentHistoryPage}
+              pageSize={historyPageSize}
+              total={historyTotal}
+              itemLabel="visits"
+              isFetching={visitHistory.isFetching}
+              onPageChange={setHistoryPage}
+              onPageSizeChange={(size) => { setHistoryPageSize(size); setHistoryPage(1); }}
+            />
+          </footer>
+        ) : null}
+            </>}
             </PageTransition>
             </div>
-
-            </>}
 
             {editorOpen && editor?.coordinate && (
               <PlaceDialog
@@ -723,7 +811,7 @@ export function PlacePage() {
                       </Button>
                     )}
                   </div>
-                  <SinglePlaceVisitHistory placeId={selected.id} onShowOnMap={saved ? (visit) => { setSelectedId(visit.placeId); setDetailsOpen(false); setView("map"); } : undefined} />
+                  <SinglePlaceVisitHistory placeId={selected.id} onShowOnMap={saved ? (visit) => { setSelectedId(visit.placeId); setDetailsOpen(false); requestView("map"); } : undefined} />
                 </div>
               </PlaceDialog>
             )}
@@ -731,6 +819,7 @@ export function PlacePage() {
             {homeDialogOpen && (
               <PlaceDialog
                 title={t("Home location")}
+                className="place__dialog--home"
                 onClose={() => setHomeDialogOpen(false)}
               >
                 <div className="place__home-dialog">
@@ -838,58 +927,7 @@ export function PlacePage() {
             />
           </div>
         </ScrollProgressContainer>
-        {view === "saved" && (
-          <form className={`place__search-bar${minimumRating > 0 ? " place__search-bar--rating-filtered" : ""}`} role="search" onSubmit={(event) => event.preventDefault()}>
-            <input type="search" aria-label={t("Search saved places")}
-              placeholder={t("Search places or users")} value={placeSearch}
-              onChange={(event) => setPlaceSearch(event.target.value)} />
-            <div className="place__rating-controls">
-              {minimumRating > 0 && (
-                <button type="button" className="place__rating-filter-clear" aria-label={t("Clear rating filter")}
-                  title={t("Clear rating filter")} onClick={() => setMinimumRating(0)}>
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
-                  </svg>
-                </button>
-              )}
-              <button type="button" className="place__rating-filter" aria-label={t("Filter places by average rating")}
-                title={t("Filter places by average rating")} aria-pressed={minimumRating > 0}
-                onClick={() => setMinimumRating((rating) => rating === 5 ? 0 : rating + 1)}>
-                <SlidingNumber number={minimumRating} aria-hidden="true" />
-                <Star size={17} fill="currentColor" aria-hidden="true" />
-              </button>
-            </div>
-            {placeSearch && (
-              <>
-                <span className="place__search-divider" aria-hidden="true" />
-                <button type="button" className="place__search-clear" aria-label={t("Clear search")}
-                  title={t("Clear search")} onClick={() => setPlaceSearch("")}>
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
-                  </svg>
-                </button>
-              </>
-            )}
-            <AnimateIcon animateOnHover animateOnTap={false} completeOnStop asChild>
-              <span className="place__search-icon" aria-hidden="true">
-                <Search size={22} />
-              </span>
-            </AnimateIcon>
-          </form>
-        )}
-        {saved && view === "history" && visitHistory.data && !visitHistory.isError ? (
-          <footer className="place__history-footer">
-            <Pagination
-              page={currentHistoryPage}
-              pageSize={historyPageSize}
-              total={historyTotal}
-              itemLabel="visits"
-              isFetching={visitHistory.isFetching}
-              onPageChange={setHistoryPage}
-              onPageSizeChange={(size) => { setHistoryPageSize(size); setHistoryPage(1); }}
-            />
-          </footer>
-        ) : null}
+
       </ScrollProgressProvider>
     </main>
   );

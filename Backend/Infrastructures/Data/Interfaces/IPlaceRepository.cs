@@ -6,6 +6,7 @@ namespace Infrastructures.Data.Interfaces;
 public interface IPlaceRepository
 {
     Task<IReadOnlyList<PlaceSource>> GetPlacesAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<PlaceSource>> GetMapPlacesAsync(CancellationToken cancellationToken = default);
     Task<PlaceSource?> GetPlaceSourceAsync(Guid placeId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<PlaceVisitSource>> GetPlaceVisitHistoryAsync(
         Guid userId, CancellationToken cancellationToken = default);

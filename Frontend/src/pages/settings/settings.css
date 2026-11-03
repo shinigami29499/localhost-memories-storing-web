@@ -1,6 +1,6 @@
 .settings-page {
   min-height: 100%;
-  padding: 40px 24px 72px;
+  padding: var(--page-padding-top) var(--page-gutter) var(--page-padding-bottom);
 }
 
 .settings-page__inner {
@@ -12,7 +12,7 @@
 .settings-page__header {
   display: grid;
   gap: 8px;
-  margin-bottom: 16px;
+  margin-bottom: var(--page-section-gap);
 }
 
 .settings-page__header h1 {
@@ -167,7 +167,7 @@
 
 @media (max-width: 640px) {
   .settings-page {
-    padding: 16px 12px 24px;
+    padding: var(--page-padding-top) var(--page-gutter) var(--page-padding-bottom);
   }
 
   .settings-page__section h2 {

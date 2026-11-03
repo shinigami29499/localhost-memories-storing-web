@@ -1,7 +1,9 @@
 import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { Tabs } from "@base-ui/react/tabs";
 import { Highlight, HighlightItem } from "@animate-ui/react/primitives/effects/highlight";
-import { useEffect, useRef, useState } from "react";
+import { startTransition, useEffect, useRef, useState } from "react";
+import { PageTransition } from "../../components/layout/PageTransition";
+import { readPageTransitionEffect } from "../../utils/pageTransition";
 import { HubConnectionBuilder } from "@microsoft/signalr";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { userService } from "../../features/users";
@@ -189,7 +191,7 @@ export function UsersPage() {
           ) : null}
 
           {!users.isLoading && !users.isError && allUsers.length === 0 ? (
-            null
+            <EmptyState title="No users yet" hint="User accounts will appear here." />
           ) : null}
 
           {allUsers.length > 0 ? (
@@ -197,8 +199,10 @@ export function UsersPage() {
               value={filter}
               onValueChange={(value) => {
                 if (value === "all" || value === "pending_approval") {
-                  setFilter(value);
-                  setPage(1);
+                  startTransition(() => {
+                    setFilter(value);
+                    setPage(1);
+                  });
                 }
               }}
             >
@@ -227,9 +231,15 @@ export function UsersPage() {
                 </Tabs.List>
               </div>
 
+              <PageTransition effect={readPageTransitionEffect()} transitionKey={filter} liveRoot skipUpdates>
               <Tabs.Panel value={filter}>
                 {visibleUsers.length === 0 ? (
-                  null
+                  <EmptyState
+                    title={filter === "pending_approval" ? "No pending users" : "No users yet"}
+                    hint={filter === "pending_approval"
+                      ? "Accounts awaiting approval will appear here."
+                      : "User accounts will appear here."}
+                  />
                 ) : (
                   <div className="admin-table-wrap">
                     <table className="admin-table admin-users__table">
@@ -270,6 +280,7 @@ export function UsersPage() {
                   </div>
                 )}
               </Tabs.Panel>
+              </PageTransition>
             </Tabs.Root>
           ) : null}
         </section>

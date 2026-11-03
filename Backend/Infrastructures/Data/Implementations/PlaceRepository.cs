@@ -14,6 +14,13 @@ public sealed class PlaceRepository(ApplicationDbContext db) : IPlaceRepository
                 .OrderByDescending(place => place.CreatedAt)
                 .ThenByDescending(place => place.Id)), cancellationToken);
 
+    public async Task<IReadOnlyList<PlaceSource>> GetMapPlacesAsync(
+        CancellationToken cancellationToken = default)
+        => await WithAverageRating(db.Places.AsNoTracking()
+            .OrderByDescending(place => place.CreatedAt)
+            .ThenByDescending(place => place.Id)
+            .Select(place => new PlaceSource(place, place.Owner, Array.Empty<Guid>(), 0)), cancellationToken);
+
     public async Task<PlaceSource?> GetPlaceSourceAsync(
         Guid placeId, CancellationToken cancellationToken = default)
         => (await WithAverageRating(Project(db.Places.AsNoTracking().Where(place => place.Id == placeId)), cancellationToken))

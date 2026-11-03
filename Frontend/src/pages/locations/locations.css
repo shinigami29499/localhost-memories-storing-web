@@ -38,13 +38,13 @@
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 40px 24px;
+  padding: var(--page-padding-top) var(--page-gutter) var(--page-padding-bottom);
   scroll-padding-block: 24px;
 }
 
 .locations__inner {
   margin-inline: auto;
-  max-width: 1600px;
+  max-width: var(--page-content-max-width);
 }
 
 .locations__actions {
@@ -56,7 +56,7 @@
 }
 
 .locations__header {
-  margin-bottom: 16px;
+  margin-bottom: var(--page-section-gap);
 }
 
 .locations__header > p:last-child {
@@ -150,7 +150,7 @@
 .locations__details-head {
   display: grid;
   gap: 6px;
-  margin-bottom: 16px;
+  margin-bottom: var(--page-section-gap);
   padding-bottom: 16px;
   border-bottom: 1px solid var(--border-card);
 }
@@ -614,11 +614,11 @@
 
 @media (max-width: 640px) {
   .locations__content {
-    padding: 16px 12px 24px;
+    padding: var(--page-padding-top) var(--page-gutter) var(--page-padding-bottom);
   }
 
   .locations__header {
-    margin-bottom: 16px;
+    margin-bottom: var(--page-section-gap);
   }
 
   .locations__workspace {

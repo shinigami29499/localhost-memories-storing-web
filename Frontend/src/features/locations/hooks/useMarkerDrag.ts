@@ -1,13 +1,32 @@
 ﻿import { useRef, useState, type PointerEvent } from "react";
 import { useMap } from "react-map-gl/mapbox";
+import { useEffect } from "react";
 
 export function useMarkerDrag(location: { latitude: number; longitude: number }, onMove: (location: { latitude: number; longitude: number }) => void, enabled = true) {
   const { current: map } = useMap();
   const gesture = useRef<{ id: number; x: number; y: number; dragging: boolean } | null>(null);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const suppressClick = useRef(false);
+  const ref = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const element = ref.current;
+    if (!element || !enabled || !map) return;
+    // Mapbox handles native mouse/touch events before React's delegated handlers.
+    const stopMapGesture = (event: MouseEvent | TouchEvent) => {
+      if (event instanceof MouseEvent && event.button !== 0) return;
+      event.stopPropagation();
+    };
+    element.addEventListener("mousedown", stopMapGesture);
+    element.addEventListener("touchstart", stopMapGesture);
+    return () => {
+      element.removeEventListener("mousedown", stopMapGesture);
+      element.removeEventListener("touchstart", stopMapGesture);
+    };
+  });
 
   return {
+    ref,
     offset,
     suppressClick,
     onPointerDown: (event: PointerEvent<HTMLElement>) => {

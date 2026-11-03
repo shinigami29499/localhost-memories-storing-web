@@ -1,3 +1,4 @@
+import { GalleryLayout } from "./pages/gallery/GalleryLayout";
 import {
   Navigate,
   Outlet,
@@ -62,10 +63,15 @@ const router = createBrowserRouter([
         ),
         children: [
           { path: "/", element: <HomePage /> },
-          { path: "/gallery", element: <GalleryPage view="pictures" /> },
-          { path: "/gallery/favorites", element: <GalleryPage view="favorites" /> },
-          { path: "/gallery/trash", element: <RequireAdmin><TrashPage /></RequireAdmin> },
-          { path: "/gallery/album", element: <AlbumsPage /> },
+          {
+            element: <GalleryLayout />,
+            children: [
+              { path: "/gallery", element: <GalleryPage view="pictures" /> },
+              { path: "/gallery/favorites", element: <GalleryPage view="favorites" /> },
+              { path: "/gallery/trash", element: <RequireAdmin><TrashPage /></RequireAdmin> },
+              { path: "/gallery/album", element: <AlbumsPage /> },
+            ],
+          },
           { path: "/gallery/album/:albumId", element: <AlbumPage /> },
           { path: "/gallery/videos", element: <Navigate replace to="/gallery" /> },
           { path: "/library/gallery", element: <Navigate replace to="/gallery" /> },

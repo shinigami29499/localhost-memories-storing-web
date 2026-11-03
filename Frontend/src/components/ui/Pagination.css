@@ -174,8 +174,10 @@
 
   .pagination__controls {
     gap: 0;
+    margin: -8px;
     max-width: 100%;
     overflow-x: auto;
+    padding: 8px;
   }
 
   .pagination-btn,

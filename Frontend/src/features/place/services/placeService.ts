@@ -18,6 +18,18 @@ function toBody(input: SavePlaceInput) {
 }
 
 export const placeService = {
+  map(): Promise<Place[]> {
+    return api<Omit<Place, "mediaIds">[]>("/api/location/map").then((places) => places.map((place) => ({
+      ...place,
+      mediaIds: [],
+      markerColor: place.markerColor.toUpperCase() === LEGACY_PURPLE_MARKER ? REPLACEMENT_MARKER_COLOR : place.markerColor,
+    })));
+  },
+
+  get(placeId: string): Promise<Place> {
+    return api(`/api/location/${placeId}`);
+  },
+
   list(): Promise<Place[]> {
     return api<Place[]>("/api/location").then((places) => places.map((place) => ({
       ...place,

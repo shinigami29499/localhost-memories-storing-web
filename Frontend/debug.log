@@ -1,2 +1,27 @@
 [1103/003231.288:ERROR:gpu\command_buffer\service\shared_image\shared_image_manager.cc:401] SharedImageManager::ProduceMemory: Trying to Produce a Memory representation from a non-existent mailbox.
 [1103/003231.288:ERROR:gpu\command_buffer\service\shared_image\shared_image_manager.cc:401] SharedImageManager::ProduceMemory: Trying to Produce a Memory representation from a non-existent mailbox.
+[1104/014933.267:ERROR:gpu\command_buffer\service\gl_utils.cc:431] [.WebGL-0x3cd400d7f400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[1104/014935.419:ERROR:gpu\command_buffer\service\gl_utils.cc:431] [.WebGL-0x4bec00424a00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[1104/014951.001:ERROR:gpu\command_buffer\service\gl_utils.cc:431] [.WebGL-0x334400422600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[1104/014953.165:ERROR:gpu\command_buffer\service\gl_utils.cc:431] [.WebGL-0x586400424a00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[1104/014955.316:ERROR:gpu\command_buffer\service\gl_utils.cc:431] [.WebGL-0x7dec00d07c00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[1104/015007.256:ERROR:gpu\command_buffer\service\gl_utils.cc:431] [.WebGL-0x77c00db2c00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[1104/015008.681:ERROR:gpu\command_buffer\service\shared_image\shared_image_manager.cc:401] SharedImageManager::ProduceMemory: Trying to Produce a Memory representation from a non-existent mailbox.
+[1104/015008.681:ERROR:gpu\command_buffer\service\shared_image\shared_image_manager.cc:401] SharedImageManager::ProduceMemory: Trying to Produce a Memory representation from a non-existent mailbox.
+[1104/015009.468:ERROR:gpu\command_buffer\service\gl_utils.cc:431] [.WebGL-0x30fc00ef8c00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[1104/015031.202:ERROR:gpu\command_buffer\service\gl_utils.cc:431] [.WebGL-0x112c00da6c00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[1104/015033.464:ERROR:gpu\command_buffer\service\gl_utils.cc:431] [.WebGL-0x4ef400effe00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[1104/015034.755:ERROR:gpu\command_buffer\service\shared_image\shared_image_manager.cc:401] SharedImageManager::ProduceMemory: Trying to Produce a Memory representation from a non-existent mailbox.
+[1104/015034.755:ERROR:gpu\command_buffer\service\shared_image\shared_image_manager.cc:401] SharedImageManager::ProduceMemory: Trying to Produce a Memory representation from a non-existent mailbox.
+[1104/015034.755:ERROR:gpu\command_buffer\service\shared_image\shared_image_manager.cc:401] SharedImageManager::ProduceMemory: Trying to Produce a Memory representation from a non-existent mailbox.
+[1104/015034.755:ERROR:gpu\command_buffer\service\shared_image\shared_image_manager.cc:401] SharedImageManager::ProduceMemory: Trying to Produce a Memory representation from a non-existent mailbox.
+[1104/015034.755:ERROR:gpu\command_buffer\service\shared_image\shared_image_manager.cc:401] SharedImageManager::ProduceMemory: Trying to Produce a Memory representation from a non-existent mailbox.
+[1104/015034.755:ERROR:gpu\command_buffer\service\shared_image\shared_image_manager.cc:401] SharedImageManager::ProduceMemory: Trying to Produce a Memory representation from a non-existent mailbox.
+[1104/015035.559:ERROR:gpu\command_buffer\service\gl_utils.cc:431] [.WebGL-0x10e400f20000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[1104/015231.436:ERROR:gpu\command_buffer\service\gl_utils.cc:431] [.WebGL-0x256400d2fa00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[1104/015240.662:ERROR:gpu\command_buffer\service\gl_utils.cc:431] [.WebGL-0x403c02223e00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[1104/015304.146:ERROR:gpu\command_buffer\service\gl_utils.cc:431] [.WebGL-0x599c00422600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[1104/015304.901:ERROR:gpu\command_buffer\service\gl_utils.cc:431] [.WebGL-0x599c00f0f000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[1104/015307.261:ERROR:gpu\command_buffer\service\gl_utils.cc:431] [.WebGL-0x219400ccae00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[1104/015309.368:ERROR:gpu\command_buffer\service\gl_utils.cc:431] [.WebGL-0x28ac00f87600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
+[1104/015908.364:ERROR:gpu\command_buffer\service\gl_utils.cc:431] [.WebGL-0x37c00cf8600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels

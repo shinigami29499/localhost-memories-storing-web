@@ -29,7 +29,7 @@ import type { LocationSearchResult } from "../services/locationSearchService";
 import { useLocale } from "../../../context/LocaleContext";
 import { useMediaQuery } from "../../../hooks/useMediaQuery";
 import { mediaPreviewUrl } from "../../../utils/media";
-import { clusterMapMarkers, mapMarkersOverlap, type MapProjector } from "../../../utils/mapMarkerGroups";
+import { clusterMapMarkers, isMarkerInViewport, mapMarkersOverlap, type MapProjector } from "../../../utils/mapMarkerGroups";
 import type { MediaFile, PhotoLocation, PickedLocation } from "../../media/types";
 import { findPlaceAt } from "../utils/findPlaceAt";
 import type { HomeLocation } from "../types";
@@ -224,7 +224,7 @@ interface PhotoCluster {
   items: MediaFile[];
 }
 
-const MAX_FANNED_PHOTOS = 8;
+const MAX_FANNED_PHOTOS = 20;
 
 function PhotoPin({ item, selected, movable, onSelect, onMove }: {
   item: MediaFile;
@@ -321,6 +321,31 @@ function PhotoPin({ item, selected, movable, onSelect, onMove }: {
   );
 }
 
+function PhotoMarkerItem({ item, index, selected, canMove, onSelect, onMove, hidePreview }: {
+  item: MediaFile;
+  index: number;
+  selected: boolean;
+  canMove: Props["canMove"];
+  onSelect: Props["onSelect"];
+  onMove: Props["onMove"];
+  hidePreview: boolean;
+}) {
+  const { t } = useLocale();
+  const [hovered, setHovered] = useState(false);
+  const colors = ["#d64a43", "#e59718", "#2d9a52", "#2584cc", "#8058bd", "#c04c88"];
+  const color = colors[Array.from(item.id).reduce((hash, char) => (hash * 31 + char.charCodeAt(0)) >>> 0, 0) % colors.length];
+  return <div className="locations__marker" data-selected={selected}
+    style={{ "--fan-index": index, "--marker-color": color } as CSSProperties}
+    onPointerEnter={() => setHovered(true)} onPointerLeave={() => setHovered(false)}
+    onFocus={() => setHovered(true)} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setHovered(false); }}>
+    <PhotoPin item={item} selected={selected} movable={canMove(item)} onSelect={onSelect} onMove={onMove} />
+    {!hidePreview && (hovered || selected) && <article className="locations__popup" aria-label={item.originalFilename}>
+      <img src={mediaPreviewUrl(item.id, false, 320)} alt={item.originalFilename} />
+      <div><small>{t("By {username}", { username: item.ownerUsername ?? t("Unknown") })}</small></div>
+    </article>}
+  </div>;
+}
+
 function PhotoClusterMarker({ cluster, selected, onSelect, canMove, onMove, homeExpanded, nearHome, onHomeHoverChange, hidePreview }: {
   homeExpanded: boolean;
   nearHome: boolean;
@@ -334,15 +359,18 @@ function PhotoClusterMarker({ cluster, selected, onSelect, canMove, onMove, home
 }) {
   const { t } = useLocale();
   const [open, setOpen] = useState(false);
+  const [page, setPage] = useState(0);
+  useEffect(() => { setPage(0); }, [selected?.id]);
   const count = cluster.items.length;
   const selectedIndex = cluster.items.findIndex((item) => item.id === selected?.id);
   const ordered = selectedIndex > 0
     ? [cluster.items[selectedIndex], ...cluster.items.filter((_, index) => index !== selectedIndex)]
     : cluster.items;
-  const fanned = ordered.slice(0, MAX_FANNED_PHOTOS);
+  const pageCount = Math.ceil(count / MAX_FANNED_PHOTOS);
+  const currentPage = page % Math.max(1, pageCount);
+  const fanned = ordered.slice(currentPage * MAX_FANNED_PHOTOS, (currentPage + 1) * MAX_FANNED_PHOTOS);
   const expanded = count === 1 || open || selectedIndex >= 0 || homeExpanded;
   const step = Math.min(26, 150 / Math.max(fanned.length - 1, 1));
-  const markerColors = ["#d64a43", "#e59718", "#2d9a52", "#2584cc", "#8058bd", "#c04c88"];
 
   return (
     <div
@@ -366,17 +394,8 @@ function PhotoClusterMarker({ cluster, selected, onSelect, canMove, onMove, home
       onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) { setOpen(false); onHomeHoverChange?.(false); } }}
     >
       {fanned.map((item, index) => item.location && (
-        <div key={item.id} className="locations__marker" data-selected={selected?.id === item.id}
-          style={{ "--fan-index": index, "--marker-color": markerColors[Array.from(item.id).reduce((hash, char) => (hash * 31 + char.charCodeAt(0)) >>> 0, 0) % markerColors.length] } as CSSProperties}>
-          <PhotoPin item={item} selected={selected?.id === item.id} movable={canMove(item)}
-            onSelect={onSelect} onMove={onMove} />
-          {!hidePreview && <article className="locations__popup" aria-label={item.originalFilename}>
-            <img src={mediaPreviewUrl(item.id)} alt={item.originalFilename} loading="lazy" />
-            <div>
-              <small>{t("By {username}", { username: item.ownerUsername ?? t("Unknown") })}</small>
-            </div>
-          </article>}
-        </div>
+        <PhotoMarkerItem key={item.id} item={item} index={index} selected={selected?.id === item.id}
+          canMove={canMove} onSelect={onSelect} onMove={onMove} hidePreview={hidePreview} />
       ))}
       {count > 1 && (
         <button type="button" className="locations__cluster-toggle" aria-expanded={expanded}
@@ -385,6 +404,11 @@ function PhotoClusterMarker({ cluster, selected, onSelect, canMove, onMove, home
           <span className="locations__cluster-count" aria-hidden="true">{count}</span>
         </button>
       )}
+      {expanded && pageCount > 1 && <button type="button" className="place__cluster-next"
+        aria-label={t("Show next markers")} title={t("Show next markers")}
+        onClick={(event) => { event.stopPropagation(); setPage((current) => (current + 1) % pageCount); }}>
+        {currentPage + 1}/{pageCount} ›
+      </button>}
     </div>
   );
 }
@@ -411,15 +435,20 @@ export function PhotoMarkers({ media, selected, ready, onSelect, canMove, onMove
     update();
     if (typeof map.on !== "function") return;
     map.on("moveend", update);
-    return () => { map.off("moveend", update); };
+    map.on("resize", update);
+    return () => { map.off("moveend", update); map.off("resize", update); };
   }, [map, ready]);
-  const clusters = useMemo(() => clusterMapMarkers(media, (item) => item.location, project)
+  const clusters = useMemo(() => {
+    const container = map?.getContainer();
+    const visible = media.filter((item) => item.location && isMarkerInViewport(item.location, project, container?.clientWidth ?? 0, container?.clientHeight ?? 0));
+    return clusterMapMarkers(visible, (item) => item.location, project)
     .map(({ location, items }) => ({
       id: items[0].id,
       latitude: location.latitude,
       longitude: location.longitude,
       items,
-    })), [media, project]);
+    }));
+  }, [media, project, map]);
 
   return (
     <>

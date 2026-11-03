@@ -6,17 +6,14 @@ import { Trash2 } from "@/components/animate-ui/icons/trash-2";
 import { infiniteQueryOptions, useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { ConfirmationDialog } from "../../components/ui/ConfirmationDialog";
 import { EmptyState, ErrorState, Spinner } from "../../components/ui";
-import { PageTransition } from "../../components/layout/PageTransition";
 import { showToast } from "../../components/ui/Toast";
 import { useLocale } from "../../context/LocaleContext";
-import { readPageTransitionEffect } from "../../utils/pageTransition";
 import { MediaTile } from "../../features/media/components/MediaTile";
 import { MediaRetryProvider } from "../../features/media/components/MediaRetryProvider";
 import { MediaPreviewDialog } from "../../features/media/components/MediaPreviewDialog";
 import { useMediaSelectionDrag } from "../../features/media/hooks/useMediaSelectionDrag";
 import { mediaService } from "../../features/media/services/mediaService";
 import type { MediaFile, MediaKindFilter } from "../../features/media/types";
-import { GalleryNavigation } from "./GalleryNavigation";
 import "./gallery.css";
 import "../../features/media/components/media.css";
 
@@ -42,7 +39,6 @@ function trashQueryOptions(filter?: MediaKindFilter) {
 }
 export function TrashPage() {
   const { t, language } = useLocale();
-  const pageTransition = readPageTransitionEffect();
   const queryClient = useQueryClient();
   const filter = undefined;
   const [previewMediaId, setPreviewMediaId] = useState<string | null>(null);
@@ -208,14 +204,8 @@ export function TrashPage() {
         }}>
         <div className="gallery-page__content">
           <div className="gallery-page__inner">
-            <header className="gallery-page__header">
-              <p className="gallery-page__eyebrow">{t("Your library")}</p>
-              <h1>{t("Trash")}<span className="brand__dot">.</span></h1>
-              <p>{t("Restore deleted media to your library.")}</p>
-            </header>
-            <GalleryNavigation active="trash" />
             <div className="gallery-page__tab-panel gallery-page__tab-panel--media">
-                <PageTransition effect={pageTransition} transitionKey="all">
+                <div className="page-transition">
                   {query.isLoading ? <Spinner label={t("Loading media…")} /> : null}
                   {query.isError && media.length === 0 ? (
                     <ErrorState message={t("Could not load media.")} onRetry={() => void query.refetch()} />
@@ -266,7 +256,7 @@ export function TrashPage() {
                     <ErrorState message={t("Could not refresh media.")} onRetry={() => void query.refetch()} />
                   ) : null}
                   <div ref={sentinelRef} aria-hidden="true" />
-                </PageTransition>
+                </div>
               </div>
             
           </div>

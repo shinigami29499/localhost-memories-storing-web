@@ -6,15 +6,26 @@ import type { Place, PlaceVisit, SavePlaceInput } from "../types";
 export const placeKeys = {
   all: ["places"] as const,
   list: () => ["places", "list"] as const,
+  map: () => ["places", "map"] as const,
+  detail: (id: string) => ["places", "detail", id] as const,
   visitHistory: () => ["places", "visit-history"] as const,
   placeVisitHistory: (placeId: string, userId?: string) => ["places", "visit-history", placeId, userId] as const,
 };
 
-export function usePlaces() {
+export function usePlaces(enabled = true) {
   return useQuery<Place[]>({
     queryKey: placeKeys.list(),
     queryFn: () => placeService.list(),
+    enabled,
   });
+}
+
+export function useMapPlaces(enabled = true) {
+  return useQuery({ queryKey: placeKeys.map(), queryFn: () => placeService.map(), enabled });
+}
+
+export function usePlace(id: string | null, enabled = true) {
+  return useQuery({ queryKey: placeKeys.detail(id ?? ""), queryFn: () => placeService.get(id!), enabled: enabled && !!id });
 }
 
 export function usePlaceVisitHistory(enabled = true) {

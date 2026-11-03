@@ -38,7 +38,7 @@
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 40px 24px 72px;
+  padding: var(--page-padding-top) var(--page-gutter) var(--page-padding-bottom);
   scroll-padding-block: 24px;
 }
 
@@ -54,7 +54,7 @@
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 8px 24px;
-  margin-bottom: 16px;
+  margin-bottom: var(--page-section-gap);
 }
 
 .home-page__header h1 {
@@ -88,6 +88,6 @@
 
 @media (max-width: 640px) {
   .home-page__content {
-    padding: 16px 12px 24px;
+    padding: var(--page-padding-top) var(--page-gutter) var(--page-padding-bottom);
   }
 }

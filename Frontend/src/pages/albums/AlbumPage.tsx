@@ -353,7 +353,7 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
             <ScrollFade asChild blur={0} shrink={0}>
             <ScrollProgressContainer className="gallery-page__content gallery-page__media-scroll" ref={contentRef}>
             <Tabs.Content value={mediaKind} className="gallery-page__tab-panel gallery-page__tab-panel--media">
-              <PageTransition effect={pageTransition} transitionKey={mediaKind}>
+              <PageTransition effect={pageTransition} transitionKey={mediaKind} liveRoot skipUpdates>
               {media.isPending ? <Spinner label={t("Loading media…")} /> : media.isError && items.length === 0 ? (
                 <ErrorState message={t("Could not load media.")} onRetry={() => void media.refetch()} />
               ) : items.length === 0 ? (

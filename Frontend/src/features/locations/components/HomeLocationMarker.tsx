@@ -115,6 +115,7 @@ export function HomeLocationMarker({ location, variant, onClick, onHoverChange }
           onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) onHoverChange?.(false); }}>
           <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
             <button
+              ref={drag.ref}
               type="button"
               className={variant === "place" ? "place__home-pin" : "locations__home-pin"}
               aria-label={t("Home location")}

@@ -6,6 +6,7 @@ namespace Services.Interfaces;
 public interface IPlaceService
 {
     Task<IReadOnlyList<PlaceDto>> GetPlacesAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<PlaceMapDto>> GetMapPlacesAsync(CancellationToken cancellationToken = default);
     Task<PlaceDto> GetPlaceAsync(Guid placeId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<PlaceVisitDto>> GetPlaceVisitHistoryAsync(
         Guid userId, CancellationToken cancellationToken = default);

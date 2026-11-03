@@ -1,6 +1,6 @@
 .profile-page {
   min-height: 100%;
-  padding: 40px 24px 72px;
+  padding: var(--page-padding-top) var(--page-gutter) var(--page-padding-bottom);
 }
 
 .profile-page__inner {
@@ -12,7 +12,7 @@
 .profile-page__header {
   display: grid;
   gap: 8px;
-  margin-bottom: 16px;
+  margin-bottom: var(--page-section-gap);
 }
 
 .profile-page__header h1 {
@@ -97,7 +97,7 @@
 
 @media (max-width: 640px) {
   .profile-page {
-    padding: 16px 12px 24px;
+    padding: var(--page-padding-top) var(--page-gutter) var(--page-padding-bottom);
   }
 
   .profile-page__details {

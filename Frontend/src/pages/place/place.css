@@ -4,6 +4,7 @@
 }
 
 .place {
+  --place-gutter: var(--page-gutter);
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -38,23 +39,26 @@
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 40px 24px;
+  padding: var(--page-padding-top) var(--page-gutter) var(--page-padding-bottom);
   scroll-padding-block: 24px;
 }
 
 .place__scroll-inner {
   margin-inline: auto;
-  max-width: 1600px;
+  max-width: var(--page-content-max-width);
 }
 
 .place__history-footer {
-  flex-shrink: 0;
+  bottom: 0;
+  left: 0;
   padding-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom));
+  position: absolute;
+  right: 0;
 }
 
 .place__history-footer::before {
   display: block;
-  width: min(1600px, calc(100% - 48px));
+  width: min(var(--page-content-max-width), calc(100% - 2 * var(--page-gutter)));
   height: 1px;
   margin-inline: auto;
   background: var(--border-card);
@@ -198,24 +202,33 @@
   justify-content: space-between;
 }
 
-.place__header { margin-bottom: 16px; }
+.place__header { margin-bottom: var(--page-section-gap); }
 .place--saved .place__header { margin-bottom: 0; }
-.place--saved .place__content { overflow: hidden; }
-.place--saved .place__scroll-inner {
+.place__content { overflow: hidden; padding-bottom: 0; }
+.place__scroll-inner {
   display: flex;
   flex-direction: column;
   height: 100%;
   min-height: 0;
 }
-.place--saved .place__view-switch { flex: 0 0 auto; }
-.place--saved .place__view-content {
+.place__view-switch { flex: 0 0 auto; }
+.place__view-content {
   flex: 1 1 auto;
+  margin-inline: calc(-1 * var(--place-gutter));
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
+  padding: var(--shadow-space) var(--place-gutter) 0;
 }
-.place--saved .place__view-content > .page-transition { min-height: 100%; }
+.place__view-content > .page-transition {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  padding-bottom: calc(64px + max(12px, var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))));
+  position: relative;
+}
 
 .place .place__header h1 {
   line-height: 1.15;
@@ -230,15 +243,13 @@
 .place__view-switch { background: var(--surface-raised); border: 0; border-radius: 999px; box-shadow: 0 3px 12px rgb(0 0 0 / 20%); box-sizing: border-box; display: inline-flex; isolation: isolate; margin: 0 0 16px; max-width: 100%; padding: 4px; width: 100%; }
 .place--saved .place__view-switch { margin-top: 16px; }
 :root:not(.dark) .place__view-switch { background: #fff; }
-.place__view-highlight { background: light-dark(#000, #fff); border-radius: 999px; inset: 0; pointer-events: none; }
-.place__view-option { align-items: center; background: transparent; border: 0; border-radius: 999px; box-sizing: border-box; color: var(--text-muted); cursor: pointer; display: flex; flex: 1; font: inherit; font-weight: 600; height: calc(1.5em + 8px); justify-content: center; line-height: 1.5; padding: 0 16px; position: relative; }
+.place__view-highlight-container { display: flex; flex: 1; min-width: 0; }
+.place__view-highlight { background: light-dark(#000, #fff); border-radius: 999px; pointer-events: none; }
+.place__view-option { align-items: center; background: transparent; border: 0; border-radius: 999px; box-sizing: border-box; color: var(--text-muted); cursor: pointer; display: flex; flex: 1; font: inherit; font-weight: 600; height: calc(1.5em + 8px); justify-content: center; line-height: 1.5; padding: 0 16px; position: relative; z-index: 1; }
 .place__view-option[aria-pressed="true"] { color: light-dark(#fff, #000); font-weight: 600; }
 .place__view-option:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 
-.place__view-content > .page-transition {
-  min-height: 100vh;
-  min-height: 100dvh;
-}
+.place__view-content > .page-transition { min-height: 100%; }
 
 .place__history {
   display: grid;
@@ -558,6 +569,8 @@
 
 .place h2 { font-size: 1.125rem; overflow-wrap: anywhere; }
 .place p { margin: 8px 0 16px; }
+.place .empty-state__title { margin: 0 0 8px; }
+.place .empty-state__hint { margin: 4px auto 0; }
 
 .place__hint,
 .place__library-header span,
@@ -593,10 +606,6 @@
 .place__map { height: 100%; min-height: 0; width: 100%; }
 
 @media (min-width: 641px) {
-  .place:not(.place--saved) .place__content {
-    padding-bottom: calc(64px + max(12px, var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))));
-  }
-
   .place:not(.place--saved) .place__scroll-inner {
     display: flex;
     flex-direction: column;
@@ -1029,6 +1038,10 @@
 .place__home-pin svg { stroke-width: 2.5; }
 .place__home-pin:focus-visible svg { color: #fff; }
 .place__home-pin:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 4px; }
+.place__dialog--home { border: 0; }
+.place__dialog--home .place__dialog-header { background: var(--surface); border-bottom: 0; }
+.place__dialog--home .place__dialog-body { background: var(--bg); color: var(--text-muted); }
+.place__dialog--home .place__form-actions > .btn { border: 0; box-shadow: 0 2px 8px rgb(0 0 0 / 18%); }
 .place__home-dialog .place__coordinate-readout { margin-top: 0; }
 
 .place__popup {
@@ -1460,7 +1473,7 @@
 }
 .place__details-actions > button { width: 100%; }
 
-.place__library-header { margin-bottom: 16px; }
+.place__library-header { margin-bottom: var(--page-section-gap); }
 .place__library-header span { font-weight: 400; margin-left: 8px; }
 
 .place__list {
@@ -1558,6 +1571,7 @@ main.place .place__search-bar input[type="search"]:focus-visible {
 
 @media (max-width: 640px) {
   .place__list { grid-template-columns: minmax(0, 1fr); }
+  .place { --place-gutter: var(--page-gutter); }
   .place__history--visitor-name .place__history-item {
     grid-template-columns: 48px max-content minmax(0, 1fr) max-content 28px;
   }
@@ -1565,8 +1579,9 @@ main.place .place__search-bar input[type="search"]:focus-visible {
   .place__history--visitor-name .place__history-visitor-name { display: none; }
   .place__history--visitor-name .place__history-item time { grid-column: 3 / span 2; }
   .place__history--visitor-name .place__history-item > .place__history-remove { grid-column: 5; }
-  .place__content { padding: 16px 12px 24px; }
-  .place__header { margin-bottom: 16px; }
+  .place__content { padding: var(--page-padding-top) var(--page-gutter) 0; }
+  .place__header { margin-bottom: var(--page-section-gap); }
+  .place--saved .place__view-switch { margin-top: 0; }
   .place__pin > span { width: 30px; height: 30px; }
   .place__map-home-control { bottom: 96px; }
   .place__scenes { left: 8px; max-height: calc(100% - 16px); top: 8px; }

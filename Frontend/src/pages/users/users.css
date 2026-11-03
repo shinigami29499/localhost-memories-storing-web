@@ -29,12 +29,12 @@
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 40px 24px;
+  padding: var(--page-padding-top) var(--page-gutter) var(--page-padding-bottom);
   scroll-padding-block: 24px;
 }
 
 .admin-page--posts .empty-state {
-  max-width: 1600px;
+  max-width: var(--page-content-max-width);
   margin-inline: auto;
 }
 
@@ -44,7 +44,7 @@
   gap: 24px;
   justify-content: space-between;
   margin: 0 auto 28px;
-  max-width: 1600px;
+  max-width: var(--page-content-max-width);
 }
 
 .admin-posts__eyebrow {
@@ -72,7 +72,7 @@
 .admin-posts__toolbar {
   border-bottom: 1px solid var(--border);
   margin: 0 auto 20px;
-  max-width: 1600px;
+  max-width: var(--page-content-max-width);
   padding: 0 0 12px;
 }
 
@@ -338,7 +338,7 @@
 .admin-users__footer::before {
   position: absolute;
   inset: 0 auto auto 50%;
-  width: min(1600px, calc(100% - 48px));
+  width: min(var(--page-content-max-width), calc(100% - 2 * var(--page-gutter)));
   height: 1px;
   background: var(--border-card);
   content: "";
@@ -358,11 +358,11 @@
 
 .admin-users {
   margin: 0 auto;
-  max-width: 1600px;
+  max-width: var(--page-content-max-width);
 }
 
 .admin-users__content {
-  padding-block: 40px;
+  padding-block: var(--page-padding-top) var(--page-padding-bottom);
 }
 
 .admin-users__header {
@@ -371,11 +371,11 @@
   display: flex;
   gap: 24px;
   justify-content: space-between;
-  margin: 0 auto;
-  max-width: 1600px;
+  margin: 0 auto var(--page-section-gap);
+  max-width: var(--page-content-max-width);
   padding-block: 0;
   position: sticky;
-  top: -40px;
+  top: calc(-1 * var(--page-padding-top));
   z-index: 20;
 }
 
@@ -422,7 +422,7 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   margin: 0 auto 20px;
-  max-width: 1600px;
+  max-width: var(--page-content-max-width);
   padding: 0 0 12px;
 }
 
@@ -460,8 +460,13 @@
 }
 
 .admin-users__toolbar {
-  margin: 16px auto;
-  max-width: 1600px;
+  margin: 0 auto var(--page-section-gap);
+  max-width: var(--page-content-max-width);
+}
+
+.admin-users__toolbar + .page-transition {
+  padding-top: var(--shadow-space);
+  min-height: 240px;
 }
 
 .admin-users__filters {
@@ -531,7 +536,7 @@
 
 .admin-users .admin-table-wrap {
   margin: 0 auto;
-  max-width: 1600px;
+  max-width: var(--page-content-max-width);
 }
 
 .admin-users__table td:first-child {
@@ -599,7 +604,7 @@
 
 .admin-users > .empty-state {
   margin: 24px auto 32px;
-  max-width: 1600px;
+  max-width: var(--page-content-max-width);
 }
 
 .admin__heading {
@@ -629,7 +634,9 @@
 }
 
 .admin-table-wrap {
+  margin: -12px;
   overflow-x: auto;
+  padding: 12px;
 }
 
 .admin-table {
@@ -967,10 +974,10 @@
 
   .admin-posts__content,
   .admin-users__content {
-    padding: 16px 12px 24px;
+    padding: var(--page-padding-top) var(--page-gutter) var(--page-padding-bottom);
   }
 
-  .admin-users__header { top: -16px; }
+  .admin-users__header { top: calc(-1 * var(--page-padding-top)); }
 
   .admin-posts__header {
     align-items: flex-start;
@@ -983,7 +990,7 @@
   }
 
   .admin-posts__toolbar {
-    margin-bottom: 16px;
+    margin-bottom: var(--page-section-gap);
   }
 
   .admin-posts__toolbar-row {
@@ -1088,7 +1095,7 @@
   .admin-users__toolbar {
     align-items: flex-start;
     margin-top: 0;
-    margin-bottom: 12px;
+    margin-bottom: var(--page-section-gap);
   }
 
   .admin__heading h2 {

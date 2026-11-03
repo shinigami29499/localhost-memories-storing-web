@@ -8,6 +8,15 @@ vi.mock("../../../services/api", () => ({ api: vi.fn() }));
 describe("placeService", () => {
   beforeEach(() => vi.clearAllMocks());
 
+  it("loads map summaries separately from place details", async () => {
+    vi.mocked(api).mockResolvedValueOnce([{ id: "place-1", markerColor: "#7048e8" }]);
+    await expect(placeService.map()).resolves.toEqual([{ id: "place-1", markerColor: "#0EA5E9", mediaIds: [] }]);
+    expect(api).toHaveBeenCalledWith("/api/location/map");
+    vi.mocked(api).mockResolvedValueOnce({ id: "place-1", mediaIds: ["image-1"] });
+    await expect(placeService.get("place-1")).resolves.toEqual({ id: "place-1", mediaIds: ["image-1"] });
+    expect(api).toHaveBeenCalledWith("/api/location/place-1");
+  });
+
   it("uses the location route and replaces saved purple markers", async () => {
     const place: Place = {
       id: "place-1",

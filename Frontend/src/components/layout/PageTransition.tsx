@@ -1,5 +1,5 @@
 import { useAnimationStore } from "../../store/animationStore";
-import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, ViewTransition } from "react";
 import type { ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 import type { TargetAndTransition } from "motion/react";
@@ -24,6 +24,9 @@ type EffectAnimation = {
 type PageTransitionProps = {
   effect: PageTransitionEffect;
   transitionKey?: string;
+  skipUpdates?: boolean;
+  liveRoot?: boolean;
+  deferRendering?: boolean;
   children: ReactNode;
 };
 
@@ -34,6 +37,7 @@ const BAND_FRAMES = 16;
 const CLIP =
   ":root[data-page-transition]::view-transition-old(root){display:none}" +
   ":root[data-page-transition]::view-transition-new(root){animation:none}" +
+  ":root[data-page-transition-live-root]::view-transition-new(root){display:none}" +
   "::view-transition-group(*.page-transition){z-index:1}" +
   "::view-transition-group(app-sidebar){z-index:2}" +
   ":root[data-page-transition]::view-transition-old(app-sidebar){display:none}" +
@@ -302,10 +306,12 @@ type DocumentWithViewTransition = Document & {
 
 let marks = 0;
 
-function markRoot() {
+function markRoot(liveRoot = false) {
   const root = document.documentElement;
   const mark = ++marks;
   root.setAttribute("data-page-transition", "");
+  if (liveRoot) root.setAttribute("data-page-transition-live-root", "");
+  else root.removeAttribute("data-page-transition-live-root");
   const transition = (document as DocumentWithViewTransition).activeViewTransition;
   const done = transition
     ? transition.finished
@@ -324,13 +330,54 @@ function markRoot() {
   void done
     .catch(() => undefined)
     .finally(() => {
-      if (mark === marks) root.removeAttribute("data-page-transition");
+      if (mark === marks) {
+        root.removeAttribute("data-page-transition");
+        root.removeAttribute("data-page-transition-live-root");
+      }
     });
 }
 
-export function PageTransition({ effect, transitionKey, children }: PageTransitionProps) {
+export function PageTransition({ effect, transitionKey, skipUpdates = false, liveRoot = false, deferRendering = true, children }: PageTransitionProps) {
   const location = useLocation();
   const key = transitionKey ?? location.pathname;
+  const [renderState, setRenderState] = useState({ key, ready: true });
+  if (renderState.key !== key) setRenderState({ key, ready: false });
+  const contentReady = !deferRendering || renderState.key === key && renderState.ready;
+
+  useEffect(() => {
+    if (!deferRendering || contentReady) return;
+    let cancelled = false;
+    let frame = 0;
+    let previous = "";
+    let stableFrames = 0;
+    let frames = 0;
+    let pageFinished = false;
+    const wait = () => {
+      const highlights = Array.from(document.querySelectorAll<HTMLElement>('[data-slot="motion-highlight"]'));
+      const styles = highlights.map((element) => element.getAttribute("style") ?? "").join("|");
+      const moving = highlights.some((element) => element.getAnimations().some((animation) =>
+        animation.playState === "running" && animation.effect?.getTiming().iterations !== Infinity,
+      ));
+      const pageMoving = document.getAnimations().some((animation) =>
+        animation.playState === "running"
+        && (animation.effect as KeyframeEffect | null)?.pseudoElement?.startsWith("::view-transition"),
+      );
+      stableFrames = styles === previous && !moving ? stableFrames + 1 : 0;
+      previous = styles;
+      // Allow highlight bounds effects to start before checking for settled motion.
+      if (++frames > 2 && stableFrames >= 3 && pageFinished && !pageMoving) {
+        if (!cancelled) setRenderState({ key, ready: true });
+      } else if (!cancelled) frame = requestAnimationFrame(wait);
+    };
+    frame = requestAnimationFrame(() => {
+      const transition = (document as DocumentWithViewTransition).activeViewTransition;
+      void (transition?.finished ?? Promise.resolve()).catch(() => undefined).then(() => {
+        pageFinished = true;
+      });
+      wait();
+    });
+    return () => { cancelled = true; cancelAnimationFrame(frame); };
+  }, [key, deferRendering, contentReady]);
   const currentKeyRef = useRef(key);
   const hasChangedRef = useRef(false);
   if (currentKeyRef.current !== key) {
@@ -378,17 +425,49 @@ export function PageTransition({ effect, transitionKey, children }: PageTransiti
     };
   }, []);
 
-  const animation = (types: string[]) => {
-    markRoot();
+  const animation = (types: string[], outgoing = false) => {
+    markRoot(liveRoot);
     refreshStyle();
     const named = types.find((type): type is Effect => type in EFFECTS);
-    const enter = frameOf(localRef.current!, pointRef.current);
+    const enter = outgoing && exitRef.current ? exitRef.current : localRef.current
+      ? frameOf(localRef.current, pointRef.current)
+      : exitRef.current ?? { width: window.innerWidth, top: 0, bottom: window.innerHeight, x: window.innerWidth / 2, y: window.innerHeight / 2 };
     return EFFECTS[reduce || !animationsEnabled ? "fade" : (named ?? effectRef.current)](
       types.includes("nav-back"),
       enter,
       exitRef.current ?? enter,
     );
   };
+
+  if (skipUpdates) {
+    const animateLayer = (name: string, types: string[], entering: boolean) => {
+      const effects = animation(types, !entering);
+      // Reveal effects must animate the old snapshot while destination rendering is deferred.
+      const definition = !entering && deferRendering && Array.isArray(effects.enter.clipPath)
+        ? { ...effects.enter, clipPath: [...effects.enter.clipPath].reverse() }
+        : effects[entering ? "enter" : "exit"];
+      const { transition, ...keyframes } = definition;
+      const pseudoElement = `::view-transition-${entering ? "new" : "old"}(${name})`;
+      for (const running of document.getAnimations()) {
+        if (running.effect instanceof KeyframeEffect && running.effect.pseudoElement === pseudoElement) running.cancel();
+      }
+      const timing = transition && "duration" in transition ? transition.duration : undefined;
+      const duration = typeof timing === "number" ? timing * 1000 : 300;
+      const ease = transition && "ease" in transition ? transition.ease : undefined;
+      const easing = ease === "linear" ? "linear" : ease === "easeIn" ? "ease-in" : ease === "easeOut" ? "ease-out" : "ease-in-out";
+      const player = document.documentElement.animate(keyframes as PropertyIndexedKeyframes, { duration, easing, fill: "both", pseudoElement });
+      return () => player.cancel();
+    };
+    return (
+      <ViewTransition key={key} update="none" onEnter={({ name }, types) => animateLayer(name, types, true)} onExit={({ name }, types) => animateLayer(name, types, false)}>
+        <div ref={localRef} className={`page-transition ${className}`}>
+          <style>{CLIP}</style>
+          <style ref={styleRef} />
+          {contentReady ? children : null}
+        </div>
+      </ViewTransition>
+    );
+  }
 
   return (
     <AnimateView
@@ -399,7 +478,7 @@ export function PageTransition({ effect, transitionKey, children }: PageTransiti
       <div ref={localRef} className={`page-transition ${className}`}>
         <style>{CLIP}</style>
         <style ref={styleRef} />
-        {children}
+        {contentReady ? children : null}
       </div>
     </AnimateView>
   );

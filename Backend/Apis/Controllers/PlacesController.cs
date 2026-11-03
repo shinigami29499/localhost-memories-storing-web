@@ -27,6 +27,11 @@ public class PlacesController(
         CancellationToken cancellationToken)
         => Ok(await placeService.GetPlacesAsync(cancellationToken));
 
+    [HttpGet("map")]
+    public async Task<ActionResult<IReadOnlyList<PlaceMapDto>>> GetMapPlacesAsync(
+        CancellationToken cancellationToken)
+        => Ok(await placeService.GetMapPlacesAsync(cancellationToken));
+
     [HttpGet("{placeId:guid}")]
     public async Task<ActionResult<PlaceDto>> GetPlaceAsync(
         Guid placeId, CancellationToken cancellationToken)

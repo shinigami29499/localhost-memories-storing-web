@@ -12,10 +12,8 @@ import { BulkSaveToAlbumDialog } from "../../features/albums/components/BulkSave
 import { albumKeys } from "../../features/albums/hooks/useAlbums";
 import { albumService } from "../../features/albums/services/albumService";
 import { ConfirmationDialog, EmptyState, ErrorState, Spinner } from "../../components/ui";
-import { PageTransition } from "../../components/layout/PageTransition";
 import { showToast } from "../../components/ui/Toast";
 import { useLocale } from "../../context/LocaleContext";
-import { readPageTransitionEffect } from "../../utils/pageTransition";
 import { MediaTile } from "../../features/media/components/MediaTile";
 import { MediaRetryProvider } from "../../features/media/components/MediaRetryProvider";
 import { MediaPreviewDialog } from "../../features/media/components/MediaPreviewDialog";
@@ -26,7 +24,6 @@ import { SelectionActions } from "./SelectionActions";
 import { uploadService } from "../../features/uploads/services/uploadService";
 import type { MediaFile, MediaKindFilter } from "../../features/media/types";
 import { useGalleryWindow } from "../../features/media/hooks/useGalleryWindow";
-import { GalleryNavigation } from "./GalleryNavigation";
 import "./gallery.css";
 import "../../features/media/components/media.css";
 
@@ -69,7 +66,6 @@ async function applyFavorites(mediaIds: string[], favorite: boolean) {
 
 export function GalleryPage({ view = "pictures", initialFilter }: { view?: GalleryView; initialFilter?: MediaKindFilter }) {
   const { t, language } = useLocale();
-  const pageTransition = readPageTransitionEffect();
   const queryClient = useQueryClient();
   const selectedFilter = initialFilter;
   const [uploading, setUploading] = useState(false);
@@ -410,20 +406,13 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
           <ScrollProgress mode="scaleX" className="gallery-page__scroll-progress" />
         </div>
         <div className="gallery-page__fixed-layout">
-            <header className="gallery-page__header">
-              <p className="gallery-page__eyebrow">{t("Your library")}</p>
-              <h1>{t(copy.title)}<span className="brand__dot">.</span></h1>
-              <p>{t(copy.description)}</p>
-            </header>
-
-            <GalleryNavigation active="gallery" />
             <div className="gallery-page__fixed-tabs">
               <ScrollFade asChild blur={0} shrink={0}>
               <ScrollProgressContainer className="gallery-page__content gallery-page__media-scroll gallery-page__media-scroll--smooth">
               <div className="gallery-page__tab-panel gallery-page__tab-panel--media">
-                <PageTransition effect={pageTransition} transitionKey={selectedFilter ?? "all"}>
+                <div className="page-transition">
                   {galleryContent}
-                </PageTransition>
+                </div>
               </div>
               </ScrollProgressContainer>
               </ScrollFade>
