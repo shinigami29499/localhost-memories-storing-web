@@ -593,6 +593,16 @@
   padding: 4px;
 }
 
+.gallery-selection-bar__selection-actions {
+  align-items: center;
+  display: flex;
+  flex-shrink: 0;
+  gap: 4px;
+  overflow: hidden;
+}
+
+.gallery-selection-bar--selection-only:not(:has(.gallery-selection-bar__selection-actions)) { display: none; }
+
 .gallery-selection-bar--compact .gallery-selection-bar__count {
   color: var(--text-strong);
   padding-inline: 8px;

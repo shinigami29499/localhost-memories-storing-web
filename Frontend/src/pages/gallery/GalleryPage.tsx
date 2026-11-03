@@ -4,7 +4,6 @@ import * as Tabs from "@radix-ui/react-tabs";
 import { Highlight, HighlightItem } from "@animate-ui/react/primitives/effects/highlight";
 import { ScrollProgress, ScrollProgressContainer, ScrollProgressProvider } from "@animate-ui/react/primitives/scroll-progress";
 import { ScrollFade } from "@animate-ui/react/primitives/effects/scroll-fade";
-import { AnimatedAction, useAnimateIconOnChange } from "@/components/animate-ui/icons/icon";
 import { Bookmark } from "@/components/animate-ui/icons/bookmark";
 import { Heart } from "@/components/animate-ui/icons/heart";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
@@ -25,6 +24,7 @@ import { useMediaSelectionDrag } from "../../features/media/hooks/useMediaSelect
 import { mediaService } from "../../features/media/services/mediaService";
 import { mediaQueryOptions } from "../../features/media/hooks/useMedia";
 import { DownloadButton } from "../../features/downloads/components/DownloadButton";
+import { SelectionActions } from "./SelectionActions";
 import { uploadService } from "../../features/uploads/services/uploadService";
 import type { MediaFile, MediaKindFilter } from "../../features/media/types";
 import { useGalleryWindow } from "../../features/media/hooks/useGalleryWindow";
@@ -82,7 +82,6 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
   const [tabLoading, setTabLoading] = useState(false);
   const tabRequestRef = useRef(0);
   const [selectionMode, setSelectionMode] = useState(false);
-  const selectionAnimationRevision = useAnimateIconOnChange(selectionMode);
   const [selectedItems, setSelectedItems] = useState<Map<string, MediaFile>>(() => new Map());
   const selectedIds = [...selectedItems.keys()];
   const albumQueries = useQueries({
@@ -485,19 +484,17 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
               event.currentTarget.value = "";
               void uploadFiles(files);
             }} />
-            <AnimatedAction animationRevision={selectionAnimationRevision}>
               <button type="button" className="gallery-selection-bar__action" aria-label={t("Upload media")} title={t("Upload media")}
                 disabled={uploading || bulkFavoriteBusy} aria-busy={uploading || undefined} onClick={() => uploadInput.current?.click()}>
                 {uploading ? <LoaderCircle size={20} className="spinner__wheel" aria-hidden="true" /> : <Plus size={20} aria-hidden="true" />}
               </button>
-            </AnimatedAction>
+            <SelectionActions open={selectionMode}>
             <DownloadButton
               media={selectedMedia}
               className="gallery-selection-bar__action gallery-selection-bar__action--download"
               disabled={favoriteBusy}
-              animationMode={selectionMode}
             />
-              <AnimatedAction animationRevision={selectionAnimationRevision}><button
+              <button
                 type="button"
                 className="gallery-selection-bar__action gallery-selection-bar__action--favorite"
                 aria-label={t(allSelectedFavorited ? "Remove from favorites" : "Add to favorites")}
@@ -509,8 +506,7 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
                 {bulkFavoriteBusy
                   ? <LoaderCircle size={20} className="spinner__wheel" aria-hidden="true" />
                   : <Heart size={20} fill={allSelectedFavorited ? "currentColor" : "none"} aria-hidden="true" />}
-              </button></AnimatedAction>
-              <AnimatedAction animationRevision={selectionAnimationRevision}>
+              </button>
                 <button
                   type="button"
                   className="gallery-selection-bar__action gallery-selection-bar__action--save"
@@ -523,8 +519,7 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
                 >
                   <Bookmark size={20} fill={inAlbum ? "currentColor" : "none"} aria-hidden="true" />
                 </button>
-              </AnimatedAction>
-              <AnimatedAction animationRevision={selectionAnimationRevision}><button
+              <button
                 type="button"
                 className="gallery-selection-bar__action gallery-selection-bar__action--danger"
                 aria-label={t("Move to trash")}
@@ -533,7 +528,8 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
                 onClick={() => setDeleteDialogOpen(true)}
               >
                 <Trash2 size={20} aria-hidden="true" />
-              </button></AnimatedAction>
+              </button>
+            </SelectionActions>
           </div>
         </footer>
 

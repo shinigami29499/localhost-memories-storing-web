@@ -1,8 +1,6 @@
 import { startTransition, useEffect, useMemo, useRef, useState } from "react";
 import * as Tabs from "@radix-ui/react-tabs";
 import { Highlight, HighlightItem } from "@animate-ui/react/primitives/effects/highlight";
-import { AnimatePresence, motion } from "motion/react";
-import { AnimatedAction, useAnimateIconOnChange } from "@/components/animate-ui/icons/icon";
 import { RotateCcw } from "@/components/animate-ui/icons/rotate-ccw";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
 import { infiniteQueryOptions, useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
@@ -49,7 +47,6 @@ export function TrashPage() {
   const [filter, setFilter] = useState<MediaKindFilter>("image");
   const [previewMediaId, setPreviewMediaId] = useState<string | null>(null);
   const [selectionMode, setSelectionMode] = useState(false);
-  const selectionAnimationRevision = useAnimateIconOnChange(selectionMode);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [action, setAction] = useState<{ kind: "restore" | "delete"; ids: string[] } | null>(null);
   const galleryRef = useRef<HTMLElement>(null);
@@ -306,19 +303,16 @@ export function TrashPage() {
             </Tabs.Root>
           </div>
         </div>
-        <AnimatePresence>
-        {selectionMode ? (
-          <motion.footer className="gallery-page__footer" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 12 }} transition={{ duration: 0.18 }}>
-            <div className="gallery-selection-bar gallery-selection-bar--compact" role="group" aria-label={t("{count} selected", { count: selectedIds.size })}>
+          <footer className="gallery-page__footer">
+            <div className="gallery-selection-bar gallery-selection-bar--compact gallery-selection-bar--selection-only" role="group" aria-label={t("{count} selected", { count: selectedIds.size })}>
+              <SelectionActions open={selectionMode}>
               <span className="gallery-selection-bar__count" role="status">{t("{count} selected", { count: selectedIds.size })}</span>
               <DownloadButton
                 media={media.filter((item) => selectedIds.has(item.id))}
                 includeDeleted
                 className="gallery-selection-bar__action gallery-selection-bar__action--download"
-                animationMode={selectionMode}
               />
-              <AnimatedAction animationRevision={selectionAnimationRevision}><button
+              <button
                 type="button"
                 className="gallery-selection-bar__action"
                 aria-label={t("Restore")}
@@ -327,8 +321,8 @@ export function TrashPage() {
                 onClick={() => requestAction("restore", [...selectedIds])}
               >
                 <RotateCcw size={20} aria-hidden="true" />
-              </button></AnimatedAction>
-              <AnimatedAction animationRevision={selectionAnimationRevision}><button
+              </button>
+              <button
                 type="button"
                 className="gallery-selection-bar__action gallery-selection-bar__action--danger"
                 aria-label={t("Permanently delete")}
@@ -337,11 +331,10 @@ export function TrashPage() {
                 onClick={() => requestAction("delete", [...selectedIds])}
               >
                 <Trash2 size={20} aria-hidden="true" />
-              </button></AnimatedAction>
+              </button>
+              </SelectionActions>
             </div>
-          </motion.footer>
-        ) : null}
-        </AnimatePresence>
+          </footer>
       </main>
       {previewMediaId ? (
         <MediaPreviewDialog
@@ -381,3 +374,4 @@ export function TrashPage() {
     </>
   );
 }
+import { SelectionActions } from "./SelectionActions";
