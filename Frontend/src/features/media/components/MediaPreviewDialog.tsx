@@ -19,7 +19,9 @@ import { RotateCcw } from "@/components/animate-ui/icons/rotate-ccw";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
 import { X } from "@/components/animate-ui/icons/x";
 import { useNavigate } from "react-router-dom";
-import { ErrorState, showToast, Spinner } from "../../../components/ui";
+import { useQueryClient } from "@tanstack/react-query";
+import { mediaService } from "../services/mediaService";
+import { ConfirmationDialog, ErrorState, showToast, Spinner } from "../../../components/ui";
 import { useLocale } from "../../../context/LocaleContext";
 import { useMediaQuery } from "../../../hooks/useMediaQuery";
 import { useAlbums } from "../../albums/hooks/useAlbums";
@@ -210,6 +212,8 @@ export function MediaPreviewDialog({
 }: Props) {
   const { t } = useLocale();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [deleteMediaId, setDeleteMediaId] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const closingRef = useRef(false);
@@ -371,17 +375,17 @@ export function MediaPreviewDialog({
       aria-label={t("Media viewer")}
       onCancel={(event) => {
         event.preventDefault();
-        if (!albumDialogOpen) close();
+        if (!albumDialogOpen && !deleteMediaId) close();
       }}
       onClick={(event) => {
-        if (albumDialogOpen) return;
+        if (albumDialogOpen || deleteMediaId) return;
         const target = event.target;
         if (target === event.currentTarget || (target instanceof Element && target.matches(
           ".media-preview-dialog__content, .media-preview-dialog__viewport, .media-preview-dialog__track, .media-preview-dialog__item, .media-preview-dialog__stage",
         ))) close();
       }}
       onKeyDown={(event) => {
-        if (albumDialogOpen) return;
+        if (albumDialogOpen || deleteMediaId) return;
         if (event.target instanceof Element && event.target.closest(".video-player, input, textarea")) return;
         if (event.key === "ArrowLeft" && slideCount > 1) {
           event.preventDefault();
@@ -457,6 +461,17 @@ export function MediaPreviewDialog({
             </CopyButton>
           </AnimateIcon>
         ) : null}
+        <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
+          <button
+            type="button"
+            className="viewer-icon-btn media-preview-dialog__action"
+            aria-label={t("Move to trash")}
+            title={t("Move to trash")}
+            onClick={() => setDeleteMediaId(current.id)}
+          >
+            <Trash2 size={20} aria-hidden="true" />
+          </button>
+        </AnimateIcon>
         <MediaFavoriteButton
           key={current.id}
           isFavorited={current.isFavorited}
@@ -567,6 +582,34 @@ export function MediaPreviewDialog({
           </div>
         ) : null}
       </div>
+      {deleteMediaId ? (
+        <ConfirmationDialog
+          title="Move selected media to trash?"
+          danger
+          portalContainer={dialogRef.current}
+          onClose={() => setDeleteMediaId(null)}
+          onConfirm={async () => {
+            const mediaId = deleteMediaId;
+            await mediaService.remove(mediaId);
+            showToast.delete(t("Media moved to trash"), {
+              undo: async () => {
+                await mediaService.restore(mediaId);
+                await Promise.all([
+                  queryClient.invalidateQueries({ queryKey: ["media"] }),
+                  queryClient.invalidateQueries({ queryKey: ["albums"] }),
+                ]);
+              },
+            });
+            return () => {
+              onClose(mediaId);
+              void queryClient.invalidateQueries({ queryKey: ["media"] });
+              void queryClient.invalidateQueries({ queryKey: ["albums"] });
+            };
+          }}
+        >
+          {t("Selected media will move to trash and can be restored later.")}
+        </ConfirmationDialog>
+      ) : null}
       {albumDialogOpen && current ? (
         <Suspense fallback={null}>
           <SaveToAlbumDialog

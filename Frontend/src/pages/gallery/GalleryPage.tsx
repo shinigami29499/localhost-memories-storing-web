@@ -398,6 +398,7 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
       onClickCapture={(event) => {
         selectionDragHandlers.onClickCapture(event);
         if (event.defaultPrevented) return;
+        if (saveDialogOpen || deleteDialogOpen) return;
         if (!selectionMode || (event.target instanceof Element && event.target.closest("[data-media-id], .gallery-selection-bar"))) return;
         cancelSelection();
       }}>

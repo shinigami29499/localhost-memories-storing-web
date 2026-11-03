@@ -11,11 +11,12 @@ interface Props {
   title: string;
   children: ReactNode;
   danger?: boolean;
+  portalContainer?: HTMLElement | null;
   onConfirm: () => Promise<void | (() => void)>;
   onClose: () => void;
 }
 
-export function ConfirmationDialog({ title, children, onConfirm, onClose }: Props) {
+export function ConfirmationDialog({ title, children, onConfirm, onClose, portalContainer }: Props) {
   const { t } = useLocale();
   const cancelRef = useRef<HTMLButtonElement>(null);
   const pending = useRef(false);
@@ -40,7 +41,7 @@ export function ConfirmationDialog({ title, children, onConfirm, onClose }: Prop
 
   return (
     <Dialog.Root {...dialogProps}>
-      <Dialog.Portal>
+      <Dialog.Portal container={portalContainer} style={portalContainer ? { position: "absolute", inset: 0 } : undefined}>
         <Dialog.Backdrop className="confirmation-dialog-backdrop" />
         <Dialog.Viewport className="confirmation-dialog-viewport" style={viewportStyle}>
           <Dialog.Popup className="confirmation-dialog" role="alertdialog" initialFocus={cancelRef}>
