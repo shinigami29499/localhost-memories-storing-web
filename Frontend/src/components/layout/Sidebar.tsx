@@ -1,20 +1,14 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { AnimateIcon } from "@/components/animate-ui/icons/icon";
-import { Bookmark } from "@/components/animate-ui/icons/bookmark";
-import { Camera } from "@/components/animate-ui/icons/camera";
 import { ChevronDown } from "@/components/animate-ui/icons/chevron-down";
-import { Download } from "@/components/animate-ui/icons/download";
-import { RefreshCw } from "@/components/animate-ui/icons/refresh-cw";
 import { Home } from "@/components/animate-ui/icons/home";
 import { LibraryBig } from "@/components/animate-ui/icons/library-big";
 import { LogOut } from "@/components/animate-ui/icons/log-out";
 import { MapPin } from "@/components/animate-ui/icons/map-pin";
 import { PanelLeftClose } from "@/components/animate-ui/icons/panel-left-close";
 import { PanelLeftOpen } from "@/components/animate-ui/icons/panel-left-open";
-import { PlaneTakeoff } from "@/components/animate-ui/icons/plane-takeoff";
 import { Settings } from "@/components/animate-ui/icons/settings";
-import { Trash2 } from "@/components/animate-ui/icons/trash-2";
 import { Upload } from "@/components/animate-ui/icons/upload";
 import { Users } from "@/components/animate-ui/icons/users";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
@@ -22,10 +16,8 @@ import { useAuthStore } from "../../store/authStore";
 import { authService } from "../../features/auth";
 import { Brand } from "./Brand";
 import { Container, Gap, Highlight } from "@animate-ui/react/primitives/sidebar";
-import { Collapsible } from "@animate-ui/react/primitives/base-ui/collapsible";
 import { useLocale } from "../../context/LocaleContext";
 import { UserAvatar } from "../common/UserAvatar";
-import { useUnreadDownloads } from "../../features/downloads/hooks/useUnreadDownloads";
 import { useUnreadUploads } from "../../features/uploads/hooks/useUnreadUploads";
 
 interface SidebarProps {
@@ -38,42 +30,15 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
   const queryClient = useQueryClient();
   const { t } = useLocale();
   const uploadCounts = useUnreadUploads();
-  const downloadCounts = useUnreadDownloads();
   const countColumnWidths = (["success", "pending", "failed"] as const)
-    .map((status) => `${Math.max(String(uploadCounts[status]).length, String(downloadCounts[status]).length, 2) + 1.5}ch`)
+    .map((status) => `${Math.max(String(uploadCounts[status]).length, 2) + 1.5}ch`)
     .join(" ");
   const countStyle = { gridTemplateColumns: countColumnWidths } satisfies CSSProperties;
   const user = useAuthStore((s) => s.user);
   const navigate = useNavigate();
   const location = useLocation();
-  const isAdmin = user?.role?.toLowerCase() === "admin";
-
-  const locationsActive = location.pathname.startsWith("/location/travel")
-    || location.pathname.startsWith("/location/place")
-    || location.pathname.startsWith("/location/saved");
-  const libraryActive = location.pathname.startsWith("/library/gallery")
-    || location.pathname.startsWith("/library/album")
-    || location.pathname.startsWith("/saved");
-  const syncActive = location.pathname.startsWith("/sync/");
-  const [libraryOpen, setLibraryOpen] = useState(libraryActive);
-  const [locationsOpen, setLocationsOpen] = useState(locationsActive);
-  const [syncOpen, setSyncOpen] = useState(syncActive);
-
-  useEffect(() => {
-    if (collapsed) {
-      setLibraryOpen(libraryActive);
-      setLocationsOpen(locationsActive);
-      setSyncOpen(syncActive);
-    }
-  }, [collapsed, libraryActive, locationsActive, syncActive]);
-
-  const libraryLinks = [
-    { to: "/library/gallery", label: "Gallery", icon: Camera, active: location.pathname === "/library/gallery" },
-    { to: "/library/album", label: "Album", icon: Bookmark, active: location.pathname.startsWith("/library/album") || location.pathname.startsWith("/saved") },
-    ...(isAdmin
-      ? [{ to: "/library/gallery/trash", label: "Trash", icon: Trash2, active: location.pathname === "/library/gallery/trash" }]
-      : []),
-  ];
+  const locationsActive = location.pathname === "/location" || location.pathname.startsWith("/location/");
+  const libraryActive = location.pathname === "/gallery" || location.pathname.startsWith("/gallery/");
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const accountRef = useRef<HTMLDivElement>(null);
   const accountTriggerRef = useRef<HTMLButtonElement>(null);
@@ -144,95 +109,19 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
                 <span>{t("Home")}</span>
               </NavLink>
             </AnimateIcon>
-            <Collapsible.Root
-              className={`sidebar__group${libraryActive ? " sidebar__group--active" : ""}`}
-              open={libraryOpen}
-              onOpenChange={(open) => { if (!compact) setLibraryOpen(open); }}
-            >
-              <AnimateIcon animateOnTap completeOnStop asChild>
-                <Collapsible.Trigger
-                  type="button"
-                  className={`sidebar__link sidebar__group-toggle${libraryActive && compact ? " sidebar__link--active" : ""}`}
-                  onClick={() => { if (compact) { setLibraryOpen(true); setLocationsOpen(false); setSyncOpen(false); onToggle(); } }}
-                  aria-label={t("Library")}
-                  title={t("Library")}
-                  data-sidebar="menu-button"
-                >
-                  <LibraryBig size={18} aria-hidden="true" />
-                  <span>{t("Library")}</span>
-                  <ChevronDown
-                    size={14}
-                    aria-hidden="true"
-                    className={`sidebar__chevron${libraryOpen ? " sidebar__chevron--open" : ""}`}
-                  />
-                </Collapsible.Trigger>
-              </AnimateIcon>
-              <Collapsible.Panel className="sidebar__sub-panel" role="group" aria-label={t("Library items")}>
-                <div className="sidebar__sub-nav">
-                  {libraryLinks.map(({ to, label, icon: Icon, active }) => (
-                    <AnimateIcon key={to} animateOnTap completeOnStop asChild>
-                      <NavLink
-                        to={to}
-                        end={to !== "/library/album"}
-                        className={`sidebar__link sidebar__sub-link${active ? " sidebar__link--active" : ""}`}
-                        data-sidebar="menu-sub-button"
-                        aria-label={t(label)}
-                        title={t(label)}
-                      >
-                        <Icon size={16} aria-hidden="true" />
-                        <span>{t(label)}</span>
-                      </NavLink>
-                    </AnimateIcon>
-                  ))}
-                </div>
-              </Collapsible.Panel>
-            </Collapsible.Root>
-            <Collapsible.Root
-              className={`sidebar__group${locationsActive ? " sidebar__group--active" : ""}`}
-              open={locationsOpen}
-              onOpenChange={(open) => { if (!compact) setLocationsOpen(open); }}
-            >
-              <AnimateIcon animateOnTap completeOnStop asChild>
-                <Collapsible.Trigger
-                  type="button"
-                  className={`sidebar__link sidebar__group-toggle${locationsActive && compact ? " sidebar__link--active" : ""}`}
-                  onClick={() => { if (compact) { setLibraryOpen(false); setLocationsOpen(true); setSyncOpen(false); onToggle(); } }}
-                  aria-label={t("Locations")}
-                  title={t("Locations")}
-                  data-sidebar="menu-button"
-                >
-                  <MapPin size={18} aria-hidden="true" />
-                  <span>{t("Locations")}</span>
-                  <ChevronDown
-                    size={14}
-                    aria-hidden="true"
-                    className={`sidebar__chevron${locationsOpen ? " sidebar__chevron--open" : ""}`}
-                  />
-                </Collapsible.Trigger>
-              </AnimateIcon>
-              <Collapsible.Panel className="sidebar__sub-panel" role="group" aria-label={t("Locations")}>
-                <div className="sidebar__sub-nav">
-                  <AnimateIcon animateOnTap completeOnStop asChild>
-                    <NavLink
-                      to="/location/place"
-                      className={`sidebar__link sidebar__sub-link${location.pathname === "/location/place" ? " sidebar__link--active" : ""}`}
-                      data-sidebar="menu-sub-button"
-                      aria-label={t("Places")}
-                      title={t("Places")}
-                    >
-                      <PlaneTakeoff size={16} aria-hidden="true" />
-                      <span>{t("Places")}</span>
-                    </NavLink>
-                  </AnimateIcon>
-                  <AnimateIcon animateOnTap completeOnStop asChild>
-                    <NavLink to="/location/saved" className={`sidebar__link sidebar__sub-link${location.pathname === "/location/saved" ? " sidebar__link--active" : ""}`} data-sidebar="menu-sub-button" aria-label={t("Saved")} title={t("Saved")}>
-                      <Bookmark size={16} fill="currentColor" aria-hidden="true" />
-                      <span>{t("Saved")}</span>
-                    </NavLink>
-                  </AnimateIcon>
-                </div>
-              </Collapsible.Panel>
-            </Collapsible.Root>
+            <AnimateIcon animateOnTap completeOnStop asChild>
+              <NavLink to="/gallery" className={`sidebar__link${libraryActive ? " sidebar__link--active" : ""}`}
+                data-sidebar="menu-button" aria-label={t("Gallery")} title={t("Gallery")}>
+                <LibraryBig size={18} aria-hidden="true" /><span>{t("Gallery")}</span>
+              </NavLink>
+            </AnimateIcon>
+            <AnimateIcon animateOnTap completeOnStop asChild>
+              <NavLink to="/location" className={`sidebar__link${locationsActive ? " sidebar__link--active" : ""}`}
+                data-sidebar="menu-button" aria-label={t("Locations")} title={t("Locations")}>
+                <MapPin size={18} aria-hidden="true" />
+                <span>{t("Locations")}</span>
+              </NavLink>
+            </AnimateIcon>
             <AnimateIcon animateOnTap completeOnStop asChild>
               <NavLink
                 to="/users"
@@ -245,65 +134,14 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
                 <span>{t("Users")}</span>
               </NavLink>
             </AnimateIcon>
-            <Collapsible.Root
-              className={`sidebar__group${location.pathname.startsWith("/sync/") ? " sidebar__group--active" : ""}`}
-              open={syncOpen}
-              onOpenChange={(open) => { if (!compact) setSyncOpen(open); }}
-            >
-              <AnimateIcon animateOnTap completeOnStop asChild>
-                <Collapsible.Trigger
-                  type="button"
-                  className={`sidebar__link sidebar__group-toggle${location.pathname.startsWith("/sync/") && compact ? " sidebar__link--active" : ""}`}
-                  onClick={() => { if (compact) { setLibraryOpen(false); setLocationsOpen(false); setSyncOpen(true); onToggle(); } }}
-                  aria-label={t("Sync")}
-                  title={t("Sync")}
-                  data-sidebar="menu-button"
-                >
-                  <RefreshCw size={18} aria-hidden="true" />
-                  <span>{t("Sync")}</span>
-                  <ChevronDown
-                    size={14}
-                    aria-hidden="true"
-                    className={`sidebar__chevron${syncOpen ? " sidebar__chevron--open" : ""}`}
-                  />
-                </Collapsible.Trigger>
-              </AnimateIcon>
-              <Collapsible.Panel className="sidebar__sub-panel" role="group" aria-label={t("Sync actions")}>
-                <div className="sidebar__sub-nav">
-                  <AnimateIcon animateOnTap completeOnStop asChild>
-                    <NavLink
-                      to="/sync/upload"
-                      className={`sidebar__link sidebar__sub-link${location.pathname.startsWith("/sync/upload") ? " sidebar__link--active" : ""}`}
-                      data-sidebar="menu-sub-button"
-                      aria-label={t("Upload")}
-                      title={t("Upload")}
-                    >
-                      <Upload size={16} aria-hidden="true" />
-                      <span>{t("Upload")}</span>
-                      {(uploadCounts.success > 0 || uploadCounts.pending > 0 || uploadCounts.failed > 0) && <span className="sidebar__upload-counts" style={countStyle}>
-                        {(["success", "pending", "failed"] as const).map((status) => <span key={status} className={`sidebar__upload-count sidebar__upload-count--${status}${String(uploadCounts[status]).length < String(downloadCounts[status]).length ? " sidebar__upload-count--right" : ""}`} aria-label={`${t(status === "success" ? "Success" : status === "pending" ? "Pending upload" : "Failed")}: ${uploadCounts[status]}`} title={t(status === "success" ? "Success" : status === "pending" ? "Pending upload" : "Failed")}>{uploadCounts[status]}</span>)}
-                      </span>}
-                    </NavLink>
-                  </AnimateIcon>
-                  <AnimateIcon animateOnTap completeOnStop asChild>
-                    <NavLink
-                      to="/sync/download"
-                      className={`sidebar__link sidebar__sub-link${location.pathname.startsWith("/sync/download") ? " sidebar__link--active" : ""}`}
-                      data-sidebar="menu-sub-button"
-                      aria-label={t("Download")}
-                      title={t("Download")}
-                    >
-                      <Download size={16} aria-hidden="true" />
-                      <span>{t("Download")}</span>
-                      {(downloadCounts.success > 0 || downloadCounts.pending > 0 || downloadCounts.failed > 0) && <span className="sidebar__upload-counts" style={countStyle}>
-                        {(["success", "pending", "failed"] as const).map((status) => <span key={status} className={`sidebar__upload-count sidebar__upload-count--${status}${String(downloadCounts[status]).length < String(uploadCounts[status]).length ? " sidebar__upload-count--right" : ""}`} aria-label={`${t(status === "success" ? "Success" : status === "pending" ? "Pending download" : "Failed")}: ${downloadCounts[status]}`} title={t(status === "success" ? "Success" : status === "pending" ? "Pending download" : "Failed")}>{downloadCounts[status]}</span>)}
-                      </span>}
-
-                    </NavLink>
-                  </AnimateIcon>
-                </div>
-              </Collapsible.Panel>
-            </Collapsible.Root>
+            <AnimateIcon animateOnTap completeOnStop asChild>
+              <NavLink to="/uploads" className={`sidebar__link${location.pathname.startsWith("/uploads") ? " sidebar__link--active" : ""}`} data-sidebar="menu-button" aria-label={t("Upload")} title={t("Upload")}>
+                <Upload size={18} aria-hidden="true" /><span>{t("Upload")}</span>
+                {(uploadCounts.success > 0 || uploadCounts.pending > 0 || uploadCounts.failed > 0) && <span className="sidebar__upload-counts" style={countStyle}>
+                  {(["success", "pending", "failed"] as const).map((status) => <span key={status} className={`sidebar__upload-count sidebar__upload-count--${status}`} aria-label={`${t(status === "success" ? "Success" : status === "pending" ? "Pending upload" : "Failed")}: ${uploadCounts[status]}`}>{uploadCounts[status]}</span>)}
+                </span>}
+              </NavLink>
+            </AnimateIcon>
           </nav>
           <div className="sidebar__footer">
             {user ? (

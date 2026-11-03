@@ -62,8 +62,8 @@
 
 .map-navigation[data-expanded="false"] {
   position: fixed;
-  bottom: calc(28px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
-  left: calc((100vw + var(--sidebar-width, 0px)) / 2);
+  bottom: max(12px, var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
+  left: calc((100vw + var(--sidebar-width, 0px) - 16px) / 2);
   transform: translateX(-50%);
   transition: left var(--animate-ui-sidebar-duration, 300ms) var(--animate-ui-sidebar-easing, ease);
 }
@@ -208,7 +208,7 @@
 @media (max-width: 640px) {
   .map-navigation { bottom: 8px; left: 8px; }
   .map-navigation[data-expanded="false"] {
-    bottom: calc(28px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
+    bottom: max(8px, var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
     left: 50%;
     width: calc(100% - 32px);
     max-width: none;

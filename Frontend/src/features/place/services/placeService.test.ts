@@ -17,7 +17,7 @@ describe("placeService", () => {
       latitude: 0,
       longitude: 0,
       rating: 0,
-      markerIcon: "☕",
+      markerIcon: "â˜•",
       markerColor: "#7048e8",
       owner: { id: "user-1", username: "user" },
       createdAt: "2026-01-01T00:00:00Z",
@@ -29,7 +29,7 @@ describe("placeService", () => {
     await expect(placeService.list()).resolves.toEqual([
       { ...place, markerColor: "#0EA5E9" },
     ]);
-    expect(api).toHaveBeenCalledWith("/api/location/place");
+    expect(api).toHaveBeenCalledWith("/api/location");
   });
 
   it("loads visit history for the signed-in user", async () => {
@@ -38,14 +38,14 @@ describe("placeService", () => {
       placeId: "place-1",
       placeName: "Cafe",
       placeAddress: "1 Main Street",
-      markerIcon: "☕",
+      markerIcon: "â˜•",
       markerColor: "#f97316",
       visitedAt: "2026-10-31T02:43:06Z",
     }];
     vi.mocked(api).mockResolvedValue(visits);
 
     await expect(placeService.visitHistory()).resolves.toEqual(visits);
-    expect(api).toHaveBeenCalledWith("/api/location/place/visits");
+    expect(api).toHaveBeenCalledWith("/api/location/visits");
   });
 
   it("creates a visit for the selected place", async () => {
@@ -53,6 +53,6 @@ describe("placeService", () => {
 
     await placeService.checkIn("place-1");
 
-    expect(api).toHaveBeenCalledWith("/api/location/place/place-1/visits", { method: "POST" });
+    expect(api).toHaveBeenCalledWith("/api/location/place-1/visits", { method: "POST" });
   });
 });

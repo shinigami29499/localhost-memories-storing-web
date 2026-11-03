@@ -35,13 +35,17 @@ const UsersPage = lazy(() => import("./pages/users/UsersPage").then((module) => 
 const LocationsPage = lazy(() => import("./pages/locations/LocationsPage").then((module) => ({ default: module.LocationsPage })));
 const PlacePage = lazy(() => import("./pages/place/PlacePage").then((module) => ({ default: module.PlacePage })));
 const UploadManagementPage = lazy(() => import("./pages/uploads/UploadManagementPage").then((module) => ({ default: module.UploadManagementPage })));
-const DownloadManagementPage = lazy(() => import("./pages/downloads/DownloadManagementPage").then((module) => ({ default: module.DownloadManagementPage })));
 const SettingsPage = lazy(() => import("./pages/settings/SettingsPage").then((module) => ({ default: module.SettingsPage })));
 const ProfilePage = lazy(() => import("./pages/profile/ProfilePage").then((module) => ({ default: module.ProfilePage })));
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 15_000, refetchOnWindowFocus: false } },
 });
+
+function LegacyLocationRedirect({ saved = false }: { saved?: boolean }) {
+  const location = useLocation();
+  return <Navigate replace to="/location" state={{ ...location.state, view: saved ? "saved" : "map" }} />;
+}
 
 /** / is the protected Home page; unauthenticated visitors land on /login or /register. */
 const router = createBrowserRouter([
@@ -58,40 +62,35 @@ const router = createBrowserRouter([
         ),
         children: [
           { path: "/", element: <HomePage /> },
-          { path: "/library/gallery", element: <GalleryPage key="pictures" view="pictures" /> },
-          { path: "/library/gallery/videos", element: <GalleryPage key="videos" view="pictures" initialFilter="video" /> },
-          { path: "/library/gallery/favorites", element: <GalleryPage key="favorites" view="favorites" /> },
-          {
-            path: "/library/gallery/trash",
-            element: (
-              <RequireAdmin>
-                <TrashPage />
-              </RequireAdmin>
-            ),
-          },
-          { path: "/library/album", element: <AlbumsPage /> },
-          { path: "/library/album/:albumId", element: <AlbumPage /> },
-          { path: "/gallery", element: <Navigate replace to="/library/gallery" /> },
-          { path: "/gallery/videos", element: <Navigate replace to="/library/gallery/videos" /> },
-          { path: "/gallery/favorites", element: <Navigate replace to="/library/gallery/favorites" /> },
-          { path: "/gallery/trash", element: <Navigate replace to="/library/gallery/trash" /> },
-          { path: "/albums", element: <Navigate replace to="/library/album" /> },
+          { path: "/gallery", element: <GalleryPage view="pictures" /> },
+          { path: "/gallery/favorites", element: <GalleryPage view="favorites" /> },
+          { path: "/gallery/trash", element: <RequireAdmin><TrashPage /></RequireAdmin> },
+          { path: "/gallery/album", element: <AlbumsPage /> },
+          { path: "/gallery/album/:albumId", element: <AlbumPage /> },
+          { path: "/gallery/videos", element: <Navigate replace to="/gallery" /> },
+          { path: "/library/gallery", element: <Navigate replace to="/gallery" /> },
+          { path: "/library/gallery/videos", element: <Navigate replace to="/gallery" /> },
+          { path: "/library/gallery/favorites", element: <Navigate replace to="/gallery/favorites" /> },
+          { path: "/library/gallery/trash", element: <Navigate replace to="/gallery/trash" /> },
+          { path: "/library/album", element: <Navigate replace to="/gallery/album" /> },
+          { path: "/library/album/:albumId", element: <LegacyAlbumRedirect /> },
+          { path: "/albums", element: <Navigate replace to="/gallery/album" /> },
           { path: "/albums/:albumId", element: <LegacyAlbumRedirect /> },
           { path: "/saved", element: <LegacyAlbumRedirect /> },
           { path: "/saved/:albumId", element: <LegacyAlbumRedirect /> },
-          { path: "/sync/upload", element: <UploadManagementPage /> },
-          { path: "/sync/download", element: <DownloadManagementPage /> },
+          { path: "/uploads", element: <UploadManagementPage /> },
           { path: "/location/travel", element: <LocationsPage /> },
-          { path: "/location/place", element: <PlacePage key="places" /> },
-          { path: "/location/saved", element: <PlacePage key="saved" saved /> },
+          { path: "/location", element: <PlacePage /> },
+          { path: "/location/place", element: <LegacyLocationRedirect /> },
+          { path: "/location/saved", element: <LegacyLocationRedirect saved /> },
           { path: "/profile", element: <ProfilePage /> },
           { path: "/settings", element: <SettingsPage /> },
-          { path: "/uploads", element: <Navigate replace to="/sync/upload" /> },
-          { path: "/uploads/new", element: <Navigate replace to="/sync/upload" /> },
+          { path: "/sync/upload", element: <Navigate replace to="/uploads" /> },
+          { path: "/uploads/new", element: <Navigate replace to="/uploads" /> },
           { path: "/locations", element: <Navigate replace to="/location/travel" /> },
-          { path: "/food", element: <Navigate replace to="/location/place" /> },
-          { path: "/location/food", element: <Navigate replace to="/location/place" /> },
-          { path: "/place", element: <Navigate replace to="/location/place" /> },
+          { path: "/food", element: <Navigate replace to="/location" /> },
+          { path: "/location/food", element: <Navigate replace to="/location" /> },
+          { path: "/place", element: <Navigate replace to="/location" /> },
           { path: "/users", element: <UsersPage /> },
           { path: "/admin/users", element: <Navigate replace to="/users" /> },
         ],
@@ -157,7 +156,7 @@ function RequireAdmin({ children }: { children: ReactNode }) {
 
 function LegacyAlbumRedirect() {
   const { albumId } = useParams<{ albumId: string }>();
-  return <Navigate replace to={albumId ? `/library/album/${albumId}` : "/library/album"} />;
+  return <Navigate replace to={albumId ? `/gallery/album/${albumId}` : "/gallery/album"} />;
 }
 
 export function App() {

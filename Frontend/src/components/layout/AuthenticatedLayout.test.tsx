@@ -193,13 +193,10 @@ describe("AuthenticatedLayout sidebar", () => {
     narrowScreen = true;
     mobileScreen = true;
     await renderLayout();
-    const sync = container.querySelector<HTMLButtonElement>('[aria-label="Sync"]')!;
-    expect(sync.getAttribute("aria-expanded")).toBe("true");
+    expect(container.querySelector('[aria-label="Upload"]')).not.toBeNull();
 
     await act(async () => container.querySelector<HTMLButtonElement>(".sidebar__toggle")!.click());
-    expect(sync.getAttribute("aria-expanded")).toBe("true");
     await act(async () => container.querySelector<HTMLButtonElement>(".sidebar__toggle")!.click());
-    expect(sync.getAttribute("aria-expanded")).toBe("true");
   });
 
   it("shows the brand on non-home pages and keeps controls inside the mobile header", async () => {

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Button, CustomDialog, useCustomDialog } from "../../../components/ui";
 import { useLocale } from "../../../context/LocaleContext";
+import { showToast } from "../../../components/ui/Toast";
 
 interface Props {
   onCapture: (file: File) => void;
@@ -39,7 +40,14 @@ export function CameraCaptureDialog({ onCapture, onClose }: Props) {
         streamRef.current = cameraStream;
         setStream(cameraStream);
       })
-      .catch(() => setError(t("Camera permission was denied or the camera is unavailable.")));
+      .catch((failure: unknown) => {
+        if (!active) return;
+        const message = failure instanceof DOMException && (failure.name === "NotAllowedError" || failure.name === "SecurityError")
+          ? t("Camera access failed. Allow camera access in your browser or device settings.")
+          : t("Camera permission was denied or the camera is unavailable.");
+        setError(message);
+        showToast.error(message);
+      });
     return () => {
       active = false;
       streamRef.current?.getTracks().forEach((track) => track.stop());

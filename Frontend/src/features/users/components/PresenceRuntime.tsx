@@ -91,10 +91,10 @@ export function PresenceRuntime() {
         if (!userId || userId === event.ownerId) return;
         useAlbumNotificationStore.getState().add(userId, event);
         const message = t(event.created ? "{username} created public album {album}." : "{username} made album {album} public.", { username: event.username, album: event.albumName });
-        void showBrowserNotification(t("Public album"), message, `/library/album/${event.albumId}`).catch(() => undefined);
-        if (window.location.pathname === "/library/album") {
+        void showBrowserNotification(t("Public album"), message, `/gallery/album/${event.albumId}`).catch(() => undefined);
+        if (window.location.pathname === "/gallery/album") {
           showToast.info(message, { description: t("Click to refresh."), onClick: () => {
-            if (window.location.pathname === "/library/album") void queryClient.invalidateQueries({ queryKey: ["albums", "list"] });
+            if (window.location.pathname === "/gallery/album") void queryClient.invalidateQueries({ queryKey: ["albums", "list"] });
           } });
         }
       });
@@ -103,7 +103,7 @@ export function PresenceRuntime() {
         if (!userId || userId === event.ownerId || !event.username) return;
         useUploadNotificationStore.getState().addRemote(userId, event);
         const message = uploadMessage(t, event.images, event.videos, event.username);
-        void showBrowserNotification(t("New uploads"), message, "/library/gallery").catch(() => undefined);
+        void showBrowserNotification(t("New uploads"), message, "/gallery").catch(() => undefined);
         const onGallery = isGalleryPath(window.location.pathname);
         showToast.info(message, {
           description: t(onGallery ? "Click to refresh." : "Click to go to gallery."),
@@ -112,7 +112,7 @@ export function PresenceRuntime() {
             if (isGalleryPath(window.location.pathname)) {
               void queryClient.invalidateQueries({ queryKey: ["media"] });
             } else {
-              window.location.assign("/library/gallery");
+              window.location.assign("/gallery");
             }
           },
         });
@@ -121,12 +121,12 @@ export function PresenceRuntime() {
         const userId = useAuthStore.getState().user?.id;
         if (!userId || userId === event.actorId) return;
         const path = window.location.pathname;
-        const detail = path === `/library/album/${event.albumId}`;
+        const detail = path === `/gallery/album/${event.albumId}`;
         if (detail && event.action === "private" && userId !== event.ownerId) {
           window.location.assign("/");
           return;
         }
-        if (path !== "/library/album" && !detail) return;
+        if (path !== "/gallery/album" && !detail) return;
         const message = event.action === "private"
           ? t("{username} made public album {album} private.", { username: event.username, album: event.albumName })
           : userId === event.ownerId
@@ -140,8 +140,8 @@ export function PresenceRuntime() {
         const userId = useAuthStore.getState().user?.id;
         if (!userId || userId === event.actorId) return;
         const path = window.location.pathname;
-        if (path !== "/library/gallery" && path !== "/library/gallery/trash") return;
-        if (path === "/library/gallery" && event.action === "deleted") return;
+        if (path !== "/gallery" && path !== "/gallery/trash") return;
+        if (path === "/gallery" && event.action === "deleted") return;
         const message = userId === event.ownerId
           ? t(event.action === "trashed" ? "{username} moved your item {item} to trash." : event.action === "deleted" ? "{username} permanently deleted your item {item}." : "{username} restored your item {item}.", { username: event.username, item: event.name })
           : t("{username} changed the gallery.", { username: event.username });
@@ -167,7 +167,7 @@ export function PresenceRuntime() {
           highlight: [event.username, event.placeName],
           icon: "calendar-check",
         });
-        void showBrowserNotification(t("New check-in"), message, "/location/place").catch(() => undefined);
+        void showBrowserNotification(t("New check-in"), message, "/location").catch(() => undefined);
       });
       connection.on("SessionChanged", () => {
         void api("/api/auth/me").catch(() => undefined);
@@ -244,7 +244,7 @@ export function PresenceRuntime() {
 }
 
 function isGalleryPath(pathname: string): boolean {
-  return pathname === "/library/gallery"
-    || pathname === "/library/gallery/videos"
-    || pathname === "/library/gallery/favorites";
+  return pathname === "/gallery"
+    || pathname === "/gallery/videos"
+    || pathname === "/gallery/favorites";
 }

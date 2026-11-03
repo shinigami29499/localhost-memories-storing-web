@@ -116,7 +116,7 @@ export function startUploadRuntime(
         onClick: () => {
           if (completionUrl) window.location.assign(completionUrl);
           else if (isGalleryPath(window.location.pathname)) window.location.reload();
-          else window.location.assign("/library/gallery");
+          else window.location.assign("/gallery");
         },
       });
     } else if (batch.status === "Cancelled") {
@@ -363,7 +363,7 @@ export function startUploadRuntime(
 }
 
 function isGalleryPath(pathname: string): boolean {
-  return pathname === "/library/gallery"
-    || pathname === "/library/gallery/videos"
-    || pathname === "/library/gallery/favorites";
+  return pathname === "/gallery"
+    || pathname === "/gallery/videos"
+    || pathname === "/gallery/favorites";
 }

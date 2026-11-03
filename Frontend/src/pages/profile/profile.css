@@ -11,8 +11,8 @@
 
 .profile-page__header {
   display: grid;
-  gap: 12px;
-  margin-bottom: 32px;
+  gap: 8px;
+  margin-bottom: 16px;
 }
 
 .profile-page__header h1 {

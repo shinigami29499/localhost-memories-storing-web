@@ -53,10 +53,6 @@ vi.mock("../animate-ui/icons/refresh-cw", async () => {
   return { RefreshCw: () => <svg data-animated={String(useAnimateIconContext().active === true)} /> };
 });
 
-vi.mock("../animate-ui/icons/download", async () => {
-  const { useAnimateIconContext } = await import("@animate-ui/react/icons");
-  return { Download: () => <svg data-animated={String(useAnimateIconContext().active === true)} /> };
-});
 
 vi.mock("../animate-ui/icons/upload", async () => {
   const { useAnimateIconContext } = await import("@animate-ui/react/icons");
@@ -134,12 +130,12 @@ describe("Sidebar icon hover behavior", () => {
     vi.unstubAllGlobals();
   });
 
-  it.each(["/", "/library/gallery", "/library/gallery/trash", "/location/travel", "/location/place", "/users"])("animates the icon when hovering the %s link text", async (href) => {
+  it.each(["/", "/library/gallery", "/library/gallery/trash", "/location", "/users"])("animates the icon when hovering the %s link text", async (href) => {
     const link = container.querySelector<HTMLAnchorElement>(`.sidebar__nav a[href="${href}"]`)!;
     const label = link.querySelector("span")!;
     expect(link.classList.contains("sidebar__link")).toBe(true);
     expect(link.classList.contains("sidebar__sub-link"))
-      .toBe(href.startsWith("/library/gallery") || href.startsWith("/location/"));
+      .toBe(href.startsWith("/library/gallery"));
     if (href === "/library/gallery/trash") {
       expect(container.querySelector('[aria-label="Library items"] [href="/library/gallery/trash"]')).not.toBeNull();
     }
@@ -181,66 +177,19 @@ describe("Sidebar icon hover behavior", () => {
     expect(container.querySelector('[href="/library/album"]')?.textContent).toBe("Album");
     expect(container.querySelector('[href="/library/album"]')?.classList.contains("sidebar__sub-link")).toBe(true);
     expect(container.querySelector('[href="/users"]')?.textContent).toBe("Users");
-    expect(container.querySelector('[href="/location/travel"]')?.textContent).toBe("Travel");
-    expect(container.querySelector('[aria-label="Locations"]')?.getAttribute("aria-expanded")).toBe("true");
-    expect(container.querySelector('[href="/location/place"]')?.textContent).toBe("Place");
-    expect(container.querySelector('[href="/location/place"]')?.classList.contains("sidebar__sub-link")).toBe(true);
+    expect(container.querySelector('[href="/location"]')?.textContent).toBe("Locations");
+    expect(container.querySelector('[href="/location/place"]')).toBeNull();
+    expect(container.querySelector('[href="/location/saved"]')).toBeNull();
     expect(container.querySelector('[href="/library/gallery/trash"]')).toBeNull();
     expect(container.querySelector('[href^="/admin"]')).toBeNull();
   });
 
-  it("shows upload actions under Sync beside Download", async () => {
-    const navigation = container.querySelector<HTMLElement>(".sidebar__nav")!;
-    const groups = Array.from(navigation.children)
-      .filter((child) => child.classList.contains("sidebar__group"))
-      .map((group) => group.querySelector<HTMLButtonElement>(".sidebar__group-toggle")?.getAttribute("aria-label"));
-    const sync = container.querySelector<HTMLButtonElement>('[aria-label="Sync"]')!;
-    const syncActions = container.querySelector<HTMLElement>('[aria-label="Sync actions"]')!;
-    const items = Array.from(syncActions.querySelectorAll<HTMLElement>(".sidebar__sub-link"));
-
-    expect(groups).toEqual(["Library", "Locations", "Sync"]);
-    expect(sync.getAttribute("aria-expanded")).toBe("true");
-    expect(sync.querySelector("svg")?.getAttribute("data-animated")).toBe("false");
-    expect(items.map((item) => item.textContent?.trim())).toEqual(["Upload", "Download"]);
-    expect(items.every((item) => item.classList.contains("sidebar__link"))).toBe(true);
-    expect(items[0].classList.contains("sidebar__link--static")).toBe(false);
-    expect(items[1].classList.contains("sidebar__link--static")).toBe(false);
-    expect(items.map((item) => item.querySelector("svg")?.getAttribute("data-animated"))).toEqual(["false", "false"]);
-    const downloadLink = syncActions.querySelector<HTMLAnchorElement>('[href="/sync/download"]')!;
-    expect(downloadLink).not.toBeNull();
-    const uploadLink = syncActions.querySelector<HTMLAnchorElement>('[href="/sync/upload"]')!;
-    expect(uploadLink.textContent?.trim()).toBe("Upload");
-    expect(container.querySelector('[href="/uploads/activity"]')).toBeNull();
-    expect(container.querySelector('[href="/uploads/new"]')).toBeNull();
-    expect(navigation.querySelector(':scope > a[href="/sync/upload"]')).toBeNull();
-
-    for (const item of items) {
-      const label = item.querySelector("span")!;
-      await act(async () => label.dispatchEvent(new MouseEvent("pointerover", { bubbles: true })));
-      expect(item.querySelector("svg")?.getAttribute("data-animated")).toBe("true");
-
-      await act(async () => label.dispatchEvent(new MouseEvent("pointerout", { bubbles: true, relatedTarget: document.body })));
-      expect(item.querySelector("svg")?.getAttribute("data-animated")).toBe("false");
-    }
-
-    await act(async () => uploadLink.click());
-    expect(uploadLink.classList.contains("sidebar__link--active")).toBe(true);
-    expect(items[1].classList.contains("sidebar__link--active")).toBe(false);
-
-    await act(async () => downloadLink.click());
-    expect(downloadLink.classList.contains("sidebar__link--active")).toBe(true);
-    expect(uploadLink.classList.contains("sidebar__link--active")).toBe(false);
-    expect(sync.closest(".sidebar__group")?.classList.contains("sidebar__group--active")).toBe(true);
-
-    await act(async () => sync.dispatchEvent(new MouseEvent("pointerover", { bubbles: true })));
-    expect(sync.querySelector("svg")?.getAttribute("data-animated")).toBe("true");
-
-    await act(async () => sync.dispatchEvent(new MouseEvent("pointerout", { bubbles: true, relatedTarget: document.body })));
-    expect(sync.querySelector("svg")?.getAttribute("data-animated")).toBe("false");
-
-    await act(async () => sync.click());
-
-    expect(sync.getAttribute("aria-expanded")).toBe("false");
+  it("shows Upload as a main navigation link", () => {
+    const upload = container.querySelector<HTMLAnchorElement>('[aria-label="Upload"]');
+    expect(upload?.getAttribute("href")).toBe("/uploads");
+    expect(upload?.getAttribute("data-sidebar")).toBe("menu-button");
+    expect(container.querySelector('[aria-label="Sync"]')).toBeNull();
+    expect(container.querySelector('[aria-label="Download"]')).toBeNull();
   });
 
   it("shows the account name and role and closes its menu on outside click", async () => {

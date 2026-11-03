@@ -71,6 +71,6 @@ export function UploadActivityHeatmap() {
 
   if (!userId) return null;
 
-  return <ActivityHeatmap kind="upload" weeks={weeks} days={days} activity={activity}
+  return <ActivityHeatmap weeks={weeks} days={days} activity={activity}
     isPending={query.isPending} isError={query.isError} onRetry={() => void query.refetch()} />;
 }

@@ -1,12 +1,13 @@
 import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { Tabs } from "@base-ui/react/tabs";
+import { Highlight, HighlightItem } from "@animate-ui/react/primitives/effects/highlight";
 import { useEffect, useRef, useState } from "react";
 import { HubConnectionBuilder } from "@microsoft/signalr";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { userService } from "../../features/users";
 import { ApiError } from "../../services/api";
 import { useAuthStore } from "../../store/authStore";
-import { ErrorState, Spinner } from "../../components/ui/Status";
+import { EmptyState, ErrorState, Spinner } from "../../components/ui/Status";
 import { showToast } from "../../components/ui/Toast";
 import { Check } from "@/components/animate-ui/icons/check";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
@@ -206,20 +207,23 @@ export function UsersPage() {
                   className="admin-users__filters"
                   aria-label={t("Filter users by status")}
                 >
+                  <Highlight value={filter} controlledItems mode="parent" containerClassName="admin-users__highlight-container" className="admin-users__highlight">
                   {userFilters.map((option) => {
                     const count = option.value === "all"
                       ? allUsers.length
                       : allUsers.filter((user) => user.status === option.value).length;
                     return (
+                      <HighlightItem key={option.value} value={option.value} asChild>
                       <Tabs.Tab
-                        key={option.value}
                         value={option.value}
                         className="admin-users__tab"
                       >
                         {t(option.label)} <span>{count}</span>
                       </Tabs.Tab>
+                      </HighlightItem>
                     );
                   })}
+                  </Highlight>
                 </Tabs.List>
               </div>
 

@@ -1,8 +1,0 @@
-.download-page__section + .download-page__section { margin-top: 24px; }
-.download-page__section h2 { margin: 0 0 12px; font-size: 1rem; }
-.download-history-item { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 24px; align-items: center; padding: 16px; }
-.download-history-item__name { display: flex; flex-direction: column; min-width: 0; gap: 4px; }
-@media (max-width: 600px) { .download-history-item { grid-template-columns: 1fr; gap: 12px; } }
-
-.download-page__gallery-link { text-decoration: none; }
-.download-page__batch { border-radius: var(--radius); }

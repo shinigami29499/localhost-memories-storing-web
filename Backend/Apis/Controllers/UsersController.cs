@@ -62,12 +62,14 @@ public class UsersController(
         => Ok(await _userService.SetAvatarAsync(
             _currentUser.RequireUserId(), request, cancellationToken));
 
+    [HttpGet("~/api/location/home-location")]
     [HttpGet("~/api/location/place/home-location")]
     [HttpGet("~/api/location/food/home-location")]
     [HttpGet("me/home-location")]
     public async Task<ActionResult<HomeLocationDto?>> GetHomeLocationAsync(CancellationToken cancellationToken)
         => Ok(await _userService.GetHomeLocationAsync(_currentUser.RequireUserId(), cancellationToken));
 
+    [HttpPut("~/api/location/home-location")]
     [HttpPut("~/api/location/place/home-location")]
     [HttpPut("~/api/location/food/home-location")]
     [HttpPut("me/home-location")]
@@ -76,6 +78,7 @@ public class UsersController(
         => Ok(await _userService.SetHomeLocationAsync(
             _currentUser.RequireUserId(), request, cancellationToken));
 
+    [HttpDelete("~/api/location/home-location")]
     [HttpDelete("~/api/location/place/home-location")]
     [HttpDelete("~/api/location/food/home-location")]
     [HttpDelete("me/home-location")]

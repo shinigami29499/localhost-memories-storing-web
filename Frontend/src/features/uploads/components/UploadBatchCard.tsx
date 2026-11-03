@@ -125,7 +125,7 @@ export function UploadBatchCard({
         {showUsername ? (
           <div className="upload-batch__field upload-batch__username-field">
             <span className="upload-batch__label">{t("Username")}</span>
-            <span className="upload-batch__value">{batch.username ?? "—"}</span>
+            <span className="upload-batch__value">{batch.username ?? avatarUser?.username ?? "—"}</span>
           </div>
         ) : null}
         <div className="upload-batch__field upload-batch__created-field">
@@ -170,7 +170,7 @@ export function UploadBatchCard({
             </Button>
             ) : null}
             {onPause ? <Button type="button" variant="ghost" className="upload-item__action" aria-label={t(!batch.items.some((item) => item.status === "Pending" || item.status === "Uploading") && batch.items.some((item) => item.status === "Paused") ? "Resume batch" : "Pause batch")} title={t(!batch.items.some((item) => item.status === "Pending" || item.status === "Uploading") && batch.items.some((item) => item.status === "Paused") ? "Resume batch" : "Pause batch")} disabled={!batch.items.some((item) => item.status === "Pending" || item.status === "Uploading" || item.status === "Paused") || batch.items.some((item) => busyItemIds.has(item.id))} onClick={() => onPause(batch, undefined, batch.items.some((item) => item.status === "Pending" || item.status === "Uploading"))}>{!batch.items.some((item) => item.status === "Pending" || item.status === "Uploading") && batch.items.some((item) => item.status === "Paused") ? <Play size={18} aria-hidden="true" /> : <Pause size={18} aria-hidden="true" />}</Button> : null}
-            {onDelete ? <Button type="button" variant="ghost" className="upload-item__action upload-item__action--delete" aria-label={t("Delete batch record")} title={t("Delete batch record")} disabled={actionItems.some((item) => item.status === "Success" || busyItemIds.has(item.id))} onClick={() => setDeleteTarget("batch")}><Trash2 size={18} aria-hidden="true" /></Button> : null}
+            {onDelete ? <Button type="button" variant="ghost" className="upload-item__action upload-item__action--delete" aria-label={t("Delete batch record")} title={t("Delete batch record")} disabled={actionItems.some((item) => busyItemIds.has(item.id) || (selectedItems.length > 0 && item.status === "Success"))} onClick={() => setDeleteTarget("batch")}><Trash2 size={18} aria-hidden="true" /></Button> : null}
 
           </div>
         ) : null}

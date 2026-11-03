@@ -181,10 +181,6 @@ namespace Infrastructures.Data.Migrations
                         .HasColumnType("jsonb")
                         .HasColumnName("items_json");
 
-                    b.Property<DateTime?>("ViewedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("viewed_at");
-
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -196,6 +192,10 @@ namespace Infrastructures.Data.Migrations
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid")
                         .HasColumnName("user_id");
+
+                    b.Property<DateTime?>("ViewedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("viewed_at");
 
                     b.HasKey("Id")
                         .HasName("pk_download_batch_states");
@@ -525,15 +525,15 @@ namespace Infrastructures.Data.Migrations
                         .HasColumnName("updated_by");
 
                     b.HasKey("Id")
-                        .HasName("pk_places");
+                        .HasName("pk_locations");
 
                     b.HasIndex("CreatedAt")
-                        .HasDatabaseName("ix_places_created_at");
+                        .HasDatabaseName("ix_locations_created_at");
 
                     b.HasIndex("OwnerId", "CreatedAt")
-                        .HasDatabaseName("ix_places_owner_id_created_at");
+                        .HasDatabaseName("ix_locations_owner_id_created_at");
 
-                    b.ToTable("places", (string)null);
+                    b.ToTable("locations", (string)null);
                 });
 
             modelBuilder.Entity("Domains.Entities.PlaceMedia", b =>
@@ -566,7 +566,7 @@ namespace Infrastructures.Data.Migrations
 
                     b.Property<Guid>("PlaceId")
                         .HasColumnType("uuid")
-                        .HasColumnName("place_id");
+                        .HasColumnName("location_id");
 
                     b.Property<int>("Position")
                         .HasColumnType("integer")
@@ -581,20 +581,20 @@ namespace Infrastructures.Data.Migrations
                         .HasColumnName("updated_by");
 
                     b.HasKey("Id")
-                        .HasName("pk_place_media");
+                        .HasName("pk_location_media");
 
                     b.HasIndex("MediaFileId")
-                        .HasDatabaseName("ix_place_media_media_file_id");
+                        .HasDatabaseName("ix_location_media_media_file_id");
 
                     b.HasIndex("PlaceId", "MediaFileId")
                         .IsUnique()
-                        .HasDatabaseName("ix_place_media_place_id_media_file_id")
+                        .HasDatabaseName("ix_location_media_location_id_media_file_id")
                         .HasFilter("deleted_at IS NULL");
 
                     b.HasIndex("PlaceId", "Position")
-                        .HasDatabaseName("ix_place_media_place_id_position");
+                        .HasDatabaseName("ix_location_media_location_id_position");
 
-                    b.ToTable("place_media", (string)null);
+                    b.ToTable("location_media", (string)null);
                 });
 
             modelBuilder.Entity("Domains.Entities.PlaceVisit", b =>
@@ -631,7 +631,7 @@ namespace Infrastructures.Data.Migrations
 
                     b.Property<Guid>("PlaceId")
                         .HasColumnType("uuid")
-                        .HasColumnName("place_id");
+                        .HasColumnName("location_id");
 
                     b.Property<int>("Rating")
                         .HasColumnType("integer")
@@ -650,15 +650,15 @@ namespace Infrastructures.Data.Migrations
                         .HasColumnName("user_id");
 
                     b.HasKey("Id")
-                        .HasName("pk_place_visits");
+                        .HasName("pk_location_visits");
 
                     b.HasIndex("PlaceId")
-                        .HasDatabaseName("ix_place_visits_place_id");
+                        .HasDatabaseName("ix_location_visits_place_id");
 
                     b.HasIndex("UserId", "CreatedAt")
-                        .HasDatabaseName("ix_place_visits_user_id_created_at");
+                        .HasDatabaseName("ix_location_visits_user_id_created_at");
 
-                    b.ToTable("place_visits", (string)null);
+                    b.ToTable("location_visits", (string)null);
                 });
 
             modelBuilder.Entity("Domains.Entities.RefreshToken", b =>
@@ -778,10 +778,6 @@ namespace Infrastructures.Data.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("completed_at");
 
-                    b.Property<DateTime?>("ViewedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("viewed_at");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -819,6 +815,10 @@ namespace Infrastructures.Data.Migrations
                     b.Property<Guid?>("UpdatedBy")
                         .HasColumnType("uuid")
                         .HasColumnName("updated_by");
+
+                    b.Property<DateTime?>("ViewedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("viewed_at");
 
                     b.HasKey("Id")
                         .HasName("pk_upload_batches");
@@ -1143,7 +1143,7 @@ namespace Infrastructures.Data.Migrations
                         .HasForeignKey("OwnerId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired()
-                        .HasConstraintName("fk_places_users_owner_id");
+                        .HasConstraintName("fk_locations_users_owner_id");
 
                     b.Navigation("Owner");
                 });
@@ -1155,14 +1155,14 @@ namespace Infrastructures.Data.Migrations
                         .HasForeignKey("MediaFileId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired()
-                        .HasConstraintName("fk_place_media_media_files_media_file_id");
+                        .HasConstraintName("fk_location_media_media_files_media_file_id");
 
                     b.HasOne("Domains.Entities.Place", "Place")
                         .WithMany("MediaItems")
                         .HasForeignKey("PlaceId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired()
-                        .HasConstraintName("fk_place_media_places_place_id");
+                        .HasConstraintName("fk_location_media_locations_place_id");
 
                     b.Navigation("MediaFile");
 
@@ -1176,14 +1176,14 @@ namespace Infrastructures.Data.Migrations
                         .HasForeignKey("PlaceId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired()
-                        .HasConstraintName("fk_place_visits_places_place_id");
+                        .HasConstraintName("fk_location_visits_locations_place_id");
 
                     b.HasOne("Domains.Entities.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired()
-                        .HasConstraintName("fk_place_visits_users_user_id");
+                        .HasConstraintName("fk_location_visits_users_user_id");
 
                     b.Navigation("Place");
 

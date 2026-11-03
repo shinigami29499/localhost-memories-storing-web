@@ -53,7 +53,7 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 28px;
+  margin-bottom: 16px;
 }
 
 .upload-page__header h1 {
@@ -331,11 +331,7 @@
 }
 
 .upload-status--pending,
-.upload-status--pending-upload,
-.upload-status--pending-download,
-.upload-status--uploading,
-.upload-status--downloading,
-.upload-status--paused {
+.upload-status--pending-upload,.upload-status--uploading,.upload-status--paused {
   border-color: var(--upload-status-pending-border);
   color: var(--upload-status-pending-border);
   background: var(--upload-status-pending-fill);
@@ -383,7 +379,7 @@
   --upload-progress-color: var(--upload-status-success-border);
 }
 
-:is(.upload-batch__summary, .upload-item):has(:is(.upload-status--pending, .upload-status--pending-upload, .upload-status--pending-download, .upload-status--uploading, .upload-status--downloading, .upload-status--paused)) {
+:is(.upload-batch__summary, .upload-item):has(:is(.upload-status--pending, .upload-status--pending-upload, .upload-status--uploading, .upload-status--paused)) {
   --upload-progress-color: var(--upload-status-pending-border);
 }
 
@@ -765,6 +761,18 @@
   }
 }
 
+@container (max-width: 520px) {
+  .upload-page .upload-batch__summary--admin {
+    grid-template-columns: 24px minmax(88px, 1fr) 40px 117px;
+    grid-template-areas: "selectall created status footer";
+  }
+
+  .upload-page .upload-batch__summary--admin .upload-batch__owner-avatar,
+  .upload-page .upload-batch__summary--admin .upload-batch__username-field {
+    display: none;
+  }
+}
+
 @container (max-width: 1200px) {
   .upload-batch__summary,
   .upload-batch__summary--admin {
@@ -1119,11 +1127,7 @@
   }
 
   .upload-status--pending,
-  .upload-status--pending-upload,
-  .upload-status--pending-download,
-  .upload-status--uploading,
-  .upload-status--downloading,
-  .upload-status--paused {
+  .upload-status--pending-upload,  .upload-status--uploading,  .upload-status--paused {
     background: #e3a329;
   }
 

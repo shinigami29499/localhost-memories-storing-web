@@ -360,7 +360,7 @@ public sealed class UploadService(
         if (batch is null || batch.OwnerId != ownerId) throw new NotFoundException($"Upload batch '{batchId}' was not found.");
         var items = batch.Items.Where(item => !itemId.HasValue || item.Id == itemId.Value).ToList();
         if (items.Count == 0) throw new NotFoundException("Upload record was not found.");
-        if (items.Any(item => item.Status == UploadItemStatus.Success))
+        if (itemId.HasValue && items.Any(item => item.Status == UploadItemStatus.Success))
             throw new ConflictException("Successful upload records cannot be deleted.");
         var now = DateTime.UtcNow;
         foreach (var item in items) { item.DeletedAt = now; item.DeletedBy = ownerId; item.Revision++; }

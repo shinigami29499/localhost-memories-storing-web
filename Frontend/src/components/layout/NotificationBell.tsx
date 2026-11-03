@@ -6,9 +6,7 @@ import { Bell } from "@/components/animate-ui/icons/bell";
 import { CheckCheckIcon } from "@/components/animate-ui/icons/check-check";
 import { useAlbumNotificationStore } from "../../features/notifications/albumNotificationStore";
 import { useUploadNotificationStore } from "../../features/notifications/uploadNotificationStore";
-import { useDownloadNotificationStore } from "../../features/notifications/downloadNotificationStore";
 import { uploadService } from "../../features/uploads/services/uploadService";
-import { markAllDownloadBatchesViewed, markDownloadBatchViewed } from "../../features/downloads/services/downloadHistory";
 import { uploadMessage } from "../../features/notifications/uploadMessage";
 import { useAuthStore } from "../../store/authStore";
 import { formatTimestamp } from "../../utils/media";
@@ -33,13 +31,10 @@ export function NotificationBell() {
   const userId = useAuthStore((state) => state.user?.id);
   const uploadItems = useUploadNotificationStore((state) => state.items);
   const markUploadsRead = useUploadNotificationStore((state) => state.markRead);
-  const downloadItems = useDownloadNotificationStore((state) => state.items);
-  const markDownloadsRead = useDownloadNotificationStore((state) => state.markRead);
   const albumItems = useAlbumNotificationStore((state) => state.items);
   const markAlbumsRead = useAlbumNotificationStore((state) => state.markRead);
   const notifications = [
     ...uploadItems.filter((item) => item.userId === userId).map((item) => ({ ...item, kind: "upload" as const })),
-    ...downloadItems.filter((item) => item.userId === userId).map((item) => ({ ...item, kind: "download" as const })),
     ...albumItems.filter((item) => item.userId === userId).map((item) => ({ ...item, kind: "album" as const })),
   ].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const unreadCount = notifications.filter((item) => !item.readAt).length;
@@ -99,7 +94,7 @@ export function NotificationBell() {
           <div className="notification-bar__header">
             <h2>{t("Notifications")}</h2>
             <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
-              <button type="button" className="notification-bar__mark-read" aria-label={t("Mark all as read")} title={t("Mark all as read")} disabled={!unreadCount} onClick={() => { if (userId) { markUploadsRead(userId); markDownloadsRead(userId); markAlbumsRead(userId); void Promise.all([uploadService.markAllBatchesViewed(), markAllDownloadBatchesViewed()]).then(() => Promise.all([queryClient.invalidateQueries({ queryKey: ["uploads"] }), queryClient.invalidateQueries({ queryKey: ["download-batches"] })])).catch(() => undefined); } }}>
+              <button type="button" className="notification-bar__mark-read" aria-label={t("Mark all as read")} title={t("Mark all as read")} disabled={!unreadCount} onClick={() => { if (userId) { markUploadsRead(userId); markAlbumsRead(userId); void uploadService.markAllBatchesViewed().then(() => queryClient.invalidateQueries({ queryKey: ["uploads"] })).catch(() => undefined); } }}>
                 <CheckCheckIcon size={18} aria-hidden="true" />
               </button>
             </AnimateIcon>
@@ -114,13 +109,11 @@ export function NotificationBell() {
                   ? notification.images === undefined ? t("Upload batch completed") : (notification.failedFiles ?? 0) || (notification.cancelledFiles ?? 0)
                     ? t("Upload batch finished: {failed} failed, {cancelled} cancelled.", { failed: notification.failedFiles ?? 0, cancelled: notification.cancelledFiles ?? 0 })
                     : uploadMessage(t, notification.images, notification.videos ?? 0, notification.username ? "\uE0000\uE001" : undefined)
-                  : notification.kind === "download"
-                    ? t("Download batch finished: {success} sent to browser, {failed} failed.", { success: notification.successfulFiles, failed: notification.failedFiles })
-                    : t(notification.created ? "{username} created public album {album}." : "{username} made album {album} public.", { username: "\uE0000\uE001", album: "\uE0001\uE001" });
+                  : t(notification.created ? "{username} created public album {album}." : "{username} made album {album} public.", { username: "\uE0000\uE001", album: "\uE0001\uE001" });
                 return (
                 <li key={notification.kind === "album" ? notification.eventId : notification.id}>
                   <Link
-                    to={notification.kind === "album" ? `/library/album/${notification.albumId}` : notification.kind === "download" ? "/sync/download" : "/library/gallery"}
+                    to={notification.kind === "album" ? `/gallery/album/${notification.albumId}` : "/gallery"}
                     className={`notification-bar__item${notification.readAt ? "" : " notification-bar__item--unread"}`}
                     onClick={(event) => {
                       setOpen(false);
@@ -136,14 +129,9 @@ export function NotificationBell() {
                           }
                         }
                         void markViewed.catch(() => undefined).finally(() => {
-                          window.location.assign("/library/gallery");
+                          window.location.assign("/gallery");
                         });
                         return;
-                      }
-                      if (userId && !notification.readAt && notification.kind === "download") {
-                        markDownloadsRead(userId, notification.id);
-                        void markDownloadBatchViewed(notification.id.slice(notification.id.lastIndexOf(":") + 1))
-                          .then(() => queryClient.invalidateQueries({ queryKey: ["download-batches"] })).catch(() => undefined);
                       }
                       if (userId && !notification.readAt && notification.kind === "album") markAlbumsRead(userId, notification.eventId);
                     }}

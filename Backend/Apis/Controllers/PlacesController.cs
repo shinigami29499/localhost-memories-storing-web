@@ -10,6 +10,7 @@ using Services.Requests.Place;
 namespace Apis.Controllers;
 
 [ApiController]
+[Route("api/location")]
 [Route("api/location/place")]
 [Route("api/places")]
 [Route("api/location/food")]
@@ -90,7 +91,7 @@ public class PlacesController(
         var created = await placeService.CreatePlaceAsync(
             userId, request, cancellationToken);
         await NotifyPlacesChangedAsync(userId, created.Id, cancellationToken);
-        return Created($"/api/location/place/{created.Id}", created);
+        return Created($"/api/location/{created.Id}", created);
     }
 
     [HttpPut("{placeId:guid}")]

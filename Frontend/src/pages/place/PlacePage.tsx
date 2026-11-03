@@ -1,4 +1,4 @@
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { startTransition, useCallback, useEffect, useRef, useState, useMemo, type CSSProperties } from "react";
 import { Highlight, HighlightItem } from "@animate-ui/react/primitives/effects/highlight";
@@ -86,14 +86,16 @@ function toEditorState(place: Place): EditorState {
   };
 }
 
-export function PlacePage({ saved = false }: { saved?: boolean }) {
+export function PlacePage() {
   const { t } = useLocale();
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
   const location = useLocation();
   const user = useAuthStore((state) => state.user);
   const isAdmin = user?.role?.toLowerCase() === "admin";
   const home = useHomeLocation(user?.id);
+  const initialState = location.state as { view?: "map" | "saved" | "history"; focusPlaceId?: string } | null;
+  const [view, setView] = useState<"map" | "saved" | "history">(initialState?.view ?? "map");
+  const saved = view !== "map";
   const { media: photos, query: photosQuery } = useLocations(!saved);
   const [uploading, setUploading] = useState(false);
   const uploadInFlight = useRef(false);
@@ -108,7 +110,6 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
   const [editorOpen, setEditorOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(() => !saved ? (location.state as { focusPlaceId?: string } | null)?.focusPlaceId ?? null : null);
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const [view, setView] = useState<"map" | "history">("map");
   const [placeSearch, setPlaceSearch] = useState("");
   const [minimumRating, setMinimumRating] = useState(0);
   const [historyPage, setHistoryPage] = useState(1);
@@ -462,7 +463,13 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
         <HighlightItem value="map" asChild>
           <button type="button" className="place__view-option" aria-pressed={view === "map"}
             onClick={() => { viewRequestRef.current += 1; setViewLoading(false); startTransition(() => setView("map")); }}>
-            {t("Location")}
+            {t("Map")}
+          </button>
+        </HighlightItem>
+        <HighlightItem value="saved" asChild>
+          <button type="button" className="place__view-option" aria-pressed={view === "saved"}
+            onClick={() => { viewRequestRef.current += 1; setViewLoading(false); startTransition(() => setView("saved")); }}>
+            {t("Saved")}
           </button>
         </HighlightItem>
         <HighlightItem value="history" asChild>
@@ -495,8 +502,8 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
             <header className="place__header">
               <div>
                 <p className="place__eyebrow">{t("Locations")}</p>
-                <h1>{t(saved ? "Saved" : "Places")}<span className="brand__dot">.</span></h1>
-                <p>{t(saved ? "Saved places and check-ins" : "Nice locations to visit")}</p>
+                <h1>{t("Locations")}<span className="brand__dot">.</span></h1>
+                <p>{t("Saved places and check-ins")}</p>
               </div>
             </header>
             {editor && !editor.coordinate && (
@@ -516,6 +523,7 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
               </div>
             )}
 
+            {viewSwitch}
             {!saved && (query.isLoading ? <Spinner /> : query.isError && !places.length ? (
               <ErrorState message="Could not load places." onRetry={() => void query.refetch()} />
             ) : (
@@ -567,16 +575,16 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
                         setManualHomePick(false);
                         if (!home.query.data) openHomeDialog();
                       }}
-                      onPick={(coordinate, placeName, source) => {
+                      onPick={(coordinate, placeName) => {
                         if (photoRelocating && selectedPhoto) setPhotoSelection((current) => current?.id === selectedPhoto.id ? { ...current, draft: coordinate } : current);
                         else if (placeToMove) setPlaceToMove((current) => current ? { ...current, coordinate } : current);
-                        else pickOnMap(coordinate, placeName, source);
+                        else pickOnMap(coordinate, placeName);
                       }}
                     />
                   </div>
                 </div>
             ))}
-            {saved && <>{viewSwitch}
+            {saved && <>
             <div className="place__view-content" aria-busy={viewLoading || undefined}>
             <PageTransition effect={pageTransition} transitionKey={view}>
             {view === "history" ? (
@@ -589,14 +597,14 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
                 ) : visitHistory.isPending ? <Spinner /> : visitHistory.data?.length ? (
                   <PlaceVisitHistory
                     visits={visitHistory.data.slice((currentHistoryPage - 1) * historyPageSize, currentHistoryPage * historyPageSize)}
-                    onShowOnMap={(visit) => navigate("/location/place", { state: { focusPlaceId: visit.placeId } })}
+                    onShowOnMap={(visit) => { setSelectedId(visit.placeId); setDetailsOpen(false); setView("map"); }}
                     showVisitor
                     showVisitorName
                     onRemove={(visit) => void removeVisit(visit)}
                     removingVisitId={removeVisitMutation.isPending ? removeVisitMutation.variables : null}
                   />
                 ) : (
-                  null
+                  <EmptyState title="No visits yet" hint="Your visit history will appear here after a check-in." />
                 )}
               </div>
             ) : query.isLoading ? <Spinner /> : query.isError && !places.length ? (
@@ -604,7 +612,7 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
             ) : (
               <>
                 {!places.length ? (
-                  null
+                  <EmptyState title="No saved places yet" hint="Saved places will appear here." />
                 ) : (
                   <>
                     <ul className="place__list">
@@ -637,7 +645,7 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
                   </>
                 )}
                 {places.length > 0 && filteredPlaces.length === 0 && (
-                  <p className="place__search-empty" role="status">{t("No saved places match your search.")}</p>
+                  <EmptyState title="No matching places" hint="Try a different search to find a saved place." />
                 )}
               </>
             )}
@@ -715,7 +723,7 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
                       </Button>
                     )}
                   </div>
-                  <SinglePlaceVisitHistory placeId={selected.id} onShowOnMap={saved ? (visit) => navigate("/location/place", { state: { focusPlaceId: visit.placeId } }) : undefined} />
+                  <SinglePlaceVisitHistory placeId={selected.id} onShowOnMap={saved ? (visit) => { setSelectedId(visit.placeId); setDetailsOpen(false); setView("map"); } : undefined} />
                 </div>
               </PlaceDialog>
             )}
@@ -830,7 +838,7 @@ export function PlacePage({ saved = false }: { saved?: boolean }) {
             />
           </div>
         </ScrollProgressContainer>
-        {saved && view === "map" && (
+        {view === "saved" && (
           <form className={`place__search-bar${minimumRating > 0 ? " place__search-bar--rating-filtered" : ""}`} role="search" onSubmit={(event) => event.preventDefault()}>
             <input type="search" aria-label={t("Search saved places")}
               placeholder={t("Search places or users")} value={placeSearch}

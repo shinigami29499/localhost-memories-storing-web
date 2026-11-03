@@ -41,7 +41,7 @@ export function AlbumFeedPost({ album, canDelete }: Props) {
   const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previewId = album.previewMediaId;
   const failed = previewId !== null && failedPreview === previewId;
-  const albumPath = `/library/album/${album.id}`;
+  const albumPath = `/gallery/album/${album.id}`;
   const openLabel = t("Open album {name}", { name: album.name });
   const favorite = useMutation({
     mutationFn: ({ mediaId, isFavorited }: { mediaId: string; isFavorited: boolean }) => isFavorited

@@ -19,7 +19,7 @@ function toBody(input: SavePlaceInput) {
 
 export const placeService = {
   list(): Promise<Place[]> {
-    return api<Place[]>("/api/location/place").then((places) => places.map((place) => ({
+    return api<Place[]>("/api/location").then((places) => places.map((place) => ({
       ...place,
       markerColor: place.markerColor.toUpperCase() === LEGACY_PURPLE_MARKER
         ? REPLACEMENT_MARKER_COLOR
@@ -28,38 +28,38 @@ export const placeService = {
   },
 
   visitHistory(): Promise<PlaceVisit[]> {
-    return api<PlaceVisit[]>("/api/location/place/visits");
+    return api<PlaceVisit[]>("/api/location/visits");
   },
 
   allVisitHistory(): Promise<PlaceVisit[]> {
-    return api<PlaceVisit[]>("/api/location/place/visits/all");
+    return api<PlaceVisit[]>("/api/location/visits/all");
   },
 
   visitsForPlace(placeId: string): Promise<PlaceVisit[]> {
-    return api<PlaceVisit[]>(`/api/location/place/${placeId}/visits`);
+    return api<PlaceVisit[]>(`/api/location/${placeId}/visits`);
   },
 
   checkIn(placeId: string): Promise<void> {
-    return api(`/api/location/place/${placeId}/visits`, { method: "POST" });
+    return api(`/api/location/${placeId}/visits`, { method: "POST" });
   },
 
   removeVisit(visitId: string): Promise<void> {
-    return api(`/api/location/place/visits/${visitId}`, { method: "DELETE" });
+    return api(`/api/location/visits/${visitId}`, { method: "DELETE" });
   },
 
   updateVisit(visitId: string, input: { note: string; rating: number }): Promise<PlaceVisit> {
-    return api(`/api/location/place/visits/${visitId}`, { method: "PUT", body: input });
+    return api(`/api/location/visits/${visitId}`, { method: "PUT", body: input });
   },
 
   create(input: SavePlaceInput): Promise<Place> {
-    return api("/api/location/place", { method: "POST", body: toBody(input) });
+    return api("/api/location", { method: "POST", body: toBody(input) });
   },
 
   update(placeId: string, input: SavePlaceInput): Promise<Place> {
-    return api(`/api/location/place/${placeId}`, { method: "PUT", body: toBody(input) });
+    return api(`/api/location/${placeId}`, { method: "PUT", body: toBody(input) });
   },
 
   remove(placeId: string): Promise<void> {
-    return api(`/api/location/place/${placeId}`, { method: "DELETE" });
+    return api(`/api/location/${placeId}`, { method: "DELETE" });
   },
 };

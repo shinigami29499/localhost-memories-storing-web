@@ -221,6 +221,7 @@ public class ApplicationDbContext(
 
         modelBuilder.Entity<Place>(entity =>
         {
+            entity.ToTable("locations");
             entity.Property(place => place.Name).HasMaxLength(120).IsRequired();
             entity.Property(place => place.Address).HasMaxLength(300).IsRequired().HasDefaultValue("");
             entity.Property(place => place.Note).HasMaxLength(2000).IsRequired().HasDefaultValue("");
@@ -240,6 +241,8 @@ public class ApplicationDbContext(
 
         modelBuilder.Entity<PlaceMedia>(entity =>
         {
+            entity.ToTable("location_media");
+            entity.Property(item => item.PlaceId).HasColumnName("location_id");
             entity.HasOne(item => item.Place)
                 .WithMany(place => place.MediaItems)
                 .HasForeignKey(item => item.PlaceId)
@@ -261,6 +264,8 @@ public class ApplicationDbContext(
 
         modelBuilder.Entity<PlaceVisit>(entity =>
         {
+            entity.ToTable("location_visits");
+            entity.Property(visit => visit.PlaceId).HasColumnName("location_id");
             entity.Property(visit => visit.Note).HasMaxLength(2000).IsRequired().HasDefaultValue("");
             entity.HasOne(visit => visit.Place)
                 .WithMany()

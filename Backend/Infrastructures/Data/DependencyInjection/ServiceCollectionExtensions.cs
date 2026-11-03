@@ -26,7 +26,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IMediaService, MediaService>();
-        services.AddScoped<IDownloadHistoryService, DownloadHistoryService>();
         services.AddScoped<IUploadService, UploadService>();
         services.AddScoped<ICollectionService, CollectionService>();
         services.AddScoped<IPlaceService, PlaceService>();

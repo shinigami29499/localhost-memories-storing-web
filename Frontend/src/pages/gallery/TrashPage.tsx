@@ -1,4 +1,4 @@
-import { startTransition, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as Tabs from "@radix-ui/react-tabs";
 import { Highlight, HighlightItem } from "@animate-ui/react/primitives/effects/highlight";
 import { RotateCcw } from "@/components/animate-ui/icons/rotate-ccw";
@@ -15,8 +15,8 @@ import { MediaRetryProvider } from "../../features/media/components/MediaRetryPr
 import { MediaPreviewDialog } from "../../features/media/components/MediaPreviewDialog";
 import { useMediaSelectionDrag } from "../../features/media/hooks/useMediaSelectionDrag";
 import { mediaService } from "../../features/media/services/mediaService";
-import { DownloadButton } from "../../features/downloads/components/DownloadButton";
 import type { MediaFile, MediaKindFilter } from "../../features/media/types";
+import { GalleryNavigation } from "./GalleryNavigation";
 import "./gallery.css";
 import "../../features/media/components/media.css";
 
@@ -27,7 +27,7 @@ const filters: { value: MediaKindFilter; label: string }[] = [
   { value: "video", label: "Videos" },
 ];
 
-function trashQueryOptions(filter: MediaKindFilter) {
+function trashQueryOptions(filter?: MediaKindFilter) {
   return infiniteQueryOptions({
     queryKey: ["media", "deleted", filter, TRASH_PAGE_SIZE],
     initialPageParam: 0,
@@ -44,7 +44,7 @@ export function TrashPage() {
   const { t, language } = useLocale();
   const pageTransition = readPageTransitionEffect();
   const queryClient = useQueryClient();
-  const [filter, setFilter] = useState<MediaKindFilter>("image");
+  const filter = undefined;
   const [previewMediaId, setPreviewMediaId] = useState<string | null>(null);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
@@ -213,49 +213,17 @@ export function TrashPage() {
               <h1>{t("Trash")}<span className="brand__dot">.</span></h1>
               <p>{t("Restore deleted media to your library.")}</p>
             </header>
-            <Tabs.Root
-              value={filter}
-              onValueChange={(value) => {
-                if (value !== "image" && value !== "video") return;
-                const request = ++requestRef.current;
-                setTabLoading(true);
-                void queryClient.fetchInfiniteQuery(trashQueryOptions(value))
-                  .catch(() => undefined)
-                  .then(() => {
-                    if (request !== requestRef.current) return;
-                    setTabLoading(false);
-                    startTransition(() => { cancelSelection(); setFilter(value); });
-                  });
-              }}
-            >
-              <div className="gallery-page__media-toolbar">
-                <Tabs.List className="gallery-page__media-filters" aria-label={t("Filter by media type")}>
-                  <Highlight value={filter} controlledItems className="gallery-page__media-highlight">
-                  {filters.map(({ value, label }) => (
-                    <HighlightItem key={value} value={value} asChild>
-                    <Tabs.Trigger
-                      className="gallery-page__media-option"
-                      value={value}
-                    >
-                      {t(label)}
-                    </Tabs.Trigger>
-                    </HighlightItem>
-                  ))}
-                  </Highlight>
-                </Tabs.List>
-              </div>
-              <Tabs.Content value={filter} className="gallery-page__tab-panel gallery-page__tab-panel--media" aria-busy={tabLoading || undefined}>
-                <PageTransition effect={pageTransition} transitionKey={filter}>
+            <GalleryNavigation active="trash" />
+            <div className="gallery-page__tab-panel gallery-page__tab-panel--media">
+                <PageTransition effect={pageTransition} transitionKey="all">
                   {query.isLoading ? <Spinner label={t("Loading media…")} /> : null}
                   {query.isError && media.length === 0 ? (
                     <ErrorState message={t("Could not load media.")} onRetry={() => void query.refetch()} />
                   ) : null}
                   {!query.isLoading && !query.isError && media.length === 0 ? (
                     <EmptyState
-                      title={filter === "all" ? "Trash is empty" : "No matching media"}
-                      hint={filter === "all"
-                        ? "Deleted media will appear here until restored or permanently deleted."
-                        : "Try another media type to see deleted items."}
+                      title="Trash is empty"
+                      hint="Deleted media will appear here until restored or permanently deleted."
                     />
                   ) : null}
 
@@ -299,19 +267,15 @@ export function TrashPage() {
                   ) : null}
                   <div ref={sentinelRef} aria-hidden="true" />
                 </PageTransition>
-              </Tabs.Content>
-            </Tabs.Root>
+              </div>
+            
           </div>
         </div>
           <footer className="gallery-page__footer">
             <div className="gallery-selection-bar gallery-selection-bar--compact gallery-selection-bar--selection-only" role="group" aria-label={t("{count} selected", { count: selectedIds.size })}>
               <SelectionActions open={selectionMode}>
               <span className="gallery-selection-bar__count" role="status">{t("{count} selected", { count: selectedIds.size })}</span>
-              <DownloadButton
-                media={media.filter((item) => selectedIds.has(item.id))}
-                includeDeleted
-                className="gallery-selection-bar__action gallery-selection-bar__action--download"
-              />
+              
               <button
                 type="button"
                 className="gallery-selection-bar__action"

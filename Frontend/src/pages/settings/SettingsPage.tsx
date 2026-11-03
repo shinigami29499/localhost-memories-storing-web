@@ -70,6 +70,54 @@ export function SettingsPage() {
   const [locationPermission, setLocationPermission] = useState<PermissionState | "unknown">("unknown");
   const [locationPending, setLocationPending] = useState(false);
   const [locationMessage, setLocationMessage] = useState("");
+  const [cameraPermission, setCameraPermission] = useState<PermissionState | "unknown">("unknown");
+  const [cameraPending, setCameraPending] = useState(false);
+  const [cameraMessage, setCameraMessage] = useState("");
+
+  useEffect(() => {
+    let permission: PermissionStatus | undefined;
+    let cancelled = false;
+    const update = () => { if (permission && !cancelled) setCameraPermission(permission.state); };
+    const refresh = () => {
+      if (!navigator.permissions?.query) return;
+      void navigator.permissions.query({ name: "camera" as PermissionName }).then((result) => {
+        if (cancelled) return;
+        permission?.removeEventListener("change", update);
+        permission = result;
+        update();
+        permission.addEventListener("change", update);
+      }).catch(() => {});
+    };
+    refresh();
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      cancelled = true;
+      permission?.removeEventListener("change", update);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, []);
+
+  const requestCamera = async () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraMessage(t("Camera access is unavailable. Use HTTPS and a supported browser."));
+      return;
+    }
+    setCameraPending(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      stream.getTracks().forEach((track) => track.stop());
+      setCameraPermission("granted");
+      setCameraMessage("");
+    } catch (error) {
+      const denied = error instanceof DOMException && (error.name === "NotAllowedError" || error.name === "SecurityError");
+      const message = t(denied ? "Camera access failed. Allow camera access in your browser or device settings." : "Camera access is unavailable. Use HTTPS and a supported browser.");
+      if (denied) setCameraPermission("denied");
+      setCameraMessage(message);
+      showToast.error(message);
+    } finally {
+      setCameraPending(false);
+    }
+  };
 
   useEffect(() => {
     let permission: PermissionStatus | undefined;
@@ -111,6 +159,7 @@ export function SettingsPage() {
         if (error.code === error.PERMISSION_DENIED) {
           setLocationPermission("denied");
           setLocationMessage(t("Allow location access in your browser or device settings."));
+          showToast.error(t("Location access failed. Allow location access in your browser or device settings."));
         } else {
           setLocationMessage(t("Could not determine your current location. Check location permission and try again."));
         }
@@ -161,6 +210,7 @@ export function SettingsPage() {
       const granted = permission === "granted";
       setBrowserNotificationsEnabled(granted);
       setNotificationsEnabled(granted);
+      if (!granted) showToast.error(t("Notifications failed. Allow notifications in your browser or device settings."));
       setNotificationMessage(granted
         ? t("You can enable or disable notifications at any time.")
         : t("Allow notifications in your browser settings to enable them."));
@@ -316,6 +366,30 @@ export function SettingsPage() {
               <Switch.Thumb className="settings-page__switch-thumb" />
             </Switch.Root>
           </div>
+        </section>
+
+        <section className="settings-page__mobile-notifications" aria-labelledby="settings-camera-title">
+          <h2 id="settings-camera-title">{t("Camera")}</h2>
+          <div className="settings-page__notification">
+            <div className="settings-page__notification-copy">
+              <label htmlFor="settings-camera">{t("Enable camera")}</label>
+              <p id="settings-camera-help" role="status">{cameraMessage || (cameraPermission === "granted"
+                ? t("Camera access is enabled.") : t("Camera access is requested when you take a photo."))}</p>
+            </div>
+            <Switch.Root id="settings-camera" className="settings-page__switch"
+              checked={cameraPermission === "granted"} disabled={cameraPending}
+              onCheckedChange={(checked) => {
+                if (checked) void requestCamera();
+                else setCameraMessage(t("Turn off camera access in your browser or device settings."));
+              }} aria-describedby="settings-camera-help">
+              <Switch.Thumb className="settings-page__switch-thumb" />
+            </Switch.Root>
+          </div>
+        </section>
+
+        <section className="settings-page__mobile-notifications" aria-labelledby="settings-photos-title">
+          <h2 id="settings-photos-title">{t("Photo library")}</h2>
+          <p className="settings-page__notification-note">{t("Choose photos using your device's photo picker. Photo access is managed by your device and cannot be checked here.")}</p>
         </section>
 
         <section

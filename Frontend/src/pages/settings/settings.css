@@ -11,8 +11,8 @@
 
 .settings-page__header {
   display: grid;
-  gap: 12px;
-  margin-bottom: 32px;
+  gap: 8px;
+  margin-bottom: 16px;
 }
 
 .settings-page__header h1 {
@@ -168,11 +168,6 @@
 @media (max-width: 640px) {
   .settings-page {
     padding: 16px 12px 24px;
-  }
-
-  .settings-page__header {
-    gap: 6px;
-    margin-bottom: 20px;
   }
 
   .settings-page__section h2 {

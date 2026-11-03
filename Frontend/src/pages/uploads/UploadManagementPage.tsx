@@ -205,7 +205,6 @@ export function UploadManagementPage() {
         />
         <header className="upload-page__header">
           <div>
-            <p className="upload-page__eyebrow">{t("Sync")}</p>
             <h1 id="upload-page-title">{t("Upload")}<span className="brand__dot">.</span></h1>
             <p>{t("Upload images and videos.")}</p>
           </div>
@@ -303,7 +302,7 @@ export function UploadManagementPage() {
                 key={batch.id}
                 batch={batch}
                 displayId={offset + index + 1}
-                showUsername={false}
+                showUsername
                 avatarUser={user ?? undefined}
                 busyItemIds={busyItemIds}
                 onRetry={(batch, item) => retryItems(batch, [item])}

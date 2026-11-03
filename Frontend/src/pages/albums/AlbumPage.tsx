@@ -30,7 +30,6 @@ import { MediaTile } from "../../features/media/components/MediaTile";
 import { MediaRetryProvider } from "../../features/media/components/MediaRetryProvider";
 import { MediaPreviewDialog } from "../../features/media/components/MediaPreviewDialog";
 import { useMediaSelectionDrag } from "../../features/media/hooks/useMediaSelectionDrag";
-import { DownloadButton } from "../../features/downloads/components/DownloadButton";
 import type { MediaFile, MediaKindFilter } from "../../features/media/types";
 import { mediaService } from "../../features/media/services/mediaService";
 import "../../features/media/components/media.css";
@@ -238,7 +237,7 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
             ) : (
               <ErrorState message={t("Could not load this album.")} onRetry={() => void album.refetch()} />
             )}
-            <Link to="/library/album" className="btn btn--secondary album-page__back">{t("Back to Albums")}</Link>
+            <Link to="/gallery/album" className="btn btn--secondary album-page__back">{t("Back to Albums")}</Link>
           </div>
         </div>
       </main>
@@ -410,7 +409,7 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
       <footer className="gallery-page__footer gallery-page__footer--transition">
         <div className="gallery-selection-bar gallery-selection-bar--compact gallery-selection-bar--selection-only" role="group" aria-label={t("{count} selected", { count: selectedItems.size })}>
           <span className="gallery-selection-bar__status" role="status">{t("{count} selected", { count: selectedItems.size })}</span>
-          <SelectionActions open={selectionMode}><DownloadButton media={selectedMedia} className="gallery-selection-bar__action gallery-selection-bar__action--download" disabled={bulkFavoriteBusy} />
+          <SelectionActions open={selectionMode}>
           <button type="button" className="gallery-selection-bar__action gallery-selection-bar__action--favorite"
             aria-label={t(allSelectedFavorited ? "Remove from favorites" : "Add to favorites")} title={t(allSelectedFavorited ? "Remove from favorites" : "Add to favorites")}
             aria-pressed={allSelectedFavorited} disabled={!selectedMedia.length || bulkFavoriteBusy || favoriteBusyMediaId !== null} onClick={() => void favoriteSelected()}>
@@ -456,7 +455,7 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
           onConfirm={async () => {
             await albumService.remove(data.id);
             return () => {
-              navigate("/library/album", { replace: true });
+              navigate("/gallery/album", { replace: true });
               void invalidate();
             };
           }}

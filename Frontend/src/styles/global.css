@@ -667,6 +667,13 @@ textarea::placeholder {
   padding-bottom: 40px;
 }
 
+@media (max-width: 640px) {
+  .app-shell :is(.gallery-page__header, .place__header, .locations__header, .admin-users__header, .admin-posts__header, .upload-page__header, .settings-page__header, .profile-page__header),
+  .app-shell .album-hero__text {
+    display: none;
+  }
+}
+
 .app-shell__content,
 .home-page__content,
 .gallery-page__content,

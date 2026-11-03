@@ -30,6 +30,7 @@ export function HomePage() {
         <ScrollProgressContainer className="home-page__content">
           <div className="home-page__inner">
             <header className="home-page__header">
+              <p className="home-page__eyebrow">{t("Your library")}</p>
               <h1>{t("Home")}<span className="brand__dot">.</span></h1>
               <p>{t(isAdmin ? "Browse all albums, including private albums." : "Browse albums you own and albums shared publicly.")}</p>
             </header>

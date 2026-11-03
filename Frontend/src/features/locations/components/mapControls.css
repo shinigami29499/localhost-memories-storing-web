@@ -740,6 +740,10 @@
     height: max(360px, calc(100dvh - var(--app-topbar-height, 68px) - 220px));
   }
 
+  .place .place__map-panel {
+    height: max(320px, calc(100dvh - var(--app-topbar-height, 68px) - 134.5px - max(8px, var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)))));
+  }
+
   :is(.place, .locations) .place__location-search-results { max-height: 200px; }
 }
 .locations__cluster {

@@ -1,7 +1,6 @@
-import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useInfiniteQuery, useQueries, useQueryClient } from "@tanstack/react-query";
-import * as Tabs from "@radix-ui/react-tabs";
-import { Highlight, HighlightItem } from "@animate-ui/react/primitives/effects/highlight";
 import { ScrollProgress, ScrollProgressContainer, ScrollProgressProvider } from "@animate-ui/react/primitives/scroll-progress";
 import { ScrollFade } from "@animate-ui/react/primitives/effects/scroll-fade";
 import { Bookmark } from "@/components/animate-ui/icons/bookmark";
@@ -23,11 +22,11 @@ import { MediaPreviewDialog } from "../../features/media/components/MediaPreview
 import { useMediaSelectionDrag } from "../../features/media/hooks/useMediaSelectionDrag";
 import { mediaService } from "../../features/media/services/mediaService";
 import { mediaQueryOptions } from "../../features/media/hooks/useMedia";
-import { DownloadButton } from "../../features/downloads/components/DownloadButton";
 import { SelectionActions } from "./SelectionActions";
 import { uploadService } from "../../features/uploads/services/uploadService";
 import type { MediaFile, MediaKindFilter } from "../../features/media/types";
 import { useGalleryWindow } from "../../features/media/hooks/useGalleryWindow";
+import { GalleryNavigation } from "./GalleryNavigation";
 import "./gallery.css";
 import "../../features/media/components/media.css";
 
@@ -61,10 +60,6 @@ const viewCopy: Record<GalleryView, { title: string; description: string; emptyT
   },
 };
 
-const filters: { value: MediaKindFilter; label: string }[] = [
-  { value: "image", label: "Images" },
-  { value: "video", label: "Videos" },
-];
 
 
 /** Applies favorite state in small batches and returns the media ids that failed. */
@@ -76,11 +71,9 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
   const { t, language } = useLocale();
   const pageTransition = readPageTransitionEffect();
   const queryClient = useQueryClient();
-  const [selectedFilter, setSelectedFilter] = useState<MediaKindFilter>(() => initialFilter ?? "image");
+  const selectedFilter = initialFilter;
   const [uploading, setUploading] = useState(false);
   const uploadInput = useRef<HTMLInputElement>(null);
-  const [tabLoading, setTabLoading] = useState(false);
-  const tabRequestRef = useRef(0);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedItems, setSelectedItems] = useState<Map<string, MediaFile>>(() => new Map());
   const selectedIds = [...selectedItems.keys()];
@@ -104,7 +97,6 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
   const query = useInfiniteQuery({ ...mediaQueryOptions(20, showingFavorites ? "favorites" : "all", selectedFilter), staleTime: 0 });
   const windowIds = useGalleryWindow(galleryRef, `${view}:${selectedFilter}`, query.data?.pages.reduce((count, page) => count + page.items.length, 0) ?? 0);
 
-  useEffect(() => () => { tabRequestRef.current += 1; }, [showingFavorites]);
   const media = useMemo(
     () => (Array.isArray(query.data?.pages) ? query.data.pages : [])
       .filter((page) => page && Array.isArray(page.items)).flatMap((page) => page.items),
@@ -156,7 +148,6 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
   };
 
   useEffect(() => {
-    setSelectedFilter(initialFilter ?? "image");
     setSelectionMode(false);
     setSelectedItems(new Map());
     setSaveDialogOpen(false);
@@ -425,54 +416,18 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
               <p>{t(copy.description)}</p>
             </header>
 
-            <Tabs.Root
-              className="gallery-page__fixed-tabs"
-              value={selectedFilter}
-              onValueChange={(value) => {
-                if (value !== "image" && value !== "video") return;
-                const request = ++tabRequestRef.current;
-                setTabLoading(true);
-                void queryClient.fetchInfiniteQuery({ ...mediaQueryOptions(20, showingFavorites ? "favorites" : "all", value), staleTime: 0 })
-                  .catch(() => undefined)
-                  .then(() => {
-                    if (request !== tabRequestRef.current) return;
-                    setTabLoading(false);
-                    startTransition(() => {
-                      setSelectedFilter(value);
-                      setPreviewMediaId(null);
-                                        setSelectionMode(false);
-                      setSelectedItems(new Map());
-                    });
-                  });
-              }}
-            >
-              <div className="gallery-page__media-toolbar">
-                <Tabs.List className="gallery-page__media-filters" aria-label={t("Filter by media type")}>
-                  <Highlight value={selectedFilter} controlledItems className="gallery-page__media-highlight">
-                  {filters.map(({ value, label }) => (
-                    <HighlightItem key={value} value={value} asChild>
-                    <Tabs.Trigger
-                      className="gallery-page__media-option"
-                      value={value}
-                      disabled={bulkFavoriteBusy}
-                    >
-                      {t(label)}
-                    </Tabs.Trigger>
-                    </HighlightItem>
-                  ))}
-                  </Highlight>
-                </Tabs.List>
-              </div>
+            <GalleryNavigation active="gallery" />
+            <div className="gallery-page__fixed-tabs">
               <ScrollFade asChild blur={0} shrink={0}>
               <ScrollProgressContainer className="gallery-page__content gallery-page__media-scroll gallery-page__media-scroll--smooth">
-              <Tabs.Content value={selectedFilter} className="gallery-page__tab-panel gallery-page__tab-panel--media" aria-busy={tabLoading || undefined}>
-                <PageTransition effect={pageTransition} transitionKey={selectedFilter}>
+              <div className="gallery-page__tab-panel gallery-page__tab-panel--media">
+                <PageTransition effect={pageTransition} transitionKey={selectedFilter ?? "all"}>
                   {galleryContent}
                 </PageTransition>
-              </Tabs.Content>
+              </div>
               </ScrollProgressContainer>
               </ScrollFade>
-            </Tabs.Root>
+            </div>
         </div>
       </ScrollProgressProvider>
 
@@ -488,12 +443,9 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
                 disabled={uploading || bulkFavoriteBusy} aria-busy={uploading || undefined} onClick={() => uploadInput.current?.click()}>
                 {uploading ? <LoaderCircle size={20} className="spinner__wheel" aria-hidden="true" /> : <Plus size={20} aria-hidden="true" />}
               </button>
+            <Link className="gallery-selection-bar__action" to={showingFavorites ? "/gallery" : "/gallery/favorites"} aria-label={t(showingFavorites ? "Gallery" : "Favorites")} title={t(showingFavorites ? "Gallery" : "Favorites")}><Heart size={20} fill={showingFavorites ? "currentColor" : "none"} aria-hidden="true" /></Link>
             <SelectionActions open={selectionMode}>
-            <DownloadButton
-              media={selectedMedia}
-              className="gallery-selection-bar__action gallery-selection-bar__action--download"
-              disabled={favoriteBusy}
-            />
+            
               <button
                 type="button"
                 className="gallery-selection-bar__action gallery-selection-bar__action--favorite"

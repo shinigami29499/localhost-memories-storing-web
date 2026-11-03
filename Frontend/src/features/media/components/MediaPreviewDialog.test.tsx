@@ -5,12 +5,7 @@ import { MemoryRouter, useLocation } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MediaPreviewDialog } from "./MediaPreviewDialog";
 import type { MediaFile } from "../types";
-import { enqueueDownloads } from "../../downloads/services/downloadQueue";
 
-vi.mock("../../downloads/services/downloadQueue", async (importOriginal) => ({
-  ...await importOriginal<typeof import("../../downloads/services/downloadQueue")>(),
-  enqueueDownloads: vi.fn(),
-}));
 
 const state = vi.hoisted(() => ({
   selected: 0,
@@ -67,7 +62,6 @@ describe("MediaPreviewDialog resolution loading", () => {
   let root: Root;
 
   beforeEach(() => {
-    vi.mocked(enqueueDownloads).mockClear();
     state.selected = 0;
     state.select = undefined;
     state.settle = undefined;
@@ -255,14 +249,6 @@ describe("MediaPreviewDialog resolution loading", () => {
     expect(onDelete).not.toHaveBeenCalled();
   });
 
-  it.each([false, true])("downloads only the active original (trash=%s)", (includeDeleted) => {
-    render(includeDeleted);
-    act(() => container.querySelector<HTMLButtonElement>('[aria-label="Download"]')!.click());
-    expect(enqueueDownloads).toHaveBeenLastCalledWith([media[0]], includeDeleted);
-    navigate("ArrowRight");
-    act(() => container.querySelector<HTMLButtonElement>('[aria-label="Download"]')!.click());
-    expect(enqueueDownloads).toHaveBeenLastCalledWith([media[1]], includeDeleted);
-  });
 
   it.each([true, false])("opens the photo location action (located=%s)", (located) => {
     const onClose = vi.fn();

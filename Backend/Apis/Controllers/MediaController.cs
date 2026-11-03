@@ -18,7 +18,6 @@ namespace Apis.Controllers;
 [Authorize]
 public class MediaController(
     IMediaService mediaService,
-    IDownloadHistoryService downloadHistory,
     ICurrentUserContext currentUser,
     IHubContext<NotificationsHub> notificationsHub,
     ILogger<MediaController> logger) : ControllerBase
@@ -81,7 +80,7 @@ public class MediaController(
     [HttpGet("{mediaId:guid}/file")]
     public async Task<IActionResult> GetFileAsync(
         Guid mediaId, CancellationToken cancellationToken, [FromQuery] bool includeDeleted = false,
-        [FromQuery] bool preview = false, [FromQuery] bool download = false, [FromQuery] Guid? batchId = null,
+        [FromQuery] bool preview = false,
         [FromQuery] int previewSize = 640)
     {
 
@@ -97,8 +96,6 @@ public class MediaController(
 
         var media = await _mediaService.GetMediaFileAsync(
             mediaId, includeDeleted, _currentUser.IsAdmin, cancellationToken, preview, _currentUser.RequireUserId(), previewSize);
-        if (download && !preview)
-            await downloadHistory.RecordAsync(_currentUser.RequireUserId(), mediaId, media.OriginalFilename, batchId, cancellationToken);
         return File(
             media.Content,
             media.MimeType,

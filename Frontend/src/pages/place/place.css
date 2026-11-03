@@ -66,18 +66,18 @@
   background: #fff;
   border: 0;
   border-radius: 999px;
-  bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  bottom: max(12px, var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
   box-shadow: 0 6px 18px rgb(0 0 0 / 32%);
   color: #111315;
   display: flex;
   gap: 10px;
-  left: calc((100vw + var(--sidebar-width, 0px)) / 2);
+  left: 50%;
   max-width: min(360px, calc(100% - 36px));
   min-height: 52px;
   padding: 6px 14px 6px 16px;
-  position: fixed;
+  position: absolute;
   transform: translateX(-50%);
-  transition: left var(--animate-ui-sidebar-duration, 300ms) var(--animate-ui-sidebar-easing, ease), transform 180ms ease, box-shadow 180ms ease;
+  transition: transform 180ms ease, box-shadow 180ms ease;
   width: 100%;
   z-index: 20;
 }
@@ -87,7 +87,7 @@
   .place__search-bar:hover { box-shadow: 0 10px 26px rgb(0 0 0 / 40%); transform: translateX(-50%) scale(1.02); }
 }
 @media (max-width: 640px) {
-  .place__search-bar { left: 50%; }
+  .place__search-bar { bottom: max(8px, var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))); }
 }
 @media (prefers-reduced-motion: reduce) {
   .place__search-bar { transition: none; }
@@ -227,10 +227,11 @@
   margin: 8px 0 0;
 }
 
-.place__view-switch { background: var(--surface-raised); border: 0; border-radius: 999px; box-shadow: 0 3px 12px rgb(0 0 0 / 20%); box-sizing: border-box; display: inline-flex; isolation: isolate; margin-block: 16px; max-width: 100%; padding: 4px; width: 100%; }
+.place__view-switch { background: var(--surface-raised); border: 0; border-radius: 999px; box-shadow: 0 3px 12px rgb(0 0 0 / 20%); box-sizing: border-box; display: inline-flex; isolation: isolate; margin: 0 0 16px; max-width: 100%; padding: 4px; width: 100%; }
+.place--saved .place__view-switch { margin-top: 16px; }
 :root:not(.dark) .place__view-switch { background: #fff; }
 .place__view-highlight { background: light-dark(#000, #fff); border-radius: 999px; inset: 0; pointer-events: none; }
-.place__view-option { background: transparent; border: 0; border-radius: 999px; color: var(--text-muted); cursor: pointer; flex: 1; font: inherit; font-weight: 600; padding: 4px 16px; position: relative; }
+.place__view-option { align-items: center; background: transparent; border: 0; border-radius: 999px; box-sizing: border-box; color: var(--text-muted); cursor: pointer; display: flex; flex: 1; font: inherit; font-weight: 600; height: calc(1.5em + 8px); justify-content: center; line-height: 1.5; padding: 0 16px; position: relative; }
 .place__view-option[aria-pressed="true"] { color: light-dark(#fff, #000); font-weight: 600; }
 .place__view-option:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 
@@ -576,7 +577,7 @@
 }
 
 .place__workspace {
-  margin-block: 16px;
+  margin: 0 0 16px;
 }
 
 .place__map-panel {
@@ -590,6 +591,26 @@
 }
 
 .place__map { height: 100%; min-height: 0; width: 100%; }
+
+@media (min-width: 641px) {
+  .place:not(.place--saved) .place__content {
+    padding-bottom: calc(64px + max(12px, var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))));
+  }
+
+  .place:not(.place--saved) .place__scroll-inner {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+  }
+
+  .place:not(.place--saved) .place__workspace {
+    flex: 1 0 320px;
+    margin-bottom: 0;
+  }
+
+  .place:not(.place--saved) .place__map-panel { height: 100%; }
+}
+
 .place__map-message { padding: 24px; }
 .place__map-home-control {
   align-items: center;
@@ -1546,8 +1567,6 @@ main.place .place__search-bar input[type="search"]:focus-visible {
   .place__history--visitor-name .place__history-item > .place__history-remove { grid-column: 5; }
   .place__content { padding: 16px 12px 24px; }
   .place__header { margin-bottom: 16px; }
-  .place__workspace { margin-top: 16px; }
-  .place__map-panel { height: max(400px, calc(100dvh - var(--app-topbar-height, 68px) - 180px)); }
   .place__pin > span { width: 30px; height: 30px; }
   .place__map-home-control { bottom: 96px; }
   .place__scenes { left: 8px; max-height: calc(100% - 16px); top: 8px; }

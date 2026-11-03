@@ -25,7 +25,6 @@ import { useMediaQuery } from "../../../hooks/useMediaQuery";
 import { useAlbums } from "../../albums/hooks/useAlbums";
 import { mediaPreviewUrl, mediaUrl } from "../../../utils/media";
 import type { MediaFile } from "../types";
-import { DownloadButton } from "../../downloads/components/DownloadButton";
 import { VideoPlayer } from "./VideoPlayer";
 import { MediaFavoriteButton } from "./MediaFavoriteButton";
 import { mediaViewerTransition } from "../../../components/layout/PageTransition";
@@ -404,12 +403,7 @@ export function MediaPreviewDialog({
         <X size={20} aria-hidden="true" />
       </button>
       {current ? <div className="media-preview-dialog__actions">
-        <DownloadButton
-          media={[current]}
-          includeDeleted={Boolean(trashActions)}
-          beforeNavigate={close}
-          className="viewer-icon-btn media-preview-dialog__action"
-        />
+        
         {trashActions ? <>
           <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
             <button

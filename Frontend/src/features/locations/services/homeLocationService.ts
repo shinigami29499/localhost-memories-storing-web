@@ -3,11 +3,11 @@ import type { HomeLocation } from "../types";
 
 export const homeLocationService = {
   get(): Promise<HomeLocation | null> {
-    return api("/api/location/place/home-location");
+    return api("/api/location/home-location");
   },
 
   set(location: HomeLocation, applyToUnlocatedPhotos = false): Promise<HomeLocation> {
-    return api("/api/location/place/home-location", {
+    return api("/api/location/home-location", {
       method: "PUT",
       body: {
         latitude: location.latitude,
@@ -18,6 +18,6 @@ export const homeLocationService = {
   },
 
   clear(): Promise<void> {
-    return api("/api/location/place/home-location", { method: "DELETE" });
+    return api("/api/location/home-location", { method: "DELETE" });
   },
 };
