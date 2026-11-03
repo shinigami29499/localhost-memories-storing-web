@@ -56,6 +56,7 @@
 }
 
 .sidebar__toggle {
+  view-transition-name: app-sidebar-toggle;
   position: fixed;
   top: calc(1dvh + 19px);
   left: min(calc(var(--sidebar-width) - 56px), calc(100vw - 48px));
@@ -661,6 +662,7 @@
 }
 
 .app-topbar {
+  view-transition-name: app-topbar;
   position: sticky;
   top: 0;
   z-index: 15;
@@ -925,3 +927,41 @@
 .sidebar__upload-count--success { color: light-dark(#72d59e, #176b40); background: light-dark(rgba(114, 213, 158, 0.14), rgba(23, 107, 64, 0.12)); }
 .sidebar__upload-count--pending { color: light-dark(#efba57, #805500); background: light-dark(rgba(239, 186, 87, 0.14), rgba(128, 85, 0, 0.12)); }
 .sidebar__upload-count--failed { color: light-dark(#ff9ba9, #b22e42); background: light-dark(rgba(255, 155, 169, 0.14), rgba(178, 46, 66, 0.12)); }
+
+.sidebar__activity {
+  margin-top: auto;
+  padding: 20px 4px 4px;
+  min-width: 0;
+}
+
+.sidebar__activity h2 {
+  margin: 0 0 12px;
+  color: var(--text-strong);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.sidebar__activity .upload-activity {
+  gap: 12px;
+}
+
+.sidebar__activity .upload-activity__header {
+  flex-wrap: wrap;
+}
+
+.sidebar__activity .upload-activity__grid {
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-template-rows: repeat(7, 14px);
+  gap: 3px;
+}
+
+.sidebar__activity .upload-activity__day {
+  width: 10px;
+  height: 10px;
+}
+
+.sidebar__activity .upload-activity__range {
+  font-size: 0.75rem;
+}

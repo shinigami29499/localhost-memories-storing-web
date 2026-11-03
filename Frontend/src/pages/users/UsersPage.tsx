@@ -1,6 +1,7 @@
 import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { Tabs } from "@base-ui/react/tabs";
-import { Highlight, HighlightItem } from "@animate-ui/react/primitives/effects/highlight";
+import { HighlightItem } from "@animate-ui/react/primitives/effects/highlight";
+import { NavigationHighlight } from "../../components/ui";
 import { startTransition, useEffect, useRef, useState } from "react";
 import { PageTransition } from "../../components/layout/PageTransition";
 import { readPageTransitionEffect } from "../../utils/pageTransition";
@@ -211,7 +212,7 @@ export function UsersPage() {
                   className="admin-users__filters"
                   aria-label={t("Filter users by status")}
                 >
-                  <Highlight value={filter} controlledItems mode="parent" containerClassName="admin-users__highlight-container" className="admin-users__highlight">
+                  <NavigationHighlight value={filter}>
                   {userFilters.map((option) => {
                     const count = option.value === "all"
                       ? allUsers.length
@@ -227,12 +228,12 @@ export function UsersPage() {
                       </HighlightItem>
                     );
                   })}
-                  </Highlight>
+                  </NavigationHighlight>
                 </Tabs.List>
               </div>
 
               <PageTransition effect={readPageTransitionEffect()} transitionKey={filter} liveRoot skipUpdates>
-              <Tabs.Panel value={filter}>
+              <Tabs.Panel key={filter} value={filter}>
                 {visibleUsers.length === 0 ? (
                   <EmptyState
                     title={filter === "pending_approval" ? "No pending users" : "No users yet"}

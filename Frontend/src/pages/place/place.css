@@ -202,7 +202,21 @@
   justify-content: space-between;
 }
 
-.place__header { margin-bottom: var(--page-section-gap); }
+.place__header {
+  margin-bottom: var(--page-section-gap);
+  view-transition-name: place-header;
+}
+
+:root[data-page-transition]::view-transition-group(place-header),
+:root[data-page-transition]::view-transition-group(place-view-switch) {
+  z-index: 2;
+  animation: none;
+}
+
+:root[data-page-transition]::view-transition-old(place-header),
+:root[data-page-transition]::view-transition-old(place-view-switch) { display: none; }
+:root[data-page-transition]::view-transition-new(place-header),
+:root[data-page-transition]::view-transition-new(place-view-switch) { animation: none; }
 .place--saved .place__header { margin-bottom: 0; }
 .place__content { overflow: hidden; padding-bottom: 0; }
 .place__scroll-inner {
@@ -211,7 +225,10 @@
   height: 100%;
   min-height: 0;
 }
-.place__view-switch { flex: 0 0 auto; }
+.place__view-switch {
+  flex: 0 0 auto;
+  view-transition-name: place-view-switch;
+}
 .place__view-content {
   flex: 1 1 auto;
   margin-inline: calc(-1 * var(--place-gutter));
@@ -243,8 +260,6 @@
 .place__view-switch { background: var(--surface-raised); border: 0; border-radius: 999px; box-shadow: 0 3px 12px rgb(0 0 0 / 20%); box-sizing: border-box; display: inline-flex; isolation: isolate; margin: 0 0 16px; max-width: 100%; padding: 4px; width: 100%; }
 .place--saved .place__view-switch { margin-top: 16px; }
 :root:not(.dark) .place__view-switch { background: #fff; }
-.place__view-highlight-container { display: flex; flex: 1; min-width: 0; }
-.place__view-highlight { background: light-dark(#000, #fff); border-radius: 999px; pointer-events: none; }
 .place__view-option { align-items: center; background: transparent; border: 0; border-radius: 999px; box-sizing: border-box; color: var(--text-muted); cursor: pointer; display: flex; flex: 1; font: inherit; font-weight: 600; height: calc(1.5em + 8px); justify-content: center; line-height: 1.5; padding: 0 16px; position: relative; z-index: 1; }
 .place__view-option[aria-pressed="true"] { color: light-dark(#fff, #000); font-weight: 600; }
 .place__view-option:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }

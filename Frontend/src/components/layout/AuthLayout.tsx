@@ -6,6 +6,8 @@ import { LanguageToggleButton } from "../ui/LanguageToggleButton";
 import { ThemeTogglerButton } from "../ui/ThemeTogglerButton";
 import { Brand } from "./Brand";
 import { CommunityIntro } from "./CommunityIntro";
+import { PageTransition } from "./PageTransition";
+import { readPageTransitionEffect } from "../../utils/pageTransition";
 import "./control-bar.css";
 
 export function AuthLayout({ children }: { children: ReactNode }) {
@@ -13,6 +15,7 @@ export function AuthLayout({ children }: { children: ReactNode }) {
   const settingsDialog = useRef<HTMLDialogElement>(null);
 
   return (
+    <PageTransition effect={readPageTransitionEffect()} scope="page" skipUpdates>
     <div className="login-shell">
       <header className="login__header">
         <Brand />
@@ -41,5 +44,6 @@ export function AuthLayout({ children }: { children: ReactNode }) {
         <span>{t("Made for moments worth sharing.")}</span>
       </footer>
     </div>
+    </PageTransition>
   );
 }

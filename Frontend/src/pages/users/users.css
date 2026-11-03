@@ -366,6 +366,7 @@
 }
 
 .admin-users__header {
+  view-transition-name: users-header;
   align-items: center;
   background: var(--bg);
   display: flex;
@@ -460,6 +461,7 @@
 }
 
 .admin-users__toolbar {
+  view-transition-name: users-filters;
   margin: 0 auto var(--page-section-gap);
   max-width: var(--page-content-max-width);
 }
@@ -467,6 +469,12 @@
 .admin-users__toolbar + .page-transition {
   padding-top: var(--shadow-space);
   min-height: 240px;
+}
+
+.admin-users__toolbar + .page-transition > .page-transition__loading--section {
+  position: fixed;
+  inset: var(--loading-section-top) auto 0 var(--loading-section-left);
+  width: var(--loading-section-width);
 }
 
 .admin-users__filters {
@@ -480,8 +488,17 @@
 
 :root:not(.dark) .admin-users__filters { background: #fff; }
 
-.admin-users__highlight-container { display: flex; flex: 1; min-width: 0; }
-.admin-users__highlight { background: light-dark(#000, #fff); border-radius: 999px; pointer-events: none; }
+:root[data-page-transition]::view-transition-group(users-header),
+:root[data-page-transition]::view-transition-group(users-filters) {
+  z-index: 2;
+  animation: none;
+}
+
+:root[data-page-transition]::view-transition-old(users-header),
+:root[data-page-transition]::view-transition-old(users-filters) { display: none; }
+
+:root[data-page-transition]::view-transition-new(users-header),
+:root[data-page-transition]::view-transition-new(users-filters) { animation: none; }
 
 .admin-users__tab {
   background: transparent;

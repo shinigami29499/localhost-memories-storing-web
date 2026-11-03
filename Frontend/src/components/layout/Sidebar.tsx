@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { ChevronDown } from "@/components/animate-ui/icons/chevron-down";
+import { UploadActivityHeatmap } from "../../features/uploads/components/UploadActivityHeatmap";
 import { Home } from "@/components/animate-ui/icons/home";
 import { LibraryBig } from "@/components/animate-ui/icons/library-big";
 import { LogOut } from "@/components/animate-ui/icons/log-out";
@@ -142,6 +143,12 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
                 </span>}
               </NavLink>
             </AnimateIcon>
+            {!compact && (
+              <section className="sidebar__activity" aria-labelledby="sidebar-activity-title">
+                <h2 id="sidebar-activity-title">{t("Upload activity")}</h2>
+                <UploadActivityHeatmap compact />
+              </section>
+            )}
           </nav>
           <div className="sidebar__footer">
             {user ? (

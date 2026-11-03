@@ -4,7 +4,6 @@ import { Pagination, DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS } from "../../componen
 import { EmptyState, ErrorState, Spinner } from "../../components/ui/Status";
 import { Button, DatePicker, showToast } from "../../components/ui";
 import { AnimateIcon } from "../../components/animate-ui/icons/icon";
-import { ChartColumnIcon } from "../../components/animate-ui/icons/chart-column";
 import { CheckCheckIcon } from "../../components/animate-ui/icons/check-check";
 import { useUnreadUploads } from "../../features/uploads/hooks/useUnreadUploads";
 import { PaperclipIcon } from "../../components/animate-ui/icons/paperclip";
@@ -15,7 +14,6 @@ import { useLocale } from "../../context/LocaleContext";
 import { stopUploadLocally, requestUploadRetry, setUploadPaused } from "../../features/uploads/services/uploadRuntime";
 import { uploadService } from "../../features/uploads/services/uploadService";
 import { removeUploadFile, saveUploadFile } from "../../features/uploads/services/uploadFileStore";
-import { UploadActivityDialog } from "../../features/uploads/components/UploadActivityDialog";
 import { UploadBatchCard } from "../../features/uploads/components/UploadBatchCard";
 import type { UploadBatch, UploadItem } from "../../features/uploads/types";
 import "../../features/uploads/uploads.css";
@@ -27,7 +25,6 @@ export function UploadManagementPage() {
   const user = useAuthStore((state) => state.user);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
-  const [activityOpen, setActivityOpen] = useState(false);
   const [offset, setOffset] = useState(0);
   const [selectedDate, setSelectedDate] = useState("");
   const [limit, setLimit] = useState<number>(() => {
@@ -272,19 +269,8 @@ export function UploadManagementPage() {
                 setOffset(0);
               }}
             />
-            <Button
-              type="button"
-              variant="ghost"
-              className="upload-page__activity-button"
-              title={t("Upload activity")}
-              onClick={() => setActivityOpen(true)}
-            >
-              <ChartColumnIcon size={18} aria-hidden="true" />
-              <span className="upload-page__button-label">{t("Activity")}</span>
-            </Button>
           </div>
         </div>
-        {activityOpen ? <UploadActivityDialog onClose={() => setActivityOpen(false)} /> : null}
 
         {query.isPending ? <Spinner label="Loading uploads…" /> : query.isError && !query.data ? (
           <ErrorState message="Could not load uploads." onRetry={() => void query.refetch()} />

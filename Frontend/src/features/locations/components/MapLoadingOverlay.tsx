@@ -1,18 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 import { animate } from "motion/react";
-import { mediaViewerTransition } from "../../../components/layout/PageTransition";
+import { mediaViewerTransition, usePageTransitionLoading } from "../../../components/layout/PageTransition";
 import { Spinner } from "../../../components/ui";
 import { useAnimationStore } from "../../../store/animationStore";
 import { readPageTransitionEffect } from "../../../utils/pageTransition";
 
 export function MapLoadingOverlay({ ready, className }: { ready: boolean; className: string }) {
+  const parentLoading = usePageTransitionLoading();
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(true);
   const animationsEnabled = useAnimationStore((state) => state.enabled);
 
   useEffect(() => {
     if (!ready || !ref.current) return;
-    if (!animationsEnabled || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (parentLoading || !animationsEnabled || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       setVisible(false);
       return;
     }
@@ -23,7 +24,7 @@ export function MapLoadingOverlay({ ready, className }: { ready: boolean; classN
     const animation = animate(ref.current, reversed, transition);
     void animation.then(() => setVisible(false));
     return () => animation.stop();
-  }, [ready, animationsEnabled]);
+  }, [ready, animationsEnabled, parentLoading]);
 
   return visible ? <div ref={ref} className={className} style={{ pointerEvents: ready ? "none" : undefined }}><Spinner label="Loading map…" /></div> : null;
 }

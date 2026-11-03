@@ -24,13 +24,6 @@ vi.mock("../../features/uploads/services/uploadFileStore", () => ({
 vi.mock("../../features/uploads/components/UploadBatchCard", () => ({
   UploadBatchCard: ({ batch }: { batch: UploadBatch }) => <div data-batch-id={batch.id} />,
 }));
-vi.mock("../../features/uploads/components/UploadActivityDialog", () => ({
-  UploadActivityDialog: ({ onClose }: { onClose: () => void }) => (
-    <div role="dialog" aria-label="Upload activity">
-      <button type="button" onClick={onClose}>Close activity</button>
-    </div>
-  ),
-}));
 vi.mock("../../components/ui", () => ({
   Button: ({ busy, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { busy?: boolean }) => (
     <button {...props} aria-busy={busy || undefined} disabled={props.disabled || busy} />
@@ -140,28 +133,6 @@ describe("UploadManagementPage", () => {
     await vi.waitFor(() => expect(uploadService.submit).toHaveBeenCalledWith([file]));
     expect(upload.disabled).toBe(true);
     expect(container.textContent).toContain("Upload images and videos");
-  });
-
-  it("opens and closes the upload activity heatmap from the toolbar", async () => {
-    await act(async () => root.render(
-      <QueryClientProvider client={client}>
-        <LocaleProvider>
-          <AnimateUIProvider reducedMotion="always">
-            <UploadManagementPage />
-          </AnimateUIProvider>
-        </LocaleProvider>
-      </QueryClientProvider>,
-    ));
-
-    expect(container.querySelector('[role="dialog"]')).toBeNull();
-    const activity = Array.from(container.querySelectorAll("button")).find((button) => button.textContent === "Activity")!;
-    await act(async () => activity.click());
-
-    const dialog = container.querySelector('[role="dialog"]')!;
-    expect(dialog.getAttribute("aria-label")).toBe("Upload activity");
-
-    await act(async () => dialog.querySelector("button")!.click());
-    expect(container.querySelector('[role="dialog"]')).toBeNull();
   });
 
   it("keeps the page title and upload form visible while history loads", async () => {

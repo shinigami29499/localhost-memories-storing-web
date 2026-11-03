@@ -1,0 +1,23 @@
+.navigation-highlight {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+}
+
+.navigation-highlight__indicator {
+  background: light-dark(#000, #fff);
+  border-radius: 999px;
+  pointer-events: none;
+}
+
+.navigation-highlight > :is(a, button) {
+  box-sizing: border-box;
+  display: block;
+  flex: 1;
+  height: auto;
+  min-width: 0;
+  padding: 4px 16px;
+  line-height: 1.5;
+  text-align: center;
+  z-index: 1;
+}

@@ -8,6 +8,7 @@ import { NotificationBell } from "./NotificationBell";
 import { UploadRuntime } from "../../features/uploads/components/UploadRuntime";
 import { useLocale } from "../../context/LocaleContext";
 import { PageTransition } from "./PageTransition";
+import { Spinner } from "../ui";
 import { readPageTransitionEffect } from "../../utils/pageTransition";
 import { PresenceRuntime } from "../../features/users/components/PresenceRuntime";
 
@@ -91,8 +92,8 @@ export function AuthenticatedLayout() {
         </header>
         <ScrollProgressProvider>
           <ScrollProgressContainer id="main-content" tabIndex={-1} className="app-shell__content">
-            <PageTransition effect={pageTransition} skipUpdates transitionKey={["/gallery", "/gallery/favorites", "/gallery/album", "/gallery/trash"].includes(location.pathname) ? "/gallery-section" : location.pathname}>
-              <Suspense fallback={null}>
+            <PageTransition effect={pageTransition} scope="page" skipUpdates transitionKey={["/gallery", "/gallery/favorites", "/gallery/album", "/gallery/trash"].includes(location.pathname) ? "/gallery-section" : location.pathname}>
+              <Suspense fallback={<Spinner />}>
                 <Outlet />
               </Suspense>
             </PageTransition>

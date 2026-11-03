@@ -432,15 +432,14 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
                 disabled={uploading || bulkFavoriteBusy} aria-busy={uploading || undefined} onClick={() => uploadInput.current?.click()}>
                 {uploading ? <LoaderCircle size={20} className="spinner__wheel" aria-hidden="true" /> : <Plus size={20} aria-hidden="true" />}
               </button>
-            <Link className="gallery-selection-bar__action" to={showingFavorites ? "/gallery" : "/gallery/favorites"} aria-label={t(showingFavorites ? "Gallery" : "Favorites")} title={t(showingFavorites ? "Gallery" : "Favorites")}><Heart size={20} fill={showingFavorites ? "currentColor" : "none"} aria-hidden="true" /></Link>
-            <SelectionActions open={selectionMode}>
-            
+            {selectionMode ? (
               <button
                 type="button"
                 className="gallery-selection-bar__action gallery-selection-bar__action--favorite"
                 aria-label={t(allSelectedFavorited ? "Remove from favorites" : "Add to favorites")}
                 title={t(allSelectedFavorited ? "Remove from favorites" : "Add to favorites")}
                 aria-pressed={allSelectedFavorited}
+                aria-busy={bulkFavoriteBusy || undefined}
                 disabled={favoriteBusy || selectedMedia.length === 0}
                 onClick={() => void favoriteSelected()}
               >
@@ -448,6 +447,10 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
                   ? <LoaderCircle size={20} className="spinner__wheel" aria-hidden="true" />
                   : <Heart size={20} fill={allSelectedFavorited ? "currentColor" : "none"} aria-hidden="true" />}
               </button>
+            ) : (
+              <Link className="gallery-selection-bar__action" to={showingFavorites ? "/gallery" : "/gallery/favorites"} aria-label={t(showingFavorites ? "Gallery" : "Favorites")} title={t(showingFavorites ? "Gallery" : "Favorites")}><Heart size={20} fill={showingFavorites ? "currentColor" : "none"} aria-hidden="true" /></Link>
+            )}
+            <SelectionActions open={selectionMode}>
                 <button
                   type="button"
                   className="gallery-selection-bar__action gallery-selection-bar__action--save"

@@ -1,5 +1,6 @@
 import { useAnimationStore } from "../../store/animationStore";
-import { useEffect, useId, useLayoutEffect, useRef, useState, ViewTransition } from "react";
+import { createContext, useContext, useEffect, useId, useLayoutEffect, useRef, useState, startTransition, ViewTransition } from "react";
+import { Spinner } from "../ui";
 import type { ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 import type { TargetAndTransition } from "motion/react";
@@ -7,6 +8,12 @@ import { AnimateView } from "motion/react-animate-view";
 import type { PageTransitionEffect } from "../../utils/pageTransition";
 
 type Effect = Exclude<PageTransitionEffect, "random">;
+
+const PageTransitionLoadingContext = createContext(false);
+
+export function usePageTransitionLoading() {
+  return useContext(PageTransitionLoadingContext);
+}
 
 type Frame = {
   width: number;
@@ -27,6 +34,8 @@ type PageTransitionProps = {
   skipUpdates?: boolean;
   liveRoot?: boolean;
   deferRendering?: boolean;
+  scope?: "page" | "section";
+  loading?: boolean;
   children: ReactNode;
 };
 
@@ -34,12 +43,20 @@ const SLIDE = 60;
 const BANDS = 5;
 const BAND_STAGGER = 0.12;
 const BAND_FRAMES = 16;
+const LOADING_LABEL_DELAY_MS = 300;
+const LOADING_LABEL_MIN_MS = 500;
 const CLIP =
   ":root[data-page-transition]::view-transition-old(root){display:none}" +
   ":root[data-page-transition]::view-transition-new(root){animation:none}" +
   ":root[data-page-transition-live-root]::view-transition-new(root){display:none}" +
-  "::view-transition-group(*.page-transition){z-index:1}" +
+  "::view-transition-group(*.page-transition){z-index:1;animation:none}" +
   "::view-transition-group(app-sidebar){z-index:2}" +
+  "::view-transition-group(app-sidebar-toggle){z-index:3}" +
+  ":root[data-page-transition]::view-transition-old(app-sidebar-toggle){display:none}" +
+  ":root[data-page-transition]::view-transition-new(app-sidebar-toggle){animation:none}" +
+  "::view-transition-group(app-topbar){z-index:2}" +
+  ":root[data-page-transition]::view-transition-old(app-topbar){display:none}" +
+  ":root[data-page-transition]::view-transition-new(app-topbar){animation:none}" +
   ":root[data-page-transition]::view-transition-old(app-sidebar){display:none}" +
   ":root[data-page-transition]::view-transition-new(app-sidebar){animation:none}" +
   "::view-transition-image-pair(*.page-transition){overflow:clip}";
@@ -337,15 +354,41 @@ function markRoot(liveRoot = false) {
     });
 }
 
-export function PageTransition({ effect, transitionKey, skipUpdates = false, liveRoot = false, deferRendering = true, children }: PageTransitionProps) {
+function positionSectionOverlay(section: HTMLElement, overlay: HTMLElement) {
+  const bounds = section.getBoundingClientRect();
+  overlay.style.setProperty("--loading-section-top", `${Math.max(0, bounds.top)}px`);
+  overlay.style.setProperty("--loading-section-left", `${bounds.left}px`);
+  overlay.style.setProperty("--loading-section-width", `${bounds.width}px`);
+  const rect = overlay.getBoundingClientRect();
+  const center = (Math.max(0, rect.top) + Math.min(window.innerHeight, rect.bottom)) / 2;
+  overlay.style.setProperty("--loading-center-y", `${Math.max(0, center - rect.top)}px`);
+}
+
+export function PageTransition({ effect, transitionKey, skipUpdates = false, liveRoot = false, deferRendering = true, scope = "section", loading = false, children }: PageTransitionProps) {
+  const parentLoading = usePageTransitionLoading();
   const location = useLocation();
   const key = transitionKey ?? location.pathname;
-  const [renderState, setRenderState] = useState({ key, ready: true });
-  if (renderState.key !== key) setRenderState({ key, ready: false });
-  const contentReady = !deferRendering || renderState.key === key && renderState.ready;
+  const [renderState, setRenderState] = useState({ key, ready: false, labelVisible: false });
+  if (renderState.key !== key) setRenderState({ key, ready: false, labelVisible: false });
+  const contentReady = renderState.key === key && renderState.ready;
+  const labelVisible = renderState.key === key && renderState.labelVisible;
+  const loadingTimingRef = useRef({ key, startedAt: 0, labelShownAt: null as number | null });
+  useLayoutEffect(() => {
+    if (loadingTimingRef.current.key !== key || !loadingTimingRef.current.startedAt) {
+      loadingTimingRef.current = { key, startedAt: performance.now(), labelShownAt: null };
+    }
+    if (labelVisible && loadingTimingRef.current.labelShownAt === null) {
+      loadingTimingRef.current.labelShownAt = performance.now();
+    }
+  }, [key, labelVisible]);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const committedRef = useRef({ key, contentReady });
+  const swapping = committedRef.current.key !== key || committedRef.current.contentReady !== contentReady;
+  useLayoutEffect(() => { committedRef.current = { key, contentReady }; });
 
   useEffect(() => {
-    if (!deferRendering || contentReady) return;
+    if (contentReady) return;
     let cancelled = false;
     let frame = 0;
     let previous = "";
@@ -353,6 +396,10 @@ export function PageTransition({ effect, transitionKey, skipUpdates = false, liv
     let frames = 0;
     let pageFinished = false;
     const wait = () => {
+      if (localRef.current && overlayRef.current && scope === "section") {
+        positionSectionOverlay(localRef.current, overlayRef.current);
+      }
+      const pending = loading || Boolean(contentRef.current?.querySelector('.spinner, [data-transition-loading="true"]'));
       const highlights = Array.from(document.querySelectorAll<HTMLElement>('[data-slot="motion-highlight"]'));
       const styles = highlights.map((element) => element.getAttribute("style") ?? "").join("|");
       const moving = highlights.some((element) => element.getAnimations().some((animation) =>
@@ -365,9 +412,23 @@ export function PageTransition({ effect, transitionKey, skipUpdates = false, liv
       stableFrames = styles === previous && !moving ? stableFrames + 1 : 0;
       previous = styles;
       // Allow highlight bounds effects to start before checking for settled motion.
-      if (++frames > 2 && stableFrames >= 3 && pageFinished && !pageMoving) {
-        if (!cancelled) setRenderState({ key, ready: true });
-      } else if (!cancelled) frame = requestAnimationFrame(wait);
+      const settled = ++frames > 2 && stableFrames >= 3 && pageFinished && !pageMoving && !pending;
+      const now = performance.now();
+      const timing = loadingTimingRef.current;
+      const labelFinished = timing.labelShownAt === null || now - timing.labelShownAt >= LOADING_LABEL_MIN_MS;
+      if (settled && labelFinished) {
+        if (!cancelled) {
+          const reveal = () => setRenderState({ key, ready: true, labelVisible: false });
+          if (parentLoading) reveal();
+          else startTransition(reveal);
+        }
+      } else if (!cancelled) {
+        if (!parentLoading && !settled && pageFinished && !pageMoving && !labelVisible && now - timing.startedAt >= LOADING_LABEL_DELAY_MS) {
+          setRenderState((current) => current.key === key && !current.ready
+            ? { ...current, labelVisible: true } : current);
+        }
+        frame = requestAnimationFrame(wait);
+      }
     };
     frame = requestAnimationFrame(() => {
       const transition = (document as DocumentWithViewTransition).activeViewTransition;
@@ -377,7 +438,7 @@ export function PageTransition({ effect, transitionKey, skipUpdates = false, liv
       wait();
     });
     return () => { cancelled = true; cancelAnimationFrame(frame); };
-  }, [key, deferRendering, contentReady]);
+  }, [key, contentReady, loading, scope, labelVisible, parentLoading]);
   const currentKeyRef = useRef(key);
   const hasChangedRef = useRef(false);
   if (currentKeyRef.current !== key) {
@@ -387,6 +448,30 @@ export function PageTransition({ effect, transitionKey, skipUpdates = false, liv
   const reduce = usePrefersReducedMotion();
   const animationsEnabled = useAnimationStore((state) => state.enabled);
   const localRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (scope === "section" && !contentReady && localRef.current && overlayRef.current) {
+      positionSectionOverlay(localRef.current, overlayRef.current);
+    }
+  }, [scope, contentReady, key]);
+  useLayoutEffect(() => {
+    if (scope !== "page" || contentReady) return;
+    const overlay = overlayRef.current;
+    const main = localRef.current?.closest<HTMLElement>(".app-shell__main");
+    if (!overlay || !main) return;
+    const updateBounds = () => {
+      const rect = main.getBoundingClientRect();
+      overlay.style.left = `${Math.max(0, rect.left)}px`;
+      overlay.style.right = `${Math.max(0, window.innerWidth - rect.right)}px`;
+    };
+    updateBounds();
+    const observer = new ResizeObserver(updateBounds);
+    observer.observe(main);
+    window.addEventListener("resize", updateBounds);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updateBounds);
+    };
+  }, [scope, contentReady, key]);
   const styleRef = useRef<HTMLStyleElement>(null);
   const pointRef = useRef<{ x: number; y: number } | undefined>(undefined);
   const exitRef = useRef<Frame | undefined>(undefined);
@@ -441,6 +526,7 @@ export function PageTransition({ effect, transitionKey, skipUpdates = false, liv
 
   if (skipUpdates) {
     const animateLayer = (name: string, types: string[], entering: boolean) => {
+      if (parentLoading) return () => {};
       const effects = animation(types, !entering);
       // Reveal effects must animate the old snapshot while destination rendering is deferred.
       const definition = !entering && deferRendering && Array.isArray(effects.enter.clipPath)
@@ -452,18 +538,23 @@ export function PageTransition({ effect, transitionKey, skipUpdates = false, liv
         if (running.effect instanceof KeyframeEffect && running.effect.pseudoElement === pseudoElement) running.cancel();
       }
       const timing = transition && "duration" in transition ? transition.duration : undefined;
-      const duration = typeof timing === "number" ? timing * 1000 : 300;
+      const duration = reduce || !animationsEnabled ? 0 : typeof timing === "number" ? timing * 1000 : 300;
       const ease = transition && "ease" in transition ? transition.ease : undefined;
       const easing = ease === "linear" ? "linear" : ease === "easeIn" ? "ease-in" : ease === "easeOut" ? "ease-out" : "ease-in-out";
       const player = document.documentElement.animate(keyframes as PropertyIndexedKeyframes, { duration, easing, fill: "both", pseudoElement });
       return () => player.cancel();
     };
     return (
-      <ViewTransition key={key} update="none" onEnter={({ name }, types) => animateLayer(name, types, true)} onExit={({ name }, types) => animateLayer(name, types, false)}>
-        <div ref={localRef} className={`page-transition ${className}`}>
+      <ViewTransition enter={parentLoading ? "none" : undefined} exit={parentLoading ? "none" : undefined} update={swapping && !parentLoading ? undefined : "none"} onEnter={({ name }, types) => animateLayer(name, types, true)} onExit={({ name }, types) => animateLayer(name, types, false)} onUpdate={({ name }, types) => {
+        const cancelExit = animateLayer(name, types, false);
+        const cancelEnter = animateLayer(name, types, true);
+        return () => { cancelExit(); cancelEnter(); };
+      }}>
+        <div ref={localRef} className={`page-transition ${className}`} data-transition-loading={!contentReady ? "true" : undefined}>
           <style>{CLIP}</style>
           <style ref={styleRef} />
-          {contentReady ? children : null}
+          <div ref={contentRef} className="page-transition__content" inert={!contentReady} aria-hidden={!contentReady || undefined} style={{ visibility: contentReady ? undefined : "hidden" }}><PageTransitionLoadingContext.Provider value={parentLoading || !contentReady}>{children}</PageTransitionLoadingContext.Provider></div>
+          {!contentReady ? <div ref={overlayRef} className={`page-transition__loading page-transition__loading--${scope}`}>{labelVisible ? <Spinner /> : null}</div> : null}
         </div>
       </ViewTransition>
     );
@@ -471,14 +562,14 @@ export function PageTransition({ effect, transitionKey, skipUpdates = false, liv
 
   return (
     <AnimateView
-      key={key}
-      enter={(types) => transitionKey !== undefined && !hasChangedRef.current ? still(0) : animation(types).enter}
-      exit={(types) => transitionKey !== undefined && currentKeyRef.current === key ? still(0) : animation(types).exit}
+      enter={(types) => parentLoading || transitionKey !== undefined && !hasChangedRef.current ? still(0) : animation(types).enter}
+      exit={(types) => parentLoading || transitionKey !== undefined && currentKeyRef.current === key ? still(0) : animation(types).exit}
     >
-      <div ref={localRef} className={`page-transition ${className}`}>
+      <div ref={localRef} className={`page-transition ${className}`} data-transition-loading={!contentReady ? "true" : undefined}>
         <style>{CLIP}</style>
         <style ref={styleRef} />
-        {contentReady ? children : null}
+        <div ref={contentRef} className="page-transition__content" inert={!contentReady} aria-hidden={!contentReady || undefined} style={{ visibility: contentReady ? undefined : "hidden" }}><PageTransitionLoadingContext.Provider value={parentLoading || !contentReady}>{children}</PageTransitionLoadingContext.Provider></div>
+        {!contentReady ? <div ref={overlayRef} className={`page-transition__loading page-transition__loading--${scope}`}>{labelVisible ? <Spinner /> : null}</div> : null}
       </div>
     </AnimateView>
   );

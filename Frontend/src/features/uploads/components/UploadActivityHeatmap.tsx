@@ -34,9 +34,9 @@ async function loadRecentBatches(isAdmin: boolean, startDate: Date): Promise<Upl
   }
 }
 
-export function UploadActivityHeatmap() {
+export function UploadActivityHeatmap({ compact = false }: { compact?: boolean }) {
   const isMobile = useMediaQuery(MOBILE_QUERY);
-  const weeks = isMobile ? MOBILE_WEEKS : DESKTOP_WEEKS;
+  const weeks = compact || isMobile ? MOBILE_WEEKS : DESKTOP_WEEKS;
   const user = useAuthStore((state) => state.user);
   const userId = user?.id;
   const isAdmin = user?.role.toLowerCase() === "admin";

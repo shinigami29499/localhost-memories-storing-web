@@ -666,6 +666,9 @@ textarea::placeholder {
 }
 
 .app-shell__content {
+  position: relative;
+  isolation: isolate;
+  z-index: 0;
   flex: 1;
   min-height: 0;
   overflow: auto;
@@ -709,8 +712,31 @@ textarea::placeholder {
 }
 
 .page-transition {
+  position: relative;
+  isolation: isolate;
+  z-index: 0;
   min-height: 100%;
 }
+
+.page-transition__content { display: contents; }
+
+.page-transition__loading {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: var(--bg, Canvas);
+  overflow: hidden;
+}
+
+.page-transition__loading > .spinner {
+  position: absolute;
+  left: 50%;
+  top: var(--loading-center-y, 50%);
+  transform: translate(-50%, -50%);
+  margin: 0;
+}
+
+.page-transition__loading--page { position: fixed; }
 
 .app-shell__content:has(.home-page, .gallery-page, .gallery-layout, .place, .locations) > .page-transition {
   height: 100%;

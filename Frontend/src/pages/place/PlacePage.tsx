@@ -1,7 +1,8 @@
 import { useLocation } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { startTransition, useCallback, useEffect, useRef, useState, useMemo, type CSSProperties } from "react";
-import { Highlight, HighlightItem } from "@animate-ui/react/primitives/effects/highlight";
+import { HighlightItem } from "@animate-ui/react/primitives/effects/highlight";
+import { NavigationHighlight } from "../../components/ui";
 import { Pagination, DEFAULT_PAGE_SIZE } from "../../components/ui/Pagination";
 import { ScrollProgress, ScrollProgressContainer, ScrollProgressProvider } from "@animate-ui/react/primitives/scroll-progress";
 import {
@@ -97,7 +98,7 @@ function PlaceViewSwitch({ view, onChange }: { view: PlaceView; onChange: (view:
 
   return (
     <div className="place__view-switch" role="group" aria-label={t("Place view")}>
-      <Highlight value={view} controlledItems mode="parent" containerClassName="place__view-highlight-container" className="place__view-highlight">
+      <NavigationHighlight value={view}>
         {([ ["map", "Map"], ["saved", "Saved"], ["history", "History"] ] as const).map(([value, label]) => (
           <HighlightItem key={value} value={value} asChild>
             <button type="button" className="place__view-option" aria-pressed={view === value}
@@ -106,7 +107,7 @@ function PlaceViewSwitch({ view, onChange }: { view: PlaceView; onChange: (view:
             </button>
           </HighlightItem>
         ))}
-      </Highlight>
+      </NavigationHighlight>
     </div>
   );
 }
@@ -121,43 +122,13 @@ export function PlacePage() {
   const initialState = location.state as { view?: "map" | "saved" | "history"; focusPlaceId?: string } | null;
   const [view, setView] = useState<"map" | "saved" | "history">(initialState?.view ?? "map");
   const [transitionView, setTransitionView] = useState<PlaceView>(view);
-  const [contentReady, setContentReady] = useState(true);
   const requestView = useCallback((nextView: PlaceView) => {
     if (nextView === transitionView) return;
     startTransition(() => {
-      setContentReady(false);
+      setView(nextView);
       setTransitionView(nextView);
     });
   }, [transitionView]);
-  useEffect(() => {
-    if (contentReady) return;
-    let cancelled = false;
-    let frame = 0;
-    let previous = "";
-    let stableFrames = 0;
-    let frames = 0;
-    let pageFinished = false;
-    const wait = () => {
-      const style = document.querySelector('.place__view-highlight')?.getAttribute("style") ?? "";
-      stableFrames = style === previous ? stableFrames + 1 : 0;
-      previous = style;
-      // Let bounds effects start the spring before checking for completion.
-      if (++frames > 2 && stableFrames >= 3 && pageFinished) {
-        setView(transitionView);
-        setContentReady(true);
-      } else if (!cancelled) frame = requestAnimationFrame(wait);
-    };
-    frame = requestAnimationFrame(() => {
-      const transition = (document as Document & {
-        activeViewTransition?: { finished: Promise<unknown> } | null;
-      }).activeViewTransition;
-      void (transition?.finished ?? Promise.resolve()).catch(() => undefined).then(() => {
-        pageFinished = true;
-      });
-      wait();
-    });
-    return () => { cancelled = true; cancelAnimationFrame(frame); };
-  }, [transitionView, contentReady]);
   const mapSettings = useRef<PlaceMapSettings>({ scene: "3d", showMarkers: true, showPhotoMarkers: true });
   const saved = view !== "map";
   const { media: photos, query: photosQuery } = useLocations(!saved);
@@ -556,9 +527,9 @@ export function PlacePage() {
             )}
 
             <PlaceViewSwitch view={transitionView} onChange={requestView} />
-            <div className="place__view-content" aria-busy={!contentReady || view === "history" && visitHistory.isPending || undefined}>
+            <div className="place__view-content" aria-busy={view === "history" && visitHistory.isPending || undefined}>
             <PageTransition effect={pageTransition} transitionKey={transitionView} liveRoot skipUpdates deferRendering={false}>
-            {!contentReady ? null : <>
+            <>
             {!saved && (query.isLoading ? <Spinner /> : query.isError && !places.length ? (
               <ErrorState message="Could not load places." onRetry={() => void query.refetch()} />
             ) : (
@@ -738,7 +709,7 @@ export function PlacePage() {
             />
           </footer>
         ) : null}
-            </>}
+            </>
             </PageTransition>
             </div>
 
