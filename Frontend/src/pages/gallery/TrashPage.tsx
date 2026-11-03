@@ -35,6 +35,8 @@ function trashQueryOptions(filter?: MediaKindFilter) {
     },
     staleTime: Infinity,
     gcTime: Infinity,
+    // Deleted media may change while this admin page is unmounted.
+    refetchOnMount: "always",
   });
 }
 export function TrashPage() {

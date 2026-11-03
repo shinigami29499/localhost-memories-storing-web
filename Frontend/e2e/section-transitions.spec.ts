@@ -37,6 +37,30 @@ test("location switches keep one sliding highlight above the content transition"
   await expect(highlight).toHaveCount(1);
 });
 
+for (const width of [1280, 390]) {
+test(`location tabs do not restart the page loading overlay at ${width}px`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 900 });
+  await page.route(/https:\/\/[^/]*mapbox\.com\//, (route) => route.abort());
+  await page.goto("/location");
+  const outer = page.locator("#main-content > .page-transition");
+  await expect(outer).not.toHaveAttribute("data-transition-loading", "true");
+  await page.evaluate(() => {
+    const outer = document.querySelector("#main-content > .page-transition")!;
+    outer.setAttribute("data-loading-restarts", "0");
+    new MutationObserver((records) => {
+      const restarts = records.filter((record) => record.attributeName === "data-transition-loading" && record.oldValue === null).length;
+      if (restarts) outer.setAttribute("data-loading-restarts", String(Number(outer.getAttribute("data-loading-restarts")) + restarts));
+    }).observe(outer, { attributes: true, attributeOldValue: true, attributeFilter: ["data-transition-loading"] });
+  });
+  for (const name of ["Saved", "History", "Map"]) {
+    await page.getByRole("button", { name, exact: true }).click();
+    await expect(page.getByRole("button", { name, exact: true })).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator(".place__view-content > .page-transition")).not.toHaveAttribute("data-transition-loading", "true");
+    await expect(outer).toHaveAttribute("data-loading-restarts", "0");
+  }
+});
+}
+
 test("gallery navigation retains its highlight while content changes", async ({ page }) => {
   await page.goto("/gallery");
   const bar = page.locator(".gallery-page__media-toolbar");

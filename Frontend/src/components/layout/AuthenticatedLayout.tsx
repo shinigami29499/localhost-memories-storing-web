@@ -92,7 +92,7 @@ export function AuthenticatedLayout() {
         </header>
         <ScrollProgressProvider>
           <ScrollProgressContainer id="main-content" tabIndex={-1} className="app-shell__content">
-            <PageTransition effect={pageTransition} scope="page" skipUpdates transitionKey={["/gallery", "/gallery/favorites", "/gallery/album", "/gallery/trash"].includes(location.pathname) ? "/gallery-section" : location.pathname}>
+            <PageTransition effect={pageTransition} scope="page" skipUpdates transitionKey={["/gallery", "/gallery/favorites", "/gallery/album", "/gallery/trash"].includes(location.pathname) ? "/gallery-section" : ["/location", "/location/saved", "/location/history"].includes(location.pathname) ? "/location-section" : location.pathname}>
               <Suspense fallback={<Spinner />}>
                 <Outlet />
               </Suspense>

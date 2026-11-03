@@ -1,4 +1,4 @@
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { startTransition, useCallback, useEffect, useRef, useState, useMemo, type CSSProperties } from "react";
 import { HighlightItem } from "@animate-ui/react/primitives/effects/highlight";
@@ -116,19 +116,18 @@ export function PlacePage() {
   const { t } = useLocale();
   const queryClient = useQueryClient();
   const location = useLocation();
+  const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const isAdmin = user?.role?.toLowerCase() === "admin";
   const home = useHomeLocation(user?.id);
-  const initialState = location.state as { view?: "map" | "saved" | "history"; focusPlaceId?: string } | null;
-  const [view, setView] = useState<"map" | "saved" | "history">(initialState?.view ?? "map");
-  const [transitionView, setTransitionView] = useState<PlaceView>(view);
+  const view: PlaceView = location.pathname.replace(/\/$/, "").endsWith("/saved") ? "saved"
+    : location.pathname.replace(/\/$/, "").endsWith("/history") ? "history" : "map";
   const requestView = useCallback((nextView: PlaceView) => {
-    if (nextView === transitionView) return;
+    if (nextView === view) return;
     startTransition(() => {
-      setView(nextView);
-      setTransitionView(nextView);
+      void navigate(nextView === "map" ? "/location" : `/location/${nextView}`);
     });
-  }, [transitionView]);
+  }, [navigate, view]);
   const mapSettings = useRef<PlaceMapSettings>({ scene: "3d", showMarkers: true, showPhotoMarkers: true });
   const saved = view !== "map";
   const { media: photos, query: photosQuery } = useLocations(!saved);
@@ -526,9 +525,9 @@ export function PlacePage() {
               </div>
             )}
 
-            <PlaceViewSwitch view={transitionView} onChange={requestView} />
+            <PlaceViewSwitch view={view} onChange={requestView} />
             <div className="place__view-content" aria-busy={view === "history" && visitHistory.isPending || undefined}>
-            <PageTransition effect={pageTransition} transitionKey={transitionView} liveRoot skipUpdates deferRendering={false}>
+            <PageTransition effect={pageTransition} transitionKey={view} liveRoot skipUpdates deferRendering={false}>
             <>
             {!saved && (query.isLoading ? <Spinner /> : query.isError && !places.length ? (
               <ErrorState message="Could not load places." onRetry={() => void query.refetch()} />

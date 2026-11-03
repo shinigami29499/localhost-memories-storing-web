@@ -43,9 +43,9 @@ const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 15_000, refetchOnWindowFocus: false } },
 });
 
-function LegacyLocationRedirect({ saved = false }: { saved?: boolean }) {
+function LegacyLocationRedirect() {
   const location = useLocation();
-  return <Navigate replace to="/location" state={{ ...location.state, view: saved ? "saved" : "map" }} />;
+  return <Navigate replace to="/location" state={location.state} />;
 }
 
 /** / is the protected Home page; unauthenticated visitors land on /login or /register. */
@@ -88,7 +88,8 @@ const router = createBrowserRouter([
           { path: "/location/travel", element: <LocationsPage /> },
           { path: "/location", element: <PlacePage /> },
           { path: "/location/place", element: <LegacyLocationRedirect /> },
-          { path: "/location/saved", element: <LegacyLocationRedirect saved /> },
+          { path: "/location/saved", element: <PlacePage /> },
+          { path: "/location/history", element: <PlacePage /> },
           { path: "/profile", element: <ProfilePage /> },
           { path: "/settings", element: <SettingsPage /> },
           { path: "/sync/upload", element: <Navigate replace to="/uploads" /> },

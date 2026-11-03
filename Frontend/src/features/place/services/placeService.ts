@@ -31,7 +31,7 @@ export const placeService = {
   },
 
   list(): Promise<Place[]> {
-    return api<Place[]>("/api/location").then((places) => places.map((place) => ({
+    return api<Place[]>("/api/location/saved").then((places) => places.map((place) => ({
       ...place,
       markerColor: place.markerColor.toUpperCase() === LEGACY_PURPLE_MARKER
         ? REPLACEMENT_MARKER_COLOR
@@ -40,11 +40,11 @@ export const placeService = {
   },
 
   visitHistory(): Promise<PlaceVisit[]> {
-    return api<PlaceVisit[]>("/api/location/visits");
+    return api<PlaceVisit[]>("/api/location/history");
   },
 
   allVisitHistory(): Promise<PlaceVisit[]> {
-    return api<PlaceVisit[]>("/api/location/visits/all");
+    return api<PlaceVisit[]>("/api/location/history/all");
   },
 
   visitsForPlace(placeId: string): Promise<PlaceVisit[]> {

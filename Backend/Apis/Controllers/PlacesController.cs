@@ -23,6 +23,7 @@ public class PlacesController(
     ILogger<PlacesController> logger) : ControllerBase
 {
     [HttpGet]
+    [HttpGet("saved")]
     public async Task<ActionResult<IReadOnlyList<PlaceDto>>> GetPlacesAsync(
         CancellationToken cancellationToken)
         => Ok(await placeService.GetPlacesAsync(cancellationToken));
@@ -38,12 +39,14 @@ public class PlacesController(
         => Ok(await placeService.GetPlaceAsync(placeId, cancellationToken));
 
     [HttpGet("visits")]
+    [HttpGet("history")]
     public async Task<ActionResult<IReadOnlyList<PlaceVisitDto>>> GetPlaceVisitHistoryAsync(
         CancellationToken cancellationToken)
         => Ok(await placeService.GetPlaceVisitHistoryAsync(
             currentUser.RequireUserId(), cancellationToken));
 
     [HttpGet("visits/all")]
+    [HttpGet("history/all")]
     public async Task<ActionResult<IReadOnlyList<PlaceVisitDto>>> GetAllPlaceVisitHistoryAsync(
         CancellationToken cancellationToken)
         => Ok(await placeService.GetAllPlaceVisitHistoryAsync(cancellationToken));
