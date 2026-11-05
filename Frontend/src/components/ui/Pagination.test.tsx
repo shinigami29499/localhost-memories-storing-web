@@ -3,6 +3,7 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Pagination } from "./Pagination";
+import { PageActionBarProvider } from "../layout/PageActionBar";
 
 describe("Pagination", () => {
   let container: HTMLDivElement;
@@ -91,6 +92,30 @@ describe("Pagination", () => {
     await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Items per page"]')!.click());
     expect(Array.from(document.querySelectorAll('[role="option"]'), (option) => option.textContent))
       .toEqual(["10", "20", "50"]);
+    expect(document.querySelector(".pagination__select-positioner")).not.toBeNull();
+  });
+
+  it("renders action-bar pagination inside the shared footer instead of page content", async () => {
+    await act(async () => root.render(
+      <PageActionBarProvider>
+        <main>
+          <Pagination
+            inActionBar
+            page={1}
+            pageSize={10}
+            total={30}
+            onPageChange={onPageChange}
+            onPageSizeChange={onPageSizeChange}
+          />
+        </main>
+      </PageActionBarProvider>,
+    ));
+    expect(container.querySelector("main nav")).toBeNull();
+    expect(container.querySelector(".page-action-bar .pagination-action-bar nav")).not.toBeNull();
+    await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Items per page"]')!.click());
+    expect(Array.from(document.querySelectorAll('[role="option"]'), (option) => option.textContent))
+      .toEqual(["10", "20", "50"]);
+    expect(container.querySelector(".page-action-bar .pagination__select-positioner")).toBeNull();
     expect(document.querySelector(".pagination__select-positioner")).not.toBeNull();
   });
 

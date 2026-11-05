@@ -79,7 +79,7 @@ export function UploadBatchCard({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const selectedItems = batch.items.filter((item) => selectedIds.has(item.id));
   const actionItems = selectedItems.length ? selectedItems : batch.items;
-  const [deleteTarget, setDeleteTarget] = useState<UploadItem | "batch" | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ item?: UploadItem; selected?: UploadItem[] } | null>(null);
   const filteredItems = batch.items;
   const totalItemPages = Math.max(1, Math.ceil(filteredItems.length / ITEMS_PER_PAGE));
   const currentItemPage = Math.min(itemPage, totalItemPages);
@@ -167,7 +167,7 @@ export function UploadBatchCard({
             </Button>
             ) : null}
             {onPause ? <Button type="button" variant="ghost" className="upload-item__action" aria-label={t(!batch.items.some((item) => item.status === "Pending" || item.status === "Uploading") && batch.items.some((item) => item.status === "Paused") ? "Resume batch" : "Pause batch")} title={t(!batch.items.some((item) => item.status === "Pending" || item.status === "Uploading") && batch.items.some((item) => item.status === "Paused") ? "Resume batch" : "Pause batch")} disabled={!batch.items.some((item) => item.status === "Pending" || item.status === "Uploading" || item.status === "Paused") || batch.items.some((item) => busyItemIds.has(item.id))} onClick={() => onPause(batch, undefined, batch.items.some((item) => item.status === "Pending" || item.status === "Uploading"))}>{!batch.items.some((item) => item.status === "Pending" || item.status === "Uploading") && batch.items.some((item) => item.status === "Paused") ? <Play size={18} aria-hidden="true" /> : <Pause size={18} aria-hidden="true" />}</Button> : null}
-            {onDelete ? <Button type="button" variant="ghost" className="upload-item__action upload-item__action--delete" aria-label={t("Delete batch record")} title={t("Delete batch record")} disabled={actionItems.some((item) => busyItemIds.has(item.id) || (selectedItems.length > 0 && item.status === "Success"))} onClick={() => setDeleteTarget("batch")}><Trash2 size={18} aria-hidden="true" /></Button> : null}
+            {onDelete ? <Button type="button" variant="ghost" className="upload-item__action upload-item__action--delete" aria-label={t("Delete batch record")} title={t("Delete batch record")} disabled={deleteTarget !== null || (selectedItems.length > 0 && !onDeleteMany) || actionItems.some((item) => busyItemIds.has(item.id) || (selectedItems.length > 0 && item.status === "Success"))} onClick={() => setDeleteTarget({ selected: selectedItems.length ? [...selectedItems] : undefined })}><Trash2 size={18} aria-hidden="true" /></Button> : null}
 
           </div>
         ) : null}
@@ -225,7 +225,7 @@ export function UploadBatchCard({
                     {batch.canManage ? <>
                       <Button type="button" variant="ghost" className="upload-item__action" busy={busy && item.status === "Failed"} disabled={busy || item.status !== "Failed"} aria-label={t("Retry {name}", { name: item.originalFilename })} title={t("Retry")} onClick={() => onRetry(batch, item)}><RotateCcw size={18} aria-hidden="true" /></Button>
                       {onPause ? <Button type="button" variant="ghost" className="upload-item__action" aria-label={t(item.status === "Paused" ? "Resume {name}" : "Pause {name}", { name: item.originalFilename })} title={t(item.status === "Paused" ? "Resume {name}" : "Pause {name}", { name: item.originalFilename })} disabled={busy || !["Pending", "Uploading", "Paused"].includes(item.status)} onClick={() => onPause(batch, item, item.status !== "Paused")}>{item.status === "Paused" ? <Play size={18} aria-hidden="true" /> : <Pause size={18} aria-hidden="true" />}</Button> : null}
-                      {onDelete ? <Button type="button" variant="ghost" className="upload-item__action upload-item__action--delete" aria-label={t("Delete record: {filename}", { filename: item.originalFilename })} title={t("Delete record: {filename}", { filename: item.originalFilename })} disabled={busy || item.status === "Success"} onClick={() => setDeleteTarget(item)}><Trash2 size={18} aria-hidden="true" /></Button> : null}
+                      {onDelete ? <Button type="button" variant="ghost" className="upload-item__action upload-item__action--delete" aria-label={t("Delete record: {filename}", { filename: item.originalFilename })} title={t("Delete record: {filename}", { filename: item.originalFilename })} disabled={deleteTarget !== null || busy || item.status === "Success"} onClick={() => setDeleteTarget({ item })}><Trash2 size={18} aria-hidden="true" /></Button> : null}
                     </> : null}
                   </div>
                 </div>
@@ -265,8 +265,29 @@ export function UploadBatchCard({
         ) : null}
       </Collapsible.Panel>
       {deleteTarget ? (
-        <ConfirmationDialog title="Delete record" confirmLabel="Delete record" danger onClose={() => setDeleteTarget(null)} onConfirm={async () => { if (deleteTarget === "batch" && selectedItems.length) { await onDeleteMany?.(batch, selectedItems); setSelectedIds(new Set()); } else await onDelete?.(batch, deleteTarget === "batch" ? undefined : deleteTarget); }}>
-          {deleteTarget === "batch" ? t(selectedItems.length ? "Delete the selected file records?" : "Delete this batch record and its file records?") : t("Delete the record for {filename}?", { filename: deleteTarget.originalFilename })}
+        <ConfirmationDialog
+          title="Delete record"
+          confirmLabel={deleteTarget.item ? "Delete record" : deleteTarget.selected ? "Delete selected records" : "Delete batch record"}
+          danger
+          onClose={() => setDeleteTarget(null)}
+          onConfirm={async () => {
+            if (deleteTarget.selected) {
+              if (!onDeleteMany) throw new Error(t("Could not delete upload record."));
+              await onDeleteMany(batch, deleteTarget.selected);
+              setSelectedIds(new Set());
+            } else {
+              if (!onDelete) throw new Error(t("Could not delete upload record."));
+              await onDelete(batch, deleteTarget.item);
+            }
+          }}
+        >
+          <p>{deleteTarget.item
+            ? t("Delete the record for {filename}?", { filename: deleteTarget.item.originalFilename })
+            : t("Delete {count} file records from the batch created on {date}?", {
+              count: deleteTarget.selected?.length ?? batch.items.length,
+              date: new Date(batch.createdAt).toLocaleString(language),
+            })}</p>
+          <p>{t("These records cannot be restored. Pending uploads will stop. Media already in your gallery will stay there.")}</p>
         </ConfirmationDialog>
       ) : null}
     </Collapsible.Root>

@@ -36,7 +36,7 @@ export function LoginPage() {
   };
 
   return (
-    <AuthLayout>
+    <AuthLayout showSettings={false}>
         <form className="login__card" onSubmit={submit} aria-labelledby="login-title">
           <span className="login__badge">{t("LET'S CONNECT")}</span>
           <h1 id="login-title" className="login__title">{t("Welcome back")}<span className="brand__dot">.</span></h1>

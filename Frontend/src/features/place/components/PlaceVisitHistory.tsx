@@ -1,7 +1,7 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import { Trash2 } from "../../../components/animate-ui/icons/trash-2";
 import { LoaderCircle } from "../../../components/animate-ui/icons/loader-circle";
-import { ConfirmationDialog } from "../../../components/ui";
+import { ConfirmationDialog, showToast } from "../../../components/ui";
 import { useAuthStore } from "../../../store/authStore";
 import { UserAvatar } from "../../../components/common/UserAvatar";
 import { PlaceDialog } from "./PlaceDialog";
@@ -18,7 +18,7 @@ interface Props {
   showVisitor?: boolean;
   showVisitorName?: boolean;
   canEditVisits?: boolean;
-  onRemove?: (visit: PlaceVisit) => void;
+  onRemove?: (visit: PlaceVisit) => Promise<void>;
   removingVisitId?: string | null;
   onShowOnMap?: (visit: PlaceVisit) => void;
 }
@@ -50,8 +50,7 @@ export function PlaceVisitHistory({ visits, showPlaceDetails = true, showVisitor
       setNow(time);
       return;
     }
-    if (time - new Date(visit.visitedAt).getTime() <= 5 * 60 * 1000) onRemove?.(visit);
-    else setVisitToRemove(visit);
+    setVisitToRemove(visit);
   };
 
   return (
@@ -178,12 +177,19 @@ export function PlaceVisitHistory({ visits, showPlaceDetails = true, showVisitor
         confirmLabel="Remove check in"
         danger
         onConfirm={async () => {
-          if (canRemove(visitToRemove, Date.now())) onRemove?.(visitToRemove);
-          else setNow(Date.now());
+          if (!canRemove(visitToRemove, Date.now())) {
+            setNow(Date.now());
+            showToast.error(t("Check ins older than one day cannot be removed."));
+            return;
+          }
+          await onRemove?.(visitToRemove);
         }}
         onClose={() => setVisitToRemove(null)}
       >
-        <p>{t("This check in will be removed from your visit history.")}</p>
+        <p>{t("Remove your check-in at “{name}” on {date}? Its note and rating will also be removed.", {
+          name: visitToRemove.placeName,
+          date: new Date(visitToRemove.visitedAt).toLocaleString(language),
+        })}</p>
       </ConfirmationDialog>
     )}
     </>

@@ -157,11 +157,12 @@ describe("AuthenticatedLayout sidebar", () => {
     expect(header?.nextElementSibling).toBe(container.querySelector(".app-shell__content"));
   });
 
-  it("keeps upload and account destinations available on mobile", async () => {
+  it("replaces the upload destination with users on mobile", async () => {
     narrowScreen = true;
     mobileScreen = true;
     await renderLayout();
-    expect(container.querySelector('.bottom-navigation a[href="/uploads"]')).not.toBeNull();
+    expect(container.querySelector('.bottom-navigation a[href="/users"]')).not.toBeNull();
+    expect(container.querySelector('.bottom-navigation a[href="/uploads"]')).toBeNull();
     expect(container.querySelector(".bottom-navigation button")?.textContent).toContain("More");
   });
 

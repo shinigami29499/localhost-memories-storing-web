@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { ErrorState, Spinner, showToast } from "../../../components/ui";
 import { Pagination } from "../../../components/ui/Pagination";
-import { ApiError } from "../../../services/api";
 import { useLocale } from "../../../context/LocaleContext";
 import { useDeletePlaceVisit, usePlaceVisits } from "../hooks/usePlaces";
 import { PlaceVisitHistory } from "./PlaceVisitHistory";
@@ -30,12 +29,8 @@ export function SinglePlaceVisitHistory({ placeId, onShowOnMap }: Props) {
   }, [history.data, totalPages]);
 
   const handleRemove = async (visit: PlaceVisit) => {
-    try {
-      await removeVisit.mutateAsync(visit.id);
-      showToast.delete(t("Check in removed."));
-    } catch (error) {
-      showToast.error(error instanceof ApiError ? error.message : t("Could not remove this check in."));
-    }
+    await removeVisit.mutateAsync(visit.id);
+    showToast.delete(t("Check in removed."));
   };
 
   return (
@@ -52,7 +47,7 @@ export function SinglePlaceVisitHistory({ placeId, onShowOnMap }: Props) {
             showPlaceDetails={false}
             showVisitor
             showVisitorName
-            onRemove={(visit) => void handleRemove(visit)}
+            onRemove={handleRemove}
             removingVisitId={removeVisit.isPending ? removeVisit.variables : null}
           />
           <Pagination page={currentPage} pageSize={PAGE_SIZE} total={total} itemLabel="visits" onPageChange={setPage} />

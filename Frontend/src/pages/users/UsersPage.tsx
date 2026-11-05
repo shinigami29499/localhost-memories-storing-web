@@ -220,8 +220,8 @@ export function UsersPage() {
         </section>
         </div>
         {users.data && total > 0 ? (
-          <footer className="admin-users__footer">
             <Pagination
+              inActionBar
               page={currentPage}
               pageSize={limit}
               total={total}
@@ -230,7 +230,6 @@ export function UsersPage() {
               onPageChange={setPage}
               onPageSizeChange={handlePageSizeChange}
             />
-          </footer>
         ) : null}
       </main>
       {action && isAdmin ? (

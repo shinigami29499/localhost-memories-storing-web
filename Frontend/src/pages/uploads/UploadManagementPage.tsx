@@ -164,7 +164,7 @@ export function UploadManagementPage() {
       await queryClient.invalidateQueries({ queryKey: ["uploads"] });
     } catch (error) {
       await queryClient.invalidateQueries({ queryKey: ["uploads"] });
-      showToast.error(t("Could not delete upload record."), error instanceof Error ? error.message : undefined);
+      throw error;
     } finally {
       setBusyItemIds((current) => { const next = new Set(current); for (const target of targets) next.delete(target.id); return next; });
     }
@@ -296,8 +296,8 @@ export function UploadManagementPage() {
         )}
       </div>
       {data && data.totalItems > 0 ? (
-        <footer className="upload-page__footer">
           <Pagination
+            inActionBar
             page={page}
             pageSize={limit}
             total={data.totalItems}
@@ -306,7 +306,6 @@ export function UploadManagementPage() {
             onPageChange={(nextPage) => setOffset((nextPage - 1) * limit)}
             onPageSizeChange={handlePageSizeChange}
           />
-        </footer>
       ) : null}
     </main>
   );

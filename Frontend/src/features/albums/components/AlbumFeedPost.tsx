@@ -1,15 +1,12 @@
-import { useEffect, useId, useRef, useState, type MouseEvent } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useId, useRef, useState } from "react";
 import { motion, useInView } from "motion/react";
 import { motionTokens, useShouldReduceMotion, useTempoTransition } from "@animate-ui/react/utils/motion";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Bookmark } from "@/components/animate-ui/icons/bookmark";
 import { X } from "@/components/animate-ui/icons/x";
-import { ConfirmationDialog, showToast } from "../../../components/ui";
+import { ConfirmationDialog } from "../../../components/ui";
 import { useLocale } from "../../../context/LocaleContext";
 import { UserAvatar } from "../../../components/common/UserAvatar";
-import { mediaService } from "../../media/services/mediaService";
-import { ApiError } from "../../../services/api";
 import { formatTimestamp, mediaPreviewUrl } from "../../../utils/media";
 import { useInvalidateAlbums } from "../hooks/useAlbums";
 import { albumService } from "../services/albumService";
@@ -26,8 +23,6 @@ export function AlbumFeedPost({ album, canDelete }: Props) {
   const captionId = useId();
   const shouldReduceMotion = useShouldReduceMotion();
   const captionTransition = useTempoTransition(motionTokens.transition.reveal);
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const invalidateAlbums = useInvalidateAlbums();
   const [deleting, setDeleting] = useState(false);
   const [captionExpanded, setCaptionExpanded] = useState(false);
@@ -38,33 +33,10 @@ export function AlbumFeedPost({ album, canDelete }: Props) {
   const previewRef = useRef<HTMLAnchorElement>(null);
   const captionRef = useRef<HTMLParagraphElement>(null);
   const inView = useInView(previewRef, { margin: "200px 0px" });
-  const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previewId = album.previewMediaId;
   const failed = previewId !== null && failedPreview === previewId;
   const albumPath = `/gallery/album/${album.id}`;
   const openLabel = t("Open album {name}", { name: album.name });
-  const favorite = useMutation({
-    mutationFn: ({ mediaId, isFavorited }: { mediaId: string; isFavorited: boolean }) => isFavorited
-      ? mediaService.unfavorite(mediaId)
-      : mediaService.favorite(mediaId),
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["media"] }),
-        invalidateAlbums(),
-      ]);
-    },
-    onError: (error) => showToast.error(
-      error instanceof ApiError ? error.message : t("Could not update favorites."),
-    ),
-  });
-
-  const clearClick = () => {
-    if (clickTimer.current !== null) clearTimeout(clickTimer.current);
-    clickTimer.current = null;
-  };
-  useEffect(() => () => {
-    if (clickTimer.current !== null) clearTimeout(clickTimer.current);
-  }, []);
   useEffect(() => {
     setCaptionExpanded(false);
   }, [album.caption]);
@@ -82,15 +54,6 @@ export function AlbumFeedPost({ album, canDelete }: Props) {
     observer.observe(caption);
     return () => observer.disconnect();
   }, [album.caption]);
-
-  const addFavorite = (event: MouseEvent<HTMLAnchorElement>) => {
-    if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
-    event.preventDefault();
-    clearClick();
-    if (previewId && !album.previewIsPreviewOnly && !album.previewIsFavorited && !favorite.isPending) {
-      favorite.mutate({ mediaId: previewId, isFavorited: false });
-    }
-  };
 
   return (
     <article className="album-feed-post" aria-label={album.name}>
@@ -124,22 +87,7 @@ export function AlbumFeedPost({ album, canDelete }: Props) {
         to={albumPath}
         className="album-feed-post__preview"
         aria-label={openLabel}
-        aria-description={`${t("{count} media", { count: album.mediaCount })}${album.previewIsPreviewOnly ? "" : `. ${t("Double-click the preview to add it to favorites.")}`}`}
-        onBlur={clearClick}
-        onClick={(event) => {
-          if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button !== 0) return;
-          clearClick();
-          if (event.detail === 0) return;
-          event.preventDefault();
-          if (event.detail === 1) {
-            // Delay pointer navigation so a double-click can favorite without leaving Home.
-            clickTimer.current = setTimeout(() => {
-              clickTimer.current = null;
-              navigate(albumPath);
-            }, 350);
-          }
-        }}
-        onDoubleClick={addFavorite}
+        aria-description={t("{count} media", { count: album.mediaCount })}
       >
         {previewId ? (
           failed ? <span className="album-feed-post__placeholder">{t("Could not load preview.")}</span> : inView ? (
@@ -214,7 +162,7 @@ export function AlbumFeedPost({ album, canDelete }: Props) {
       {deleting ? (
         <ConfirmationDialog
           title="Delete album?"
-          confirmLabel="Delete"
+          confirmLabel="Delete album"
           danger
           onClose={() => setDeleting(false)}
           onConfirm={async () => {

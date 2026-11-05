@@ -41,7 +41,7 @@ const viewCopy: Record<GalleryView, { title: string; description: string; emptyT
     title: "Favorites",
     description: "Images and videos you have favorited.",
     emptyTitle: "No favorites yet",
-    emptyHint: "Double-click an image or video to add it to favorites.",
+    emptyHint: "Tap the heart on an image or video to add it here.",
   },
 };
 
@@ -427,7 +427,15 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
                   : <Heart size={20} fill={allSelectedFavorited ? "currentColor" : "none"} aria-hidden="true" />}
               </PageActionButton>
             ) : (
-              <Link key="favorite" className="gallery-selection-bar__action" to={showingFavorites ? "/gallery" : "/gallery/favorites"} aria-label={t(showingFavorites ? "Gallery" : "Favorites")} title={t(showingFavorites ? "Gallery" : "Favorites")}><Heart size={20} fill={showingFavorites ? "currentColor" : "none"} aria-hidden="true" /></Link>
+              <Link
+                key="favorite"
+                className={`gallery-selection-bar__action${showingFavorites ? " gallery-selection-bar__action--favorite-active" : ""}`}
+                to={showingFavorites ? "/gallery" : "/gallery/favorites"}
+                aria-label={t(showingFavorites ? "Gallery" : "Favorites")}
+                title={t(showingFavorites ? "Gallery" : "Favorites")}
+              >
+                <Heart size={20} fill={showingFavorites ? "currentColor" : "none"} aria-hidden="true" />
+              </Link>
             )}
             <SelectionActions open={selectionMode}>
                 <PageActionButton
@@ -470,6 +478,7 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
           onClose={() => setDeleteDialogOpen(false)}
           onConfirm={deleteSelected}
         >
+          <p>{t("{count} selected", { count: selectedIds.length })}</p>
           {t("Selected media will move to trash and can be restored later.")}
         </ConfirmationDialog>
       ) : null}

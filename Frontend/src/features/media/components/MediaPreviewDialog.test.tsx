@@ -2,6 +2,7 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { MemoryRouter, useLocation } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MediaPreviewDialog } from "./MediaPreviewDialog";
 import type { MediaFile } from "../types";
@@ -60,8 +61,10 @@ function RouteProbe() {
 describe("MediaPreviewDialog resolution loading", () => {
   let container: HTMLDivElement;
   let root: Root;
+  let queryClient: QueryClient;
 
   beforeEach(() => {
+    queryClient = new QueryClient();
     state.selected = 0;
     state.select = undefined;
     state.settle = undefined;
@@ -83,6 +86,7 @@ describe("MediaPreviewDialog resolution loading", () => {
 
   afterEach(() => {
     act(() => root.unmount());
+    queryClient.clear();
     container.remove();
     vi.restoreAllMocks();
     Reflect.deleteProperty(HTMLDialogElement.prototype, "showModal");
@@ -95,9 +99,11 @@ describe("MediaPreviewDialog resolution loading", () => {
       ? { trashActions: { onRestore: vi.fn(), onDelete: vi.fn() } }
       : { onToggleFavorite: vi.fn() };
     act(() => root.render(
-      <MemoryRouter>
-        <MediaPreviewDialog media={media} initialMediaId="image" onClose={vi.fn()} {...actions} />
-      </MemoryRouter>,
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <MediaPreviewDialog media={media} initialMediaId="image" onClose={vi.fn()} {...actions} />
+        </MemoryRouter>
+      </QueryClientProvider>,
     ));
   }
 
@@ -143,14 +149,16 @@ describe("MediaPreviewDialog resolution loading", () => {
     const onClose = vi.fn();
     const onToggleFavorite = vi.fn();
     const renderItems = (items: MediaFile[]) => act(() => root.render(
-      <MemoryRouter>
-        <MediaPreviewDialog
-          media={items}
-          initialMediaId={image.id}
-          onClose={onClose}
-          onToggleFavorite={onToggleFavorite}
-        />
-      </MemoryRouter>,
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <MediaPreviewDialog
+            media={items}
+            initialMediaId={image.id}
+            onClose={onClose}
+            onToggleFavorite={onToggleFavorite}
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
     ));
 
     renderItems([image]);
@@ -163,59 +171,74 @@ describe("MediaPreviewDialog resolution loading", () => {
   it.each([false, true])("toggles the selected image's favorite state (favorited=%s)", (isFavorited) => {
     const onToggleFavorite = vi.fn();
     act(() => root.render(
-      <MemoryRouter>
-        <MediaPreviewDialog
-          media={[{ ...image, isFavorited }, media[2]]}
-          initialMediaId="image"
-          onClose={vi.fn()}
-          onToggleFavorite={onToggleFavorite}
-        />
-      </MemoryRouter>,
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <MediaPreviewDialog
+            media={[{ ...image, isFavorited }, media[2]]}
+            initialMediaId="image"
+            onClose={vi.fn()}
+            onToggleFavorite={onToggleFavorite}
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
     ));
 
     const images = container.querySelectorAll(".media-preview-dialog__stage img");
     act(() => images[1].dispatchEvent(new MouseEvent("dblclick", { bubbles: true })));
     expect(onToggleFavorite).not.toHaveBeenCalled();
     act(() => images[0].dispatchEvent(new MouseEvent("dblclick", { bubbles: true })));
-    expect(onToggleFavorite).toHaveBeenLastCalledWith("image", isFavorited);
+    expect(onToggleFavorite).not.toHaveBeenCalled();
 
     act(() => container.querySelector<HTMLButtonElement>(
       `[aria-label="${isFavorited ? "Remove from favorites" : "Add to favorites"}"]`,
     )!.click());
-    expect(onToggleFavorite).toHaveBeenCalledTimes(2);
+    expect(onToggleFavorite).toHaveBeenCalledExactlyOnceWith("image", isFavorited);
     expect(onToggleFavorite).toHaveBeenLastCalledWith("image", isFavorited);
+    if (!isFavorited) {
+      expect(container.querySelector<SVGElement>(".media-preview-dialog__heart-burst-icon svg")?.style.color)
+        .toBe("var(--heart-active)");
+      expect(container.querySelector(".media-preview-dialog__heart-blossom")).toBeNull();
+    }
   });
 
   it.each([false, true])("toggles the selected video's favorite state (favorited=%s)", (isFavorited) => {
     const onToggleFavorite = vi.fn();
     act(() => root.render(
-      <MemoryRouter>
-        <MediaPreviewDialog
-          media={[{ ...media[1], isFavorited }]}
-          initialMediaId="video"
-          onClose={vi.fn()}
-          onToggleFavorite={onToggleFavorite}
-        />
-      </MemoryRouter>,
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <MediaPreviewDialog
+            media={[{ ...media[1], isFavorited }]}
+            initialMediaId="video"
+            onClose={vi.fn()}
+            onToggleFavorite={onToggleFavorite}
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
     ));
     act(() => container.querySelector("video")!.dispatchEvent(
       new MouseEvent("dblclick", { bubbles: true, cancelable: true }),
     ));
+    expect(onToggleFavorite).not.toHaveBeenCalled();
+    act(() => container.querySelector<HTMLButtonElement>(
+      `[aria-label="${isFavorited ? "Remove from favorites" : "Add to favorites"}"]`,
+    )!.click());
     expect(onToggleFavorite).toHaveBeenCalledExactlyOnceWith("video", isFavorited);
   });
 
-  it("ignores double-clicks while a favorite update is pending", () => {
+  it("keeps favorite action disabled while an update is pending", () => {
     const onToggleFavorite = vi.fn();
     act(() => root.render(
-      <MemoryRouter>
-        <MediaPreviewDialog
-          media={[image]}
-          initialMediaId="image"
-          onClose={vi.fn()}
-          onToggleFavorite={onToggleFavorite}
-          favoriteBusy
-        />
-      </MemoryRouter>,
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <MediaPreviewDialog
+            media={[image]}
+            initialMediaId="image"
+            onClose={vi.fn()}
+            onToggleFavorite={onToggleFavorite}
+            favoriteBusy
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
     ));
     act(() => container.querySelector(".media-preview-dialog__stage img")!.dispatchEvent(
       new MouseEvent("dblclick", { bubbles: true }),
@@ -228,14 +251,16 @@ describe("MediaPreviewDialog resolution loading", () => {
     const onRestore = vi.fn();
     const onDelete = vi.fn();
     act(() => root.render(
-      <MemoryRouter>
-        <MediaPreviewDialog
-          media={media}
-          initialMediaId="image"
-          onClose={vi.fn()}
-          trashActions={{ onRestore, onDelete }}
-        />
-      </MemoryRouter>,
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <MediaPreviewDialog
+            media={media}
+            initialMediaId="image"
+            onClose={vi.fn()}
+            trashActions={{ onRestore, onDelete }}
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
     ));
     act(() => container.querySelector(".media-preview-dialog__stage img")!.dispatchEvent(
       new MouseEvent("dblclick", { bubbles: true }),
@@ -253,15 +278,17 @@ describe("MediaPreviewDialog resolution loading", () => {
   it.each([true, false])("opens the photo location action (located=%s)", (located) => {
     const onClose = vi.fn();
     act(() => root.render(
-      <MemoryRouter>
-        <MediaPreviewDialog
-          media={[{ ...image, location: located ? { latitude: 10, longitude: 20 } : null }]}
-          initialMediaId="image"
-          onClose={onClose}
-          onToggleFavorite={vi.fn()}
-        />
-        <RouteProbe />
-      </MemoryRouter>,
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <MediaPreviewDialog
+            media={[{ ...image, location: located ? { latitude: 10, longitude: 20 } : null }]}
+            initialMediaId="image"
+            onClose={onClose}
+            onToggleFavorite={vi.fn()}
+          />
+          <RouteProbe />
+        </MemoryRouter>
+      </QueryClientProvider>,
     ));
 
     const button = container.querySelector<HTMLButtonElement>(

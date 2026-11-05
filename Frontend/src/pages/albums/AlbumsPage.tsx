@@ -147,7 +147,10 @@ export function AlbumsPage() {
         } finally {
           await invalidate();
         }
-      }}><p>{t("Selected albums will be deleted. Saved media stay in your gallery.")}</p></ConfirmationDialog>}
+      }}>
+        <p>{t("{count} selected", { count: selectedAlbums.length })}</p>
+        <p>{t("Selected albums will be deleted. Saved media stay in your gallery.")}</p>
+      </ConfirmationDialog>}
       {editing ? (
         <AlbumFormDialog
           album={editing}

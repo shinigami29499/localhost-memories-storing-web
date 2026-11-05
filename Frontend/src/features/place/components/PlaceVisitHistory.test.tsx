@@ -18,7 +18,8 @@ const service = vi.hoisted(() => ({
 }));
 
 vi.mock("../services/placeService", () => ({ placeService: service }));
-vi.mock("../../../components/ui", () => ({
+vi.mock("../../../components/ui", async () => ({
+  ConfirmationDialog: (await import("../../../components/ui/ConfirmationDialog")).ConfirmationDialog,
   Spinner: () => <div role="status">Loading…</div>,
   ErrorState: ({ message, onRetry }: { message: string; onRetry: () => void }) => (
     <div role="alert">
@@ -199,12 +200,51 @@ describe("place visit history", () => {
     expect(removeBtn).not.toBeNull();
     await act(async () => removeBtn!.click());
     await settle();
+    expect(service.removeVisit).not.toHaveBeenCalled();
+    const dialog = document.querySelector('[role="alertdialog"]')!;
+    expect(dialog.textContent).toContain("Cafe");
+    expect(dialog.textContent).toContain("note and rating");
+    const confirm = Array.from(dialog.querySelectorAll("button")).find((button) => button.textContent === "Remove check in")!;
+    await act(async () => confirm.click());
+    await settle();
     expect(service.removeVisit).toHaveBeenCalledWith("a-1");
     expect(dates(placeHistory())).toEqual(["2026-10-29T12:00:00Z"]);
     expect(dates(container.querySelector("[data-global-history]")!)).toEqual([
       "2026-10-30T12:00:00Z",
       "2026-10-29T12:00:00Z",
     ]);
+  });
+
+  it("cancels removal of a recent check-in without writing", async () => {
+    await mount();
+    const trigger = placeHistory().querySelector<HTMLButtonElement>(".place__history-remove")!;
+    await act(async () => trigger.click());
+    await settle();
+    const dialog = document.querySelector('[role="alertdialog"]')!;
+    const cancel = Array.from(dialog.querySelectorAll("button")).find((button) => button.textContent === "Cancel")!;
+    expect(document.activeElement).toBe(cancel);
+    await act(async () => cancel.click());
+    await settle();
+    expect(service.removeVisit).not.toHaveBeenCalled();
+    expect(document.querySelector('[role="alertdialog"]')).toBeNull();
+    expect(dates(placeHistory())).toHaveLength(2);
+  });
+
+  it("keeps a failed check-in removal open for retry", async () => {
+    service.removeVisit.mockRejectedValueOnce(new Error("Unavailable"));
+    await mount();
+    await act(async () => placeHistory().querySelector<HTMLButtonElement>(".place__history-remove")!.click());
+    await settle();
+    const confirm = Array.from(document.querySelectorAll('[role="alertdialog"] button'))
+      .find((button) => button.textContent === "Remove check in") as HTMLButtonElement;
+    await act(async () => confirm.click());
+    await settle();
+    expect(document.querySelector('[role="alertdialog"]')).not.toBeNull();
+    expect(dates(placeHistory())).toHaveLength(2);
+    await act(async () => confirm.click());
+    await settle();
+    expect(service.removeVisit).toHaveBeenCalledTimes(2);
+    expect(dates(placeHistory())).toHaveLength(1);
   });
 
   it("does not display another user's cached visits while a new account loads", async () => {

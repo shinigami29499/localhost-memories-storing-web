@@ -82,10 +82,11 @@ interface SlideProps {
   active: boolean;
   preloadOriginal: boolean;
   includeDeleted: boolean;
-  onFavorite: () => void;
+  favoriteBurst: number | null;
+  onFavoriteBurstEnd: (revision: number) => void;
 }
 
-function PreviewSlide({ media, active, preloadOriginal, includeDeleted, onFavorite }: SlideProps) {
+function PreviewSlide({ media, active, preloadOriginal, includeDeleted, favoriteBurst, onFavoriteBurstEnd }: SlideProps) {
   const { t } = useLocale();
   const stageRef = useRef<HTMLDivElement>(null);
   const inView = useInView(stageRef, { margin: "200px 0px" });
@@ -93,12 +94,7 @@ function PreviewSlide({ media, active, preloadOriginal, includeDeleted, onFavori
   const originalUrl = mediaUrl(media.id, includeDeleted);
   const [failedUrls, setFailedUrls] = useState<Set<string>>(() => new Set());
   const [loadedOriginalUrl, setLoadedOriginalUrl] = useState<string | null>(null);
-  const [burst, setBurst] = useState(0);
   const reduceMotion = useShouldReduceMotion();
-  const favorite = () => {
-    setBurst((value) => value + 1);
-    onFavorite();
-  };
   const handleOriginalLoad = useCallback((image: HTMLImageElement) => {
     setLoadedOriginalUrl(originalUrl);
     stageRef.current?.style.setProperty("--media-aspect", String(image.naturalWidth / image.naturalHeight));
@@ -115,8 +111,7 @@ return (
       {!active && !inView ? null : failedUrls.has(previewUrl) && !active ? (
         <p role={active ? "alert" : undefined}>{t("Could not load this media.")}</p>
       ) : media.mediaKind === "video" && active ? (
-        <VideoPlayer key={originalUrl} src={originalUrl} name={media.originalFilename} onError={() => setFailedUrls((current) => new Set(current).add(originalUrl))}
-          onDoubleClick={!includeDeleted ? favorite : undefined} />
+        <VideoPlayer key={originalUrl} src={originalUrl} name={media.originalFilename} onError={() => setFailedUrls((current) => new Set(current).add(originalUrl))} />
       ) : (
         <>
           <img
@@ -127,7 +122,6 @@ return (
             decoding="async"
             draggable={false}
             onLoad={(event) => event.currentTarget.style.setProperty("--media-aspect", String(event.currentTarget.naturalWidth / event.currentTarget.naturalHeight))}
-            onDoubleClick={active && !includeDeleted ? favorite : undefined}
             onError={handlePreviewError}
           />
           {active && media.mediaKind === "image" && loadedOriginalUrl === originalUrl ? (
@@ -138,7 +132,6 @@ return (
               decoding="async"
               draggable={false}
               onLoad={(event) => event.currentTarget.style.setProperty("--media-aspect", String(event.currentTarget.naturalWidth / event.currentTarget.naturalHeight))}
-              onDoubleClick={!includeDeleted ? favorite : undefined}
               onError={handleOriginalError}
             />
           ) : null}
@@ -152,18 +145,13 @@ return (
           ) : null}
         </>
       )}
-      {active && burst > 0 ? (
-        <span key={burst} className="media-preview-dialog__heart-burst" aria-hidden="true" onAnimationEnd={(event) => {
-          if (event.target === event.currentTarget) setBurst(0);
+      {active && favoriteBurst !== null ? (
+        <span key={favoriteBurst} className="media-preview-dialog__heart-burst" aria-hidden="true" onAnimationEnd={(event) => {
+          if (event.target === event.currentTarget) onFavoriteBurstEnd(favoriteBurst);
         }}>
           <Particles animate={!reduceMotion}>
             <span className="media-preview-dialog__heart-burst-icon">
-              <Heart size={96} fill="currentColor" animate={false} />
-              <span className="media-preview-dialog__heart-blossom">
-                {Array.from({ length: 8 }, (_, index) => (
-                  <Heart key={index} size={14} fill="currentColor" animate={false} />
-                ))}
-              </span>
+              <Heart size={96} fill="currentColor" style={{ color: "var(--heart-active)" }} animate={false} />
             </span>
             <ParticlesEffect style={{ top: "50%", left: "50%" }} className="media-preview-dialog__favorite-particle" />
           </Particles>
@@ -225,6 +213,8 @@ export function MediaPreviewDialog({
   const [albumDialogOpen, setAlbumDialogOpen] = useState(false);
   const [copyingImage, setCopyingImage] = useState(false);
   const [copyResult, setCopyResult] = useState<{ mediaId: string } | null>(null);
+  const [favoriteBurst, setFavoriteBurst] = useState<{ mediaId: string; revision: number } | null>(null);
+  const favoriteBurstRevision = useRef(0);
   const isMobile = useMediaQuery("(max-width: 640px)");
   const hasMore = Boolean(onLoadMore) && media.length < total;
   const loop = !hasMore && media.length >= (isMobile ? 3 : 5);
@@ -303,10 +293,12 @@ export function MediaPreviewDialog({
     onClose(lastViewedId.current);
   };
   const toggleFavorite = () => {
-    if (current && !favoriteBusy) onToggleFavorite?.(current.id, current.isFavorited);
-  };
-  const addToFavorites = () => {
-    if (current && !favoriteBusy) onToggleFavorite?.(current.id, false);
+    if (!current || favoriteBusy) return;
+    if (!current.isFavorited) {
+      favoriteBurstRevision.current += 1;
+      setFavoriteBurst({ mediaId: current.id, revision: favoriteBurstRevision.current });
+    }
+    onToggleFavorite?.(current.id, current.isFavorited);
   };
   const copyImage = async () => {
     if (!current || current.mediaKind !== "image" || copyingImage) return;
@@ -505,7 +497,9 @@ export function MediaPreviewDialog({
                   active={item.id === current?.id}
                   preloadOriginal={nearbyDistance <= 2}
                   includeDeleted={Boolean(trashActions)}
-                  onFavorite={addToFavorites}
+                  favoriteBurst={favoriteBurst?.mediaId === item.id ? favoriteBurst.revision : null}
+                  onFavoriteBurstEnd={(revision) => setFavoriteBurst((currentBurst) =>
+                    currentBurst?.mediaId === item.id && currentBurst.revision === revision ? null : currentBurst)}
                 />
               </div>
               );
@@ -527,19 +521,17 @@ export function MediaPreviewDialog({
             ) : null}
           </div>
         </div>
-        {total > 1 ? (
           <div className="media-preview-dialog__controls">
-            {!hasMore && total <= MAX_DOTS ? (
+            {!hasMore && total > 1 && total <= MAX_DOTS ? (
               <div className="media-preview-dialog__dots">
                 <CarouselDots />
               </div>
             ) : null}
             <CarouselCounter
               className="media-preview-dialog__counter"
-              format={(current, count) => <>{current} / {count}</>}
+              format={(current) => <>{current} {t("of {total}", { total })}</>}
             />
           </div>
-        ) : null}
       </div>
       {deleteMediaId ? (
         <ConfirmationDialog
@@ -567,6 +559,7 @@ export function MediaPreviewDialog({
             };
           }}
         >
+          <p>{media.find((item) => item.id === deleteMediaId)?.originalFilename}</p>
           {t("Selected media will move to trash and can be restored later.")}
         </ConfirmationDialog>
       ) : null}

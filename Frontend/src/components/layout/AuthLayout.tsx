@@ -8,7 +8,7 @@ import "./control-bar.css";
 
 const SettingsPage = lazy(() => import("../../pages/settings/SettingsPage").then((module) => ({ default: module.SettingsPage })));
 
-export function AuthLayout({ children }: { children: ReactNode }) {
+export function AuthLayout({ children, showSettings = true }: { children: ReactNode; showSettings?: boolean }) {
   const { t } = useLocale();
   const settingsDialog = useRef<HTMLDialogElement>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -23,20 +23,24 @@ export function AuthLayout({ children }: { children: ReactNode }) {
         <Brand />
         <div className="login__header-actions control-bar">
           <LanguageToggleButton />
-          <button type="button" className="login__settings-button control-bar__action" aria-label={t("Settings")} title={t("Settings")}
-            onClick={() => setSettingsOpen(true)}>
-            <Settings size={18} aria-hidden="true" />
-          </button>
+          {showSettings ? (
+            <button type="button" className="login__settings-button control-bar__action" aria-label={t("Settings")} title={t("Settings")}
+              onClick={() => setSettingsOpen(true)}>
+              <Settings size={18} aria-hidden="true" />
+            </button>
+          ) : null}
         </div>
         <span className="login__header-note">{t("Your world. Your community.")}</span>
       </header>
-      <dialog ref={settingsDialog} className="login__settings-dialog" aria-label={t("Settings")}
-        onClose={() => setSettingsOpen(false)}>
-        <button type="button" className="login__settings-close" onClick={() => settingsDialog.current?.close()}>
-          {t("Close")}
-        </button>
-        {settingsOpen ? <Suspense fallback={<p role="status">{t("Loading settings")}</p>}><SettingsPage /></Suspense> : null}
-      </dialog>
+      {showSettings ? (
+        <dialog ref={settingsDialog} className="login__settings-dialog" aria-label={t("Settings")}
+          onClose={() => setSettingsOpen(false)}>
+          <button type="button" className="login__settings-close" onClick={() => settingsDialog.current?.close()}>
+            {t("Close")}
+          </button>
+          {settingsOpen ? <Suspense fallback={<p role="status">{t("Loading settings")}</p>}><SettingsPage /></Suspense> : null}
+        </dialog>
+      ) : null}
       <main className="login">
         <CommunityIntro variant="login" />
         {children}

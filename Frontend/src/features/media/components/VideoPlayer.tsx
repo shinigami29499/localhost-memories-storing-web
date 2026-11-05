@@ -7,7 +7,6 @@ interface Props {
   src: string;
   name: string;
   onError: () => void;
-  onDoubleClick?: () => void;
 }
 
 function timeLabel(value: number) {
@@ -15,7 +14,7 @@ function timeLabel(value: number) {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 }
 
-export function VideoPlayer({ src, name, onError, onDoubleClick }: Props) {
+export function VideoPlayer({ src, name, onError }: Props) {
   const { t } = useLocale();
   const video = useRef<HTMLVideoElement>(null);
   const player = useRef<HTMLDivElement>(null);
@@ -36,20 +35,15 @@ export function VideoPlayer({ src, name, onError, onDoubleClick }: Props) {
     if (clickTimer.current) clearTimeout(clickTimer.current);
     clickTimer.current = setTimeout(() => { clickTimer.current = null; togglePlay(); }, 300);
   };
-  const handleDoubleClick = () => {
-    if (clickTimer.current) clearTimeout(clickTimer.current);
-    clickTimer.current = null;
-    onDoubleClick?.();
-  };
   return (
     <div ref={player} className="video-player" style={{ "--media-aspect": aspect } as React.CSSProperties}>
       <video ref={video} src={src} preload="metadata" playsInline aria-label={name}
-        onClick={handleClick} onDoubleClick={handleDoubleClick} onError={onError}
+        onClick={handleClick} onError={onError}
         onLoadedMetadata={(event) => { const element = event.currentTarget; setDuration(element.duration); if (element.videoHeight) setAspect(element.videoWidth / element.videoHeight); }}
         onDurationChange={(event) => setDuration(event.currentTarget.duration)}
         onTimeUpdate={(event) => setCurrent(event.currentTarget.currentTime)}
         onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} />
-      {!playing && <button className="video-player__center" type="button" onClick={handleClick} onDoubleClick={handleDoubleClick} aria-label={t("Play video")}><Play size={28} animate={false} aria-hidden="true" /></button>}
+      {!playing && <button className="video-player__center" type="button" onClick={handleClick} aria-label={t("Play video")}><Play size={28} animate={false} aria-hidden="true" /></button>}
       <div className="video-player__controls">
         <input className="video-player__seek" type="range" min={0} max={Number.isFinite(duration) ? duration : 0} step="any" value={Math.min(current, Number.isFinite(duration) ? duration : 0)} aria-label={t("Video progress")} onChange={(event) => { if (video.current) video.current.currentTime = Number(event.target.value); }} />
         <div className="video-player__row">

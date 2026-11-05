@@ -68,17 +68,12 @@ export function MediaTile({
     return () => clearTimeout(timeout);
   }, [retrying, finishPreview]);
   const isSelecting = selectionEnabled && selectionMode;
-  const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const origin = useRef<{ x: number; y: number } | null>(null);
   const suppressClick = useRef(false);
-  const latest = useRef({ isSelecting, onSelect, onOpen });
-  latest.current = { isSelecting, onSelect, onOpen };
+  const latest = useRef({ onSelect });
+  latest.current = { onSelect };
 
-  const clearClick = () => {
-    if (clickTimer.current !== null) clearTimeout(clickTimer.current);
-    clickTimer.current = null;
-  };
   const clearHold = () => {
     if (holdTimer.current !== null) clearTimeout(holdTimer.current);
     holdTimer.current = null;
@@ -86,17 +81,14 @@ export function MediaTile({
   };
 
   useEffect(() => () => {
-    clearClick();
     clearHold();
   }, []);
 
   useEffect(() => {
-    clearClick();
     clearHold();
   }, [isSelecting]);
 
   const favorite = () => {
-    clearClick();
     if (failedRef.current || pendingRetry.current) return;
     if (!includeDeleted && !isSelecting && !favoriteDisabled && !media.isFavorited) onFavorite?.(media.id);
   };
@@ -116,18 +108,16 @@ export function MediaTile({
         aria-busy={retrying || undefined}
         aria-pressed={isSelecting ? selected : undefined}
         aria-description={t(selectionEnabled
-          ? includeDeleted ? "Hold to select, or press Shift+Space." : "Hold to select, or press Shift+Space. Double-click or press F to add to favorites."
-          : includeDeleted ? "Open media preview." : "Double-click or press F to add to favorites.")}
+          ? includeDeleted ? "Hold to select, or press Shift+Space." : "Hold to select, or press Shift+Space. Press F to add to favorites."
+          : includeDeleted ? "Open media preview." : "Press F to add to favorites.")}
         onPointerDown={(event) => {
           clearHold();
           if (!event.isPrimary || event.button !== 0) return;
-          clearClick();
           suppressClick.current = false;
           if (!selectionEnabled || selectionDragEnabled || isSelecting) return;
           origin.current = { x: event.clientX, y: event.clientY };
           holdTimer.current = setTimeout(() => {
             suppressClick.current = true;
-            clearClick();
             clearHold();
             latest.current.onSelect(media.id);
           }, 500);
@@ -135,7 +125,6 @@ export function MediaTile({
         onPointerMove={(event) => {
           if (origin.current && Math.hypot(event.clientX - origin.current.x, event.clientY - origin.current.y) > 10) {
             suppressClick.current = true;
-            clearClick();
             clearHold();
           }
         }}
@@ -143,19 +132,16 @@ export function MediaTile({
         onPointerLeave={clearHold}
         onPointerCancel={() => {
           suppressClick.current = true;
-          clearClick();
           clearHold();
         }}
         onContextMenu={(event) => event.preventDefault()}
         onDragStart={(event) => event.preventDefault()}
         onBlur={() => {
-          clearClick();
           clearHold();
         }}
         onKeyDown={(event) => {
           if (selectionEnabled && event.shiftKey && event.key === " ") {
             event.preventDefault();
-            clearClick();
             if (!event.repeat) onSelect(media.id);
           } else if (event.key.toLowerCase() === "f") {
             event.preventDefault();
@@ -167,7 +153,6 @@ export function MediaTile({
             suppressClick.current = false;
             if (event.detail !== 0) return;
           }
-          clearClick();
           if (isSelecting) {
             onSelect(media.id);
           } else if (retrying || (failed && retryGroup?.busy)) {
@@ -175,18 +160,8 @@ export function MediaTile({
           } else if (failed) {
             if (retryGroup) void retryGroup.retryAll(media.id);
             else void retryPreview();
-          } else if (event.detail === 0 || includeDeleted) {
-            onOpen(media.id);
-          } else if (event.detail === 1) {
-            // Wait for a possible double-click before opening the modal.
-            clickTimer.current = setTimeout(() => {
-              clickTimer.current = null;
-              if (latest.current.isSelecting) latest.current.onSelect(media.id);
-              else if (!failedRef.current && !pendingRetry.current) latest.current.onOpen(media.id);
-            }, 350);
-          }
+          } else onOpen(media.id);
         }}
-        onDoubleClick={favorite}
       >
       {isSelecting ? (
         <span className="media-tile__selection" aria-hidden="true">

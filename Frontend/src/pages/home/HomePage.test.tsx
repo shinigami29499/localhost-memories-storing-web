@@ -7,7 +7,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "../../context/LocaleContext";
 import { albumService } from "../../features/albums/services/albumService";
 import { mediaService } from "../../features/media/services/mediaService";
-import { showToast } from "../../components/ui";
 import type { Album } from "../../features/albums/types";
 import { useAuthStore } from "../../store/authStore";
 import { HomePage } from "./HomePage";
@@ -140,21 +139,18 @@ describe("HomePage", () => {
     expect(albumService.page).toHaveBeenCalledWith("feed", "older", 30, undefined, "", expect.any(AbortSignal));
   });
 
-  it("navigates to album detail after a single pointer click", async () => {
+  it("navigates to album detail immediately after a single pointer click", async () => {
     await renderPage();
     await act(async () => { pointerClick(preview(), 1); });
-    expect(location()).toBe("/");
-    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 400)); });
     expect(location()).toBe("/gallery/album/own-album");
     expect(mediaService.favorite).not.toHaveBeenCalled();
   });
 
-  it("favorites only the preview on double-click without navigating", async () => {
+  it("navigates on double-click without favoriting the preview", async () => {
     await renderPage();
     await doubleClick();
-    await vi.waitFor(() => expect(mediaService.favorite).toHaveBeenCalledExactlyOnceWith("own-preview"));
-    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 400)); });
-    expect(location()).toBe("/");
+    expect(location()).toBe("/gallery/album/own-album");
+    expect(mediaService.favorite).not.toHaveBeenCalled();
     expect(mediaService.unfavorite).not.toHaveBeenCalled();
   });
 
@@ -168,7 +164,7 @@ describe("HomePage", () => {
     expect(location()).toBe("/gallery/album/own-album");
   });
 
-  it("hides favorite and save actions and does not unfavorite on double-click", async () => {
+  it("hides favorite and save actions without changing favorites on double-click", async () => {
     vi.mocked(albumService.page).mockResolvedValue(asPage([{ ...ownAlbum, previewIsFavorited: true }, publicAlbum]));
     await renderPage();
     await doubleClick();
@@ -212,15 +208,6 @@ describe("HomePage", () => {
     expect(mediaService.favorite).not.toHaveBeenCalled();
     await act(async () => preview().click());
     expect(location()).toBe("/gallery/album/own-album");
-  });
-
-  it("reports favorite failures and leaves navigation and state unchanged", async () => {
-    const errorToast = vi.spyOn(showToast, "error").mockImplementation(() => "test-toast");
-    vi.mocked(mediaService.favorite).mockRejectedValue(new Error("offline"));
-    await renderPage();
-    await doubleClick();
-    await vi.waitFor(() => expect(errorToast).toHaveBeenCalledWith("Could not update favorites."));
-    expect(location()).toBe("/");
   });
 
   it("retries a failed preview without navigating", async () => {

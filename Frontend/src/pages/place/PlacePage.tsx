@@ -366,12 +366,8 @@ export function PlacePage() {
   };
 
   const removeVisit = async (visit: { id: string }) => {
-    try {
-      await removeVisitMutation.mutateAsync(visit.id);
-      showToast.delete(t("Check in removed."));
-    } catch (error) {
-      showToast.error(error instanceof ApiError ? error.message : t("Could not remove this check in."));
-    }
+    await removeVisitMutation.mutateAsync(visit.id);
+    showToast.delete(t("Check in removed."));
   };
 
   const startEdit = (place: Place) => {
@@ -652,7 +648,7 @@ export function PlacePage() {
                     onShowOnMap={(visit) => { setSelectedId(visit.placeId); setDetailsOpen(false); requestView("map"); }}
                     showVisitor
                     showVisitorName
-                    onRemove={(visit) => void removeVisit(visit)}
+                    onRemove={removeVisit}
                     removingVisitId={removeVisitMutation.isPending ? removeVisitMutation.variables : null}
                   />
                 ) : (
@@ -753,8 +749,8 @@ export function PlacePage() {
           </form>
         </PageActionBar>}
         {saved && view === "history" && visitHistory.data && historyTotal > 0 && !visitHistory.isError ? (
-          <footer className="place__history-footer">
             <Pagination
+              inActionBar
               page={currentHistoryPage}
               pageSize={historyPageSize}
               total={historyTotal}
@@ -763,7 +759,6 @@ export function PlacePage() {
               onPageChange={setHistoryPage}
               onPageSizeChange={(size) => { setHistoryPageSize(size); setHistoryPage(1); }}
             />
-          </footer>
         ) : null}
             </>
             </div>
@@ -931,7 +926,7 @@ export function PlacePage() {
             {placeToDelete && (
               <ConfirmationDialog
                 title="Delete this place?"
-                confirmLabel="Delete"
+                confirmLabel="Delete place"
                 danger
                 onConfirm={confirmDelete}
                 onClose={() => setPlaceToDelete(null)}
@@ -960,6 +955,4 @@ export function PlacePage() {
     </main>
   );
 }
-
-
 

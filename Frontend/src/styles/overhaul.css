@@ -184,6 +184,7 @@ textarea, select { min-height: 44px; border-radius: 6px; }
   .bottom-navigation {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
+    column-gap: 4px;
     align-items: start;
     height: calc(64px + env(safe-area-inset-bottom));
     padding: 4px 4px env(safe-area-inset-bottom);

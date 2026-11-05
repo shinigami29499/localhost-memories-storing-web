@@ -1,15 +1,12 @@
-import { createContext, useContext, useLayoutEffect, useState } from "react";
+import { useContext, useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import type { HTMLAttributes, ReactNode } from "react";
 import { motion } from "motion/react";
 import { useAnimationStore } from "../../store/animationStore";
+import { ActionBarContext } from "./PageActionBarContext";
 import "../../pages/gallery/gallery.css";
 
-const ActionBarContext = createContext<HTMLElement | null>(null);
-
-export function usePageActionBarFooter() {
-  return useContext(ActionBarContext)?.parentElement ?? null;
-}
+export { usePageActionBarFooter } from "./PageActionBarContext";
 
 function animateExit(footer: HTMLElement, bar: HTMLElement, bounds: { left: number; top: number; width: number; height: number }) {
   footer.querySelector(":scope > [data-collapsing-bar]")?.remove();

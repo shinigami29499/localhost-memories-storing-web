@@ -124,7 +124,21 @@
 }
 
 .pagination__select-positioner {
-  z-index: 30;
+  z-index: 110;
+}
+
+.page-action-bar .pagination-action-bar {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  overflow: visible;
+}
+
+.pagination-action-bar .pagination {
+  flex-wrap: nowrap;
+  gap: 0.5rem;
+  padding-inline: 0;
 }
 
 .pagination__select-popup {

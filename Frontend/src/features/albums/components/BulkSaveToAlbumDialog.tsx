@@ -3,6 +3,7 @@ import { CustomDialog as AlertDialog, useCustomDialog } from "../../../component
 import { Bookmark } from "@/components/animate-ui/icons/bookmark";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import { Button } from "../../../components/ui/Button";
+import { ConfirmationDialog } from "../../../components/ui/ConfirmationDialog";
 import { ErrorState, Spinner } from "../../../components/ui/Status";
 import { showToast } from "../../../components/ui/Toast";
 import { useLocale } from "../../../context/LocaleContext";
@@ -36,6 +37,7 @@ export function BulkSaveToAlbumDialog({ mediaIds, onSaved, onClose }: Props) {
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [creating, setCreating] = useState(false);
+  const [removal, setRemoval] = useState<{ album: Album; mediaIds: string[] } | null>(null);
 
   const membershipByMediaId = new Map(membership.data?.items.map((item) => [item.mediaId, item.albumIds]) ?? []);
   const savedMediaIds = (album: Album) => selectedMediaIds.filter((id) =>
@@ -48,14 +50,14 @@ export function BulkSaveToAlbumDialog({ mediaIds, onSaved, onClose }: Props) {
     return true;
   };
 
-  const toggle = async (album: Album) => {
+  const toggle = async (album: Album, removalIds?: string[]) => {
     if (pendingId !== null || creating) return;
     setPendingId(album.id);
     try {
       const saved = savedMediaIds(album);
-      const remove = saved.length === selectedMediaIds.length;
+      const remove = removalIds !== undefined;
       const mediaIdsToUpdate = remove
-        ? saved
+        ? removalIds
         : selectedMediaIds.filter((mediaId) => !saved.includes(mediaId));
       await updateAlbumMedia(album.id, mediaIdsToUpdate, remove ? "remove" : "add");
       await invalidate();
@@ -70,6 +72,7 @@ export function BulkSaveToAlbumDialog({ mediaIds, onSaved, onClose }: Props) {
         onSaved?.();
       }
     } catch (error) {
+      if (removalIds) throw error;
       showToast.error(error instanceof ApiError ? error.message : t("Could not complete this action. Please retry."));
     } finally {
       setPendingId(null);
@@ -103,7 +106,8 @@ export function BulkSaveToAlbumDialog({ mediaIds, onSaved, onClose }: Props) {
   const isPending = albumsQuery.isPending || membership.isPending;
   const loadError = (albumsQuery.isError && !albumsQuery.data) || membership.isError;
   const busy = pendingId !== null || creating;
-  const { dialogProps, dismiss } = useCustomDialog(onClose, { blocked: busy });
+  const blocked = busy || removal !== null;
+  const { dialogProps, dismiss } = useCustomDialog(onClose, { blocked });
 
   return (
     <AlertDialog.Root {...dialogProps}>
@@ -137,7 +141,12 @@ export function BulkSaveToAlbumDialog({ mediaIds, onSaved, onClose }: Props) {
                         disabled={busy}
                         aria-busy={pendingId === album.id || undefined}
                         aria-pressed={savedMediaIds(album).length === selectedMediaIds.length}
-                        onClick={() => void toggle(album)}
+                        onClick={() => {
+                          if (blocked) return;
+                          const saved = savedMediaIds(album);
+                          if (saved.length === selectedMediaIds.length) setRemoval({ album, mediaIds: saved });
+                          else void toggle(album);
+                        }}
                       >
                         <span className="album-picker__thumb" aria-hidden="true">
                           {album.previewMediaId ? <img src={mediaPreviewUrl(album.previewMediaId)} alt="" loading="lazy" /> : <Bookmark size={18} />}
@@ -162,7 +171,7 @@ export function BulkSaveToAlbumDialog({ mediaIds, onSaved, onClose }: Props) {
                 <ErrorState message={t("Could not load more albums.")} onRetry={() => void albumsQuery.fetchNextPage()} />
               ) : null}
               {albumsQuery.hasNextPage ? (
-                <button type="button" className="btn btn--secondary" disabled={busy || albumsQuery.isFetchingNextPage}
+                <button type="button" className="btn btn--secondary" disabled={blocked || albumsQuery.isFetchingNextPage}
                   onClick={() => void albumsQuery.fetchNextPage()}>
                   {t(albumsQuery.isFetchingNextPage ? "Loading albums…" : "Load more")}
                 </button>
@@ -174,19 +183,33 @@ export function BulkSaveToAlbumDialog({ mediaIds, onSaved, onClose }: Props) {
                   maxLength={ALBUM_NAME_MAX_LENGTH}
                   placeholder={t("New album name")}
                   aria-label={t("New album name")}
-                  disabled={busy}
+                  disabled={blocked}
                 />
-                <Button type="submit" variant="secondary" busy={creating} disabled={!name.trim() || busy}>
+                <Button type="submit" variant="secondary" busy={creating} disabled={!name.trim() || blocked}>
                   {t("Create")}
                 </Button>
               </form>
             </div>
             <footer className="confirmation-dialog__actions">
-              <button type="button" className="btn btn--primary" disabled={busy} onClick={dismiss}>{t("Done")}</button>
+              <button type="button" className="btn btn--primary" disabled={blocked} onClick={dismiss}>{t("Done")}</button>
             </footer>
           </AlertDialog.Popup>
         </AlertDialog.Viewport>
       </AlertDialog.Portal>
+      {removal && (
+        <ConfirmationDialog
+          title="Remove selected media from album?"
+          confirmLabel="Remove from album"
+          danger
+          onClose={() => setRemoval(null)}
+          onConfirm={async () => { await toggle(removal.album, removal.mediaIds); }}
+        >
+          <p>{t("Remove {count} media items from “{name}”? They will remain in your gallery.", {
+            count: removal.mediaIds.length,
+            name: removal.album.name,
+          })}</p>
+        </ConfirmationDialog>
+      )}
     </AlertDialog.Root>
   );
 }

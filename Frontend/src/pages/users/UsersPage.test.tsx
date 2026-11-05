@@ -89,13 +89,12 @@ describe("UsersPage", () => {
     });
   }
 
-  it("reuses the pagination footer outside scrolling content and keeps full account counts", () => {
+  it("keeps standalone pagination outside scrolling content and keeps full account counts", () => {
     renderPage();
     const content = container.querySelector(".admin-users__content")!;
-    const footer = container.querySelector(".admin-users__footer")!;
-    expect(content.nextElementSibling).toBe(footer);
-    expect(content.contains(footer)).toBe(false);
-    expect(footer.querySelector('[aria-label="users pagination"]')).not.toBeNull();
+    const pagination = container.querySelector('[aria-label="users pagination"]')!;
+    expect(content.nextElementSibling).toBe(pagination);
+    expect(content.contains(pagination)).toBe(false);
     expect(displayedNames()).toEqual(users.slice(0, 10).map((user) => user.username));
     expect(Array.from(container.querySelectorAll(".admin-users__stat strong"), (node) => node.textContent))
       .toEqual(["25", "12", "13"]);

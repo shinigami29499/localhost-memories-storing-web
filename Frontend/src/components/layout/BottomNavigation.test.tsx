@@ -28,14 +28,14 @@ describe("mobile navigation", () => {
     try {
       await act(async () => root.render(<MemoryRouter initialEntries={["/gallery"]}><BottomNavigation /></MemoryRouter>));
       const links = [...container.querySelectorAll<HTMLAnchorElement>(".bottom-navigation a")];
-      expect(links.map((link) => link.getAttribute("href"))).toEqual(["/", "/gallery", "/location", "/uploads"]);
+      expect(links.map((link) => link.getAttribute("href"))).toEqual(["/", "/gallery", "/location", "/users"]);
       expect(links[1].getAttribute("aria-current")).toBe("page");
       const more = container.querySelector<HTMLButtonElement>('.bottom-navigation button')!;
       await act(async () => more.click());
       const dialog = container.querySelector<HTMLDialogElement>("dialog")!;
       expect(dialog.open).toBe(true);
       expect([...dialog.querySelectorAll("a")].map((link) => link.getAttribute("href")))
-        .toEqual(["/users", "/profile", "/settings"]);
+        .toEqual(["/profile", "/settings"]);
       const logoutButton = [...dialog.querySelectorAll("button")].find((button) => button.textContent?.includes("Log out"))!;
       await act(async () => logoutButton.click());
       expect(logout).toHaveBeenCalledOnce();
@@ -47,6 +47,21 @@ describe("mobile navigation", () => {
       else Reflect.deleteProperty(HTMLDialogElement.prototype, "showModal");
       if (originalClose) Object.defineProperty(HTMLDialogElement.prototype, "close", originalClose);
       else Reflect.deleteProperty(HTMLDialogElement.prototype, "close");
+    }
+  });
+
+  it("marks the users destination active on the users route", async () => {
+    vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+    try {
+      await act(async () => root.render(<MemoryRouter initialEntries={["/users"]}><BottomNavigation /></MemoryRouter>));
+      expect(container.querySelector('.bottom-navigation a[href="/users"]')?.getAttribute("aria-current")).toBe("page");
+      expect(container.querySelector('.bottom-navigation button')?.getAttribute("aria-current")).toBeNull();
+    } finally {
+      await act(async () => root.unmount());
+      container.remove();
     }
   });
 });

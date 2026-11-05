@@ -477,12 +477,6 @@
   height: 40px;
 }
 
-.sidebar__account-avatar--trigger.user-avatar {
-  width: 18px;
-  height: 18px;
-  border-radius: 4px;
-}
-
 .sidebar__account-avatar.user-avatar--fallback {
   background-color: var(--user-avatar-color, #6A3F36);
   color: #F4F3EE;

@@ -620,8 +620,9 @@
   color: #F4F3EE;
 }
 
-.gallery-selection-bar__action--favorite[aria-pressed="true"] svg {
-  color: var(--heart);
+.gallery-selection-bar__action--favorite[aria-pressed="true"] svg,
+.gallery-selection-bar__action--favorite-active svg {
+  color: var(--heart-active);
 }
 
 .gallery-selection-bar--compact .gallery-selection-bar__action--save[aria-pressed="true"] {

@@ -422,6 +422,8 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
         </PageActionBar>
       </footer>
       {removingSelection && <ConfirmationDialog title="Remove selected media from album?" confirmLabel="Remove from album" danger onConfirm={removeSelected} onClose={() => setRemovingSelection(false)}>
+        <p>{t("{count} selected", { count: selectedMedia.length })}</p>
+        <p>{data.name}</p>
         <p>{t("Selected media will be removed from this album and remain in your gallery.")}</p>
       </ConfirmationDialog>}
       {previewMediaId ? (
@@ -451,7 +453,7 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
       {deleting ? (
         <ConfirmationDialog
           title="Delete album?"
-          confirmLabel="Delete"
+          confirmLabel="Delete album"
           danger
           onClose={() => setDeleting(false)}
           onConfirm={async () => {

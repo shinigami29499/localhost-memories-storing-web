@@ -8,6 +8,7 @@ import { LocaleProvider } from "../../context/LocaleContext";
 import { showToast } from "../../components/ui/Toast";
 import { albumService } from "../../features/albums/services/albumService";
 import { mediaService } from "../../features/media/services/mediaService";
+import { PageActionBarProvider } from "../../components/layout/PageActionBar";
 import type { MediaFile, PagedMedia } from "../../features/media/types";
 import { useAuthStore } from "../../store/authStore";
 import { GalleryPage, type GalleryView } from "./GalleryPage";
@@ -164,6 +165,24 @@ describe("GalleryPage", () => {
     expect(container.querySelector('[aria-label="Show favorites only"]')?.getAttribute("aria-pressed")).toBe("false");
   });
 
+  it("colors the favorites action heart when viewing favorites", async () => {
+    await act(async () => root.render(
+      <PageActionBarProvider>
+        <MemoryRouter>
+          <QueryClientProvider client={client}>
+            <LocaleProvider><GalleryPage view="favorites" /></LocaleProvider>
+          </QueryClientProvider>
+        </MemoryRouter>
+      </PageActionBarProvider>,
+    ));
+    await vi.waitFor(() => expect(container.querySelector(".media-tile")).not.toBeNull());
+    const favoritesAction = container.querySelector<HTMLAnchorElement>(".gallery-selection-bar__action--favorite-active");
+
+    expect(favoritesAction).not.toBeNull();
+    expect(favoritesAction?.getAttribute("aria-label")).toBe("Gallery");
+    expect(favoritesAction?.querySelector("svg")?.getAttribute("fill")).toBe("currentColor");
+  });
+
   it("shows only the pagination retry after loading more fails", async () => {
     let intersect = () => {};
     vi.stubGlobal("IntersectionObserver", class {
@@ -310,18 +329,13 @@ describe("GalleryPage", () => {
     expect(container.textContent).not.toContain("1 selected");
   });
 
-  it("double-click adds a favorite without unfavoriting or opening the viewer", async () => {
+  it("does not favorite on double-click", async () => {
     await renderPage();
     await vi.waitFor(() => expect(container.querySelector(".media-tile")).not.toBeNull());
     const tile = container.querySelector<HTMLButtonElement>(".media-tile")!;
-    await act(async () => {
-      tile.dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 1 }));
-      tile.dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 2 }));
-      tile.dispatchEvent(new MouseEvent("dblclick", { bubbles: true, detail: 2 }));
-    });
-    expect(mediaService.favorite).toHaveBeenCalledWith(image.id);
+    await act(async () => tile.dispatchEvent(new MouseEvent("dblclick", { bubbles: true, detail: 2 })));
+    expect(mediaService.favorite).not.toHaveBeenCalled();
     expect(mediaService.unfavorite).not.toHaveBeenCalled();
-    expect(container.querySelector("dialog")).toBeNull();
   });
 
   it("refreshes cached gallery and album views after favoriting and undoing", async () => {
@@ -338,8 +352,8 @@ describe("GalleryPage", () => {
     client.setQueryData(favoriteKey, favorites);
     client.setQueryData(albumKey, album);
 
-    await act(async () => container.querySelector(".media-tile")!.dispatchEvent(
-      new MouseEvent("dblclick", { bubbles: true, detail: 2 }),
+    await act(async () => container.querySelector<HTMLButtonElement>(".media-tile")!.dispatchEvent(
+      new KeyboardEvent("keydown", { bubbles: true, key: "f" }),
     ));
     await vi.waitFor(() => expect(success).toHaveBeenCalled());
     expect(favorite).toHaveBeenCalledExactlyOnceWith(image.id);

@@ -3,7 +3,6 @@ import { NavLink, useLocation } from "react-router-dom";
 import { Home } from "../animate-ui/icons/home";
 import { LibraryBig } from "../animate-ui/icons/library-big";
 import { MapPin } from "../animate-ui/icons/map-pin";
-import { Upload } from "../animate-ui/icons/upload";
 import { Ellipsis } from "../animate-ui/icons/ellipsis";
 import { Users } from "../animate-ui/icons/users";
 import { UserRound } from "../animate-ui/icons/user-round";
@@ -21,8 +20,8 @@ export function BottomNavigation() {
   const moreRef = useRef<HTMLButtonElement>(null);
   const library = location.pathname.startsWith("/gallery");
   const places = location.pathname.startsWith("/location");
-  const uploads = location.pathname.startsWith("/uploads");
-  const more = ["/users", "/profile", "/settings"].includes(location.pathname);
+  const users = location.pathname.startsWith("/users");
+  const more = ["/profile", "/settings"].includes(location.pathname);
 
   useEffect(() => { setMoreOpen(false); }, [location.key]);
   useEffect(() => {
@@ -43,8 +42,8 @@ export function BottomNavigation() {
       <NavLink to="/location" className="bottom-navigation__item" aria-current={places ? "page" : undefined}>
         <MapPin size={22} aria-hidden="true" /><span>{t("Locations")}</span>
       </NavLink>
-      <NavLink to="/uploads" className="bottom-navigation__item" aria-current={uploads ? "page" : undefined}>
-        <Upload size={22} aria-hidden="true" /><span>{t("Upload")}</span>
+      <NavLink to="/users" className="bottom-navigation__item" aria-current={users ? "page" : undefined}>
+        <Users size={22} aria-hidden="true" /><span>{t("Users")}</span>
       </NavLink>
       <button ref={moreRef} type="button" className="bottom-navigation__item" aria-expanded={moreOpen}
         aria-haspopup="dialog" aria-current={more ? "page" : undefined} onClick={() => setMoreOpen(true)}>
@@ -58,7 +57,6 @@ export function BottomNavigation() {
         <button type="button" onClick={() => dialogRef.current?.close()}>{t("Close")}</button>
       </div>
       <nav aria-label={t("More")}>
-        <NavLink to="/users" onClick={() => dialogRef.current?.close()}><Users size={20} aria-hidden="true" />{t("Users")}</NavLink>
         <NavLink to="/profile" onClick={() => dialogRef.current?.close()}><UserRound size={20} aria-hidden="true" />{t("User profile")}</NavLink>
         <NavLink to="/settings" onClick={() => dialogRef.current?.close()}><Settings size={20} aria-hidden="true" />{t("Settings")}</NavLink>
         <button type="button" onClick={() => { dialogRef.current?.close(); void logout(); }}>

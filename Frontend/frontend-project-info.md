@@ -57,13 +57,24 @@ and `/admin/users` redirect to `/sync/upload` and `/users`.
 
 Migrated dialogs use [CustomDialog](src/components/ui/CustomDialog.tsx) over Base UI
 with the `useCustomDialog` lifecycle rather than Animate UI dialog wrappers.
-Footer actions stack full-width, primary first and red Cancel/Close last, without
-a header X button. Outside clicks and Escape dismiss normal dialogs and
+Normal dialog footer actions stack full-width, primary first and Cancel/Close last,
+without a header X button. Destructive confirmations put neutral Cancel first and
+focus it initially, followed by an action-specific danger button. Outside clicks and Escape dismiss normal dialogs and
 confirmations, but are blocked during writes and for mandatory account notices.
 Popup and backdrop fades respect reduced motion and the app animation preference.
 Close callbacks run after the exit transition. Form and confirmation callbacks
 may return a function to navigate after fade-out. Nested photo pickers preserve
 their own focus scope, selection draft, and stacking.
+
+Deletion always requires a separate confirmation before a write. Album deletion,
+gallery trash moves, permanent trash deletion, upload record deletion, place
+deletion, photo location removal, home location removal, and check-in removal use
+`ConfirmationDialog`. Album pickers also confirm removal of saved media, including
+bulk selections. Confirmation copy identifies the target name or count and explains
+what remains or can be restored. Check-ins require confirmation even within five
+minutes of creation. Failed writes keep the confirmation open for retry; pending
+writes block dismissal and duplicate submissions. Existing Undo actions remain
+available for gallery trash moves and album membership changes.
 
 | Concern | Source and boundary |
 | --- | --- |
@@ -192,6 +203,11 @@ client has no SignalR subscription. The upload runtime refreshes local query sta
   notifications are local to the browser and open `/sync/upload`. The toolbar's Activity
   button opens a dialog with a responsive 36-week desktop or 12-week mobile heatmap
   of completed files that can retry if upload history cannot load.
+- Users, uploads, and location history render pagination through the shared
+  action-bar footer. The page-size menu is portaled above that footer, and
+  scrollable content reserves space for the controls.
+  The action-bar context lives in a separate module so lazy-loaded toolbars and
+  the shell retain the same context during development hot updates.
 - Browser media elements use the authenticated query-token URL because they cannot
   attach an Authorization header.
   `mediaPreviewUrl` adds `preview=true` for gallery tiles, video stills, album
@@ -358,7 +374,9 @@ Fullscreen carousel slides unload offscreen media while retaining the selected s
 The browser still controls cached bytes and decoded-image memory.
 
 Their fullscreen preview uses Animate UI's carousel with centered slides, 0.8 neighbor
-scaling, drag navigation, animated dots, and a counter. Desktop shows three slides;
+scaling, drag navigation, animated dots, and a high-contrast animated "x of x" counter.
+The counter uses the gallery's total, including media not yet loaded, and shows
+"1 of 1" for a single item. Desktop shows three slides;
 phones show one. Inactive image slides are blurred; the selected slide stays sharp.
 Looping requires at least five desktop slides or three phone slides.
 Shorter lists stop at their ends. Native video controls retain seeking gestures, and

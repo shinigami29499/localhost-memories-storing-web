@@ -334,7 +334,7 @@ export function TrashPage() {
           }}
           onConfirm={confirmAction}
         >
-          {action.ids.length > 1 ? <p>{t("{count} selected", { count: action.ids.length })}</p> : null}
+          <p>{t("{count} selected", { count: action.ids.length })}</p>
           {t(action.kind === "restore"
             ? "Restore the selected media to your library?"
             : "The selected media will be permanently deleted and cannot be restored.")}

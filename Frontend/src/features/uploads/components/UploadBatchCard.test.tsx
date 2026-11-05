@@ -353,7 +353,7 @@ describe("UploadBatchCard", () => {
         <UploadBatchCard batch={batch} showUsername={false} busyItemIds={new Set()} onRetry={onRetry} onRetryAll={vi.fn()} onPause={onPause} onDelete={onDelete} />
       </AnimateUIProvider></MemoryRouter></LocaleProvider>,
     ));
-    expect(container.querySelector<HTMLButtonElement>('[aria-label="Delete batch record"]')?.disabled).toBe(true);
+    expect(container.querySelector<HTMLButtonElement>('[aria-label="Delete batch record"]')?.disabled).toBe(false);
     expect(container.querySelector<HTMLButtonElement>('[aria-label="Delete record: success.jpg"]')?.disabled).toBe(true);
     const failed = container.querySelector('[aria-label="failed.png"]')!;
     const labels = [...failed.querySelectorAll(".upload-item__actions button")].map((button) => button.getAttribute("aria-label"));
@@ -363,7 +363,71 @@ describe("UploadBatchCard", () => {
       container.querySelector<HTMLButtonElement>('[aria-label="Delete record: failed.png"]')!.click();
     });
     expect(onPause).toHaveBeenCalledWith(batch, items[1], true);
+    expect(onDelete).not.toHaveBeenCalled();
+    const dialog = document.querySelector('[role="alertdialog"]')!;
+    expect(dialog.textContent).toContain("failed.png");
+    expect(dialog.textContent).toContain("cannot be restored");
+    await act(async () => {
+      Array.from(dialog.querySelectorAll("button")).find((button) => button.textContent === "Delete record")!.click();
+    });
     expect(onDelete).toHaveBeenCalledWith(batch, items[0]);
+  });
+
+  it("cancels batch deletion without deleting records", async () => {
+    const onDelete = vi.fn();
+    await act(async () => root.render(
+      <LocaleProvider><MemoryRouter><AnimateUIProvider reducedMotion="never">
+        <UploadBatchCard batch={batch} showUsername={false} busyItemIds={new Set()} onRetry={onRetry} onDelete={onDelete} />
+      </AnimateUIProvider></MemoryRouter></LocaleProvider>,
+    ));
+    await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Delete batch record"]')!.click());
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 60)); });
+    const dialog = document.querySelector('[role="alertdialog"]')!;
+    expect(dialog.textContent).toContain("Delete 4 file records");
+    const cancel = Array.from(dialog.querySelectorAll("button")).find((button) => button.textContent === "Cancel")!;
+    expect(document.activeElement).toBe(cancel);
+    await act(async () => cancel.click());
+    expect(onDelete).not.toHaveBeenCalled();
+  });
+
+  it("keeps failed record deletion open for retry", async () => {
+    const onDelete = vi.fn().mockRejectedValueOnce(new Error("Unavailable")).mockResolvedValue(undefined);
+    await act(async () => root.render(
+      <LocaleProvider><MemoryRouter><AnimateUIProvider reducedMotion="never">
+        <UploadBatchCard batch={batch} showUsername={false} busyItemIds={new Set()} onRetry={onRetry} onDelete={onDelete} />
+      </AnimateUIProvider></MemoryRouter></LocaleProvider>,
+    ));
+    await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Delete record: failed.png"]')!.click());
+    const confirm = Array.from(document.querySelectorAll('[role="alertdialog"] button'))
+      .find((button) => button.textContent === "Delete record") as HTMLButtonElement;
+    await act(async () => confirm.click());
+    expect(document.querySelector('[role="alertdialog"]')).not.toBeNull();
+    await act(async () => confirm.click());
+    expect(onDelete).toHaveBeenCalledTimes(2);
+  });
+
+  it("confirms only the selected record snapshot", async () => {
+    const onDelete = vi.fn();
+    const onDeleteMany = vi.fn();
+    await act(async () => root.render(
+      <LocaleProvider><MemoryRouter><AnimateUIProvider reducedMotion="never">
+        <UploadBatchCard batch={batch} showUsername={false} busyItemIds={new Set()} onRetry={onRetry} onDelete={onDelete} onDeleteMany={onDeleteMany} />
+      </AnimateUIProvider></MemoryRouter></LocaleProvider>,
+    ));
+    await act(async () => {
+      container.querySelector<HTMLInputElement>('[aria-label="Select failed.png"]')!.click();
+      container.querySelector<HTMLInputElement>('[aria-label="Select pending.webp"]')!.click();
+    });
+    await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Delete batch record"]')!.click());
+    expect(onDeleteMany).not.toHaveBeenCalled();
+    const dialog = document.querySelector('[role="alertdialog"]')!;
+    expect(dialog.textContent).toContain("Delete 2 file records");
+    await act(async () => container.querySelector<HTMLInputElement>('[aria-label="Select uploading.mp4"]')!.click());
+    await act(async () => {
+      Array.from(dialog.querySelectorAll("button")).find((button) => button.textContent === "Delete selected records")!.click();
+    });
+    expect(onDeleteMany).toHaveBeenCalledWith(batch, [items[0], items[2]]);
+    expect(onDelete).not.toHaveBeenCalled();
   });
 
   it("keeps busy actions disabled beside progress and hides actions for read-only batches", async () => {

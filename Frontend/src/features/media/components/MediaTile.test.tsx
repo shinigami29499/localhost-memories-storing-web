@@ -6,6 +6,11 @@ import { MediaTile } from "./MediaTile";
 import { MediaRetryProvider } from "./MediaRetryProvider";
 import type { MediaFile } from "../types";
 
+vi.mock("motion/react", async (importOriginal) => ({
+  ...await importOriginal<typeof import("motion/react")>(),
+  useInView: () => true,
+}));
+
 vi.mock("../../../utils/media", () => ({
   mediaPreviewUrl: (id: string, includeDeleted = false, previewSize = 640) => `/media/${id}?preview=true${includeDeleted ? "&includeDeleted=true" : ""}${previewSize === 640 ? "" : `&previewSize=${previewSize}`}`,
 }));
@@ -163,11 +168,10 @@ describe("MediaTile", () => {
     expect(button.querySelector("img")).toBeNull();
   });
 
-  it("does not open a preview that fails during the single-click delay", async () => {
+  it("does not open a failed preview", async () => {
     const button = render();
-    click(button);
     await act(async () => button.querySelector("img")!.dispatchEvent(new Event("error")));
-    act(() => vi.advanceTimersByTime(350));
+    click(button);
     expect(onOpen).not.toHaveBeenCalled();
   });
 
@@ -201,25 +205,19 @@ describe("MediaTile", () => {
     expect(button.getAttribute("aria-pressed")).toBe("true");
   });
 
-  it("opens on a single click after the double-click window", () => {
+  it("opens immediately on a single click", () => {
     const button = render();
     click(button);
-    act(() => vi.advanceTimersByTime(349));
-    expect(onOpen).not.toHaveBeenCalled();
-    act(() => vi.advanceTimersByTime(1));
     expect(onOpen).toHaveBeenCalledExactlyOnceWith("image");
   });
 
-  it("double-click adds a favorite without opening the viewer", () => {
+  it("does not favorite on double-click", () => {
     const button = render();
     click(button);
-    pointer(button, "pointerdown");
-    pointer(button, "pointerup");
     click(button, 2);
     act(() => button.dispatchEvent(new MouseEvent("dblclick", { bubbles: true, detail: 2 })));
-    act(() => vi.advanceTimersByTime(1000));
-    expect(onFavorite).toHaveBeenCalledExactlyOnceWith("image");
-    expect(onOpen).not.toHaveBeenCalled();
+    expect(onFavorite).not.toHaveBeenCalled();
+    expect(onOpen).toHaveBeenCalledTimes(2);
   });
 
   it.each([
@@ -306,16 +304,13 @@ describe("MediaTile", () => {
     expect(onOpen).toHaveBeenCalledExactlyOnceWith("image");
   });
 
-  it("cancels pending clicks on selection changes and unmount", () => {
+  it("opens immediately and applies selection mode to later clicks", () => {
     const button = render();
     click(button);
     render({ selectionMode: true });
-    act(() => vi.advanceTimersByTime(1000));
-    expect(onOpen).not.toHaveBeenCalled();
-    render();
     click(button);
     act(() => root.render(null));
-    act(() => vi.advanceTimersByTime(1000));
-    expect(onOpen).not.toHaveBeenCalled();
+    expect(onOpen).toHaveBeenCalledExactlyOnceWith("image");
+    expect(onSelect).toHaveBeenCalledExactlyOnceWith("image");
   });
 });

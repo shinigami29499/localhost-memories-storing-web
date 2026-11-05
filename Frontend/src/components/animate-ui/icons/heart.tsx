@@ -47,7 +47,7 @@ const animations = {
   } satisfies Record<string, Variants>,
 } as const;
 
-function IconComponent({ size, ...props }: HeartProps) {
+function IconComponent({ size, fill, ...props }: HeartProps) {
   const { controls } = useAnimateIconContext();
   const variants = getVariants(animations);
 
@@ -57,8 +57,8 @@ function IconComponent({ size, ...props }: HeartProps) {
       width={size}
       height={size}
       viewBox="0 0 24 24"
-      fill="none"
-      color="var(--heart)"
+      fill={fill ?? 'none'}
+      color={fill === 'currentColor' ? 'var(--heart-active)' : 'var(--heart)'}
       stroke="currentColor"
       strokeWidth={2}
       strokeLinecap="round"

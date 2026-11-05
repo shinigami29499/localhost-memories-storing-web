@@ -3,6 +3,7 @@ import * as PaginationPrimitive from "@animate-ui/react/primitives/pagination";
 import { Select } from "@animate-ui/react/primitives/base-ui/select";
 import "./Pagination.css";
 import { useLocale } from "../../context/LocaleContext";
+import { PageActionBar, usePageActionBarFooter } from "../layout/PageActionBar";
 
 export const PAGE_SIZE_OPTIONS = [10, 20, 50] as const;
 export const DEFAULT_PAGE_SIZE = 10;
@@ -13,6 +14,7 @@ interface PaginationProps {
   total: number;
   itemLabel?: string;
   isFetching?: boolean;
+  inActionBar?: boolean;
   onPageChange: (page: number) => void;
   onPageSizeChange?: (pageSize: number) => void;
 }
@@ -23,14 +25,16 @@ export function Pagination({
   total,
   itemLabel = "items",
   isFetching = false,
+  inActionBar = false,
   onPageChange,
   onPageSizeChange,
 }: PaginationProps) {
   const { t } = useLocale();
+  const actionBarFooter = usePageActionBarFooter();
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const pageNumbers = getPageNumbers(page, totalPages);
 
-  return (
+  const navigation = (
     <PaginationPrimitive.Root className="pagination" aria-label={t("{label} pagination", { label: t(itemLabel) })}>
       <ul className="pagination__controls" data-slot="pagination-content">
         <li data-slot="pagination-item">
@@ -118,6 +122,10 @@ export function Pagination({
       </div> : null}
     </PaginationPrimitive.Root>
   );
+
+  return inActionBar && actionBarFooter
+    ? <PageActionBar className="pagination-action-bar">{navigation}</PageActionBar>
+    : navigation;
 }
 
 function getPageNumbers(page: number, totalPages: number): (number | "ellipsis")[] {

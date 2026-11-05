@@ -287,33 +287,7 @@
   place-items: center;
   border-radius: 50%;
   color: var(--heart);
-  background: #F8E4BE;
 }
-
-.media-preview-dialog__heart-blossom {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.media-preview-dialog__heart-blossom svg {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 14px;
-  height: 14px;
-  color: var(--heart);
-  transform: translate(-50%, -50%);
-}
-
-.media-preview-dialog__heart-blossom svg:nth-child(1) { transform: translate(-50%, -50%) translateY(-64px); }
-.media-preview-dialog__heart-blossom svg:nth-child(2) { transform: translate(-50%, -50%) rotate(45deg) translateY(-64px); }
-.media-preview-dialog__heart-blossom svg:nth-child(3) { transform: translate(-50%, -50%) rotate(90deg) translateY(-64px); }
-.media-preview-dialog__heart-blossom svg:nth-child(4) { transform: translate(-50%, -50%) rotate(135deg) translateY(-64px); }
-.media-preview-dialog__heart-blossom svg:nth-child(5) { transform: translate(-50%, -50%) rotate(180deg) translateY(-64px); }
-.media-preview-dialog__heart-blossom svg:nth-child(6) { transform: translate(-50%, -50%) rotate(225deg) translateY(-64px); }
-.media-preview-dialog__heart-blossom svg:nth-child(7) { transform: translate(-50%, -50%) rotate(270deg) translateY(-64px); }
-.media-preview-dialog__heart-blossom svg:nth-child(8) { transform: translate(-50%, -50%) rotate(315deg) translateY(-64px); }
 
 @keyframes media-heart-burst {
   0% { opacity: 0; transform: scale(0.3); }
@@ -375,7 +349,7 @@
   gap: 12px;
   min-width: 0;
   padding-top: 16px;
-  color: var(--text-strong);
+  color: var(--text-on-accent);
 }
 
 .media-preview-dialog__dots {
@@ -391,6 +365,7 @@
 
 .media-preview-dialog__counter {
   font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .media-preview-dialog .media-preview-dialog__action,
@@ -425,7 +400,7 @@
 }
 
 .media-preview-dialog__action[aria-pressed="true"] .media-preview-dialog__favorite-icon svg {
-  color: var(--heart);
+  color: var(--heart-active);
 }
 
 .media-preview-dialog__album-action[aria-pressed="true"] {
@@ -436,7 +411,7 @@
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: var(--heart);
+  background: var(--heart-active);
   pointer-events: none;
 }
 
