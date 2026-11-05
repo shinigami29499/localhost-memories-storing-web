@@ -265,7 +265,7 @@ export function UploadBatchCard({
         ) : null}
       </Collapsible.Panel>
       {deleteTarget ? (
-        <ConfirmationDialog title="Delete record" danger onClose={() => setDeleteTarget(null)} onConfirm={async () => { if (deleteTarget === "batch" && selectedItems.length) { await onDeleteMany?.(batch, selectedItems); setSelectedIds(new Set()); } else await onDelete?.(batch, deleteTarget === "batch" ? undefined : deleteTarget); }}>
+        <ConfirmationDialog title="Delete record" confirmLabel="Delete record" danger onClose={() => setDeleteTarget(null)} onConfirm={async () => { if (deleteTarget === "batch" && selectedItems.length) { await onDeleteMany?.(batch, selectedItems); setSelectedIds(new Set()); } else await onDelete?.(batch, deleteTarget === "batch" ? undefined : deleteTarget); }}>
           {deleteTarget === "batch" ? t(selectedItems.length ? "Delete the selected file records?" : "Delete this batch record and its file records?") : t("Delete the record for {filename}?", { filename: deleteTarget.originalFilename })}
         </ConfirmationDialog>
       ) : null}

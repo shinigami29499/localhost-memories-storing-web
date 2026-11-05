@@ -667,7 +667,8 @@ export function PlacePage() {
                   <EmptyState title={placeSearch || minimumRating ? "No matching places" : "No saved places yet"}
                     hint={placeSearch || minimumRating
                       ? "Try a different search to find a saved place."
-                      : "Saved places will appear here."} />
+                      : "Saved places will appear here."}
+                    action={!placeSearch && !minimumRating ? <Button type="button" variant="secondary" onClick={() => requestView("map")}>{t("Open map")}</Button> : undefined} />
                 ) : (
                   <>
                     <ul className="place__list">
@@ -751,7 +752,7 @@ export function PlacePage() {
             </AnimateIcon>
           </form>
         </PageActionBar>}
-        {saved && view === "history" && visitHistory.data && !visitHistory.isError ? (
+        {saved && view === "history" && visitHistory.data && historyTotal > 0 && !visitHistory.isError ? (
           <footer className="place__history-footer">
             <Pagination
               page={currentHistoryPage}
@@ -902,6 +903,7 @@ export function PlacePage() {
             {placeToMove && moveConfirmationOpen && (
               <ConfirmationDialog
                 title="Move this place?"
+                confirmLabel="Move place"
                 onConfirm={confirmMove}
                 onClose={() => setMoveConfirmationOpen(false)}
               >
@@ -915,6 +917,7 @@ export function PlacePage() {
             {selectedPhoto && photoRelocating && photoMoveConfirmationOpen && photoSelection?.draft && (
               <ConfirmationDialog
                 title="Move this photo?"
+                confirmLabel="Move photo"
                 onConfirm={confirmPhotoMove}
                 onClose={() => setPhotoMoveConfirmationOpen(false)}
               >
@@ -928,6 +931,7 @@ export function PlacePage() {
             {placeToDelete && (
               <ConfirmationDialog
                 title="Delete this place?"
+                confirmLabel="Delete"
                 danger
                 onConfirm={confirmDelete}
                 onClose={() => setPlaceToDelete(null)}
@@ -938,6 +942,7 @@ export function PlacePage() {
             {confirmHomeRemoval && (
               <ConfirmationDialog
                 title="Remove your home location?"
+                confirmLabel="Remove home location"
                 danger
                 onConfirm={removeHomeLocation}
                 onClose={() => setConfirmHomeRemoval(false)}

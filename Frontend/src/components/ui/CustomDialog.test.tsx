@@ -171,16 +171,18 @@ describe("Custom dialog migration", () => {
     let finish!: () => void;
     const pending = new Promise<void>((resolve) => { finish = resolve; });
     await render(
-      <ConfirmationDialog title="Delete album?" danger onClose={onClose} onConfirm={() => pending}>
+      <ConfirmationDialog title="Delete album?" confirmLabel="Delete" danger onClose={onClose} onConfirm={() => pending}>
         <p>Saved media stay in your gallery.</p>
       </ConfirmationDialog>,
     );
     expect(document.querySelector('[role="alertdialog"]')).not.toBeNull();
     expect(document.querySelector(".confirmation-dialog__close")).toBeNull();
     const actions = Array.from(document.querySelectorAll(".confirmation-dialog__actions button"));
-    expect(actions.map((button) => button.textContent)).toEqual(["Confirm", "Cancel"]);
-    expect(document.activeElement).toBe(actions[1]);
-    await click("Confirm");
+    expect(actions.map((button) => button.textContent)).toEqual(["Cancel", "Delete"]);
+    expect(document.activeElement).toBe(actions[0]);
+    expect(actions[0].classList.contains("btn--secondary")).toBe(true);
+    expect(actions[1].classList.contains("btn--danger")).toBe(true);
+    await click("Delete");
     await outsideClick();
     await escape();
     expect(onClose).not.toHaveBeenCalled();
@@ -196,15 +198,15 @@ describe("Custom dialog migration", () => {
       .mockRejectedValueOnce(new Error("Write failed"))
       .mockResolvedValueOnce(undefined);
     await render(
-      <ConfirmationDialog title="Continue?" onClose={onClose} onConfirm={onConfirm}>
+      <ConfirmationDialog title="Continue?" confirmLabel="Continue" onClose={onClose} onConfirm={onConfirm}>
         Test message
       </ConfirmationDialog>,
     );
-    await click("Confirm");
+    await click("Continue");
     await settle();
     expect(onClose).not.toHaveBeenCalled();
-    expect(document.querySelector(".confirmation-dialog__actions .btn--danger")?.hasAttribute("disabled")).toBe(false);
-    await click("Confirm");
+    expect(document.querySelector(".confirmation-dialog__actions .btn--primary")?.hasAttribute("disabled")).toBe(false);
+    await click("Continue");
     await settle();
     expect(onConfirm).toHaveBeenCalledTimes(2);
     expect(onClose).toHaveBeenCalledTimes(1);

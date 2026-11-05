@@ -42,7 +42,9 @@ export function AuthenticatedLayout() {
         <PresenceRuntime />
         <UploadRuntime />
         <header className="app-topbar">
-          <strong className="app-topbar__title">{t(pageTitle(location.pathname))}</strong>
+          {location.pathname === "/" || location.pathname.startsWith("/gallery/album/")
+            ? <strong className="app-topbar__title">{t(pageTitle(location.pathname))}</strong>
+            : <h1 className="app-topbar__title">{t(pageTitle(location.pathname))}</h1>}
           <NotificationBell />
         </header>
         <PageActionBarProvider>

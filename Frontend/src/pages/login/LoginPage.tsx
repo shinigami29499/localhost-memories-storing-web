@@ -39,7 +39,7 @@ export function LoginPage() {
     <AuthLayout>
         <form className="login__card" onSubmit={submit} aria-labelledby="login-title">
           <span className="login__badge">{t("LET'S CONNECT")}</span>
-          <h2 id="login-title" className="login__title">{t("Welcome back")}<span className="brand__dot">.</span></h2>
+          <h1 id="login-title" className="login__title">{t("Welcome back")}<span className="brand__dot">.</span></h1>
           <p className="login__subtitle">{t("Sign in to share and browse media.")}</p>
 
         <label className="login__label" htmlFor="username">{t("Username")}</label>

@@ -1,4 +1,5 @@
 import { EmptyState, ErrorState, Spinner } from "../../components/ui";
+import { Link } from "react-router-dom";
 import { useLocale } from "../../context/LocaleContext";
 import { useInfiniteAlbums, type Album } from "../../features/albums";
 import { AlbumFeedPost } from "../../features/albums/components/AlbumFeedPost";
@@ -32,6 +33,7 @@ export function HomePage() {
               <EmptyState
                 title="No albums yet"
                 hint="Create an album in Albums to start organizing your media."
+                action={<Link className="btn btn--primary" to="/gallery/album">{t("Go to albums")}</Link>}
               />
             ) : (
               <div className="home-feed" aria-busy={albumsQuery.isFetching}>

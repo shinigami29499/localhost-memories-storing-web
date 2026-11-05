@@ -14,11 +14,12 @@ export function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [created, setCreated] = useState(false);
+  const [confirmError, setConfirmError] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirmPassword) {
-      showToast.error(t("Passwords do not match."));
+      setConfirmError(true);
       return;
     }
     setBusy(true);
@@ -38,7 +39,7 @@ export function RegisterPage() {
     return (
       <AuthLayout>
           <section className="login__card" aria-labelledby="pending-title">
-            <h2 id="pending-title" className="login__title">{t("Almost there")}<span className="brand__dot">.</span></h2>
+            <h1 id="pending-title" className="login__title">{t("Almost there")}<span className="brand__dot">.</span></h1>
             <p className="login__subtitle">
               {t("Your account is created and waiting for an admin to approve it. Come back and sign in once you have been approved.")}
             </p>
@@ -52,7 +53,7 @@ export function RegisterPage() {
     <AuthLayout>
         <form className="login__card" onSubmit={submit} aria-labelledby="register-title">
           <span className="login__badge">{t("JOIN THE COMMUNITY")}</span>
-          <h2 id="register-title" className="login__title">{t("Create account")}<span className="brand__dot">.</span></h2>
+          <h1 id="register-title" className="login__title">{t("Create account")}<span className="brand__dot">.</span></h1>
           <p className="login__subtitle">{t("Pick a name and start sharing moments.")}</p>
 
           <label className="login__label" htmlFor="username">{t("Username")}</label>
@@ -68,7 +69,9 @@ export function RegisterPage() {
             pattern="[a-zA-Z0-9_.\-]+"
             title={t("Letters, digits, '_', '.' and '-' only.")}
             aria-label={t("Username")}
+            aria-describedby="register-username-help"
           />
+          <p id="register-username-help" className="login__field-help">{t("Use 3 to 64 characters: letters, digits, '_', '.' and '-'.")}</p>
           <label className="login__label" htmlFor="password">{t("Password")}</label>
           <PasswordInput
             id="password"
@@ -80,17 +83,22 @@ export function RegisterPage() {
             minLength={8}
             maxLength={128}
             aria-label={t("Password")}
+            aria-describedby="register-password-help"
           />
+          <p id="register-password-help" className="login__field-help">{t("Use 8 to 128 characters.")}</p>
           <label className="login__label" htmlFor="confirm-password">{t("Confirm password")}</label>
           <PasswordInput
             id="confirm-password"
             value={confirmPassword}
-            onChange={setConfirmPassword}
+            onChange={(value) => { setConfirmPassword(value); setConfirmError(false); }}
             placeholder={t("Confirm password")}
             autoComplete="new-password"
             required
             aria-label={t("Confirm password")}
+            aria-invalid={confirmError}
+            aria-describedby={confirmError ? "register-confirm-error" : undefined}
           />
+          {confirmError ? <p id="register-confirm-error" className="login__field-error" role="alert">{t("Passwords do not match.")}</p> : null}
 
           <Button type="submit" busy={busy}>
             {t("Create account")} <ArrowRight size={18} aria-hidden="true" />

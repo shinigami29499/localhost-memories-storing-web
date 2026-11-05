@@ -16,6 +16,8 @@ ShinigaCim is an authenticated media library with private/public albums and file
 | [Architecture](architecture.md)                                     | Choosing cross-stack boundaries or deployment locations        | Shared ownership and configuration notes                       |
 | [Backend project info](../Backend/backend-project-info.md)          | Backend work requiring exact file locations or detailed flows  | Current backend paths and domain-specific details              |
 | [Frontend project info](../Frontend/frontend-project-info.md)       | Frontend work requiring exact file locations or detailed flows | Current frontend paths and domain-specific details             |
+| [Frontend UI standard](frontend-ui-standard.md)                     | New user-facing feature or UI change                           | Layout, actions, forms, danger, and review rules               |
+| [Frontend UI audit plan](frontend-ui-audit-plan.md)                 | Planning existing screen improvements                          | Route inventory, evidence, and prioritized work                |
 | [Backend overview skill](../.agents/skills/be-a-overview/SKILL.md)  | Any backend work                                               | Backend architecture, conventions, constraints, and validation |
 | [Frontend overview skill](../.agents/skills/fe-a-overview/SKILL.md) | Any frontend work                                              | Frontend architecture, conventions, flows, and validation      |
 

@@ -99,6 +99,7 @@ export function LocationEditor({ media, draft, onChange, onSaved, onCancel }: Pr
       {confirming && (
         <ConfirmationDialog
           title={confirming === "save" ? "Save this location?" : "Remove this location?"}
+          confirmLabel={confirming === "save" ? "Save location" : "Remove location"}
           danger={confirming === "remove"}
           onClose={() => setConfirming(null)}
           onConfirm={async () => { await mutation.mutateAsync(confirming === "save" ? draft : null); }}

@@ -195,7 +195,7 @@ describe("HomePage", () => {
     await act(async () => container.querySelector<HTMLButtonElement>(".album-feed-post__delete")!.click());
     expect(albumService.remove).not.toHaveBeenCalled();
     expect(document.body.textContent).toContain("Saved media stay in your gallery.");
-    const confirm = Array.from(document.querySelectorAll("button")).find((button) => button.textContent === "Confirm")!;
+    const confirm = Array.from(document.querySelectorAll("button")).find((button) => button.textContent === "Delete")!;
     await act(async () => confirm.click());
     await vi.waitFor(() => expect(albumService.remove).toHaveBeenCalledExactlyOnceWith("own-album"));
     expect(location()).toBe("/");

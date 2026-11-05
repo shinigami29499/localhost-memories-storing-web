@@ -113,6 +113,7 @@ Load only the skill matching the frontend task:
 
 ## Further details
 
+- [Frontend UI standard](../../../Instructions/frontend-ui-standard.md): required design and review rules for new user-facing features.
 - [Frontend project info](../../../Frontend/frontend-project-info.md): current file locations, auth handling, admin features, and media URLs.
 - [Conventions](../../../Instructions/conventions.md): shared naming and comment guidance.
 - [Architecture](../../../Instructions/architecture.md): shared ownership and target-layout notes.

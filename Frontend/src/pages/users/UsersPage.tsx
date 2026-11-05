@@ -219,7 +219,7 @@ export function UsersPage() {
           </Tabs.Root>
         </section>
         </div>
-        {users.data ? (
+        {users.data && total > 0 ? (
           <footer className="admin-users__footer">
             <Pagination
               page={currentPage}
@@ -235,6 +235,10 @@ export function UsersPage() {
       </main>
       {action && isAdmin ? (
         <ConfirmationDialog
+          confirmLabel={t(action.type === "approve" ? "Approve {username}"
+            : action.type === "role" ? "Change role for {username}"
+            : action.type === "activate" ? "Activate {username}"
+            : action.type === "disable" ? "Disable {username}" : "Delete {username}", { username: action.user.username })}
           title={action.type === "approve"
             ? t("Approve {username}?", { username: action.user.username })
             : action.type === "role"

@@ -277,9 +277,9 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
       }}>
         <div className="gallery-page__fixed-layout">
           <header className="album-hero">
-            <div className="album-hero__preview" aria-hidden="true">
-              {data.previewMediaId ? <img src={mediaPreviewUrl(data.previewMediaId)} alt="" /> : null}
-            </div>
+            {data.previewMediaId ? <div className="album-hero__preview" aria-hidden="true">
+              <img src={mediaPreviewUrl(data.previewMediaId)} alt="" />
+            </div> : null}
             <div className="album-hero__text">
               <p className="gallery-page__eyebrow">
                 {t(data.isPublic ? "Public album" : "Private album")}
@@ -418,10 +418,10 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
           </button>
           {isOwner && <button type="button" className="gallery-selection-bar__action gallery-selection-bar__action--danger"
             aria-label={t("Remove from album")} title={t("Remove from album")} disabled={!selectedMedia.length || bulkFavoriteBusy}
-            onClick={() => setRemovingSelection(true)}><Trash2 size={20} aria-hidden="true" /></button>}</SelectionActions>
+            onClick={() => setRemovingSelection(true)}><Trash2 size={20} aria-hidden="true" /><span>{t("Remove from album")}</span></button>}</SelectionActions>
         </PageActionBar>
       </footer>
-      {removingSelection && <ConfirmationDialog title="Remove selected media from album?" danger onConfirm={removeSelected} onClose={() => setRemovingSelection(false)}>
+      {removingSelection && <ConfirmationDialog title="Remove selected media from album?" confirmLabel="Remove from album" danger onConfirm={removeSelected} onClose={() => setRemovingSelection(false)}>
         <p>{t("Selected media will be removed from this album and remain in your gallery.")}</p>
       </ConfirmationDialog>}
       {previewMediaId ? (
@@ -451,6 +451,7 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
       {deleting ? (
         <ConfirmationDialog
           title="Delete album?"
+          confirmLabel="Delete"
           danger
           onClose={() => setDeleting(false)}
           onConfirm={async () => {

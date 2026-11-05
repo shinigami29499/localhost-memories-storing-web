@@ -1,5 +1,6 @@
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import { useLocale } from "../../context/LocaleContext";
+import type { ReactNode } from "react";
 
 export function Spinner({ label = "Loading…" }: { label?: string }) {
   const { t } = useLocale();
@@ -11,12 +12,13 @@ export function Spinner({ label = "Loading…" }: { label?: string }) {
   );
 }
 
-export function EmptyState({ title, hint }: { title: string; hint?: string }) {
+export function EmptyState({ title, hint, action }: { title: string; hint?: string; action?: ReactNode }) {
   const { t } = useLocale();
   return (
     <div className="empty-state">
       <p className="empty-state__title">{t(title)}</p>
       {hint ? <p className="empty-state__hint">{t(hint)}</p> : null}
+      {action ? <div className="empty-state__action">{action}</div> : null}
     </div>
   );
 }

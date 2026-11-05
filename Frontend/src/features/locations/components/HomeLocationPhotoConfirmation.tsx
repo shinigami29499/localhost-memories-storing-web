@@ -15,6 +15,7 @@ export function HomeLocationPhotoConfirmation({ location, onConfirm, onClose }: 
   return (
     <ConfirmationDialog
       title="Use Home for photos without a location?"
+      confirmLabel="Use Home for photos"
       onConfirm={async () => {
         await onConfirm(location);
         showToast.success(t("Home assigned to photos without a location."));

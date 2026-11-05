@@ -12,12 +12,12 @@ export function CommunityIntro({ variant }: { variant: "login" | "feed" }) {
         <span aria-hidden="true" />
         {t(isLogin ? "A space for your perspective" : "The community, in focus")}
       </p>
-      <h1 id="community-title">
+      <h2 id="community-title">
         {t(isLogin ? "Your moments." : "Good moments.")}
         <br />
         <span className="gradient-text">{t(isLogin ? "More connected." : "Better together.")}
         </span>
-      </h1>
+      </h2>
       <p className="community-intro__description">
         {isLogin
           ? t("A photo, a story, a new point of view. Bring your world to ShinigaCim and find something worth connecting over.")

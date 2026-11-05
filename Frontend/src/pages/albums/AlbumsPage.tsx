@@ -81,6 +81,7 @@ export function AlbumsPage() {
             <EmptyState
               title="No albums yet"
               hint="Use New album to organize your media into collections."
+              action={<button type="button" className="btn btn--primary" onClick={() => setCreating(true)}>{t("New album")}</button>}
             />
           ) : (
             <div className="gallery-groups" aria-busy={albumsQuery.isFetching}>
@@ -127,15 +128,16 @@ export function AlbumsPage() {
       <footer className="gallery-page__footer albums-page__footer">
         <PageActionBar className="gallery-selection-bar gallery-selection-bar--compact" role="group" aria-label={t("{count} selected", { count: selectedIds.size })}>
           <span className="gallery-selection-bar__status" role="status">{t("{count} selected", { count: selectedIds.size })}</span>
-          <button key="primary" type="button" className="gallery-selection-bar__action" aria-label={t("New album")} title={t("New album")} disabled={deleting} onClick={() => setCreating(true)}>
+          <button key="primary" type="button" className="gallery-selection-bar__action gallery-selection-bar__action--primary" aria-label={t("New album")} title={t("New album")} disabled={deleting} onClick={() => setCreating(true)}>
             <Plus size={20} aria-hidden="true" />
+            <span>{t("New album")}</span>
           </button>
           <SelectionActions open={selectionMode}>
           <button type="button" className="gallery-selection-bar__action gallery-selection-bar__action--danger" aria-label={t("Delete selected albums")} title={t("Delete selected albums")}
-            disabled={!canDelete || deleting} onClick={() => setDeleting(true)}><Trash2 size={20} aria-hidden="true" /></button></SelectionActions>
+            disabled={!canDelete || deleting} onClick={() => setDeleting(true)}><Trash2 size={20} aria-hidden="true" /><span>{t("Delete")}</span></button></SelectionActions>
         </PageActionBar>
       </footer>
-      {deleting && <ConfirmationDialog title="Delete selected albums?" danger onClose={() => setDeleting(false)} onConfirm={async () => {
+      {deleting && <ConfirmationDialog title="Delete selected albums?" confirmLabel="Delete selected albums" danger onClose={() => setDeleting(false)} onConfirm={async () => {
         try {
           for (const album of selectedAlbums) {
             await albumService.remove(album.id);

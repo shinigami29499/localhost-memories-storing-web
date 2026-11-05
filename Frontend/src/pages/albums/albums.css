@@ -435,15 +435,16 @@
 }
 
 .btn.album-hero__delete {
-  background: #6A3F36;
+  background: transparent;
+  border: 1px solid var(--border);
   border-radius: 50%;
   box-shadow: none;
-  color: #F4F3EE;
+  color: var(--danger);
 }
 
 .btn.album-hero__delete:hover:not(:disabled) {
-  background: #6A3F36;
-  color: #F4F3EE;
+  background: var(--danger-wash);
+  color: var(--danger);
 }
 
 .album-item {

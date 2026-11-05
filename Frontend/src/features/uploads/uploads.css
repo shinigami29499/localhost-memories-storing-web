@@ -684,18 +684,19 @@
 
 @media (max-width: 640px) {
   .upload-page__actions .upload-page__attach-button,
-  .upload-page__actions .upload-page__upload-button,
-  .upload-page__filters .upload-page__activity-button,
-  .upload-page__filters .upload-page__date-filter.date-picker__trigger--compact-mobile {
-    width: 48px;
-    min-width: 48px;
-    padding-inline: 0;
+  .upload-page__actions .upload-page__upload-button {
+    flex: 1 1 0;
+    min-width: 0;
+    padding-inline: 10px;
     justify-content: center;
   }
 
-  .upload-page__button-label,
-  .upload-page__filters .upload-page__date-filter.date-picker__trigger--compact-mobile .date-picker__value {
-    display: none;
+  .upload-page__filters .upload-page__activity-button,
+  .upload-page__filters .upload-page__date-filter.date-picker__trigger--compact-mobile {
+    flex: 1 1 0;
+    min-width: 0;
+    padding-inline: 10px;
+    justify-content: center;
   }
 
   .upload-page__selection-button {
@@ -724,23 +725,22 @@
   }
 
   .upload-page__toolbar {
-    align-items: center;
-    flex-direction: row;
-    justify-content: flex-start;
+    align-items: stretch;
+    flex-direction: column;
+    gap: 8px;
   }
 
   .upload-page__actions,
   .upload-page__filters {
     align-items: center;
     justify-content: flex-start;
-    flex-wrap: nowrap;
-    max-width: none;
+    flex-wrap: wrap;
+    width: 100%;
     margin-left: 0;
   }
 
   .upload-page__filters {
-    justify-content: flex-end;
-    margin-left: auto;
+    justify-content: stretch;
   }
 
   .upload-page__filters .upload-page__date-filter {
@@ -1270,9 +1270,9 @@
     border: 0;
   }
 
-  .upload-batch__summary:not(.upload-batch__summary--admin) {
-    grid-template-columns: 24px minmax(88px, 1fr) 40px 117px;
-    grid-template-areas: "selectall created status footer";
+  .upload-page .upload-batch__summary:not(.upload-batch__summary--admin) {
+    grid-template-columns: 24px minmax(0, 1fr) auto;
+    grid-template-areas: "selectall created status" "footer footer footer";
     padding-block: 10px;
   }
 
@@ -1280,9 +1280,9 @@
     margin-left: 8px;
   }
 
-  .upload-batch__summary--admin {
-    grid-template-columns: 24px 32px minmax(0, 1fr) 40px 117px;
-    grid-template-areas: "selectall avatar username status footer";
+  .upload-page .upload-batch__summary--admin {
+    grid-template-columns: 24px minmax(0, 1fr) auto;
+    grid-template-areas: "selectall created status" "footer footer footer";
     padding-block: 10px;
   }
 

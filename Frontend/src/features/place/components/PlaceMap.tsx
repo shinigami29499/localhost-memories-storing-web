@@ -627,7 +627,7 @@ function MapContent({
   const addRef = useRef(add);
   addRef.current = add;
   const showAddToolbar = !loaded || homePicking || (picking && (!!selected || !draft)) || (!selected && !selectedPhoto && !draft && !editorOpen);
-  const addDisabled = !loaded || homePicking || homeActionDisabled || (!showMarkers && !showPhotoMarkers);
+  const addDisabled = failed || !loaded || homePicking || homeActionDisabled || (!showMarkers && !showPhotoMarkers);
   useEffect(() => {
     onAddToolbarChange({ visible: showAddToolbar, disabled: addDisabled, add: () => addRef.current() });
   }, [onAddToolbarChange, showAddToolbar, addDisabled]);
@@ -669,7 +669,7 @@ function MapContent({
 
   if (failed)
     return <>
-      <ErrorState message="Mapbox could not load. Check internet access, WebGL support, the public access token, account billing, and allowed website URLs. Places can only be placed on the map." />
+      <ErrorState message="The map could not load. Check your connection and try again. Adding places requires the map." onRetry={() => setFailed(false)} />
       {selected && <NavigationFallback destination={{ ...selected, name: selected.name }} />}
     </>;
 

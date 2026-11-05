@@ -501,6 +501,11 @@
   white-space: nowrap;
 }
 
+.gallery-selection-bar__action--primary {
+  gap: 8px;
+  padding-inline: 14px;
+}
+
 .gallery-selection-bar .gallery-selection-bar__action:hover:not(:disabled):not(.gallery-selection-bar__action--danger),
 .gallery-selection-bar .gallery-selection-bar__cancel:hover:not(:disabled) {
   background: var(--surface-hover);
@@ -738,6 +743,16 @@
     gap: 0;
     min-height: 44px;
     padding-inline: 10px;
+  }
+
+  .gallery-selection-bar__action--primary {
+    gap: 6px;
+    padding-inline: 12px;
+  }
+
+  .gallery-selection-bar__action--danger,
+  .gallery-selection-bar--trash .gallery-selection-bar__action {
+    gap: 6px;
   }
 
   .gallery-selection-bar__label,

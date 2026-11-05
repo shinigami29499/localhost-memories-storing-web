@@ -171,7 +171,7 @@ button:focus-visible {
   background: var(--gradient);
 }
 
-.community-intro h1 {
+.community-intro h2 {
   margin: 20px 0;
   color: var(--text-strong);
   font-size: clamp(2.5rem, 5.4vw, 4.2rem);
@@ -482,6 +482,10 @@ textarea::placeholder {
   overflow-wrap: anywhere;
 }
 
+.empty-state__action {
+  margin-top: 16px;
+}
+
 .error-state {
   display: grid;
   justify-items: center;
@@ -544,8 +548,7 @@ textarea::placeholder {
     --page-padding-bottom: 24px;
   }
 
-  .app-shell :is(.gallery-page__header, .place__header, .locations__header, .admin-users__header, .admin-posts__header, .upload-page__header, .settings-page__header, .profile-page__header),
-  .app-shell .album-hero__text {
+  .app-shell :is(.gallery-page__header, .place__header, .locations__header, .admin-users__header, .admin-posts__header, .upload-page__header, .settings-page__header, .profile-page__header) {
     display: none;
   }
 }
@@ -784,12 +787,13 @@ textarea::placeholder {
 }
 
 .confirmation-dialog__actions > .btn--danger {
-  background: #6A3F36;
-  color: #F4F3EE;
+  background: transparent;
+  border: 1px solid var(--danger);
+  color: var(--danger);
 }
 
 .confirmation-dialog__actions > .btn--danger:hover:not(:disabled) {
-  background: #6A3F36;
+  background: var(--danger-wash);
 }
 
 /* Album dialogs ------------------------------------------------------- */
@@ -2167,7 +2171,7 @@ textarea::placeholder {
 }
 
 @media (max-width: 560px) {
-  .community-intro h1 {
+  .community-intro h2 {
     margin: 12px 0;
     font-size: clamp(1.9rem, 9vw, 2.5rem);
   }

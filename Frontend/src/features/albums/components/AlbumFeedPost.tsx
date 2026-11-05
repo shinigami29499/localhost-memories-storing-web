@@ -214,6 +214,7 @@ export function AlbumFeedPost({ album, canDelete }: Props) {
       {deleting ? (
         <ConfirmationDialog
           title="Delete album?"
+          confirmLabel="Delete"
           danger
           onClose={() => setDeleting(false)}
           onConfirm={async () => {

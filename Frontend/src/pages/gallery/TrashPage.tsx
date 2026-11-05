@@ -286,6 +286,7 @@ export function TrashPage() {
                 onClick={() => requestAction("restore", [...selectedIds])}
               >
                 <RotateCcw size={20} aria-hidden="true" />
+                <span>{t("Restore")}</span>
               </button>
               <button
                 type="button"
@@ -296,6 +297,7 @@ export function TrashPage() {
                 onClick={() => requestAction("delete", [...selectedIds])}
               >
                 <Trash2 size={20} aria-hidden="true" />
+                <span>{t("Permanently delete")}</span>
               </button>
               </SelectionActions>
             </PageActionBar>
@@ -324,6 +326,7 @@ export function TrashPage() {
       {action ? (
         <ConfirmationDialog
           title={action.kind === "restore" ? "Restore media?" : "Permanently delete media?"}
+          confirmLabel={action.kind === "restore" ? "Restore" : "Permanently delete"}
           danger={action.kind === "delete"}
           onClose={() => {
             setAction(null);

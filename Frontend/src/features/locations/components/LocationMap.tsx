@@ -552,7 +552,7 @@ function MapContent({
 
   if (failed)
     return <>
-      <ErrorState message="Mapbox could not load. Check internet access, WebGL support, the public access token, account billing, and allowed website URLs. Photo locations can only be set on the map." />
+      <ErrorState message="The map could not load. Check your connection and try again. Setting photo locations requires the map." onRetry={() => setFailed(false)} />
       {selected?.location && <NavigationFallback destination={{ ...selected.location, name: selected.originalFilename }} />}
     </>;
 

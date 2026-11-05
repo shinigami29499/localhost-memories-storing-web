@@ -9,6 +9,7 @@ import { useDialogViewportStyle } from "../../hooks/useDialogViewportStyle";
 
 interface Props {
   title: string;
+  confirmLabel: string;
   children: ReactNode;
   danger?: boolean;
   portalContainer?: HTMLElement | null;
@@ -16,7 +17,7 @@ interface Props {
   onClose: () => void;
 }
 
-export function ConfirmationDialog({ title, children, onConfirm, onClose, portalContainer }: Props) {
+export function ConfirmationDialog({ title, confirmLabel, children, danger = false, onConfirm, onClose, portalContainer }: Props) {
   const { t } = useLocale();
   const cancelRef = useRef<HTMLButtonElement>(null);
   const pending = useRef(false);
@@ -50,8 +51,9 @@ export function ConfirmationDialog({ title, children, onConfirm, onClose, portal
               <fieldset className="confirmation-dialog__message" disabled={busy}>{children}</fieldset>
             </Dialog.Description>
             <footer className="confirmation-dialog__actions">
-              <Button type="button" variant="primary" busy={busy} onClick={() => void confirm()}>{t("Confirm")}</Button>
-              <button ref={cancelRef} type="button" className="btn btn--danger" disabled={busy} onClick={dismiss}>{t("Cancel")}</button>
+              {danger ? <button ref={cancelRef} type="button" className="btn btn--secondary" disabled={busy} onClick={dismiss}>{t("Cancel")}</button> : null}
+              <Button type="button" variant={danger ? "danger" : "primary"} busy={busy} onClick={() => void confirm()}>{t(confirmLabel)}</Button>
+              {!danger ? <button ref={cancelRef} type="button" className="btn btn--secondary" disabled={busy} onClick={dismiss}>{t("Cancel")}</button> : null}
             </footer>
           </Dialog.Popup>
         </Dialog.Viewport>

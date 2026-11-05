@@ -336,6 +336,7 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
               : selectedFilter === "image"
                 ? "Images added to your library will appear here."
                 : "Uploaded images and videos will appear here."}
+          action={view === "favorites" ? <Link className="btn btn--secondary" to="/gallery">{t("Browse gallery")}</Link> : undefined}
         />
       ) : null}
       {media.length > 0 ? (
@@ -404,8 +405,10 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
               void uploadFiles(files);
             }} />
               <PageActionButton key="primary" aria-label={t("Upload media")} title={t("Upload media")}
+                className="gallery-selection-bar__action--primary"
                 disabled={uploading || bulkFavoriteBusy} aria-busy={uploading || undefined} onClick={() => uploadInput.current?.click()}>
                 {uploading ? <LoaderCircle size={20} className="spinner__wheel" aria-hidden="true" /> : <Plus size={20} aria-hidden="true" />}
+                <span>{t("Upload media")}</span>
               </PageActionButton>
             {selectionMode ? (
               <PageActionButton
@@ -448,6 +451,7 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
                 onClick={() => setDeleteDialogOpen(true)}
               >
                 <Trash2 size={20} aria-hidden="true" />
+                <span>{t("Trash")}</span>
               </PageActionButton>
             </SelectionActions>
           </PageActionBar>
@@ -461,6 +465,7 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
       {deleteDialogOpen ? (
         <ConfirmationDialog
           title="Move selected media to trash?"
+          confirmLabel="Move to trash"
           danger
           onClose={() => setDeleteDialogOpen(false)}
           onConfirm={deleteSelected}

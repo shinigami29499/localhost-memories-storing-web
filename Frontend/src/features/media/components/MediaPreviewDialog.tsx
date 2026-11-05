@@ -544,6 +544,7 @@ export function MediaPreviewDialog({
       {deleteMediaId ? (
         <ConfirmationDialog
           title="Move selected media to trash?"
+          confirmLabel="Move to trash"
           danger
           portalContainer={dialogRef.current}
           onClose={() => setDeleteMediaId(null)}

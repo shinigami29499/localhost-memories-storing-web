@@ -382,6 +382,7 @@ export function LocationsPage() {
       {selected && draft && relocating && moveConfirmationOpen && (
         <ConfirmationDialog
           title="Move this photo?"
+          confirmLabel="Move photo"
           onConfirm={confirmRelocation}
           onClose={() => setMoveConfirmationOpen(false)}
         >

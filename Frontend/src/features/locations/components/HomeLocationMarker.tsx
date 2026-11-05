@@ -171,6 +171,7 @@ export function HomeLocationMarker({ location, variant, onClick, onHoverChange }
       {action && (
         <ConfirmationDialog
           title={action.type === "remove" ? "Remove your home location?" : "Change your home location?"}
+          confirmLabel={action.type === "remove" ? "Remove home location" : "Change home location"}
           danger={action.type === "remove"}
           onConfirm={confirm}
           onClose={closeAction}

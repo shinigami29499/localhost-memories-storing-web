@@ -121,7 +121,7 @@ textarea, select { min-height: 44px; border-radius: 6px; }
 }
 
 .app-topbar::after { content: none; }
-.app-topbar__title { font-size: 1rem; font-weight: 700; }
+.app-topbar__title { font-size: 1rem; font-weight: 700; margin: 0; }
 
 .control-bar,
 :root .control-bar {
