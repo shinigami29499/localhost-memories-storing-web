@@ -135,7 +135,7 @@
   min-width: 40px;
   padding: 6px 8px;
 }
-.place__rating-filter svg { color: #6A3F36; }
+.place__rating-filter svg { color: var(--star-filled); }
 .place__rating-filter:hover,
 .place__rating-filter[aria-pressed="true"] { background: var(--surface-hover); }
 .place__rating-filter:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
@@ -1531,9 +1531,9 @@
 .star-rating__star { color: var(--border-control); line-height: 1; }
 .star-rating svg { display: block; width: 1em; height: 1em; }
 .star-rating__icon { display: inline-flex; position: relative; }
-.star-rating__partial { color: #6A3F36; inset: 0; position: absolute; }
+.star-rating__partial { color: var(--star-filled); inset: 0; position: absolute; }
 .star-rating__button { display: inline-flex; align-items: center; justify-content: center; }
-.star-rating__star[data-filled="true"] { color: #6A3F36; }
+.star-rating__star[data-filled="true"] { color: var(--star-filled); }
 
 .star-rating__button {
   background: transparent;
