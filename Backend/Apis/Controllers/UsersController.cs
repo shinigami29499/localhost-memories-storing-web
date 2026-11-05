@@ -4,6 +4,7 @@ using Apis.Authorization;
 using Apis.Interfaces;
 using Services.Interfaces;
 using Services.Responses.Auth;
+using Services.Responses.Users;
 using Services.Models.Users;
 using Services.Requests.Users;
 using Microsoft.AspNetCore.SignalR;
@@ -44,6 +45,12 @@ public class UsersController(
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<UserResponse>>> ListAsync(CancellationToken cancellationToken)
         => Ok(await _userService.ListAsync(cancellationToken));
+
+    [HttpGet("page")]
+    public async Task<ActionResult<UserPageResponse>> GetPageAsync(
+        CancellationToken cancellationToken, [FromQuery] int page = 1,
+        [FromQuery] int limit = 20, [FromQuery] bool pendingOnly = false)
+        => Ok(await _userService.GetPageAsync(page, limit, pendingOnly, cancellationToken));
 
     [HttpGet("me")]
     public async Task<ActionResult<UserResponse>> GetProfileAsync(CancellationToken cancellationToken)

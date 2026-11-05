@@ -55,7 +55,7 @@
   border: 1px solid var(--border-card);
   border-radius: var(--radius);
   background: var(--surface-card-raised);
-  box-shadow: var(--shadow-popover);
+  box-shadow: none;
   color: var(--text);
   transform-origin: var(--transform-origin);
   transition: opacity 140ms ease, transform 140ms ease;

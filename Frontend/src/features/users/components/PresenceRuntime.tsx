@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { HubConnectionBuilder, LogLevel } from "@microsoft/signalr";
 import { CustomDialog as AlertDialog, useCustomDialog } from "../../../components/ui/CustomDialog";
 import { useLocale } from "../../../context/LocaleContext";
@@ -8,9 +8,11 @@ import { useUploadNotificationStore } from "../../notifications/uploadNotificati
 import { uploadMessage } from "../../notifications/uploadMessage";
 import { showBrowserNotification } from "../../notifications/browserNotifications";
 import { showToast } from "../../../components/ui/Toast";
-import { userService } from "../services/userService";
+import { userService, type UserPage } from "../services/userService";
 import { api } from "../../../services/api";
 import { useQueryClient } from "@tanstack/react-query";
+import { useUserPresenceStore } from "../store/userPresenceStore";
+import type { AuthUser } from "../../auth";
 
 const PRESENCE_INTERVAL_MS = 25_000;
 const ACTIVITY_WINDOW_MS = 120_000;
@@ -36,18 +38,23 @@ function writePresenceCache(presence: Map<string, boolean>): void {
 }
 
 export function PresenceRuntime() {
-  const token = useAuthStore((state) => state.accessToken);
+  const authenticated = useAuthStore((state) => Boolean(state.accessToken));
+  const accountId = useAuthStore((state) => state.user?.id);
   const queryClient = useQueryClient();
   const [accountChange, setAccountChange] = useState<"disabled" | "roleUpdated" | null>(null);
   const { dialogProps, close, openDialog } = useCustomDialog(() => setAccountChange(null), { dismissible: false, defaultOpen: false });
   const { t } = useLocale();
+  const translateRef = useRef(t);
+  translateRef.current = t;
 
   useEffect(() => {
     if (accountChange) openDialog();
   }, [accountChange, openDialog]);
 
   useEffect(() => {
-    if (!token) return;
+    if (!authenticated) return;
+
+    const translate = (key: string, values?: Record<string, string | number>) => translateRef.current(key, values);
 
     let stopped = false;
     let connection: ReturnType<HubConnectionBuilder["build"]> | undefined;
@@ -75,13 +82,30 @@ export function PresenceRuntime() {
         .withAutomaticReconnect()
         .configureLogging(LogLevel.Error)
         .build();
-      connection.on("UserPresenceChanged", (event: { userId: string; username: string; online: boolean }) => {
+      connection.on("UsersChanged", (userId: string, resetPresence: boolean) => {
+        if (resetPresence) useUserPresenceStore.getState().setOnline(userId, false);
+        void queryClient.invalidateQueries({ queryKey: ["users"] });
+      });
+      connection.onreconnected(() => {
+        void queryClient.invalidateQueries({ queryKey: ["users"] });
+      });
+      connection.on("UserPresenceChanged", (event: { userId: string; username: string; online: boolean; lastSeenAt: string | null }) => {
         if (event.userId === useAuthStore.getState().user?.id || !event.username) return;
+        useUserPresenceStore.getState().setOnline(event.userId, event.online);
+        queryClient.setQueryData<AuthUser[]>(["users"], (existing) =>
+          existing?.map((user) => user.id === event.userId
+            ? { ...user, lastSeenAt: event.lastSeenAt ?? user.lastSeenAt } : user));
+        queryClient.setQueriesData<UserPage>({ queryKey: ["users", "page"] }, (existing) =>
+          existing ? {
+            ...existing,
+            items: existing.items.map((user) => user.id === event.userId
+              ? { ...user, lastSeenAt: event.lastSeenAt ?? user.lastSeenAt } : user),
+          } : existing);
         const previous = presence.get(event.userId);
         presence.set(event.userId, event.online);
         writePresenceCache(presence);
         if (previous === undefined || previous === event.online) return;
-        const message = t(event.online ? "{username} is online" : "{username} went offline", { username: event.username });
+        const message = translate(event.online ? "{username} is online" : "{username} went offline", { username: event.username });
         const options = { timeout: 5000, highlight: [event.username] };
         if (event.online) showToast.success(message, options);
         else showToast.error(message, options);
@@ -90,11 +114,11 @@ export function PresenceRuntime() {
         const userId = useAuthStore.getState().user?.id;
         if (!userId || userId === event.ownerId) return;
         useAlbumNotificationStore.getState().add(userId, event);
-        const message = t(event.created ? "{username} created public album {album}." : "{username} made album {album} public.", { username: event.username, album: event.albumName });
-        void showBrowserNotification(t("Public album"), message, `/gallery/album/${event.albumId}`).catch(() => undefined);
+        const message = translate(event.created ? "{username} created public album {album}." : "{username} made album {album} public.", { username: event.username, album: event.albumName });
+        void showBrowserNotification(translate("Public album"), message, `/gallery/album/${event.albumId}`).catch(() => undefined);
         if (window.location.pathname === "/gallery/album") {
-          showToast.info(message, { description: t("Click to refresh."), onClick: () => {
-            if (window.location.pathname === "/gallery/album") void queryClient.invalidateQueries({ queryKey: ["albums", "list"] });
+          showToast.info(message, { description: translate("Click to refresh."), onClick: () => {
+            if (window.location.pathname === "/gallery/album") void queryClient.invalidateQueries({ queryKey: ["albums"] });
           } });
         }
       });
@@ -102,11 +126,11 @@ export function PresenceRuntime() {
         const userId = useAuthStore.getState().user?.id;
         if (!userId || userId === event.ownerId || !event.username) return;
         useUploadNotificationStore.getState().addRemote(userId, event);
-        const message = uploadMessage(t, event.images, event.videos, event.username);
-        void showBrowserNotification(t("New uploads"), message, "/gallery").catch(() => undefined);
+        const message = uploadMessage(translate, event.images, event.videos, event.username);
+        void showBrowserNotification(translate("New uploads"), message, "/gallery").catch(() => undefined);
         const onGallery = isGalleryPath(window.location.pathname);
         showToast.info(message, {
-          description: t(onGallery ? "Click to refresh." : "Click to go to gallery."),
+          description: translate(onGallery ? "Click to refresh." : "Click to go to gallery."),
           highlight: [event.username],
           onClick: () => {
             if (isGalleryPath(window.location.pathname)) {
@@ -128,12 +152,12 @@ export function PresenceRuntime() {
         }
         if (path !== "/gallery/album" && !detail) return;
         const message = event.action === "private"
-          ? t("{username} made public album {album} private.", { username: event.username, album: event.albumName })
+          ? translate("{username} made public album {album} private.", { username: event.username, album: event.albumName })
           : userId === event.ownerId
-            ? t(event.action === "deleted" ? "{username} deleted your album {album}." : "{username} updated your album {album}.", { username: event.username, album: event.albumName })
-            : t(event.action === "deleted" ? "{username} deleted public album {album}." : "{username} updated public album {album}.", { username: event.username, album: event.albumName });
-        showToast.info(message, { id: event.action === "updated" ? `album-update:${event.albumId}:${event.actorId}:${path}` : undefined, description: t("Click to refresh."), onClick: () => {
-          if (window.location.pathname === path) void queryClient.invalidateQueries({ queryKey: detail ? ["albums", "detail", event.albumId] : ["albums", "list"] });
+            ? translate(event.action === "deleted" ? "{username} deleted your album {album}." : "{username} updated your album {album}.", { username: event.username, album: event.albumName })
+            : translate(event.action === "deleted" ? "{username} deleted public album {album}." : "{username} updated public album {album}.", { username: event.username, album: event.albumName });
+        showToast.info(message, { id: event.action === "updated" ? `album-update:${event.albumId}:${event.actorId}:${path}` : undefined, description: translate("Click to refresh."), onClick: () => {
+          if (window.location.pathname === path) void queryClient.invalidateQueries({ queryKey: detail ? ["albums", "detail", event.albumId] : ["albums"] });
         } });
       });
       connection.on("MediaChanged", (event: { ownerId: string; actorId: string; username: string; name: string; action: "trashed" | "restored" | "deleted" }) => {
@@ -143,9 +167,9 @@ export function PresenceRuntime() {
         if (path !== "/gallery" && path !== "/gallery/trash") return;
         if (path === "/gallery" && event.action === "deleted") return;
         const message = userId === event.ownerId
-          ? t(event.action === "trashed" ? "{username} moved your item {item} to trash." : event.action === "deleted" ? "{username} permanently deleted your item {item}." : "{username} restored your item {item}.", { username: event.username, item: event.name })
-          : t("{username} changed the gallery.", { username: event.username });
-        showToast.info(message, { description: t("Click to refresh."), onClick: () => {
+          ? translate(event.action === "trashed" ? "{username} moved your item {item} to trash." : event.action === "deleted" ? "{username} permanently deleted your item {item}." : "{username} restored your item {item}.", { username: event.username, item: event.name })
+          : translate("{username} changed the gallery.", { username: event.username });
+        showToast.info(message, { description: translate("Click to refresh."), onClick: () => {
           if (window.location.pathname === path) void queryClient.invalidateQueries({ queryKey: ["media", path.endsWith("/trash") ? "deleted" : "all"] });
         } });
       });
@@ -161,13 +185,13 @@ export function PresenceRuntime() {
         const userId = useAuthStore.getState().user?.id;
         if (!userId || userId === event.actorUserId) return;
         void queryClient.invalidateQueries({ queryKey: ["places"] });
-        const message = t("{username} just checked in at {place}.", { username: event.username, place: event.placeName });
-        showToast.info(t("New check-in"), {
+        const message = translate("{username} just checked in at {place}.", { username: event.username, place: event.placeName });
+        showToast.info(translate("New check-in"), {
           description: message,
           highlight: [event.username, event.placeName],
           icon: "calendar-check",
         });
-        void showBrowserNotification(t("New check-in"), message, "/location").catch(() => undefined);
+        void showBrowserNotification(translate("New check-in"), message, "/location").catch(() => undefined);
       });
       connection.on("SessionChanged", () => {
         void api("/api/auth/me").catch(() => undefined);
@@ -210,9 +234,10 @@ export function PresenceRuntime() {
       window.removeEventListener("keydown", onUserActivity);
       window.removeEventListener("touchstart", onUserActivity);
       document.removeEventListener("visibilitychange", onVisibilityChange);
+      useUserPresenceStore.getState().clear();
       void connection?.stop();
     };
-  }, [queryClient, token, t]);
+  }, [queryClient, authenticated, accountId]);
 
   if (!accountChange) return null;
 

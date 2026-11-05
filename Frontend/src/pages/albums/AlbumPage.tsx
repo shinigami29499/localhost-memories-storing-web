@@ -1,11 +1,9 @@
+import { PageActionBar } from "../../components/layout/PageActionBar";
 import { startTransition, useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import * as Tabs from "@radix-ui/react-tabs";
-import { Highlight, HighlightItem } from "@animate-ui/react/primitives/effects/highlight";
 import { AnimateIcon } from "@/components/animate-ui/icons/icon";
-import { ScrollProgress, ScrollProgressContainer, ScrollProgressProvider } from "@animate-ui/react/primitives/scroll-progress";
-import { ScrollFade } from "@animate-ui/react/primitives/effects/scroll-fade";
 import { ExternalLink } from "@/components/animate-ui/icons/external-link";
 import { Check } from "@/components/animate-ui/icons/check";
 import { CopyButton, CopyButtonIcon } from "@animate-ui/react/primitives/buttons/copy";
@@ -15,7 +13,6 @@ import { Trash2 } from "@/components/animate-ui/icons/trash-2";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import { Heart } from "@/components/animate-ui/icons/heart";
 import { Button, ConfirmationDialog, EmptyState, ErrorState, Spinner, showToast } from "../../components/ui";
-import { PageTransition } from "../../components/layout/PageTransition";
 import { useLocale } from "../../context/LocaleContext";
 import {
   AlbumCaptionDialog,
@@ -26,17 +23,19 @@ import {
   useInfiniteAlbumMedia,
   useInvalidateAlbums,
 } from "../../features/albums";
-import { MediaTile } from "../../features/media/components/MediaTile";
+import { useGalleryWindow } from "../../features/media/hooks/useGalleryWindow";
+import { VirtualGalleryGroup } from "../gallery/VirtualGalleryGroup";
+import { resolveFocusMediaId } from "../gallery/resolveFocusMediaId";
 import { MediaRetryProvider } from "../../features/media/components/MediaRetryProvider";
 import { MediaPreviewDialog } from "../../features/media/components/MediaPreviewDialog";
 import { useMediaSelectionDrag } from "../../features/media/hooks/useMediaSelectionDrag";
 import type { MediaFile, MediaKindFilter } from "../../features/media/types";
 import { mediaService } from "../../features/media/services/mediaService";
+import type { Album } from "../../features/albums/types";
 import "../../features/media/components/media.css";
 import { ApiError } from "../../services/api";
 import { useAuthStore } from "../../store/authStore";
 import { mediaPreviewUrl } from "../../utils/media";
-import { readPageTransitionEffect } from "../../utils/pageTransition";
 import "../gallery/gallery.css";
 import "./albums.css";
 
@@ -61,7 +60,6 @@ function updateFavoriteData<T>(data: T, mediaIds: ReadonlySet<string>, isFavorit
 
 function AlbumDetail({ albumId }: { albumId: string | undefined }) {
   const { t, language } = useLocale();
-  const pageTransition = readPageTransitionEffect();
   const navigate = useNavigate();
   const me = useAuthStore((s) => s.user);
   const [copied, setCopied] = useState(false);
@@ -75,13 +73,34 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
   const [favoriteBusyMediaId, setFavoriteBusyMediaId] = useState<string | null>(null);
   const [mediaKind, setMediaKind] = useState<MediaKindFilter>("image");
   const [previewMediaId, setPreviewMediaId] = useState<string | null>(null);
+  const returnToMediaId = useRef<string | null>(null);
+  const returnToIndex = useRef(0);
   const contentRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   const album = useAlbum(albumId);
+  const viewport = useGalleryWindow(contentRef, `${albumId}:${mediaKind}:${album.isSuccess}`);
+
   const media = useInfiniteAlbumMedia(albumId, 20, album.isSuccess, mediaKind);
   const invalidate = useInvalidateAlbums();
   const items = media.data?.pages.flatMap((page) => page.items) ?? [];
+  const focusMediaId = resolveFocusMediaId(items, returnToMediaId.current, returnToIndex.current);
+  useEffect(() => {
+    if (previewMediaId || !returnToMediaId.current) return;
+    if (media.isFetching && !items.some((item) => item.id === returnToMediaId.current)) return;
+    const focusId = resolveFocusMediaId(items, returnToMediaId.current, returnToIndex.current);
+    if (!focusId && !media.hasNextPage) {
+      returnToMediaId.current = null;
+      contentRef.current?.focus({ preventScroll: true });
+      return;
+    }
+    const tile = Array.from(contentRef.current?.querySelectorAll<HTMLButtonElement>("[data-media-id]") ?? [])
+      .find((element) => element.dataset.mediaId === focusId);
+    if (!tile) return;
+    returnToMediaId.current = null;
+    tile.focus({ preventScroll: true });
+    tile.scrollIntoView({ block: "center", inline: "center", behavior: "auto" });
+  }, [previewMediaId, items, viewport, media.isFetching, media.hasNextPage]);
   const total = media.data?.pages[0]?.total ?? 0;
   const isOwner = Boolean(album.data && me && album.data.owner.id === me.id);
   const selectedMedia = [...selectedItems.values()];
@@ -179,7 +198,7 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
           updateFavoriteData(data, changedIds, favorite));
         queryClient.setQueriesData({ queryKey: ["media"] }, (data: unknown) =>
           updateFavoriteData(data, changedIds, favorite));
-        queryClient.setQueryData(albumKeys.detail(albumId ?? ""), (current) => current?.previewMediaId && changedIds.has(current.previewMediaId)
+        queryClient.setQueryData<Album>(albumKeys.detail(albumId ?? ""), (current) => current?.previewMediaId && changedIds.has(current.previewMediaId)
           ? { ...current, previewIsFavorited: favorite }
           : current);
       }
@@ -255,10 +274,6 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
           cancelSelection();
         }
       }}>
-      <ScrollProgressProvider>
-        <div className="gallery-page__scroll-track" aria-hidden="true">
-          <ScrollProgress mode="scaleX" className="gallery-page__scroll-progress" />
-        </div>
         <div className="gallery-page__fixed-layout">
           <header className="album-hero">
             <div className="album-hero__preview" aria-hidden="true">
@@ -344,16 +359,12 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
           >
             <div className="gallery-page__media-toolbar">
               <Tabs.List className="gallery-page__media-filters" aria-label={t("Filter by media type")}>
-                <Highlight value={mediaKind} controlledItems className="gallery-page__media-highlight">
-                  <HighlightItem value="image" asChild><Tabs.Trigger className="gallery-page__media-option" value="image" disabled={bulkFavoriteBusy}>{t("Images")}</Tabs.Trigger></HighlightItem>
-                  <HighlightItem value="video" asChild><Tabs.Trigger className="gallery-page__media-option" value="video" disabled={bulkFavoriteBusy}>{t("Videos")}</Tabs.Trigger></HighlightItem>
-                </Highlight>
+                <Tabs.Trigger className="gallery-page__media-option" value="image" disabled={bulkFavoriteBusy}>{t("Images")}</Tabs.Trigger>
+                <Tabs.Trigger className="gallery-page__media-option" value="video" disabled={bulkFavoriteBusy}>{t("Videos")}</Tabs.Trigger>
               </Tabs.List>
             </div>
-            <ScrollFade asChild blur={0} shrink={0}>
-            <ScrollProgressContainer className="gallery-page__content gallery-page__media-scroll" ref={contentRef}>
+            <div className="gallery-page__content gallery-page__media-scroll" ref={contentRef} tabIndex={-1}>
             <Tabs.Content value={mediaKind} className="gallery-page__tab-panel gallery-page__tab-panel--media">
-              <PageTransition effect={pageTransition} transitionKey={mediaKind} liveRoot skipUpdates>
               {media.isPending ? <Spinner label={t("Loading media…")} /> : media.isError && items.length === 0 ? (
                 <ErrorState message={t("Could not load media.")} onRetry={() => void media.refetch()} />
               ) : items.length === 0 ? (
@@ -371,21 +382,11 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
                         <div className="gallery-group__header"><h2 className="gallery-group__title">
                           <time dateTime={`${group.date.getFullYear()}-${String(group.date.getMonth() + 1).padStart(2, "0")}-${String(group.date.getDate()).padStart(2, "0")}`}>{dateFormatter.format(group.date)}</time>
                         </h2></div>
-                        <div className="gallery-date-grid" data-media-kind={mediaKind}>
-                        {group.items.map((item) => (
-                        <MediaTile
-                          key={item.id}
-                          media={item}
-                          selectionMode={selectionMode}
-                          selectionDragEnabled
-                          selected={selectedItems.has(item.id)}
-                          onSelect={(id) => setSelected(id, !selectedItems.has(id))}
-                          onOpen={setPreviewMediaId}
+                        <VirtualGalleryGroup items={group.items} viewport={viewport} mediaKind={mediaKind} pinnedId={focusMediaId}
+                          selectionMode={selectionMode} selectedItems={selectedItems}
+                          onSelect={(id) => setSelected(id, !selectedItems.has(id))} onOpen={setPreviewMediaId}
                           onFavorite={(mediaId) => void toggleFavorite(mediaId, false)}
-                          favoriteDisabled={favoriteBusyMediaId !== null || bulkFavoriteBusy}
-                        />
-                        ))}
-                        </div>
+                          favoriteBusy={favoriteBusyMediaId !== null || bulkFavoriteBusy} />
                       </section>
                     ))}
                   </div>
@@ -399,15 +400,12 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
               {media.hasNextPage && !media.isFetchNextPageError ? (
                 <div ref={sentinelRef} className="album-page__sentinel" aria-hidden="true" />
               ) : null}
-              </PageTransition>
             </Tabs.Content>
-            </ScrollProgressContainer>
-            </ScrollFade>
+            </div>
           </Tabs.Root>
         </div>
-      </ScrollProgressProvider>
       <footer className="gallery-page__footer gallery-page__footer--transition">
-        <div className="gallery-selection-bar gallery-selection-bar--compact gallery-selection-bar--selection-only" role="group" aria-label={t("{count} selected", { count: selectedItems.size })}>
+        <PageActionBar className="gallery-selection-bar gallery-selection-bar--compact gallery-selection-bar--selection-only" role="group" aria-label={t("{count} selected", { count: selectedItems.size })}>
           <span className="gallery-selection-bar__status" role="status">{t("{count} selected", { count: selectedItems.size })}</span>
           <SelectionActions open={selectionMode}>
           <button type="button" className="gallery-selection-bar__action gallery-selection-bar__action--favorite"
@@ -418,7 +416,7 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
           {isOwner && <button type="button" className="gallery-selection-bar__action gallery-selection-bar__action--danger"
             aria-label={t("Remove from album")} title={t("Remove from album")} disabled={!selectedMedia.length || bulkFavoriteBusy}
             onClick={() => setRemovingSelection(true)}><Trash2 size={20} aria-hidden="true" /></button>}</SelectionActions>
-        </div>
+        </PageActionBar>
       </footer>
       {removingSelection && <ConfirmationDialog title="Remove selected media from album?" danger onConfirm={removeSelected} onClose={() => setRemovingSelection(false)}>
         <p>{t("Selected media will be removed from this album and remain in your gallery.")}</p>
@@ -434,7 +432,7 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
           onLoadMore={media.hasNextPage ? () => { void media.fetchNextPage({ cancelRefetch: false }); } : undefined}
           favoriteBusy={favoriteBusyMediaId !== null}
           onToggleFavorite={(mediaId, isFavorited) => void toggleFavorite(mediaId, isFavorited)}
-          onClose={() => setPreviewMediaId(null)}
+          onClose={(id) => { returnToIndex.current = Math.max(0, items.findIndex((item) => item.id === id)); returnToMediaId.current = id; setPreviewMediaId(null); }}
         />
       ) : null}
       {editing ? (

@@ -10,16 +10,16 @@
   max-height: calc(100dvh - 32px);
   overflow-y: auto;
   padding: 0;
-  background: #101112;
+  background: #6A3F36;
   border: 0;
-  box-shadow: var(--shadow-popover);
+  box-shadow: none;
 }
 
 .upload-activity-dialog .confirmation-dialog__title {
   margin: 0 0 16px;
   padding: 20px 24px;
   border-bottom: 1px solid var(--border);
-  background: #1c1f23;
+  background: #6A3F36;
   box-shadow: none;
 }
 
@@ -32,25 +32,25 @@
 .upload-activity-dialog .confirmation-dialog__actions {
   margin: 0;
   padding: 16px 24px;
-  background: #101112;
+  background: #6A3F36;
   box-shadow: none;
 }
 
 .upload-activity-dialog .confirmation-dialog__actions .btn--danger {
-  background: #b42335;
-  color: #fff;
+  background: #6A3F36;
+  color: #F4F3EE;
 }
 
-:root:not(.dark) .upload-activity-dialog {
-  background: #eef0f2;
+:root .upload-activity-dialog {
+  background: #F4F3EE;
 }
 
-:root:not(.dark) .upload-activity-dialog .confirmation-dialog__title {
-  background: #fafafa;
+:root .upload-activity-dialog .confirmation-dialog__title {
+  background: #F4F3EE;
 }
 
-:root:not(.dark) .upload-activity-dialog .confirmation-dialog__actions {
-  background: #eef0f2;
+:root .upload-activity-dialog .confirmation-dialog__actions {
+  background: #F4F3EE;
 }
 
 .upload-activity-dialog__hint {
@@ -131,24 +131,24 @@
   background: var(--accent);
 }
 
-:root:not(.dark) .upload-activity__day {
-  background: #d9dde1;
+:root .upload-activity__day {
+  background: var(--surface-raised);
 }
 
-:root:not(.dark) .upload-activity__day--1 {
-  background: #c2c7cc;
+:root .upload-activity__day--1 {
+  background: #C8A796;
 }
 
-:root:not(.dark) .upload-activity__day--2 {
-  background: #a4aab0;
+:root .upload-activity__day--2 {
+  background: #C8A796;
 }
 
-:root:not(.dark) .upload-activity__day--3 {
-  background: #858c93;
+:root .upload-activity__day--3 {
+  background: #C8A796;
 }
 
-:root:not(.dark) .upload-activity__day--4 {
-  background: #687078;
+:root .upload-activity__day--4 {
+  background: #6A3F36;
 }
 
 .upload-activity__status,

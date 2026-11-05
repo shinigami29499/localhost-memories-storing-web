@@ -33,10 +33,13 @@ import { clusterMapMarkers, isMarkerInViewport, mapMarkersOverlap, type MapProje
 import type { MediaFile, PhotoLocation, PickedLocation } from "../../media/types";
 import { findPlaceAt } from "../utils/findPlaceAt";
 import type { HomeLocation } from "../types";
+import type { MapBounds } from "../types";
+import { viewportBounds } from "../utils/mapBounds";
 import { DisabledNavigationToolbar, MapNavigation } from "../../navigation/components/MapNavigation";
 import { NavigationFallback } from "../../navigation/components/NavigationOptions";
 
 interface Props {
+  onBoundsChange?: (bounds: MapBounds) => void;
   media: MediaFile[];
   selected: MediaFile | undefined;
   focused?: MediaFile;
@@ -68,10 +71,12 @@ function MapViewport({ media, selected, ready, allowFit }: Pick<Props, "media" |
   allowFit: boolean;
 }) {
   const { current: map } = useMap();
+  const fitted = useRef(false);
   useEffect(() => {
-    if (!map || !ready || !allowFit || selected?.location) return;
+    if (!map || !ready || !allowFit || selected?.location || fitted.current) return;
     const locations = media.flatMap((item) => item.location ? [item.location] : []);
     if (!locations.length) return;
+    fitted.current = true;
     const first = locations[0];
     let west = first.longitude, east = first.longitude;
     let south = first.latitude, north = first.latitude;
@@ -332,7 +337,7 @@ function PhotoMarkerItem({ item, index, selected, canMove, onSelect, onMove, hid
 }) {
   const { t } = useLocale();
   const [hovered, setHovered] = useState(false);
-  const colors = ["#d64a43", "#e59718", "#2d9a52", "#2584cc", "#8058bd", "#c04c88"];
+  const colors = ["#C8A796", "#F8E4BE", "#EEA988", "#F4F3EE"];
   const color = colors[Array.from(item.id).reduce((hash, char) => (hash * 31 + char.charCodeAt(0)) >>> 0, 0) % colors.length];
   return <div className="locations__marker" data-selected={selected}
     style={{ "--fan-index": index, "--marker-color": color } as CSSProperties}
@@ -487,7 +492,7 @@ export function PhotoMarkers({ media, selected, ready, onSelect, canMove, onMove
 
 function MapContent({
   media, selected, focused, draft, editable, editing, relocating, onConfirmRelocation, homeLocation, homeLocationReady, homePicking, homeActionDisabled,
-  onSelect, onEdit, onCancelSelection, canMove, onMove, onPick, onPickHome, onHomeClick, onAddPhotos, onOpenCamera, token,
+  onSelect, onEdit, onCancelSelection, canMove, onMove, onPick, onPickHome, onHomeClick, onAddPhotos, onOpenCamera, onBoundsChange, token,
 }: Props & { token: string }) {
   const { t } = useLocale();
   const shouldReduceMotion = useShouldReduceMotion();
@@ -552,7 +557,7 @@ function MapContent({
     mapRef.current?.easeTo({
       center: [result.longitude, result.latitude],
       zoom: 15,
-      duration: 400,
+      duration: shouldReduceMotion ? 0 : 400,
     });
     const location = { latitude: result.latitude, longitude: result.longitude, placeName: result.placeName };
     if (homePicking) onPickHome(location);
@@ -577,7 +582,12 @@ function MapContent({
         initialViewState={{ latitude: 20, longitude: 0, zoom: 2, pitch: 0, bearing: 0 }}
         cursor={!navigationOpen && (editable || homePicking) ? "crosshair" : undefined}
         cooperativeGestures={false}
-        onLoad={(event) => { event.target.setCooperativeGestures(false); setLoaded(true); }}
+        onLoad={(event) => {
+          event.target.setCooperativeGestures(false);
+          setLoaded(true);
+          onBoundsChange?.(viewportBounds(event.target.getBounds()));
+        }}
+        onMoveEnd={(event) => onBoundsChange?.(viewportBounds(event.target.getBounds()))}
         onError={() => setFailed(true)}
         onClick={(event) => {
           if (navigationOpen || scenesRef.current?.open || appearanceRef.current?.open

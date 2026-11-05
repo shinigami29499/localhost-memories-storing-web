@@ -37,7 +37,7 @@ export function PlaceVisitHistory({ visits, showPlaceDetails = true, showVisitor
 
   useEffect(() => {
     if (!onRemove) return;
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    const timer = window.setInterval(() => setNow(Date.now()), 30_000);
     return () => window.clearInterval(timer);
   }, [onRemove]);
 

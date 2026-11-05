@@ -3,51 +3,15 @@ import { Switch } from "@animate-ui/react/primitives/base-ui/switch";
 import { useAnimationStore } from "../../store/animationStore";
 import { useToastPreferencesStore } from "../../store/toastPreferencesStore";
 import { toastManager } from "../../components/ui/Toast";
-import { Select } from "@animate-ui/react/primitives/base-ui/select";
-import { ChevronDown } from "../../components/animate-ui/icons/chevron-down";
 import { useLocale } from "../../context/LocaleContext";
 import { showToast } from "../../components/ui/Toast";
-import {
-  CLICK_ANIMATION_EFFECTS,
-  isClickAnimationEffect,
-  useClickAnimationStore,
-  type ClickAnimationEffect,
-} from "../../store/clickAnimationStore";
 import {
   areBrowserNotificationsEnabled,
   requestBrowserNotificationPermission,
   setBrowserNotificationsEnabled,
 } from "../../features/notifications/browserNotifications";
-import {
-  PAGE_TRANSITION_EFFECTS,
-  isPageTransitionEffect,
-  readPageTransitionEffect,
-  writePageTransitionEffect,
-  type PageTransitionEffect,
-} from "../../utils/pageTransition";
 import "./settings.css";
-
-const transitionLabels: Record<PageTransitionEffect, string> = {
-  fade: "Fade",
-  slide: "Slide",
-  push: "Push",
-  iris: "Iris",
-  wipe: "Wipe",
-  bands: "Bands",
-  stack: "Stack",
-  flow: "Flow",
-  chop: "Chop",
-  random: "Random",
-};
-
-const clickAnimationLabels: Record<ClickAnimationEffect, string> = {
-  off: "Off",
-  ring: "Ring",
-  ripple: "Ripple",
-  crosshair: "Crosshair",
-  burst: "Burst",
-  particles: "Particles",
-};
+import { SoundEffectsSettings } from "./SoundEffectsSettings";
 
 export function SettingsPage() {
   const { t } = useLocale();
@@ -55,11 +19,6 @@ export function SettingsPage() {
   const setToastsEnabled = useToastPreferencesStore((state) => state.setEnabled);
   const animationsEnabled = useAnimationStore((state) => state.enabled);
   const setAnimationsEnabled = useAnimationStore((state) => state.setEnabled);
-  const iconsEnabled = useAnimationStore((state) => state.iconsEnabled);
-  const setIconsEnabled = useAnimationStore((state) => state.setIconsEnabled);
-  const clickAnimation = useClickAnimationStore((state) => state.effect);
-  const setClickAnimation = useClickAnimationStore((state) => state.setEffect);
-  const [pageTransition, setPageTransition] = useState(readPageTransitionEffect);
   const [notificationsEnabled, setNotificationsEnabled] = useState(
     () => areBrowserNotificationsEnabled()
       && "Notification" in window
@@ -169,26 +128,6 @@ export function SettingsPage() {
     );
   };
 
-  const updatePageTransition = (value: string | null) => {
-    if (value === null || !isPageTransitionEffect(value)) return;
-    const nextEffect = value;
-    writePageTransitionEffect(nextEffect);
-    setPageTransition(nextEffect);
-  };
-
-  const updateClickAnimation = (value: string | null) => {
-    if (value === null) return;
-    try {
-      if (!isClickAnimationEffect(value)) {
-        throw new Error("Invalid click animation option.");
-      }
-      setClickAnimation(value);
-    } catch (error) {
-      console.error("Could not save click animation preference.", error);
-      showToast.error(t("Could not save click animation. Please try again."));
-    }
-  };
-
   const updateNotifications = async (enabled: boolean) => {
     setNotificationRequestPending(true);
     try {
@@ -235,6 +174,7 @@ export function SettingsPage() {
         <section className="settings-page__section" aria-labelledby="settings-preferences-title">
           <h2 id="settings-preferences-title">{t("Preferences")}</h2>
           <div className="settings-page__fields">
+            <SoundEffectsSettings />
             <div className="settings-page__field">
               <div className="settings-page__field-copy">
                 <label htmlFor="settings-toasts">{t("Toast notifications")}</label>
@@ -250,96 +190,14 @@ export function SettingsPage() {
             </div>
             <div className="settings-page__field">
               <div className="settings-page__field-copy">
-                <label htmlFor="settings-icon-animations">{t("Icon animations")}</label>
-                <p id="settings-icon-animations-help">{t("Enable animated icons throughout the app.")}</p>
-              </div>
-              <Switch.Root id="settings-icon-animations" className="settings-page__switch"
-                checked={iconsEnabled} onCheckedChange={setIconsEnabled}
-                aria-describedby="settings-icon-animations-help">
-                <Switch.Thumb className="settings-page__switch-thumb" />
-              </Switch.Root>
-            </div>
-            <div className="settings-page__field">
-              <div className="settings-page__field-copy">
-                <label htmlFor="settings-animations">{t("Page and click animations")}</label>
-                <p id="settings-animations-help">{t("Enable effects for page changes and clicks.")}</p>
-                <p id="settings-animations-note" className="settings-page__animation-note">{t("When off, page changes use a fade.")}</p>
+                <label htmlFor="settings-animations">{t("Interface motion")}</label>
+                <p id="settings-animations-help">{t("Use subtle motion for dialogs and feedback. Off removes optional motion.")}</p>
               </div>
               <Switch.Root id="settings-animations" className="settings-page__switch"
                 checked={animationsEnabled} onCheckedChange={setAnimationsEnabled}
-                aria-describedby="settings-animations-help settings-animations-note">
+                aria-describedby="settings-animations-help">
                 <Switch.Thumb className="settings-page__switch-thumb" />
               </Switch.Root>
-            </div>
-            <div className="settings-page__field">
-              <div className="settings-page__field-copy">
-                <label htmlFor="settings-page-transition">{t("Page transition")}</label>
-                <p id="settings-page-transition-help">{t("Choose an effect for page changes.")}</p>
-              </div>
-              <Select.Root value={pageTransition} onValueChange={updatePageTransition} disabled={!animationsEnabled}>
-                <Select.Trigger
-                  id="settings-page-transition"
-                  className="settings-page__transition-trigger"
-                  aria-describedby="settings-page-transition-help"
-                >
-                  <Select.Value>{t(transitionLabels[pageTransition])}</Select.Value>
-                  <ChevronDown size={16} className="settings-page__transition-icon" aria-hidden="true" />
-                </Select.Trigger>
-                <Select.Portal>
-                  <Select.Positioner
-                    className="settings-page__transition-positioner"
-                    alignItemWithTrigger={false}
-                    sideOffset={4}
-                  >
-                    <Select.Popup className="settings-page__transition-popup">
-                      <Select.List className="settings-page__transition-list">
-                        {PAGE_TRANSITION_EFFECTS.map((effect) => (
-                          <Select.Item key={effect} value={effect} className="settings-page__transition-item">
-                            <Select.ItemText>{t(transitionLabels[effect])}</Select.ItemText>
-                          </Select.Item>
-                        ))}
-                      </Select.List>
-                    </Select.Popup>
-                  </Select.Positioner>
-                </Select.Portal>
-              </Select.Root>
-            </div>
-            <div className="settings-page__field">
-              <div className="settings-page__field-copy">
-                <label htmlFor="settings-click-animation">{t("Click animation")}</label>
-                <p id="settings-click-animation-help">
-                  {t("Choose an effect for clicks throughout the app.")}
-                  {" "}
-                  {t("Effects are disabled when you prefer reduced motion.")}
-                </p>
-              </div>
-              <Select.Root value={clickAnimation} onValueChange={updateClickAnimation} disabled={!animationsEnabled}>
-                <Select.Trigger
-                  id="settings-click-animation"
-                  className="settings-page__transition-trigger"
-                  aria-describedby="settings-click-animation-help"
-                >
-                  <Select.Value>{t(clickAnimationLabels[clickAnimation])}</Select.Value>
-                  <ChevronDown size={16} className="settings-page__transition-icon" aria-hidden="true" />
-                </Select.Trigger>
-                <Select.Portal>
-                  <Select.Positioner
-                    className="settings-page__transition-positioner"
-                    alignItemWithTrigger={false}
-                    sideOffset={4}
-                  >
-                    <Select.Popup className="settings-page__transition-popup">
-                      <Select.List className="settings-page__transition-list">
-                        {CLICK_ANIMATION_EFFECTS.map((effect) => (
-                          <Select.Item key={effect} value={effect} className="settings-page__transition-item">
-                            <Select.ItemText>{t(clickAnimationLabels[effect])}</Select.ItemText>
-                          </Select.Item>
-                        ))}
-                      </Select.List>
-                    </Select.Popup>
-                  </Select.Positioner>
-                </Select.Portal>
-              </Select.Root>
             </div>
           </div>
         </section>

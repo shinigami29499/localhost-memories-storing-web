@@ -1,105 +1,62 @@
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
-import { Provider } from "@animate-ui/react/primitives/sidebar";
-import { ScrollProgressContainer, ScrollProgressProvider } from "@animate-ui/react/primitives/scroll-progress";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { Sidebar } from "./Sidebar";
+import { BottomNavigation } from "./BottomNavigation";
 import { NotificationBell } from "./NotificationBell";
 import { UploadRuntime } from "../../features/uploads/components/UploadRuntime";
-import { useLocale } from "../../context/LocaleContext";
-import { PageTransition } from "./PageTransition";
-import { Spinner } from "../ui";
-import { readPageTransitionEffect } from "../../utils/pageTransition";
 import { PresenceRuntime } from "../../features/users/components/PresenceRuntime";
+import { useLocale } from "../../context/LocaleContext";
+import { Spinner } from "../ui";
+import { PageActionBarProvider } from "./PageActionBar";
 
-export const MOBILE_QUERY = "(max-width: 640px)";
+export const MOBILE_QUERY = "(max-width: 767px)";
+
+function pageTitle(pathname: string): string {
+  if (pathname === "/") return "Home";
+  if (pathname.startsWith("/gallery/album/")) return "Album";
+  if (pathname.startsWith("/gallery/favorites")) return "Favorites";
+  if (pathname.startsWith("/gallery/album")) return "Album";
+  if (pathname.startsWith("/gallery/trash")) return "Trash";
+  if (pathname.startsWith("/gallery")) return "Gallery";
+  if (pathname.startsWith("/location/travel")) return "Travel";
+  if (pathname.startsWith("/location/history")) return "History";
+  if (pathname.startsWith("/location/saved")) return "Saved";
+  if (pathname.startsWith("/location")) return "Locations";
+  if (pathname.startsWith("/uploads")) return "Upload";
+  if (pathname.startsWith("/users")) return "Users";
+  if (pathname.startsWith("/profile")) return "User profile";
+  return "Settings";
+}
 
 export function AuthenticatedLayout() {
   const { t } = useLocale();
-  const mainRef = useRef<HTMLDivElement>(null);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(
-    () => window.matchMedia("(max-width: 900px)").matches,
-  );
-  const isMobile = useMediaQuery(MOBILE_QUERY);
   const location = useLocation();
-  const pageTransition = readPageTransitionEffect();
-  const drawerOpen = isMobile && !sidebarCollapsed;
-
-  useEffect(() => {
-    if (isMobile) setSidebarCollapsed(true);
-  }, [isMobile, location.key]);
-
-  useEffect(() => {
-    if (!drawerOpen) return;
-    const shell = mainRef.current?.parentElement;
-    const sidebar = shell?.querySelector<HTMLElement>(".sidebar");
-    const toggle = shell?.querySelector<HTMLButtonElement>(".sidebar__toggle");
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    sidebar?.querySelector<HTMLElement>("a[href]")?.focus();
-    const handleDrawerKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setSidebarCollapsed(true);
-      } else if (event.key === "Tab") {
-        const controls = Array.from(sidebar?.querySelectorAll<HTMLElement>(
-          'a[href], button:not(:disabled), [tabindex="0"]',
-        ) ?? []).filter((element) =>
-          element.getClientRects().length > 0 && getComputedStyle(element).visibility !== "hidden",
-        );
-        if (toggle) controls.push(toggle);
-        const first = controls[0];
-        const last = controls[controls.length - 1];
-        const active = document.activeElement;
-        if (event.shiftKey && (active === first || !controls.some((element) => element === active))) {
-          event.preventDefault();
-          last?.focus();
-        } else if (!event.shiftKey && (active === last || !controls.some((element) => element === active))) {
-          event.preventDefault();
-          first?.focus();
-        }
-      }
-    };
-    document.addEventListener("keydown", handleDrawerKey);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      document.removeEventListener("keydown", handleDrawerKey);
-      if (toggle?.isConnected) toggle.focus();
-    };
-  }, [drawerOpen]);
+  const isMobile = useMediaQuery(MOBILE_QUERY);
+  const isRail = useMediaQuery("(min-width: 768px) and (max-width: 1199px)");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => window.matchMedia("(max-width: 1199px)").matches);
+  const collapsed = sidebarCollapsed || isRail;
 
   return (
-    <Provider
-      open={!sidebarCollapsed}
-      onOpenChange={(open) => setSidebarCollapsed(!open)}
-      className={`app-shell${sidebarCollapsed ? " app-shell--sidebar-collapsed" : ""}`}
-      data-state={sidebarCollapsed ? "collapsed" : "expanded"}
-      data-collapsible={sidebarCollapsed ? "icon" : ""}
-    >
-      <a className="skip-link" href="#main-content" hidden={drawerOpen}>{t("Skip to content")}</a>
-      <Sidebar
-        collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed((value) => !value)}
-        isMobile={isMobile}
-      />
-      {drawerOpen ? (
-        <div className="sidebar-backdrop" aria-hidden="true" onClick={() => setSidebarCollapsed(true)} />
-      ) : null}
-      <div ref={mainRef} className="app-shell__main" inert={drawerOpen}>
+    <div
+      className={`app-shell${collapsed ? " app-shell--sidebar-collapsed" : ""}`}
+      data-state={collapsed ? "collapsed" : "expanded"} data-collapsible={collapsed ? "icon" : ""}>
+      <a className="skip-link" href="#main-content">{t("Skip to content")}</a>
+      {!isMobile && <Sidebar collapsed={collapsed} onToggle={() => setSidebarCollapsed((value) => !value)} />}
+      <div className="app-shell__main">
         <PresenceRuntime />
         <UploadRuntime />
         <header className="app-topbar">
+          <strong className="app-topbar__title">{t(pageTitle(location.pathname))}</strong>
           <NotificationBell />
         </header>
-        <ScrollProgressProvider>
-          <ScrollProgressContainer id="main-content" tabIndex={-1} className="app-shell__content">
-            <PageTransition effect={pageTransition} scope="page" skipUpdates transitionKey={["/gallery", "/gallery/favorites", "/gallery/album", "/gallery/trash"].includes(location.pathname) ? "/gallery-section" : ["/location", "/location/saved", "/location/history"].includes(location.pathname) ? "/location-section" : location.pathname}>
-              <Suspense fallback={<Spinner />}>
-                <Outlet />
-              </Suspense>
-            </PageTransition>
-          </ScrollProgressContainer>
-        </ScrollProgressProvider>
+        <PageActionBarProvider>
+          <div id="main-content" tabIndex={-1} className="app-shell__content">
+            <Suspense fallback={<Spinner />}><Outlet /></Suspense>
+          </div>
+        </PageActionBarProvider>
       </div>
-    </Provider>
+      {isMobile && <BottomNavigation />}
+    </div>
   );
 }

@@ -1,6 +1,6 @@
 import type { ReactNode, ButtonHTMLAttributes } from "react";
-import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
+import { playUiSound } from "../../services/sounds";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "secondary" | "ghost" | "danger";
@@ -8,18 +8,20 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children: ReactNode;
 }
 
-export function Button({ variant = "primary", busy, disabled, children, className, ...rest }: ButtonProps) {
+export function Button({ variant = "primary", busy, disabled, children, className, onClick, ...rest }: ButtonProps) {
   return (
-    <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
       <button
         className={`btn btn--${variant}${className ? ` ${className}` : ""}`}
         disabled={disabled || busy}
         aria-busy={busy || undefined}
         {...rest}
+        onClick={(event) => {
+          onClick?.(event);
+          if (!event.defaultPrevented) playUiSound("ui/button_soft");
+        }}
       >
         {busy ? <LoaderCircle animate={false} className="btn__spinner" aria-hidden="true" /> : null}
         {children}
       </button>
-    </AnimateIcon>
   );
 }

@@ -5,6 +5,11 @@ namespace Infrastructures.Data.Interfaces;
 
 public interface ICollectionRepository
 {
+    Task<IReadOnlyList<(Guid MediaId, Guid AlbumId)>> GetOwnedMembershipAsync(
+        Guid ownerId, IReadOnlyCollection<Guid> mediaIds, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<CollectionSource>> GetCollectionsPageAsync(
+        Guid viewerId, string scope, Guid? mediaId, int limit, DateTime? cursorDate, Guid? cursorId, string? search,
+        CancellationToken cancellationToken = default);
     Task<IReadOnlyList<CollectionSource>> GetOwnedCollectionsAsync(
         Guid ownerId, Guid? mediaId, CancellationToken cancellationToken = default);
     /// <summary>Public collections owned by other users; the viewer's own appear only in the "mine" scope.</summary>

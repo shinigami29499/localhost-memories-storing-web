@@ -131,7 +131,7 @@
   background: var(--surface);
   border: 1px solid var(--border-card);
   border-radius: 0.5rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: none;
   overflow: hidden;
   min-width: 3.5rem;
   padding: 0.25rem;

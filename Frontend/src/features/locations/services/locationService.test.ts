@@ -28,4 +28,20 @@ describe("locationService", () => {
       method: "POST", signal: controller.signal,
     });
   });
+
+  it("requests located photos within the current viewport", async () => {
+    const controller = new AbortController();
+    await locationService.mapPage(100, { west: 170, south: -20, east: -170, north: 30 }, controller.signal);
+    expect(api).toHaveBeenCalledWith(
+      "/api/location/travel/map?offset=100&limit=100&west=170&south=-20&east=-170&north=30",
+      { signal: controller.signal },
+    );
+  });
+
+  it("requests unlocated photos independently of the map", async () => {
+    const controller = new AbortController();
+    await locationService.unlocatedPage(50, controller.signal);
+    expect(api).toHaveBeenCalledWith("/api/location/travel/unlocated?offset=50&limit=50", { signal: controller.signal });
+  });
+
 });

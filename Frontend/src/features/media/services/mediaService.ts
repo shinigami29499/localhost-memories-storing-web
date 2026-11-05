@@ -1,5 +1,5 @@
 import { api } from "../../../services/api";
-import type { MediaKindFilter, PagedMedia } from "../types";
+import type { MediaFile, MediaKindFilter, PagedMedia } from "../types";
 
 function mediaQuery(offset: number, limit: number, mediaKind?: MediaKindFilter): string {
   const params = new URLSearchParams({ offset: String(offset), limit: String(limit) });
@@ -10,6 +10,10 @@ function mediaQuery(offset: number, limit: number, mediaKind?: MediaKindFilter):
 export const mediaService = {
   list(offset = 0, limit = 20, mediaKind?: MediaKindFilter): Promise<PagedMedia> {
     return api(`/api/library/gallery?${mediaQuery(offset, limit, mediaKind)}`);
+  },
+
+  get(mediaId: string): Promise<MediaFile> {
+    return api(`/api/library/gallery/${encodeURIComponent(mediaId)}`);
   },
 
   favorites(offset = 0, limit = 20, mediaKind?: MediaKindFilter): Promise<PagedMedia> {

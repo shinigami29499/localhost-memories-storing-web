@@ -3,11 +3,16 @@ import { useCallback } from "react";
 import { albumService } from "../services/albumService";
 import type { AlbumScope } from "../types";
 import type { MediaKindFilter } from "../../media/types";
+import { useAuthStore } from "../../../store/authStore";
 
 export const albumKeys = {
   all: ["albums"] as const,
   list: (scope: AlbumScope, mediaId?: string) =>
     ["albums", "list", scope, mediaId ?? null] as const,
+  page: (scope: AlbumScope | "feed", limit: number, mediaId?: string, search = "") =>
+    ["albums", "page", scope, limit, mediaId ?? null, search.trim()] as const,
+  membership: (viewerId: string | undefined, mediaIds: string[]) =>
+    ["albums", "membership", viewerId, [...mediaIds].sort()] as const,
   detail: (albumId: string) => ["albums", "detail", albumId] as const,
   media: (albumId: string, offset: number, limit: number, mediaKind?: MediaKindFilter) =>
     ["albums", "detail", albumId, "media", offset, limit, mediaKind ?? null] as const,
@@ -20,6 +25,25 @@ export function useAlbums(scope: AlbumScope = "mine", enabled = true, mediaId?: 
     queryKey: albumKeys.list(scope, mediaId),
     queryFn: () => albumService.list(scope, mediaId),
     enabled,
+  });
+}
+
+export function useInfiniteAlbums(scope: AlbumScope | "feed", enabled = true, limit = 30, mediaId?: string, search = "") {
+  return useInfiniteQuery({
+    queryKey: albumKeys.page(scope, limit, mediaId, search),
+    initialPageParam: null as string | null,
+    queryFn: ({ pageParam, signal }) => albumService.page(scope, pageParam, limit, mediaId, search, signal),
+    getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.nextCursor ?? undefined : undefined,
+    enabled,
+  });
+}
+
+export function useAlbumMembership(mediaIds: string[]) {
+  const viewerId = useAuthStore((state) => state.user?.id);
+  return useQuery({
+    queryKey: albumKeys.membership(viewerId, mediaIds),
+    queryFn: ({ signal }) => albumService.membership(mediaIds, signal),
+    enabled: Boolean(viewerId) && mediaIds.length > 0,
   });
 }
 

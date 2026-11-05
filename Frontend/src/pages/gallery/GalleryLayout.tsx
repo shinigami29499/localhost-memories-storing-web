@@ -1,7 +1,5 @@
 import { Outlet, useLocation } from "react-router-dom";
-import { PageTransition } from "../../components/layout/PageTransition";
 import { useLocale } from "../../context/LocaleContext";
-import { readPageTransitionEffect } from "../../utils/pageTransition";
 import { GalleryNavigation } from "./GalleryNavigation";
 import "./gallery.css";
 
@@ -28,9 +26,7 @@ export function GalleryLayout() {
         <GalleryNavigation active={active} />
       </div>
       <div className="gallery-layout__content">
-        <PageTransition effect={readPageTransitionEffect()} transitionKey={pathname} liveRoot skipUpdates>
-          <Outlet />
-        </PageTransition>
+        <Outlet />
       </div>
     </div>
   );

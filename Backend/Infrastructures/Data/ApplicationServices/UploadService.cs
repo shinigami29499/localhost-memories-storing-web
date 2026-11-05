@@ -139,6 +139,15 @@ public sealed class UploadService(
         return MapBatch(batch, actorId, isAdmin);
     }
 
+    public async Task<IReadOnlyList<Guid>> GetBatchImageIdsAsync(
+        Guid ownerId, Guid batchId, CancellationToken cancellationToken = default)
+    {
+        var batch = await _repository.FindBatchAsync(batchId, cancellationToken);
+        if (batch is null || batch.OwnerId != ownerId)
+            throw new NotFoundException($"Upload batch '{batchId}' was not found.");
+        return await _repository.GetBatchImageIdsAsync(ownerId, batchId, cancellationToken);
+    }
+
     public Task<bool> MarkBatchViewedAsync(Guid ownerId, Guid batchId, CancellationToken cancellationToken = default)
         => _repository.MarkBatchViewedAsync(ownerId, batchId, cancellationToken);
 

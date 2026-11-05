@@ -40,7 +40,8 @@ export function PlaceMarkerCombobox({ value, disabled, onChange }: Props) {
   return (
     <div className="place__field">
       <label className="place__field-label" htmlFor={inputId}>{t("Marker icon")}</label>
-      <Select.Root items={items} value={value} onValueChange={(icon) => icon && onChange(icon)}>
+      <Select.Root items={items.map((icon) => ({ label: labelForIcon(icon), value: icon }))}
+        value={value} onValueChange={(icon) => icon && onChange(icon)}>
         <Select.Trigger
           id={inputId}
           className="place__marker-trigger place__marker-select-trigger"

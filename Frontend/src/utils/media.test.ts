@@ -3,8 +3,8 @@ import { formatBytes, mediaPreviewUrl, mediaUrl } from "./media";
 
 describe("mediaUrl", () => {
   it("keeps regular media requests separate from admin deleted-media previews", () => {
-    const regular = new URL(mediaUrl("media-1"));
-    const preview = new URL(mediaUrl("media-1", true));
+    const regular = new URL(mediaUrl("media-1"), "http://localhost");
+    const preview = new URL(mediaUrl("media-1", true), "http://localhost");
     expect(regular.pathname).toBe("/api/library/gallery/media-1/file");
     expect(regular.searchParams.has("includeDeleted")).toBe(false);
     expect(regular.searchParams.has("preview")).toBe(false);
@@ -14,8 +14,8 @@ describe("mediaUrl", () => {
 
   it("requests lower-resolution previews while preserving authentication and trash access", () => {
     for (const includeDeleted of [false, true]) {
-      const original = new URL(mediaUrl("media-1", includeDeleted));
-      const preview = new URL(mediaPreviewUrl("media-1", includeDeleted));
+      const original = new URL(mediaUrl("media-1", includeDeleted), "http://localhost");
+      const preview = new URL(mediaPreviewUrl("media-1", includeDeleted), "http://localhost");
       expect(preview.pathname).toBe(original.pathname);
       expect(preview.searchParams.get("accessToken")).toBe(original.searchParams.get("accessToken"));
       expect(preview.searchParams.get("includeDeleted")).toBe(original.searchParams.get("includeDeleted"));

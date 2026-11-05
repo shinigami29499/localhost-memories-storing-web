@@ -18,7 +18,7 @@ vi.mock("motion/react", async (importOriginal) => ({
 }));
 
 vi.mock("../../features/albums/services/albumService", () => ({
-  albumService: { list: vi.fn(), remove: vi.fn() },
+  albumService: { page: vi.fn(), remove: vi.fn() },
 }));
 
 vi.mock("../../features/media/services/mediaService", () => ({
@@ -48,6 +48,7 @@ const publicAlbum: Album = {
   owner: { id: "another-user", username: "alice" },
   previewMediaId: "public-preview",
 };
+const asPage = (items: Album[]) => ({ items, nextCursor: null, hasMore: false });
 
 function LocationProbe() {
   return <output data-testid="location">{useLocation().pathname}</output>;
@@ -92,9 +93,7 @@ describe("HomePage", () => {
     })));
     vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
     vi.stubGlobal("IntersectionObserver", class { observe() {} unobserve() {} disconnect() {} });
-    vi.mocked(albumService.list).mockImplementation(async (scope) => (
-      scope === "mine" ? [ownAlbum] : [publicAlbum]
-    ));
+    vi.mocked(albumService.page).mockResolvedValue(asPage([ownAlbum, publicAlbum]));
     vi.mocked(mediaService.favorite).mockResolvedValue(undefined);
     vi.mocked(mediaService.unfavorite).mockResolvedValue(undefined);
     vi.mocked(albumService.remove).mockResolvedValue(undefined);
@@ -121,12 +120,24 @@ describe("HomePage", () => {
     await renderPage();
     expect(container.querySelectorAll(".album-feed-post img")).toHaveLength(2);
     expect(container.querySelectorAll("video")).toHaveLength(0);
-    expect(container.querySelector('a[href="/library/album/own-album"]')).not.toBeNull();
-    expect(container.querySelector('a[href="/library/album/public-album"]')).not.toBeNull();
+    expect(container.querySelector('a[href="/gallery/album/own-album"]')).not.toBeNull();
+    expect(container.querySelector('a[href="/gallery/album/public-album"]')).not.toBeNull();
     expect(container.querySelector('img[src*="own-preview"]')).not.toBeNull();
     expect(container.querySelector('img[src*="public-preview"]')).not.toBeNull();
-    expect(albumService.list).toHaveBeenCalledWith("mine", undefined);
-    expect(albumService.list).toHaveBeenCalledWith("public", undefined);
+    expect(albumService.page).toHaveBeenCalledWith("feed", null, 30, undefined, "", expect.any(AbortSignal));
+  });
+
+  it("loads the next feed page only when requested", async () => {
+    const older = { ...publicAlbum, id: "older-album", createdAt: "2026-01-01T00:00:00Z" };
+    vi.mocked(albumService.page).mockImplementation(async (_scope, cursor) => cursor
+      ? asPage([older])
+      : { items: [ownAlbum, publicAlbum], nextCursor: "older", hasMore: true });
+    await renderPage();
+    expect(albumService.page).toHaveBeenCalledTimes(1);
+    const loadMore = [...container.querySelectorAll<HTMLButtonElement>("button")].find((button) => button.textContent === "Load more")!;
+    await act(async () => loadMore.click());
+    await vi.waitFor(() => expect(container.querySelectorAll(".album-feed-post")).toHaveLength(3));
+    expect(albumService.page).toHaveBeenCalledWith("feed", "older", 30, undefined, "", expect.any(AbortSignal));
   });
 
   it("navigates to album detail after a single pointer click", async () => {
@@ -134,7 +145,7 @@ describe("HomePage", () => {
     await act(async () => { pointerClick(preview(), 1); });
     expect(location()).toBe("/");
     await act(async () => { await new Promise((resolve) => setTimeout(resolve, 400)); });
-    expect(location()).toBe("/library/album/own-album");
+    expect(location()).toBe("/gallery/album/own-album");
     expect(mediaService.favorite).not.toHaveBeenCalled();
   });
 
@@ -154,13 +165,11 @@ describe("HomePage", () => {
     expect(modifiedClick.defaultPrevented).toBe(false);
     expect(location()).toBe("/");
     await act(async () => { preview().click(); });
-    expect(location()).toBe("/library/album/own-album");
+    expect(location()).toBe("/gallery/album/own-album");
   });
 
   it("hides favorite and save actions and does not unfavorite on double-click", async () => {
-    vi.mocked(albumService.list).mockImplementation(async (scope) => (
-      scope === "mine" ? [{ ...ownAlbum, previewIsFavorited: true }] : [publicAlbum]
-    ));
+    vi.mocked(albumService.page).mockResolvedValue(asPage([{ ...ownAlbum, previewIsFavorited: true }, publicAlbum]));
     await renderPage();
     await doubleClick();
     expect(mediaService.favorite).not.toHaveBeenCalled();
@@ -178,7 +187,7 @@ describe("HomePage", () => {
     await act(async () => useAuthStore.setState({
       user: { ...useAuthStore.getState().user!, role: "admin" },
     }));
-    expect(container.querySelectorAll(".album-feed-post__delete")).toHaveLength(2);
+    await vi.waitFor(() => expect(container.querySelectorAll(".album-feed-post__delete")).toHaveLength(2));
   });
 
   it("confirms album deletion without deleting media or navigating", async () => {
@@ -186,16 +195,14 @@ describe("HomePage", () => {
     await act(async () => container.querySelector<HTMLButtonElement>(".album-feed-post__delete")!.click());
     expect(albumService.remove).not.toHaveBeenCalled();
     expect(document.body.textContent).toContain("Saved media stay in your gallery.");
-    const confirm = Array.from(document.querySelectorAll("button")).find((button) => button.textContent === "Continue")!;
+    const confirm = Array.from(document.querySelectorAll("button")).find((button) => button.textContent === "Confirm")!;
     await act(async () => confirm.click());
     await vi.waitFor(() => expect(albumService.remove).toHaveBeenCalledExactlyOnceWith("own-album"));
     expect(location()).toBe("/");
   });
 
   it("shows no favorite or save controls when an album has no preview, but keeps navigation", async () => {
-    vi.mocked(albumService.list).mockImplementation(async (scope) => (
-      scope === "mine" ? [{ ...ownAlbum, previewMediaId: null }] : [publicAlbum]
-    ));
+    vi.mocked(albumService.page).mockResolvedValue(asPage([{ ...ownAlbum, previewMediaId: null }, publicAlbum]));
     await renderPage();
     const post = container.querySelector(".album-feed-post")!;
     expect(post.querySelectorAll('button[aria-label="Add to favorites"], button[aria-label="Save to album"]')).toHaveLength(0);
@@ -204,11 +211,11 @@ describe("HomePage", () => {
     await doubleClick();
     expect(mediaService.favorite).not.toHaveBeenCalled();
     await act(async () => preview().click());
-    expect(location()).toBe("/library/album/own-album");
+    expect(location()).toBe("/gallery/album/own-album");
   });
 
   it("reports favorite failures and leaves navigation and state unchanged", async () => {
-    const errorToast = vi.spyOn(showToast, "error").mockImplementation(() => undefined);
+    const errorToast = vi.spyOn(showToast, "error").mockImplementation(() => "test-toast");
     vi.mocked(mediaService.favorite).mockRejectedValue(new Error("offline"));
     await renderPage();
     await doubleClick();

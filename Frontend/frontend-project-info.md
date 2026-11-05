@@ -161,9 +161,8 @@ client has no SignalR subscription. The upload runtime refreshes local query sta
   favorites when all selected items are favorited; otherwise it favorites the
   unfavorited items. Heart and save actions preserve selection, including items
   removed from the Favorites results. Favorite changes refresh gallery and album
-  caches. If a bulk change partially fails, Undo applies to the successful items.
-  Inactive icons have white outlines; the
-  active heart is filled red, and the bookmark is filled yellow when any selected
+  caches. Bulk favorite changes use the batch endpoint and offer Undo.
+  The active heart and bookmark are filled; the bookmark indicates whether any selected
   media belongs to at least one owned album. Saving keeps the album picker open
   for more album changes; Done or Close dismisses it. Escape cancels selection
   when the   picker is closed. There is no selection-entry button in these gallery views.
@@ -270,19 +269,18 @@ client has no SignalR subscription. The upload runtime refreshes local query sta
   of creating a new place. Open dialogs and pending saves prevent dismissal.
   Clearing marker selection leaves the camera unchanged; zooming occurs when
   selecting a marker, not when dismissing its preview.
-  The fullscreen photo viewer always shows a location action. Located photos use a
-  red filled pin with theme-default inner and outer outlines and a transparent center.
-  They open `?focusMediaId=<id>` to zoom to
+  The fullscreen photo viewer always shows a location action. Located photos open
+  `?focusMediaId=<id>` to zoom to
   the photo without entering selection mode. Unlocated photos open `?mediaId=<id>`
   in selection mode, centered on the current device location when permission allows.
   Initial device centering falls back to the saved home location or photo bounds
   when unavailable and never overrides a focused photo.
-  Satellite view is not available. Photo previews appear in point-bottom map pins
-  with white outlines in both themes and on hover; a draggable draft pin is also
-  available. Hovered, focused, and selected photo pins grow by 10% without changing
-  their images, white borders, or shadows. Home pins on both maps keep a dark
-  fill, white home icon, and white border in both themes and grow on interaction.
-  Keyboard focus retains a separate focus outline; reduced motion disables scale
+  Photo and place markers are requested for the settled viewport, with a Load more
+  action when an area has additional results. Photos without coordinates have a
+  separately paged list; upload location tagging uses IDs from the completed batch.
+  Satellite view is not available. Photo previews appear in point-bottom map pins;
+  a draggable draft pin is also available. Keyboard focus retains a separate focus
+  outline, and reduced motion disables scale
   transitions. Photos within about 46
   screen pixels of each other share one marker that stacks them with a count badge
   and fans them out in an arc on hover, focus, badge click, or selection; at most
@@ -333,11 +331,10 @@ writes, and native push notifications are not implemented.
 
 ## Layout, accessibility, and motion
 
-`AuthenticatedLayout` owns the shared sidebar provider, top bar, upload runtime, and
-routed content area. On phones (at most 640px), the sidebar becomes an off-canvas drawer
-with a backdrop and closes after navigation, on backdrop click, or on Escape.
-The open drawer keeps keyboard focus inside navigation, makes page content inert,
-and returns focus to its toggle when closed. A localized skip link bypasses navigation.
+`AuthenticatedLayout` owns the left desktop sidebar, top bar, shared presence and upload
+runtimes, and routed content area. From 768px to 1199px, navigation uses a compact rail.
+Below 768px, a bottom navigation bar exposes the main destinations and a More dialog
+contains account actions. A localized skip link bypasses navigation.
 
 Shared error states show a persistent inline message and retry action without also
 emitting a toast. Pagination and refresh failures show only their matching retry action.
@@ -348,19 +345,17 @@ Failed gallery, album, and trash previews show a centered retry icon. Activating
 failed tile retries it first, then other failed tiles in display order from the start,
 one request at a time. Successful previews are not reloaded. Selection gestures remain
 available on failed tiles.
-Upload history loading and errors retain the page heading and upload form. Mobile gallery and album-detail tile grids use three columns. Coarse-pointer album
+Upload history loading and errors retain the page heading and upload form. Mobile gallery and album-detail tile grids use four columns. Coarse-pointer album
 actions use 44px targets.
 
 Gallery, album-detail, and trash grids use square tiles.
 Selection borders follow the tiles' rounded corners. Tiles keep fixed bounds on hover and press.
 Only their clipped image/video previews zoom smoothly without overshoot; selection markers
 and video badges stay fixed. Reduced-motion settings disable this interaction animation.
-Gallery, album-detail, and trash tiles unmount image/video previews outside a 200px
-vertical viewport buffer and restore them on re-entry. Tile bounds, selection, and
-keyboard targets remain mounted to preserve scrolling and interaction. Home album
-cover images use the same buffer. Fullscreen carousel slides unload offscreen media
-while always retaining the selected slide. This limits mounted media elements; the
-browser still controls cached bytes and decoded-image memory.
+Gallery, album-detail, and trash use a windowed grid with a row buffer. Selection stays
+in page state while offscreen tiles unmount, and the viewer's return target is retained.
+Fullscreen carousel slides unload offscreen media while retaining the selected slide.
+The browser still controls cached bytes and decoded-image memory.
 
 Their fullscreen preview uses Animate UI's carousel with centered slides, 0.8 neighbor
 scaling, drag navigation, animated dots, and a counter. Desktop shows three slides;
@@ -371,11 +366,8 @@ videos pause when their slide stops being selected. The preview has no arrow but
 title, and it hides the dots for lists longer than ten items. Double-clicking the
 selected image or video toggles its favorite status, except in Trash. The heart
 button uses the same toggle. Removing the last Favorites item closes the preview;
-Undo restores it to the grid. Successfully favoriting media pops the local heart icon
-and bursts red particles around the button; opening an existing favorite does not
-replay the effect. Reduced-motion preferences disable the pop and particles. The
-bookmark button opens the save-to-album dialog inside the viewer. Each icon is filled
-in its color when active and drawn as a white outline otherwise. The actions sit beside
+Undo restores it to the grid. The bookmark button opens the save-to-album dialog inside
+the viewer. The actions sit beside
 the close button on desktop and at the bottom center on phones.
 
 The image copy action uses Animate UI's controlled copy button and icon swap.
@@ -393,21 +385,14 @@ Use `useLocale().t()` for user-facing copy. `LocaleProvider` persists the langua
 `shinigacim.language` and updates the document language. Protected media streams use
 the media endpoint's authenticated query-token form.
 
-Local icons and interactive parents use `src/components/animate-ui/icons/icon.tsx` for
-shared hover/press triggers and view-entry animations in PWAs and mobile viewports
-(up to 640px, matching the mobile layout). View-entry animations replay on re-entry;
-explicit opt-outs remain supported. Respect reduced-motion settings and keep
-loading indicators under their existing CSS animation control.
+Motion is off by default. The animation preference and operating-system reduced-motion
+setting control optional motion. Avoid route transitions and decorative scroll effects.
 
 ## Styling
 
-Global theme tokens live in `src/styles/global.css`; sidebar styling is in
-`src/styles/sidebar.css`. Both themes use neutral surfaces, distinct strong/body/muted
-text, and theme-aware borders and focus rings. Use `--focus-ring` for keyboard focus,
-`--theme-icon` and `--notification-icon` for shell icons, and `--text-on-danger` on
-filled danger controls. Popovers use `--shadow-popover`.
-# Color convention
-
-Use the same semantic color palette for colored icons and their associated text in light and dark themes. Share color tokens between matching icons and text, including hover and selected states.
-
-Buttons should have no border and use a shadow.
+Global tokens live in `src/styles/global.css`; shared shell overrides are in
+`src/styles/overhaul.css`. The app has one theme using `#6A3F36`, `#C8A796`,
+`#F4F3EE`, `#F8E4BE`, and `#EEA988`. Media, avatars, map imagery, and user-authored
+marker colors retain their original colors. Use the brown and light surfaces for
+readable text and controls, keep focus rings visible, and use borders or shadows when
+they improve separation.

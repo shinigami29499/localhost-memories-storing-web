@@ -1,7 +1,7 @@
 .control-bar {
-  --control-bar-bg: #fff;
-  --control-bar-fg: #000;
-  --control-bar-hover: #e6e8eb;
+  --control-bar-bg: #F4F3EE;
+  --control-bar-fg: #6A3F36;
+  --control-bar-hover: #F4F3EE;
   display: flex;
   align-items: center;
   gap: 0;
@@ -9,13 +9,13 @@
   border: 0;
   border-radius: 999px;
   background: var(--control-bar-bg);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  box-shadow: none;
 }
 
-:root:not(.dark) .control-bar {
-  --control-bar-bg: #000;
-  --control-bar-fg: #fff;
-  --control-bar-hover: #343434;
+:root .control-bar {
+  --control-bar-bg: #6A3F36;
+  --control-bar-fg: #F4F3EE;
+  --control-bar-hover: #6A3F36;
 }
 
 .control-bar > button {
@@ -50,12 +50,4 @@
 .control-bar > button:focus-visible {
   background: var(--control-bar-hover);
   color: var(--control-bar-fg);
-}
-
-.control-bar .theme-toggler[data-theme="light"] .theme-toggler__icon svg {
-  color: #f59e0b !important;
-}
-
-.control-bar .theme-toggler[data-theme="dark"] .theme-toggler__icon svg {
-  color: #2563eb !important;
 }

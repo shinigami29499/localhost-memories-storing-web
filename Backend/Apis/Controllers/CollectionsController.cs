@@ -7,6 +7,7 @@ using Services.Models.Media;
 using Services.Requests.Collections;
 using Services.Requests.Media;
 using Services.Responses.Media;
+using Services.Responses.Collections;
 using Apis.Realtime;
 using Microsoft.AspNetCore.SignalR;
 
@@ -22,14 +23,31 @@ public class CollectionsController(
     IHubContext<NotificationsHub> notificationsHub,
     ILogger<CollectionsController> logger) : ControllerBase
 {
+    [HttpPost("membership/query")]
+    public async Task<ActionResult<CollectionMembershipResponse>> GetOwnedMembershipAsync(
+        CollectionMembershipRequest request, CancellationToken cancellationToken)
+        => Ok(await collectionService.GetOwnedMembershipAsync(
+            currentUser.RequireUserId(), request, cancellationToken));
+
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<CollectionDto>>> GetCollectionsAsync(
         [FromQuery] CollectionListRequest request, CancellationToken cancellationToken)
     {
-        if (string.Equals(request.Scope.Trim(), CollectionListRequest.AdminScope, StringComparison.OrdinalIgnoreCase)
+        if (string.Equals(request.Scope?.Trim(), CollectionListRequest.AdminScope, StringComparison.OrdinalIgnoreCase)
             && !currentUser.IsAdmin)
             return Forbid();
         return Ok(await collectionService.GetCollectionsAsync(
+            currentUser.RequireUserId(), request, currentUser.IsAdmin, cancellationToken));
+    }
+
+    [HttpGet("page")]
+    public async Task<ActionResult<CollectionPageResponse>> GetCollectionsPageAsync(
+        [FromQuery] CollectionPageRequest request, CancellationToken cancellationToken)
+    {
+        if (string.Equals(request.Scope?.Trim(), CollectionListRequest.AdminScope, StringComparison.OrdinalIgnoreCase)
+            && !currentUser.IsAdmin)
+            return Forbid();
+        return Ok(await collectionService.GetCollectionsPageAsync(
             currentUser.RequireUserId(), request, currentUser.IsAdmin, cancellationToken));
     }
 

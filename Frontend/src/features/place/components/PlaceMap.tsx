@@ -46,9 +46,12 @@ import { PhotoMarkers } from "../../locations/components/LocationMap";
 import { AddNavigationToolbar, MapNavigation } from "../../navigation/components/MapNavigation";
 import { NavigationFallback } from "../../navigation/components/NavigationOptions";
 import { usePlace } from "../hooks/usePlaces";
+import type { PlaceMapBounds } from "../services/placeService";
+import { viewportBounds } from "../../locations/utils/mapBounds";
 
 interface Props {
   settingsRef?: RefObject<PlaceMapSettings>;
+  onBoundsChange?: (bounds: PlaceMapBounds) => void;
   places: Place[];
   photos?: MediaFile[];
   selectedPhoto?: MediaFile;
@@ -101,15 +104,14 @@ function MapViewport({ places, selected, ready, allowFit }: {
   allowFit: boolean;
 }) {
   const { current: map } = useMap();
-  const fittedCount = useRef(-1);
+  const fitted = useRef(false);
   const hadSelection = useRef(false);
   useEffect(() => {
     if (selected) hadSelection.current = true;
     if (hadSelection.current) return;
     if (!map || !ready || !allowFit || selected || !places.length) return;
-    // Framing runs once per place-count change so editing never moves the camera.
-    if (fittedCount.current === places.length) return;
-    fittedCount.current = places.length;
+    if (fitted.current) return;
+    fitted.current = true;
     const first = places[0];
     let west = first.longitude, east = first.longitude;
     let south = first.latitude, north = first.latitude;
@@ -582,7 +584,7 @@ function MapContent({
   homeLocationReady, homePicking, homeActionDisabled, onSelect, onPick, onPickHome,
   onHomeClick, onCreateAtCurrentLocation, onAddPhotos, token,
   canChange, onMove, onDelete, onEdit, onEditDraft, onConfirmRelocation, onCancelRelocation, onCancelSelection, onCancelDraft,
-  canMovePhoto, onSelectPhoto, onMovePhoto, onEditPhoto, onConfirmPhotoMove, settingsRef,
+  canMovePhoto, onSelectPhoto, onMovePhoto, onEditPhoto, onConfirmPhotoMove, settingsRef, onBoundsChange,
 }: Props & { token: string }) {
   const { t } = useLocale();
   const shouldReduceMotion = useShouldReduceMotion();
@@ -670,7 +672,7 @@ function MapContent({
     mapRef.current?.easeTo({
       center: [result.longitude, result.latitude],
       zoom: 15,
-      duration: 400,
+      duration: shouldReduceMotion ? 0 : 400,
     });
     const coordinate = { latitude: result.latitude, longitude: result.longitude };
     if (homePicking) onPickHome(coordinate);
@@ -695,7 +697,12 @@ function MapContent({
         initialViewState={{ latitude: 20, longitude: 0, zoom: 2, pitch: 0, bearing: 0 }}
         cursor={picking || homePicking || relocating ? "crosshair" : undefined}
         cooperativeGestures={false}
-        onLoad={(event) => { event.target.setCooperativeGestures(false); setLoaded(true); }}
+        onLoad={(event) => {
+          event.target.setCooperativeGestures(false);
+          setLoaded(true);
+          onBoundsChange?.(viewportBounds(event.target.getBounds()));
+        }}
+        onMoveEnd={(event) => onBoundsChange?.(viewportBounds(event.target.getBounds()))}
         onError={() => setFailed(true)}
         onClick={(event) => {
           if (navigationOpen || scenesRef.current?.open || appearanceRef.current?.open

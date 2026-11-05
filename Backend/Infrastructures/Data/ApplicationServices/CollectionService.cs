@@ -7,6 +7,9 @@ using Services.Models.Media;
 using Services.Requests.Collections;
 using Services.Requests.Media;
 using Services.Responses.Media;
+using Services.Responses.Collections;
+using System.Globalization;
+using System.Text;
 
 namespace Infrastructures.Data.ApplicationServices;
 
@@ -18,6 +21,84 @@ public sealed class CollectionService(
     IPreviewService previews,
     IPreviewLifecycle previewLifecycle) : ICollectionService
 {
+    public async Task<CollectionPageResponse> GetCollectionsPageAsync(
+        Guid viewerId, CollectionPageRequest request, bool isAdmin, CancellationToken cancellationToken = default)
+    {
+        var scope = request.Scope?.Trim().ToLowerInvariant();
+        if (scope is not (CollectionListRequest.MineScope or CollectionListRequest.PublicScope or CollectionListRequest.FeedScope)
+            && !(isAdmin && scope == CollectionListRequest.AdminScope))
+            throw new ValidationException("Invalid collection scope.",
+                new Dictionary<string, string[]> { ["scope"] = ["Must be 'mine', 'public', 'feed', or admin-only 'all'."] });
+        if (request.Limit is < 1 or > 100)
+            throw new ValidationException("Invalid collection page.",
+                new Dictionary<string, string[]> { ["limit"] = ["Must be between 1 and 100."] });
+        if (request.Search?.Length > 120)
+            throw new ValidationException("Invalid collection search.",
+                new Dictionary<string, string[]> { ["search"] = ["Use at most 120 characters."] });
+
+        var (cursorDate, cursorId) = DecodeCollectionCursor(request.Cursor);
+        var sources = await repository.GetCollectionsPageAsync(viewerId, scope, request.MediaId,
+            request.Limit, cursorDate, cursorId, request.Search, cancellationToken);
+        var hasMore = sources.Count > request.Limit;
+        var page = sources.Take(request.Limit).ToList();
+        var collections = page.Select(mapper.Map).ToList();
+        var previewIds = collections.Select(collection => collection.PreviewMediaId).OfType<Guid>().Distinct().ToList();
+        var favoritedIds = (await mediaRepository.GetFavoritedMediaIdsAsync(
+            viewerId, previewIds, cancellationToken)).ToHashSet();
+        var items = collections.Select(collection => collection with
+        {
+            PreviewIsFavorited = collection.PreviewMediaId is { } previewId && favoritedIds.Contains(previewId),
+        }).ToList();
+        var last = page.LastOrDefault()?.Collection;
+        return new CollectionPageResponse(items,
+            hasMore && last is not null ? EncodeCollectionCursor(last.CreatedAt, last.Id) : null,
+            hasMore);
+    }
+
+    private static (DateTime? Date, Guid? Id) DecodeCollectionCursor(string? cursor)
+    {
+        if (string.IsNullOrEmpty(cursor)) return (null, null);
+        try
+        {
+            if (cursor.Length > 128) throw new FormatException();
+            var base64 = cursor.Replace('-', '+').Replace('_', '/').PadRight((cursor.Length + 3) / 4 * 4, '=');
+            var values = Encoding.UTF8.GetString(Convert.FromBase64String(base64)).Split('|');
+            if (values.Length != 2
+                || !DateTime.TryParseExact(values[0], "O", CultureInfo.InvariantCulture,
+                    DateTimeStyles.RoundtripKind, out var date)
+                || date.Kind != DateTimeKind.Utc
+                || !Guid.TryParseExact(values[1], "N", out var id))
+                throw new FormatException();
+            return (date, id);
+        }
+        catch (FormatException)
+        {
+            throw new ValidationException("Invalid collection page.",
+                new Dictionary<string, string[]> { ["cursor"] = ["Invalid cursor."] });
+        }
+    }
+
+    private static string EncodeCollectionCursor(DateTime date, Guid id)
+        => Convert.ToBase64String(Encoding.UTF8.GetBytes($"{date.ToUniversalTime():O}|{id:N}"))
+            .TrimEnd('=').Replace('+', '-').Replace('/', '_');
+
+    public async Task<CollectionMembershipResponse> GetOwnedMembershipAsync(
+        Guid ownerId, CollectionMembershipRequest request, CancellationToken cancellationToken = default)
+    {
+        if (request.MediaIds is not { Count: > 0 and <= 100 }
+            || request.MediaIds.Any(id => id == Guid.Empty)
+            || request.MediaIds.Distinct().Count() != request.MediaIds.Count)
+            throw new ValidationException("Invalid media selection.",
+                new Dictionary<string, string[]> { ["mediaIds"] = ["Provide 1 to 100 distinct media IDs."] });
+
+        var rows = await repository.GetOwnedMembershipAsync(ownerId, request.MediaIds, cancellationToken);
+        var byMediaId = rows.GroupBy(row => row.MediaId)
+            .ToDictionary(group => group.Key, group => (IReadOnlyList<Guid>)group.Select(row => row.AlbumId).Distinct().ToList());
+        return new CollectionMembershipResponse(request.MediaIds
+            .Select(id => new CollectionMembershipItemResponse(id, byMediaId.GetValueOrDefault(id) ?? []))
+            .ToList());
+    }
+
     public async Task<IReadOnlyList<CollectionDto>> GetCollectionsAsync(
         Guid viewerId, CollectionListRequest request, CancellationToken cancellationToken = default)
         => await GetCollectionsAsync(viewerId, request, isAdmin: false, cancellationToken);
@@ -25,7 +106,7 @@ public sealed class CollectionService(
     public async Task<IReadOnlyList<CollectionDto>> GetCollectionsAsync(
         Guid viewerId, CollectionListRequest request, bool isAdmin, CancellationToken cancellationToken = default)
     {
-        var scope = request.Scope.Trim().ToLowerInvariant();
+        var scope = request.Scope?.Trim().ToLowerInvariant() ?? "";
         var sources = scope switch
         {
             CollectionListRequest.MineScope => await repository.GetOwnedCollectionsAsync(

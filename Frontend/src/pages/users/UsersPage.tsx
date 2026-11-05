@@ -2,10 +2,7 @@ import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { Tabs } from "@base-ui/react/tabs";
 import { HighlightItem } from "@animate-ui/react/primitives/effects/highlight";
 import { NavigationHighlight } from "../../components/ui";
-import { startTransition, useEffect, useRef, useState } from "react";
-import { PageTransition } from "../../components/layout/PageTransition";
-import { readPageTransitionEffect } from "../../utils/pageTransition";
-import { HubConnectionBuilder } from "@microsoft/signalr";
+import { startTransition, useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { userService } from "../../features/users";
 import { ApiError } from "../../services/api";
@@ -25,6 +22,7 @@ import "../gallery/gallery.css";
 import "./users.css";
 import { useLocale } from "../../context/LocaleContext";
 import { UserAvatar } from "../../components/common/UserAvatar";
+import { useUserPresenceStore } from "../../features/users/store/userPresenceStore";
 
 const ONLINE_WINDOW_MS = 300_000;
 
@@ -60,8 +58,7 @@ export function UsersPage() {
   const [filter, setFilter] = useState<UserFilter>("all");
   const [page, setPage] = useState(1);
   const [now, setNow] = useState(() => Date.now());
-  const [offlineUsers, setOfflineUsers] = useState<Record<string, boolean>>({});
-  const offlineUsersRef = useRef<Record<string, boolean>>({});
+  const offlineUsers = useUserPresenceStore((state) => state.offlineUsers);
   const [limit, setLimit] = useState<number>(() => {
     const stored = Number(window.localStorage.getItem("users.limit"));
     return PAGE_SIZE_OPTIONS.some((size) => size === stored) ? stored : DEFAULT_PAGE_SIZE;
@@ -74,129 +71,75 @@ export function UsersPage() {
   };
 
   const users = useQuery({
-    queryKey: ["users"],
-    queryFn: userService.list,
-    refetchInterval: isAdmin ? 15_000 : false,
+    queryKey: ["users", "page", filter, page, limit],
+    queryFn: ({ signal }) => userService.page(page, limit, filter === "pending_approval", signal),
+    refetchInterval: isAdmin ? 60_000 : false,
   });
 
   useEffect(() => {
     const timer = window.setInterval(() => {
       setNow(Date.now());
-    }, 5_000);
+    }, 30_000);
     return () => window.clearInterval(timer);
   }, []);
 
-  useEffect(() => {
-    const token = useAuthStore.getState().accessToken;
-    if (!token) return;
-    const apiBase = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
-    const connection = new HubConnectionBuilder()
-      .withUrl(`${apiBase}/hubs/notifications`, { accessTokenFactory: () => useAuthStore.getState().accessToken ?? "" })
-      .withAutomaticReconnect()
-      .build();
-    connection.on("UsersChanged", (userId: string, resetPresence: boolean) => {
-      if (resetPresence) {
-        offlineUsersRef.current = { ...offlineUsersRef.current, [userId]: true };
-        setOfflineUsers(offlineUsersRef.current);
-      }
-      void queryClient.invalidateQueries({ queryKey: ["users"] });
-    });
-    connection.onreconnected(() => {
-      void queryClient.invalidateQueries({ queryKey: ["users"] });
-    });
-    connection.on("UserPresenceChanged", (event: {
-      userId: string;
-      username: string;
-      online: boolean;
-      lastSeenAt: string | null;
-    }) => {
-      if (event.userId === me?.id && !event.online) return;
-      offlineUsersRef.current = { ...offlineUsersRef.current, [event.userId]: !event.online };
-      setOfflineUsers(offlineUsersRef.current);
-      queryClient.setQueryData<AuthUser[]>(["users"], (existing) =>
-        existing?.map((user) => user.id === event.userId ? { ...user, lastSeenAt: event.lastSeenAt ?? user.lastSeenAt } : user),
-      );
-    });
-    void connection.start().catch(() => undefined);
-    return () => { void connection.stop(); };
-  }, [queryClient, me?.id, t]);
 
-  const copyUpdated = (updated: AuthUser) => {
-    void queryClient.setQueryData<AuthUser[]>(["users"], (existing) =>
-      existing?.map((user) => (user.id === updated.id ? updated : user)),
-    );
-  };
 
-  const copyRemoved = (id: string) => {
-    void queryClient.setQueryData<AuthUser[]>(["users"], (existing) =>
-      existing?.filter((user) => user.id !== id),
-    );
-  };
+  const refreshUsers = () => void queryClient.invalidateQueries({ queryKey: ["users", "page"] });
 
   const approve = useMutation({
     mutationFn: (userId: string) => userService.approve(userId),
-    onSuccess: copyUpdated,
+    onSuccess: refreshUsers,
     onError: (err) => showToast.error(err instanceof ApiError ? err.message : t("Could not approve the user.")),
   });
 
   const remove = useMutation({
     mutationFn: (userId: string) => userService.remove(userId),
-    onSuccess: (_data, userId) => copyRemoved(userId),
+    onSuccess: refreshUsers,
     onError: (err) => showToast.error(err instanceof ApiError ? err.message : t("Could not delete the user.")),
   });
 
   const disable = useMutation({
     mutationFn: (userId: string) => userService.disable(userId),
-    onSuccess: copyUpdated,
+    onSuccess: refreshUsers,
   });
 
   const activate = useMutation({
     mutationFn: (userId: string) => userService.activate(userId),
     onSuccess: (user) => {
-      offlineUsersRef.current = { ...offlineUsersRef.current, [user.id]: true };
-      setOfflineUsers(offlineUsersRef.current);
-      copyUpdated(user);
+      useUserPresenceStore.getState().setOnline(user.id, false);
+      refreshUsers();
     },
   });
 
   const updateRole = useMutation({
     mutationFn: (user: AuthUser) => userService.updateRole(user.id, user.role.toLowerCase() === "admin" ? "user" : "admin"),
-    onSuccess: copyUpdated,
+    onSuccess: refreshUsers,
   });
 
-  const allUsers = users.data ?? [];
-  const visibleUsers = allUsers.filter((user) => filter === "all" || user.status === filter);
-  const currentPage = Math.min(page, Math.max(1, Math.ceil(visibleUsers.length / limit)));
-  const pagedUsers = visibleUsers.slice((currentPage - 1) * limit, currentPage * limit);
+  const allUsers = users.data?.items ?? [];
+  const total = users.data?.total ?? 0;
+  const currentPage = Math.min(page, Math.max(1, Math.ceil(total / limit)));
+  const pagedUsers = allUsers;
 
   useEffect(() => {
-    if (page !== currentPage) setPage(currentPage);
-  }, [page, currentPage]);
+    if (users.data && page !== currentPage) setPage(currentPage);
+  }, [users.data, page, currentPage]);
 
   return (
     <>
       <main className="admin-page admin-page--users" aria-label={t("Users")}>
+        <header className="admin-users__header">
+          <div>
+            <p className="admin-users__eyebrow">{t("Community access")}</p>
+            <h1 id="admin-users-title">{t("Users")}<span className="brand__dot">.</span></h1>
+            <p className="admin-users__description">{t("Review accounts and membership status.")}</p>
+          </div>
+        </header>
         <div className="admin-users__content">
         <section className="admin-users" aria-labelledby="admin-users-title">
-          <header className="admin-users__header">
-            <div>
-              <p className="admin-users__eyebrow">{t("Community access")}</p>
-              <h1 id="admin-users-title">{t("Users")}<span className="brand__dot">.</span></h1>
-              <p className="admin-users__description">{t("Review accounts and membership status.")}</p>
-            </div>
-          </header>
 
-          {users.isLoading ? <Spinner label={t("Loading users…")} /> : null}
-          {users.isError ? (
-            <ErrorState message={t("Could not load users.")} onRetry={() => void users.refetch()} />
-          ) : null}
-
-          {!users.isLoading && !users.isError && allUsers.length === 0 ? (
-            <EmptyState title="No users yet" hint="User accounts will appear here." />
-          ) : null}
-
-          {allUsers.length > 0 ? (
-            <Tabs.Root
+          <Tabs.Root
               value={filter}
               onValueChange={(value) => {
                 if (value === "all" || value === "pending_approval") {
@@ -214,16 +157,13 @@ export function UsersPage() {
                 >
                   <NavigationHighlight value={filter}>
                   {userFilters.map((option) => {
-                    const count = option.value === "all"
-                      ? allUsers.length
-                      : allUsers.filter((user) => user.status === option.value).length;
                     return (
                       <HighlightItem key={option.value} value={option.value} asChild>
                       <Tabs.Tab
                         value={option.value}
                         className="admin-users__tab"
                       >
-                        {t(option.label)} <span>{count}</span>
+                        {t(option.label)}
                       </Tabs.Tab>
                       </HighlightItem>
                     );
@@ -231,10 +171,12 @@ export function UsersPage() {
                   </NavigationHighlight>
                 </Tabs.List>
               </div>
-
-              <PageTransition effect={readPageTransitionEffect()} transitionKey={filter} liveRoot skipUpdates>
+              {users.isLoading ? <Spinner label={t("Loading users…")} /> : null}
+              {users.isError ? (
+                <ErrorState message={t("Could not load users.")} onRetry={() => void users.refetch()} />
+              ) : null}
               <Tabs.Panel key={filter} value={filter}>
-                {visibleUsers.length === 0 ? (
+                {!users.data ? null : total === 0 ? (
                   <EmptyState
                     title={filter === "pending_approval" ? "No pending users" : "No users yet"}
                     hint={filter === "pending_approval"
@@ -281,9 +223,7 @@ export function UsersPage() {
                   </div>
                 )}
               </Tabs.Panel>
-              </PageTransition>
-            </Tabs.Root>
-          ) : null}
+          </Tabs.Root>
         </section>
         </div>
         {users.data ? (
@@ -291,7 +231,7 @@ export function UsersPage() {
             <Pagination
               page={currentPage}
               pageSize={limit}
-              total={visibleUsers.length}
+              total={total}
               itemLabel="users"
               isFetching={users.isFetching}
               onPageChange={setPage}

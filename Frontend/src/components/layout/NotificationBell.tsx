@@ -11,7 +11,6 @@ import { uploadMessage } from "../../features/notifications/uploadMessage";
 import { useAuthStore } from "../../store/authStore";
 import { formatTimestamp } from "../../utils/media";
 import { LanguageToggleButton } from "../ui/LanguageToggleButton";
-import { ThemeTogglerButton } from "../ui/ThemeTogglerButton";
 import { useLocale } from "../../context/LocaleContext";
 import "./control-bar.css";
 
@@ -64,7 +63,6 @@ export function NotificationBell() {
 
   return (
     <div ref={containerRef} className="notification-bar control-bar">
-      <ThemeTogglerButton />
       <LanguageToggleButton />
       <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
         <button

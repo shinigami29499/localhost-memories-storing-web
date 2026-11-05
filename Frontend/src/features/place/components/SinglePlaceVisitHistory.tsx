@@ -16,16 +16,18 @@ interface Props {
 
 export function SinglePlaceVisitHistory({ placeId, onShowOnMap }: Props) {
   const { t } = useLocale();
-  const history = usePlaceVisits(placeId);
-  const removeVisit = useDeletePlaceVisit();
   const [page, setPage] = useState(1);
-  const visits = history.data ?? [];
-  const totalPages = Math.max(1, Math.ceil(visits.length / PAGE_SIZE));
+  const history = usePlaceVisits(placeId, page, PAGE_SIZE);
+  const removeVisit = useDeletePlaceVisit();
+  const visits = history.data?.items ?? [];
+  const total = history.data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
-  const visibleVisits = visits.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   useEffect(() => setPage(1), [placeId]);
-  useEffect(() => setPage((current) => Math.min(current, totalPages)), [totalPages]);
+  useEffect(() => {
+    if (history.data) setPage((current) => Math.min(current, totalPages));
+  }, [history.data, totalPages]);
 
   const handleRemove = async (visit: PlaceVisit) => {
     try {
@@ -45,7 +47,7 @@ export function SinglePlaceVisitHistory({ placeId, onShowOnMap }: Props) {
       ) : visits.length ? (
         <div>
           <PlaceVisitHistory
-            visits={visibleVisits}
+            visits={visits}
             onShowOnMap={onShowOnMap}
             showPlaceDetails={false}
             showVisitor
@@ -53,9 +55,9 @@ export function SinglePlaceVisitHistory({ placeId, onShowOnMap }: Props) {
             onRemove={(visit) => void handleRemove(visit)}
             removingVisitId={removeVisit.isPending ? removeVisit.variables : null}
           />
-          <Pagination page={currentPage} pageSize={PAGE_SIZE} total={visits.length} itemLabel="visits" onPageChange={setPage} />
+          <Pagination page={currentPage} pageSize={PAGE_SIZE} total={total} itemLabel="visits" onPageChange={setPage} />
         </div>
-      ) : null}
+      ) : <p>{t("No visits at this place yet.")}</p>}
     </section>
   );
 }

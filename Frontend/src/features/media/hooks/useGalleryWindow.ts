@@ -1,35 +1,39 @@
 import { useEffect, useState } from "react";
 import type { RefObject } from "react";
 
-export function useGalleryWindow(containerRef: RefObject<HTMLElement | null>, dependency: string, count: number) {
-  const [windowIds, setWindowIds] = useState<Set<string>>(() => new Set());
+export interface GalleryViewport {
+  top: number;
+  height: number;
+  width: number;
+}
+
+/** One passive scroll listener for the gallery, independent of the media count. */
+export function useGalleryWindow(containerRef: RefObject<HTMLElement | null>, dependency: string): GalleryViewport {
+  const [viewport, setViewport] = useState<GalleryViewport>({ top: 0, height: 0, width: 0 });
+
   useEffect(() => {
+    const container = containerRef.current;
+    const scrollport = container?.matches(".gallery-page__content")
+      ? container : container?.querySelector<HTMLElement>(".gallery-page__content");
+    if (!scrollport) return;
     let frame = 0;
     const update = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
-        const cells = Array.from(containerRef.current?.querySelectorAll<HTMLElement>("[data-gallery-window-id]") ?? []);
-        const viewport = containerRef.current?.querySelector<HTMLElement>(".gallery-page__content")?.getBoundingClientRect();
-        if (!viewport || !cells.length) return;
-        const first = cells.findIndex((cell) => cell.getBoundingClientRect().bottom >= viewport.top);
-        if (first < 0) return;
-        let last = first;
-        while (last + 1 < cells.length && cells[last + 1].getBoundingClientRect().top <= viewport.bottom) last++;
-        const before = Math.min(15, first);
-        const after = Math.min(30 - before, cells.length - last - 1);
-        const start = Math.max(0, first - (30 - after));
-        const next = new Set(cells.slice(start, last + after + 1).map((cell) => cell.dataset.galleryWindowId!));
-        setWindowIds((current) => current.size === next.size && [...next].every((id) => current.has(id)) ? current : next);
+        const next = { top: scrollport.scrollTop, height: scrollport.clientHeight, width: scrollport.clientWidth };
+        setViewport((current) => current.top === next.top && current.height === next.height && current.width === next.width ? current : next);
       });
     };
     update();
-    window.addEventListener("scroll", update, { passive: true, capture: true });
-    window.addEventListener("resize", update);
+    scrollport.addEventListener("scroll", update, { passive: true });
+    const resize = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(update);
+    resize?.observe(scrollport);
     return () => {
       cancelAnimationFrame(frame);
-      window.removeEventListener("scroll", update, true);
-      window.removeEventListener("resize", update);
+      scrollport.removeEventListener("scroll", update);
+      resize?.disconnect();
     };
-  }, [containerRef, dependency, count]);
-  return windowIds;
+  }, [containerRef, dependency]);
+
+  return viewport;
 }

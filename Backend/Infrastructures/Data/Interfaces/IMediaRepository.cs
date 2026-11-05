@@ -1,5 +1,6 @@
 using Domains.Entities;
 using Services.Models.Media;
+using Services.Models.Place;
 
 namespace Infrastructures.Data.Interfaces;
 
@@ -13,6 +14,7 @@ public interface IMediaRepository
         Guid mediaId, Guid actorId, string metadata, CancellationToken cancellationToken);
     Task<MediaFile?> FindOwnedMediaAsync(
         Guid mediaId, CancellationToken cancellationToken = default);
+    Task<string?> GetOwnerUsernameAsync(Guid ownerId, CancellationToken cancellationToken = default);
     Task<MediaFile?> FindMediaIncludingDeletedAsync(
         Guid mediaId, CancellationToken cancellationToken = default);
     Task PermanentlyDeleteMediaAsync(
@@ -20,6 +22,10 @@ public interface IMediaRepository
     Task<IReadOnlyList<(MediaFile Media, string? OwnerUsername)>> GetMediaPageAsync(
         int offset, int limit, string? mediaKind, Guid? favoriteUserId, bool includeDeleted,
         CancellationToken cancellationToken = default);
+    Task<(IReadOnlyList<(MediaFile Media, string? OwnerUsername)> Items, long Total)> GetLocatedMediaPageAsync(
+        int offset, int limit, PlaceMapBounds bounds, CancellationToken cancellationToken = default);
+    Task<(IReadOnlyList<(MediaFile Media, string? OwnerUsername)> Items, long Total)> GetUnlocatedMediaPageAsync(
+        int offset, int limit, CancellationToken cancellationToken = default);
     Task<long> CountMediaAsync(
         string? mediaKind, Guid? favoriteUserId, bool includeDeleted,
         CancellationToken cancellationToken = default);

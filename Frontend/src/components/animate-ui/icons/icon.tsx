@@ -38,19 +38,21 @@ function useIconTriggers<T extends string>(props: IconTriggers<T>) {
   const mobile = useMediaQuery("(max-width: 640px)");
   const hover = useMediaQuery("(hover: hover) and (pointer: fine)");
   const installed = standalone || (typeof navigator !== "undefined" && "standalone" in navigator && navigator.standalone === true);
-  const enabled = iconsEnabled && animationsEnabled && props.animate !== false;
+  const enabled = iconsEnabled && animationsEnabled && !mobile && props.animate !== false;
 
   return {
-    animateOnHover: enabled && !installed && hover ? (props.animateOnHover ?? true) : false,
+    animateOnHover: iconsEnabled && !mobile && props.animate !== false && hover ? (props.animateOnHover ?? true) : false,
     animateOnTap: enabled ? (props.animateOnTap ?? true) : false,
-    animateOnView: enabled && (installed || mobile) ? (props.animateOnView ?? true) : false,
+    animateOnView: enabled && installed ? (props.animateOnView ?? true) : false,
     animateOnViewOnce: props.animateOnViewOnce ?? false,
     completeOnStop: props.completeOnStop ?? true,
   };
 }
 
 export function AnimateIcon(props: AnimateIconProps) {
-  const iconsEnabled = useAnimationStore((state) => state.iconsEnabled);
+  const iconsEnabledInStore = useAnimationStore((state) => state.iconsEnabled);
+  const mobile = useMediaQuery("(max-width: 640px)");
+  const iconsEnabled = iconsEnabledInStore && !mobile;
   const triggers = useIconTriggers(props);
   const reduceMotion = useShouldReduceMotion();
   const [controls, setControls] = useState<LegacyAnimationControls>();
@@ -71,6 +73,25 @@ export function AnimateIcon(props: AnimateIconProps) {
       controls.set("initial");
     }
   }, [controls, iconsEnabled]);
+
+  useEffect(() => {
+    const element = ref.current as Element | null;
+    if (!controls || !triggers.animateOnHover || reduceMotion || !(element instanceof SVGElement)) return;
+    const container = element.closest('button, a, [role="button"]');
+    if (!container) return;
+
+    const start = () => {
+      if (container.matches(':disabled, [aria-disabled="true"]')) return;
+      void controls.start("animate");
+    };
+    const stop = () => { void controls.start("initial"); };
+    container.addEventListener("pointerenter", start);
+    container.addEventListener("pointerleave", stop);
+    return () => {
+      container.removeEventListener("pointerenter", start);
+      container.removeEventListener("pointerleave", stop);
+    };
+  }, [controls, triggers.animateOnHover, reduceMotion]);
 
   useEffect(() => {
     if (!controls || !triggers.animateOnView || props.loop || props.animate !== undefined) return;
@@ -125,6 +146,7 @@ export function AnimatedAction({ animationRevision, children }: { animationRevis
 
 export function IconWrapper<T extends string>(props: IconWrapperProps<T>) {
   const iconsEnabled = useAnimationStore((state) => state.iconsEnabled);
+  const mobile = useMediaQuery("(max-width: 640px)");
   const { controls } = useAnimateIconContext();
   const hasOwnTriggers = props.animate !== undefined
     || props.animateOnHover !== undefined
@@ -132,7 +154,7 @@ export function IconWrapper<T extends string>(props: IconWrapperProps<T>) {
     || props.animateOnView !== undefined;
 
   if (controls && !hasOwnTriggers) {
-    return <BaseIconWrapper {...props} animate={iconsEnabled ? props.animate : false} />;
+    return <BaseIconWrapper {...props} animate={iconsEnabled && !mobile ? props.animate : false} />;
   }
 
   const {

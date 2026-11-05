@@ -55,8 +55,8 @@ This is a guide, not a requirement to create every directory. Prefer colocating 
 - For new features, reuse shared UI components from `src/components/ui`. If a reusable primitive does not exist, add it there and export it from the UI barrel before using it in feature components. Keep feature-specific components inside their feature.
 - Components must not call `fetch` directly; use services.
 - Use TanStack Query for remote/server state and Zustand for shared client state.
-- Use local animated icon components from `src/components/animate-ui/icons`.
-- Use `var(--surface-hover)` as the project-default neutral hover/focus-highlight background for navigation, tabs, and ghost controls, matching sidebar items. It is `#DEDEDE` at 14% opacity in dark mode and `#1C1C1C` at 12% in light mode, defined in `src/styles/global.css`. Keep selected, destructive, and other semantic states distinct.
+- Use familiar, labeled icons. Keep navigation and common controls static; use motion only where it clarifies state.
+- Use `var(--surface-hover)` for neutral hover and focus highlights. The app has one light theme and five authored UI colors in `src/styles/global.css`; keep selected and destructive states distinct through text, icons, and boundaries.
 - Row-level actions are icon buttons with descriptive `aria-label` and `title`; show a spinner while busy. Hide decorative icons from assistive technology.
 - Do not define a component inside another component's body.
 - Keep comments limited to necessary facts or non-obvious constraints.
@@ -65,12 +65,12 @@ This is a guide, not a requirement to create every directory. Prefer colocating 
 
 - `src/App.tsx` wires theme, locale, query, animation, and toast providers with routes for galleries, albums, uploads, users, sign-in, and registration.
 - Feature code currently lives in `src/features/auth/`, `albums/`, `media/`, `uploads/`, `users/`, and `notifications/`; keep route pages focused on composition.
-- Albums use `/albums` routes and the `/api/collections` API. Galleries show standalone pictures, videos, favorites, and admin trash; uploads track standalone media batches.
+- Albums use `/gallery/album` routes and the `/api/library/album` API. Galleries show shared media, favorites, and admin trash; uploads track standalone media batches.
 - Request flow: page/component → feature hook or service → `src/services/api.ts` → backend REST API.
 - The API client injects bearer tokens, parses problem details, coordinates a single refresh for concurrent 401s, replaces session tokens, and retries the original request once. Failed authentication clears the session.
 - Browser `<img>` and `<video>` elements cannot attach an Authorization header; protected media therefore uses the authenticated query-token URL form.
 - Admin trash requires a valid JWT with `role: admin`. Deleted-media previews use `includeDeleted=true`; the backend serves trashed files without restoring them.
-- On phones, `AuthenticatedLayout` uses an off-canvas sidebar. Keep keyboard focus inside the open drawer, make page content inert, return focus on close, and retain the localized skip link.
+- On phones, `AuthenticatedLayout` uses bottom navigation with a native More dialog; desktop uses a left sidebar. Preserve dialog focus return and the localized skip link.
 - Validate frontend work with the existing build. Run tests only under the conditions in the Validation section.
 
 ## PWA support and limits

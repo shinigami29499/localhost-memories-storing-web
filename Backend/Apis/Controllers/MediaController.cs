@@ -7,6 +7,7 @@ using Apis.Interfaces;
 using Services.Exceptions;
 using Services.Interfaces;
 using Services.Models.Media;
+using Services.Models.Place;
 using Services.Requests.Media;
 using Services.Responses.Media;
 
@@ -44,6 +45,20 @@ public class MediaController(
         => Ok(await _mediaService.ScanLocationsAsync(
             _currentUser.RequireUserId(), _currentUser.IsAdmin, offset, cancellationToken));
 
+    [HttpGet("~/api/location/travel/map")]
+    public async Task<ActionResult<PagedMediaResponse<MediaFileDto>>> GetLocatedMediaPageAsync(
+        CancellationToken cancellationToken, [FromQuery] int offset = 0, [FromQuery] int limit = 100,
+        [FromQuery] double west = -180, [FromQuery] double south = -90,
+        [FromQuery] double east = 180, [FromQuery] double north = 90)
+        => Ok(await _mediaService.GetLocatedMediaPageAsync(_currentUser.RequireUserId(), offset, limit,
+            new PlaceMapBounds(west, south, east, north), cancellationToken));
+
+    [HttpGet("~/api/location/travel/unlocated")]
+    public async Task<ActionResult<PagedMediaResponse<MediaFileDto>>> GetUnlocatedMediaPageAsync(
+        CancellationToken cancellationToken, [FromQuery] int offset = 0, [FromQuery] int limit = 50)
+        => Ok(await _mediaService.GetUnlocatedMediaPageAsync(
+            _currentUser.RequireUserId(), offset, limit, cancellationToken));
+
     [HttpGet]
     public async Task<ActionResult<PagedMediaResponse<MediaFileDto>>> GetMediaAsync(
         [FromQuery] MediaPageRequest request, CancellationToken cancellationToken)
@@ -55,6 +70,11 @@ public class MediaController(
             favoritesOnly: false,
             includeDeleted: false,
             cancellationToken));
+
+    [HttpGet("{mediaId:guid}")]
+    public async Task<ActionResult<MediaFileDto>> GetMediaByIdAsync(
+        Guid mediaId, CancellationToken cancellationToken)
+        => Ok(await _mediaService.GetMediaAsync(mediaId, _currentUser.RequireUserId(), cancellationToken));
 
     /// <summary>Returns compact media change markers for local gallery reconciliation.</summary>
     [HttpGet("changes")]

@@ -10,6 +10,7 @@ import { X } from '@/components/animate-ui/icons/x';
 import './toast.css';
 import { useLocale } from "../../context/LocaleContext";
 import { useToastPreferencesStore } from "../../store/toastPreferencesStore";
+import { playUiSound } from "../../services/sounds";
 
 export type ToastUndoHandler = () => void | Promise<void>;
 
@@ -67,7 +68,7 @@ function addToast(type: 'success' | 'error' | 'info' | 'warning' | 'delete', tit
   for (const [id, toast] of activeToasts) {
     if (toast.title === title && toast.description === description) toastManager.close(id);
   }
-  return toastManager.add<ToastData>({
+  const id = toastManager.add<ToastData>({
     id: options.id,
     title,
     description,
@@ -77,6 +78,8 @@ function addToast(type: 'success' | 'error' | 'info' | 'warning' | 'delete', tit
       ? { undo: options.undo, undoLabel: options.undoLabel, onClick: options.onClick, highlight: options.highlight, icon: options.icon }
       : undefined,
   });
+  playUiSound(type === 'delete' ? 'system/trash' : `notification/${type}`);
+  return id;
 }
 
 function highlightedTitle(title: string, names: string[]) {

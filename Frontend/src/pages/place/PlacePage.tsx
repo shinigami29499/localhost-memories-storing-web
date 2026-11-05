@@ -4,7 +4,6 @@ import { startTransition, useCallback, useEffect, useRef, useState, useMemo, typ
 import { HighlightItem } from "@animate-ui/react/primitives/effects/highlight";
 import { NavigationHighlight } from "../../components/ui";
 import { Pagination, DEFAULT_PAGE_SIZE } from "../../components/ui/Pagination";
-import { ScrollProgress, ScrollProgressContainer, ScrollProgressProvider } from "@animate-ui/react/primitives/scroll-progress";
 import {
   Button,
   ConfirmationDialog,
@@ -13,21 +12,22 @@ import {
   Spinner,
   showToast,
 } from "../../components/ui";
-import { PageTransition } from "../../components/layout/PageTransition";
 import { CalendarCheck } from "../../components/animate-ui/icons/calendar-check";
 import { AnimateIcon } from "../../components/animate-ui/icons/icon";
 import { Send } from "../../components/animate-ui/icons/send";
 import { Pencil } from "../../components/animate-ui/icons/pencil";
 import { Search } from "../../components/animate-ui/icons/search";
-import { readPageTransitionEffect } from "../../utils/pageTransition";
 import { useLocale } from "../../context/LocaleContext";
 import { useAuthStore } from "../../store/authStore";
 import { ApiError } from "../../services/api";
 import { useHomeLocation } from "../../features/locations/hooks/useHomeLocation";
 import { useLocations } from "../../features/locations/hooks/useLocations";
+import { useMapBounds } from "../../features/locations/hooks/useMapBounds";
+import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import { uploadService } from "../../features/uploads/services/uploadService";
 import { registerUploadCompletionAction } from "../../features/uploads/services/uploadRuntime";
 import { locationService } from "../../features/locations/services/locationService";
+import { locateUploadedBatch } from "../../features/locations/services/locateUploadedBatch";
 import { LocationEditor } from "../../features/locations/components/LocationEditor";
 import { HomeLocationPhotoConfirmation } from "../../features/locations/components/HomeLocationPhotoConfirmation";
 import { PlaceMap, type PlaceMapSettings } from "../../features/place/components/PlaceMap";
@@ -46,9 +46,9 @@ import {
   useCheckInPlace,
   useDeletePlace,
   useDeletePlaceVisit,
-  usePlaceVisitHistory,
-  usePlaces,
-  useMapPlaces,
+  usePagedPlaceVisitHistory,
+  useInfinitePlaces,
+  useInfiniteMapPlaces,
   usePlace,
   useSavePlace,
 } from "../../features/place/hooks/usePlaces";
@@ -130,13 +130,20 @@ export function PlacePage() {
   }, [navigate, view]);
   const mapSettings = useRef<PlaceMapSettings>({ scene: "3d", showMarkers: true, showPhotoMarkers: true });
   const saved = view !== "map";
-  const { media: photos, query: photosQuery } = useLocations(!saved);
+  const [placeSearch, setPlaceSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(placeSearch);
+  const [minimumRating, setMinimumRating] = useState(0);
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyPageSize, setHistoryPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [photoSelection, setPhotoSelection] = useState<{ id: string; draft: PickedLocation | null; editing: boolean } | null>(null);
+  const { bounds: mapBounds, update: handleMapBounds } = useMapBounds();
+  const { media: photos, query: photosQuery } = useLocations(!saved, photoSelection ? [photoSelection.id] : [], mapBounds);
   const [uploading, setUploading] = useState(false);
   const uploadInFlight = useRef(false);
   const uploadLocation = useRef<{ latitude: number; longitude: number } | null>(null);
   const uploadInput = useRef<HTMLInputElement>(null);
-  const savedPlaces = usePlaces(saved);
-  const mapPlacesQuery = useMapPlaces(!saved);
+  const savedPlaces = useInfinitePlaces(view === "saved", debouncedSearch, minimumRating);
+  const mapPlacesQuery = useInfiniteMapPlaces(!saved, mapBounds);
   const query = saved ? savedPlaces : mapPlacesQuery;
   const save = useSavePlace();
   const remove = useDeletePlace();
@@ -147,13 +154,8 @@ export function PlacePage() {
   const [selectedId, setSelectedId] = useState<string | null>(() => !saved ? (location.state as { focusPlaceId?: string } | null)?.focusPlaceId ?? null : null);
   const selectedPlaceQuery = usePlace(selectedId, !saved);
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const [placeSearch, setPlaceSearch] = useState("");
-  const [minimumRating, setMinimumRating] = useState(0);
-  const [historyPage, setHistoryPage] = useState(1);
-  const [historyPageSize, setHistoryPageSize] = useState(DEFAULT_PAGE_SIZE);
-  const pageTransition = readPageTransitionEffect();
-  const visitHistory = usePlaceVisitHistory(view === "history");
-  const historyTotal = visitHistory.data?.length ?? 0;
+  const visitHistory = usePagedPlaceVisitHistory(historyPage, historyPageSize, view === "history");
+  const historyTotal = visitHistory.data?.total ?? 0;
   const currentHistoryPage = Math.min(historyPage, Math.max(1, Math.ceil(historyTotal / historyPageSize)));
   useEffect(() => {
     if (visitHistory.data && historyPage !== currentHistoryPage) setHistoryPage(currentHistoryPage);
@@ -166,7 +168,6 @@ export function PlacePage() {
   const [manualHomePick, setManualHomePick] = useState(false);
   const [homeDialogOpen, setHomeDialogOpen] = useState(false);
   const [confirmHomeRemoval, setConfirmHomeRemoval] = useState(false);
-  const [photoSelection, setPhotoSelection] = useState<{ id: string; draft: PickedLocation | null; editing: boolean } | null>(null);
   const [photoMoveConfirmationOpen, setPhotoMoveConfirmationOpen] = useState(false);
 
   const startWithCurrentLocation = async (action: () => void) => {
@@ -199,35 +200,23 @@ export function PlacePage() {
     }
     uploadInFlight.current = true;
     setUploading(true);
-    const existingIds = new Set(photos.map((item) => item.id));
     try {
       const batch = await uploadService.submit(files, (createdBatch) => {
         registerUploadCompletionAction(createdBatch.id, async (completedBatch) => {
-          const successfulNames = completedBatch.items
-            .filter((item) => item.status === "Success")
-            .map((item) => item.originalFilename);
-          if (!successfulNames.length) return;
-
-          const refreshed = await photosQuery.refetch();
-          const newMedia = refreshed.data?.pages.flatMap((page) => page.items)
-            .filter((item) => !existingIds.has(item.id)) ?? [];
-          const matched: MediaFile[] = [];
-          for (const filename of successfulNames) {
-            const item = newMedia.find((candidate) => candidate.originalFilename === filename
-              && !matched.some((current) => current.id === candidate.id));
-            if (item) matched.push(item);
+          if (!completedBatch.successfulFiles) return;
+          let taggedIds: string[];
+          try {
+            taggedIds = await locateUploadedBatch(completedBatch.id, coordinate);
+          } catch {
+            showToast.error(t("Photos uploaded, but could not mark their location."));
+            return;
           }
-
-          const tagged = await Promise.allSettled(
-            matched.map((item) => locationService.set(item.id, coordinate)),
-          );
-          const taggedIds = matched.filter((_item, index) => tagged[index].status === "fulfilled").map((item) => item.id);
           await queryClient.invalidateQueries({ queryKey: ["media"] });
           if (!taggedIds.length) {
             showToast.error(t("Photos uploaded, but could not mark their location."));
             return;
           }
-          if (taggedIds.length < matched.length) showToast.error(t("Some uploaded photos could not be marked."));
+          if (taggedIds.length < completedBatch.successfulFiles) showToast.error(t("Some uploaded photos could not be marked."));
           return `/location/travel?focusMediaId=${encodeURIComponent(taggedIds[0])}`;
         });
       });
@@ -240,14 +229,10 @@ export function PlacePage() {
       setUploading(false);
     }
   };
-  const places = query.data ?? [];
-  const filteredPlaces = useMemo(() => {
-    const search = placeSearch.trim().toLocaleLowerCase();
-    return places.filter((place) =>
-      (!search || place.name.toLocaleLowerCase().includes(search)
-        || place.owner.username.toLocaleLowerCase().includes(search))
-      && (minimumRating === 0 || place.rating >= minimumRating));
-  }, [places, placeSearch, minimumRating]);
+  const places = useMemo(() => saved
+    ? savedPlaces.data?.pages.flatMap((page) => page.items) ?? []
+    : mapPlacesQuery.data?.pages.flatMap((page) => page.items) ?? [], [saved, savedPlaces.data, mapPlacesQuery.data]);
+  const filteredPlaces = places;
   const homePicking = manualHomePick;
   const selected = saved ? places.find((place) => place.id === selectedId) : selectedPlaceQuery.data;
   const selectedPhoto = photos.find((photo) => photo.id === photoSelection?.id);
@@ -255,12 +240,13 @@ export function PlacePage() {
   const canEdit = (place: Place) => place.owner.id === user?.id || isAdmin;
   const canChangeMarker = (place: Place) => canEdit(place) && !editor && !homePicking
     && !placeToMove && !placeToDelete && !save.isPending && !remove.isPending;
-  const mapPlaces = useMemo(
-    () => placeToMove
-      ? places.filter((place) => place.id === placeToMove.place.id)
-      : places.filter((place) => !(editor?.id === place.id && editor.coordinate && !editorOpen)),
-    [places, editor?.id, editor?.coordinate, editorOpen, placeToMove],
-  );
+  const mapPlaces = useMemo(() => {
+    const withSelection = selectedPlaceQuery.data && !places.some((place) => place.id === selectedPlaceQuery.data.id)
+      ? [...places, selectedPlaceQuery.data] : places;
+    return placeToMove
+      ? withSelection.filter((place) => place.id === placeToMove.place.id)
+      : withSelection.filter((place) => !(editor?.id === place.id && editor.coordinate && !editorOpen));
+  }, [places, selectedPlaceQuery.data, editor?.id, editor?.coordinate, editorOpen, placeToMove]);
   const clearPreview = useCallback(() => {
     if (document.activeElement instanceof HTMLElement
       && document.activeElement.closest(".place__marker, .locations__marker")) document.activeElement.blur();
@@ -495,11 +481,7 @@ export function PlacePage() {
 
   return (
     <main className={`place${saved ? " place--saved" : ""}`}>
-      <ScrollProgressProvider>
-        <div className="place__scroll-track" aria-hidden="true">
-          <ScrollProgress mode="scaleX" className="place__scroll-progress" />
-        </div>
-        <ScrollProgressContainer className="place__content">
+        <div className="place__content">
           <div className="place__scroll-inner">
             <header className="place__header">
               <div>
@@ -527,15 +509,17 @@ export function PlacePage() {
 
             <PlaceViewSwitch view={view} onChange={requestView} />
             <div className="place__view-content" aria-busy={view === "history" && visitHistory.isPending || undefined}>
-            <PageTransition effect={pageTransition} transitionKey={view} liveRoot skipUpdates deferRendering={false}>
             <>
-            {!saved && (query.isLoading ? <Spinner /> : query.isError && !places.length ? (
-              <ErrorState message="Could not load places." onRetry={() => void query.refetch()} />
-            ) : (
+            {!saved && (
+              <>
+                {mapPlacesQuery.isError && !places.length ? (
+                  <ErrorState message={t("Could not load places.")} onRetry={() => void mapPlacesQuery.refetch()} />
+                ) : null}
                 <div ref={workspaceRef} className="place__workspace">
                   <div className="place__map-panel">
                     <PlaceMap
                       settingsRef={mapSettings}
+                      onBoundsChange={handleMapBounds}
                       places={mapPlaces}
                       photos={photos}
                       selectedPhoto={selectedPhoto}
@@ -591,7 +575,38 @@ export function PlacePage() {
                     />
                   </div>
                 </div>
-            ))}
+                {mapPlacesQuery.isFetchNextPageError ? (
+                  <ErrorState message={t("Could not load more places.")} onRetry={() => void mapPlacesQuery.fetchNextPage()} />
+                ) : mapPlacesQuery.hasNextPage ? (
+                  <div className="place__photo-pages">
+                    <span>{t("Showing {count} of {total} places in this area.", {
+                      count: places.length, total: mapPlacesQuery.data?.pages[0]?.total ?? places.length,
+                    })}</span>
+                    <Button type="button" variant="secondary"
+                      disabled={mapPlacesQuery.isFetchingNextPage || mapPlacesQuery.isPlaceholderData}
+                      onClick={() => void mapPlacesQuery.fetchNextPage()}>
+                      {t(mapPlacesQuery.isFetchingNextPage ? "Loading places…" : "Load more places")}
+                    </Button>
+                  </div>
+                ) : null}
+                {photosQuery.isError && !photos.length ? (
+                  <ErrorState message={t("Could not load photos.")} onRetry={() => void photosQuery.refetch()} />
+                ) : photosQuery.isFetchNextPageError ? (
+                  <ErrorState message={t("Could not load more photos.")} onRetry={() => void photosQuery.fetchNextPage()} />
+                ) : photosQuery.hasNextPage ? (
+                  <div className="place__photo-pages">
+                    <span>{t("Showing {count} of {total} photos in this area.", {
+                      count: photosQuery.data?.pages.reduce((sum, page) => sum + page.items.length, 0) ?? 0,
+                      total: photosQuery.data?.pages[0]?.total ?? 0,
+                    })}</span>
+                    <Button type="button" variant="secondary" disabled={photosQuery.isFetchingNextPage || photosQuery.isPlaceholderData}
+                      onClick={() => void photosQuery.fetchNextPage()}>
+                      {t(photosQuery.isFetchingNextPage ? "Loading photos…" : "Load more photos")}
+                    </Button>
+                  </div>
+                ) : null}
+              </>
+            )}
             {saved && (
             view === "history" ? (
               <div className="place__history-panel">
@@ -600,9 +615,9 @@ export function PlacePage() {
                     message={t("Could not load visit history.")}
                     onRetry={() => void visitHistory.refetch()}
                   />
-                ) : visitHistory.isPending ? <Spinner /> : visitHistory.data?.length ? (
+                ) : visitHistory.isPending ? <Spinner /> : visitHistory.data?.items.length ? (
                   <PlaceVisitHistory
-                    visits={visitHistory.data.slice((currentHistoryPage - 1) * historyPageSize, currentHistoryPage * historyPageSize)}
+                    visits={visitHistory.data.items}
                     onShowOnMap={(visit) => { setSelectedId(visit.placeId); setDetailsOpen(false); requestView("map"); }}
                     showVisitor
                     showVisitorName
@@ -618,7 +633,10 @@ export function PlacePage() {
             ) : (
               <>
                 {!places.length ? (
-                  <EmptyState title="No saved places yet" hint="Saved places will appear here." />
+                  <EmptyState title={placeSearch || minimumRating ? "No matching places" : "No saved places yet"}
+                    hint={placeSearch || minimumRating
+                      ? "Try a different search to find a saved place."
+                      : "Saved places will appear here."} />
                 ) : (
                   <>
                     <ul className="place__list">
@@ -650,16 +668,23 @@ export function PlacePage() {
                     </ul>
                   </>
                 )}
-                {places.length > 0 && filteredPlaces.length === 0 && (
-                  <EmptyState title="No matching places" hint="Try a different search to find a saved place." />
-                )}
+                {savedPlaces.isFetchNextPageError ? (
+                  <ErrorState message={t("Could not load more places.")}
+                    onRetry={() => void savedPlaces.fetchNextPage()} />
+                ) : null}
+                {savedPlaces.hasNextPage ? (
+                  <Button type="button" variant="secondary" disabled={savedPlaces.isFetchingNextPage}
+                    onClick={() => void savedPlaces.fetchNextPage()}>
+                    {t(savedPlaces.isFetchingNextPage ? "Loading places…" : "Load more places")}
+                  </Button>
+                ) : null}
               </>
             )
             )}
         {view === "saved" && (
           <form className={`place__search-bar${minimumRating > 0 ? " place__search-bar--rating-filtered" : ""}`} role="search" onSubmit={(event) => event.preventDefault()}>
             <input type="search" aria-label={t("Search saved places")}
-              placeholder={t("Search places or users")} value={placeSearch}
+              placeholder={t("Search places or users")} value={placeSearch} maxLength={120}
               onChange={(event) => setPlaceSearch(event.target.value)} />
             <div className="place__rating-controls">
               {minimumRating > 0 && (
@@ -709,7 +734,6 @@ export function PlacePage() {
           </footer>
         ) : null}
             </>
-            </PageTransition>
             </div>
 
             {editorOpen && editor?.coordinate && (
@@ -896,9 +920,7 @@ export function PlacePage() {
               onClose={home.dismissPhotosConfirmation}
             />
           </div>
-        </ScrollProgressContainer>
-
-      </ScrollProgressProvider>
+        </div>
     </main>
   );
 }

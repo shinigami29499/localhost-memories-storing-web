@@ -32,7 +32,7 @@
   padding: 20px;
   border-radius: 12px;
   background: var(--surface);
-  box-shadow: var(--shadow-popover);
+  box-shadow: none;
 }
 
 .profile-page__identity {

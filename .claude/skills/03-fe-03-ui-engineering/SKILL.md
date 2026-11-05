@@ -120,11 +120,10 @@ Global store (Zustand, Redux)    → Complex client state shared app-wide
 
 ## Design System Adherence
 
-### Border and shadow rule
+### Surface separation
 
-- UI surfaces and controls must not use visible borders. Use shadows to define their edges and elevation.
-- Keep shadows subtle and consistent with the project's design tokens. Do not add a shadow where it harms readability or interaction clarity.
-- Preserve accessible focus indicators and semantic state cues; these are exceptions to the no-border rule when needed for accessibility.
+- Choose borders, spacing, contrasting surfaces, or subtle shadows according to hierarchy and interaction clarity. Shadows are optional.
+- Preserve accessible focus indicators and semantic state cues. Essential control boundaries and states must meet contrast requirements.
 
 ### Reference-led UI quality
 

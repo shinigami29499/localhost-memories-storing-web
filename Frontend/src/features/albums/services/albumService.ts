@@ -4,6 +4,31 @@ import type { MediaKindFilter } from "../../media/types";
 import type { Album, AlbumScope, CreateAlbumInput, UpdateAlbumInput } from "../types";
 
 export const albumService = {
+  page(scope: AlbumScope | "feed", cursor: string | null = null, limit = 30, mediaId?: string, search = "", signal?: AbortSignal): Promise<{
+    items: Album[]; nextCursor: string | null; hasMore: boolean;
+  }> {
+    const params = new URLSearchParams({ scope, limit: String(limit) });
+    if (cursor) params.set("cursor", cursor);
+    if (mediaId) params.set("mediaId", mediaId);
+    if (search.trim()) params.set("search", search.trim());
+    const path = `/api/library/album/page?${params.toString()}`;
+    return signal ? api(path, { signal }) : api(path);
+  },
+
+  async membership(mediaIds: string[], signal?: AbortSignal): Promise<{ items: { mediaId: string; albumIds: string[] }[] }> {
+    const items: { mediaId: string; albumIds: string[] }[] = [];
+    for (let offset = 0; offset < mediaIds.length; offset += 100) {
+      const result = await api<{ items: { mediaId: string; albumIds: string[] }[] }>(
+        "/api/library/album/membership/query", {
+          method: "POST",
+          body: { mediaIds: mediaIds.slice(offset, offset + 100) },
+          ...(signal ? { signal } : {}),
+        });
+      items.push(...result.items);
+    }
+    return { items };
+  },
+
   list(scope: AlbumScope = "mine", mediaId?: string): Promise<Album[]> {
     const params = new URLSearchParams({ scope });
     if (mediaId) params.set("mediaId", mediaId);

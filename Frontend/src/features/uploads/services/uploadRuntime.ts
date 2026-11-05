@@ -83,7 +83,7 @@ export function startUploadRuntime(
     let completionUrl: string | undefined;
     const completionAction = completionActions.get(batch.id);
     completionActions.delete(batch.id);
-    if (batch.status === "Completed" && completionAction) {
+    if (batch.successfulFiles > 0 && completionAction) {
       try {
         completionUrl = await completionAction(batch) || undefined;
       } catch (error) {

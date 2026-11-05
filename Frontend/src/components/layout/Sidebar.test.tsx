@@ -74,7 +74,7 @@ vi.mock("../animate-ui/icons/trash-2", async () => {
   return { Trash2: () => <svg data-animated={String(useAnimateIconContext().active === true)} /> };
 });
 
-describe("Sidebar icon hover behavior", () => {
+describe("Sidebar navigation", () => {
   let container: HTMLDivElement;
   let root: Root;
   const originalAnimate = Object.getOwnPropertyDescriptor(Element.prototype, "animate");
@@ -130,57 +130,29 @@ describe("Sidebar icon hover behavior", () => {
     vi.unstubAllGlobals();
   });
 
-  it.each(["/", "/library/gallery", "/library/gallery/trash", "/location", "/users"])("animates the icon when hovering the %s link text", async (href) => {
+  it.each(["/", "/gallery", "/location", "/users", "/uploads"])("shows a stable icon and label for %s", async (href) => {
     const link = container.querySelector<HTMLAnchorElement>(`.sidebar__nav a[href="${href}"]`)!;
     const label = link.querySelector("span")!;
     expect(link.classList.contains("sidebar__link")).toBe(true);
-    expect(link.classList.contains("sidebar__sub-link"))
-      .toBe(href.startsWith("/library/gallery"));
-    if (href === "/library/gallery/trash") {
-      expect(container.querySelector('[aria-label="Library items"] [href="/library/gallery/trash"]')).not.toBeNull();
-    }
     expect(link.classList.contains("sidebar__link--active")).toBe(href === "/users");
     expect(link.getAttribute("aria-current")).toBe(href === "/users" ? "page" : null);
     expect(link.querySelector("svg")?.getAttribute("data-animated")).toBe("false");
 
     await act(async () => label.dispatchEvent(new MouseEvent("pointerover", { bubbles: true })));
-    expect(link.querySelector("svg")?.getAttribute("data-animated")).toBe("true");
-
-    await act(async () => label.dispatchEvent(new MouseEvent("pointerout", { bubbles: true, relatedTarget: document.body })));
     expect(link.querySelector("svg")?.getAttribute("data-animated")).toBe("false");
   });
 
-  it("animates the Library icon when hovered", async () => {
-    const library = container.querySelector<HTMLButtonElement>('[aria-label="Library"]')!;
-    const icon = library.querySelector("svg")!;
-
-    expect(icon.getAttribute("data-animated")).toBe("false");
-    await act(async () => library.dispatchEvent(new MouseEvent("pointerover", { bubbles: true })));
-    expect(icon.getAttribute("data-animated")).toBe("true");
-
-    await act(async () => library.dispatchEvent(new MouseEvent("pointerout", { bubbles: true, relatedTarget: document.body })));
-    expect(icon.getAttribute("data-animated")).toBe("false");
-  });
-
-  it("shows Gallery and Album under Library without Videos, Favorites, or Trash for non-admin users", async () => {
+  it("shows the main destinations for non-admin users", async () => {
     await act(async () => useAuthStore.setState({
       user: { id: "reader", username: "reader", role: "user", status: "active", createdAt: "2026-01-01T00:00:00Z" },
     }));
-    const libraryItems = container.querySelector<HTMLElement>('[aria-label="Library items"]')!;
-    expect(Array.from(libraryItems.querySelectorAll("a"), (link) => link.getAttribute("href")))
-      .toEqual(["/library/gallery", "/library/album"]);
-    expect(container.querySelector('[href="/library/gallery/videos"]')).toBeNull();
-    expect(container.querySelector('[href="/library/gallery"]')?.textContent).toBe("Gallery");
-    expect(container.querySelector('.sidebar__nav > a[href="/library/gallery"]')).toBeNull();
-    expect(container.querySelector('[href="/library/gallery/favorites"]')).toBeNull();
-    expect(container.querySelector('[aria-label="Library"]')?.getAttribute("aria-expanded")).toBe("true");
-    expect(container.querySelector('[href="/library/album"]')?.textContent).toBe("Album");
-    expect(container.querySelector('[href="/library/album"]')?.classList.contains("sidebar__sub-link")).toBe(true);
+    expect(Array.from(container.querySelectorAll(".sidebar__nav > a"), (link) => link.getAttribute("href")))
+      .toEqual(["/", "/gallery", "/location", "/users", "/uploads"]);
     expect(container.querySelector('[href="/users"]')?.textContent).toBe("Users");
     expect(container.querySelector('[href="/location"]')?.textContent).toBe("Locations");
     expect(container.querySelector('[href="/location/place"]')).toBeNull();
     expect(container.querySelector('[href="/location/saved"]')).toBeNull();
-    expect(container.querySelector('[href="/library/gallery/trash"]')).toBeNull();
+    expect(container.querySelector('[href="/gallery/trash"]')).toBeNull();
     expect(container.querySelector('[href^="/admin"]')).toBeNull();
   });
 

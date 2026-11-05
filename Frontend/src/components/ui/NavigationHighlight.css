@@ -5,16 +5,25 @@
 }
 
 .navigation-highlight__indicator {
-  background: light-dark(#000, #fff);
-  border-radius: 999px;
   pointer-events: none;
 }
 
+.navigation-highlight__indicator::before {
+  background: var(--accent);
+  border-radius: 999px;
+  content: "";
+  inset: 0;
+  position: absolute;
+}
+
 .navigation-highlight > :is(a, button) {
+  align-items: center;
   box-sizing: border-box;
-  display: block;
+  display: flex;
   flex: 1;
   height: auto;
+  justify-content: center;
+  min-height: 44px;
   min-width: 0;
   padding: 4px 16px;
   line-height: 1.5;

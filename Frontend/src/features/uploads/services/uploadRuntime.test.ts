@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { showToast } from "../../../components/ui";
 import { getUploadFile, removeUploadFile } from "./uploadFileStore";
 import { uploadService } from "./uploadService";
-import { cancelRunningUpload, requestUploadRetry, startUploadRuntime, wakeUploadRuntime } from "./uploadRuntime";
+import { registerUploadCompletionAction, requestUploadRetry, setUploadPaused, startUploadRuntime, wakeUploadRuntime } from "./uploadRuntime";
 import type { UploadBatch, UploadItem } from "../types";
 import { useUploadNotificationStore } from "../../notifications/uploadNotificationStore";
 
@@ -17,7 +17,7 @@ vi.mock("./uploadFileStore", () => ({
 vi.mock("./uploadService", () => ({
   uploadService: {
     recover: vi.fn(), active: vi.fn(), queue: vi.fn(), get: vi.fn(),
-    start: vi.fn(), upload: vi.fn(), reportProgress: vi.fn(), fail: vi.fn(), cancel: vi.fn(),
+    start: vi.fn(), upload: vi.fn(), reportProgress: vi.fn(), fail: vi.fn(), setPaused: vi.fn(),
   },
 }));
 
@@ -273,6 +273,8 @@ describe("media upload runtime", () => {
 
   it("reports a failed batch instead of announcing a successful upload", async () => {
     const failed = { ...item("failed-file"), status: "Failed" as const };
+    const completion = vi.fn(async () => undefined);
+    registerUploadCompletionAction("batch", completion);
     vi.mocked(uploadService.get).mockResolvedValue({
       ...batch([item("success-file"), failed], true),
       status: "Failed",
@@ -286,8 +288,9 @@ describe("media upload runtime", () => {
 
     expect(showToast.success).not.toHaveBeenCalled();
     expect(showToast.error).toHaveBeenCalledExactlyOnceWith(
-      "Upload batch finished with issues", "{success} succeeded, {failed} failed, {cancelled} cancelled.",
+      "Upload batch finished with issues", "{success} success, {failed} failed.",
     );
+    expect(completion).toHaveBeenCalledOnce();
     expect(uploadService.upload).toHaveBeenCalledOnce();
   });
 
@@ -305,11 +308,10 @@ describe("media upload runtime", () => {
     expect(uploadService.upload).not.toHaveBeenCalled();
   });
 
-  it("cancels only the chosen item and removes only its local file", async () => {
-    const cancelled = { ...item("selected"), status: "Cancelled" as const };
-    vi.mocked(uploadService.cancel).mockResolvedValue(cancelled);
-    expect(await cancelRunningUpload("batch", "selected")).toBe(cancelled);
-    expect(uploadService.cancel).toHaveBeenCalledExactlyOnceWith("batch", "selected");
-    expect(removeUploadFile).toHaveBeenCalledExactlyOnceWith("selected");
+  it("pauses only the chosen item and retains its local file", async () => {
+    vi.mocked(uploadService.setPaused).mockResolvedValue(batch([{ ...item("selected"), status: "Paused" }]));
+    await setUploadPaused("batch", "selected", true);
+    expect(uploadService.setPaused).toHaveBeenCalledExactlyOnceWith("batch", "selected", true);
+    expect(removeUploadFile).not.toHaveBeenCalled();
   });
 });

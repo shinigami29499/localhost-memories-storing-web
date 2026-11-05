@@ -1,3 +1,4 @@
+import { PageActionBar } from "../../components/layout/PageActionBar";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as Tabs from "@radix-ui/react-tabs";
 import { Highlight, HighlightItem } from "@animate-ui/react/primitives/effects/highlight";
@@ -8,7 +9,9 @@ import { ConfirmationDialog } from "../../components/ui/ConfirmationDialog";
 import { EmptyState, ErrorState, Spinner } from "../../components/ui";
 import { showToast } from "../../components/ui/Toast";
 import { useLocale } from "../../context/LocaleContext";
-import { MediaTile } from "../../features/media/components/MediaTile";
+import { useGalleryWindow } from "../../features/media/hooks/useGalleryWindow";
+import { VirtualGalleryGroup } from "./VirtualGalleryGroup";
+import { resolveFocusMediaId } from "./resolveFocusMediaId";
 import { MediaRetryProvider } from "../../features/media/components/MediaRetryProvider";
 import { MediaPreviewDialog } from "../../features/media/components/MediaPreviewDialog";
 import { useMediaSelectionDrag } from "../../features/media/hooks/useMediaSelectionDrag";
@@ -48,7 +51,10 @@ export function TrashPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [action, setAction] = useState<{ kind: "restore" | "delete"; ids: string[] } | null>(null);
   const galleryRef = useRef<HTMLElement>(null);
+  const viewport = useGalleryWindow(galleryRef, "trash");
   const returnToMediaId = useRef<string | null>(null);
+  const returnToIndex = useRef(0);
+  const [focusAnnouncement, setFocusAnnouncement] = useState("");
   const sentinelRef = useRef<HTMLDivElement>(null);
   const query = useInfiniteQuery(trashQueryOptions(filter));
   useEffect(() => {
@@ -70,6 +76,7 @@ export function TrashPage() {
       .filter((page) => page && Array.isArray(page.items)).flatMap((page) => page.items),
     [query.data],
   );
+  const focusMediaId = resolveFocusMediaId(media, returnToMediaId.current, returnToIndex.current);
   const groups = useMemo(() => {
     const byDate = new Map<string, { date: Date; items: MediaFile[] }>();
     for (const item of media) {
@@ -121,6 +128,7 @@ export function TrashPage() {
   const requestAction = (kind: "restore" | "delete", ids: string[]) => {
     if (ids.length === 0) return;
     // Close the native modal before opening the portaled confirmation dialog.
+    returnToIndex.current = Math.max(0, media.findIndex((item) => item.id === ids[0]));
     returnToMediaId.current = ids[0];
     setPreviewMediaId(null);
     setAction({ kind, ids });
@@ -175,12 +183,22 @@ export function TrashPage() {
 
   useEffect(() => {
     if (previewMediaId || action || !returnToMediaId.current) return;
+    if (query.isFetching && !media.some((item) => item.id === returnToMediaId.current)) return;
+    const focusId = resolveFocusMediaId(media, returnToMediaId.current, returnToIndex.current);
+    if (!focusId && !query.hasNextPage) {
+      setFocusAnnouncement(t("Trash is empty"));
+      returnToMediaId.current = null;
+      galleryRef.current?.focus({ preventScroll: true });
+      return;
+    }
     const tiles = Array.from(galleryRef.current?.querySelectorAll<HTMLButtonElement>("[data-media-id]") ?? []);
-    const tile = tiles.find((element) => element.dataset.mediaId === returnToMediaId.current) ?? tiles[0];
+    const tile = tiles.find((element) => element.dataset.mediaId === focusId);
+    if (!tile) return;
+    if (focusId !== returnToMediaId.current) setFocusAnnouncement(t("Focused next media item"));
     returnToMediaId.current = null;
-    tile?.focus({ preventScroll: true });
-    tile?.scrollIntoView({ block: "nearest", inline: "nearest" });
-  }, [previewMediaId, action]);
+    tile.focus({ preventScroll: true });
+    tile.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [previewMediaId, action, media, viewport, query.isFetching, query.hasNextPage, t]);
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
@@ -197,17 +215,18 @@ export function TrashPage() {
 
   return (
     <>
-      <main ref={galleryRef} className="gallery-page gallery-page--trash" {...selectionDragHandlers}
+      <main ref={galleryRef} tabIndex={-1} className="gallery-page gallery-page--trash" {...selectionDragHandlers}
         onClickCapture={(event) => {
           selectionDragHandlers.onClickCapture(event);
           if (event.defaultPrevented) return;
           if (!selectionMode || (event.target instanceof Element && event.target.closest("[data-media-id], .gallery-selection-bar"))) return;
           cancelSelection();
         }}>
+        <span className="sr-only" role="status" aria-live="polite">{focusAnnouncement}</span>
         <div className="gallery-page__content">
           <div className="gallery-page__inner">
             <div className="gallery-page__tab-panel gallery-page__tab-panel--media">
-                <div className="page-transition">
+                <div className="gallery-page__content-body">
                   {query.isLoading ? <Spinner label={t("Loading media…")} /> : null}
                   {query.isError && media.length === 0 ? (
                     <ErrorState message={t("Could not load media.")} onRetry={() => void query.refetch()} />
@@ -231,20 +250,10 @@ export function TrashPage() {
                                 </time>
                               </h2>
                             </div>
-                            <div className="gallery-date-grid" data-media-kind={filter}>
-                              {group.items.map((item) => (
-                                <MediaTile
-                                  key={item.id}
-                                  media={item}
-                                  includeDeleted
-                                  selectionMode={selectionMode}
-                                  selectionDragEnabled
-                                  selected={selectedIds.has(item.id)}
-                                  onSelect={toggleSelected}
-                                  onOpen={setPreviewMediaId}
-                                />
-                              ))}
-                            </div>
+                            <VirtualGalleryGroup items={group.items} viewport={viewport} mediaKind={filter}
+                              includeDeleted selectionMode={selectionMode} selectedItems={selectedIds}
+                              onSelect={toggleSelected} onOpen={setPreviewMediaId} favoriteBusy={false}
+                              pinnedId={focusMediaId} />
                           </section>
                         ))}
                       </div>
@@ -264,7 +273,7 @@ export function TrashPage() {
           </div>
         </div>
           <footer className="gallery-page__footer">
-            <div className="gallery-selection-bar gallery-selection-bar--compact gallery-selection-bar--selection-only" role="group" aria-label={t("{count} selected", { count: selectedIds.size })}>
+            <PageActionBar className="gallery-selection-bar gallery-selection-bar--compact gallery-selection-bar--selection-only gallery-selection-bar--trash" role="group" aria-label={t("{count} selected", { count: selectedIds.size })}>
               <SelectionActions open={selectionMode}>
               <span className="gallery-selection-bar__count" role="status">{t("{count} selected", { count: selectedIds.size })}</span>
               
@@ -289,7 +298,7 @@ export function TrashPage() {
                 <Trash2 size={20} aria-hidden="true" />
               </button>
               </SelectionActions>
-            </div>
+            </PageActionBar>
           </footer>
       </main>
       {previewMediaId ? (
@@ -306,6 +315,7 @@ export function TrashPage() {
             onDelete: (id) => requestAction("delete", [id]),
           }}
           onClose={(id) => {
+            returnToIndex.current = Math.max(0, media.findIndex((item) => item.id === id));
             returnToMediaId.current = id;
             setPreviewMediaId(null);
           }}

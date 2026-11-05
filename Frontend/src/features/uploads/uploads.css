@@ -3,11 +3,6 @@
   padding-bottom: 0;
 }
 
-.app-shell__content:has(.upload-page) > .page-transition {
-  height: 100%;
-  min-height: 0;
-}
-
 .upload-page {
   display: flex;
   flex-direction: column;
@@ -108,7 +103,7 @@
 .upload-page__actions .upload-page__upload-button,
 .upload-page__filters .upload-page__date-filter {
   border: 0;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  box-shadow: none;
 }
 
 .upload-page__attach-button svg,
@@ -128,7 +123,7 @@
 .upload-page__filters .upload-page__date-filter {
   background: var(--accent-strong);
   color: var(--text-on-accent);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  box-shadow: none;
   font-weight: 600;
 }
 
@@ -150,7 +145,7 @@
   border: 0;
   background: var(--danger-wash);
   color: var(--danger);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  box-shadow: none;
   font-size: 0.875rem;
 }
 
@@ -207,17 +202,17 @@
 
 .upload-batch {
   --upload-status-background: var(--surface-card);
-  --upload-status-success-border: #2fa66a;
-  --upload-status-pending-border: #e3a329;
-  --upload-status-success-fill: rgb(47 166 106 / 0.10);
-  --upload-status-pending-fill: rgb(227 163 41 / 0.10);
-  --upload-status-failed-fill: rgb(255 142 155 / 0.10);
+  --upload-status-success-border: #6A3F36;
+  --upload-status-pending-border: #EEA988;
+  --upload-status-success-fill: #F8E4BE;
+  --upload-status-pending-fill: #F8E4BE;
+  --upload-status-failed-fill: #F8E4BE;
   container-type: inline-size;
   min-width: 0;
   overflow: hidden;
   border-radius: var(--radius);
   background: var(--surface-card);
-  box-shadow: 0 2px 6px rgb(0 0 0 / 0.12);
+  box-shadow: none;
 }
 
 .upload-batch__summary {
@@ -237,17 +232,17 @@
   grid-template-areas: "selectall avatar username created status progress filters footer";
 }
 
-:root:not(.dark) .upload-batch {
-  --upload-status-background: #fff;
-  --upload-status-success-border: #218451;
-  --upload-status-pending-border: #aa7209;
-  --upload-status-success-fill: #e8f5ed;
-  --upload-status-pending-fill: #fff4dc;
-  --upload-status-failed-fill: #fcebef;
+:root .upload-batch {
+  --upload-status-background: #F4F3EE;
+  --upload-status-success-border: #6A3F36;
+  --upload-status-pending-border: #6A3F36;
+  --upload-status-success-fill: #F4F3EE;
+  --upload-status-pending-fill: #F4F3EE;
+  --upload-status-failed-fill: #F4F3EE;
   background: var(--surface-card-raised);
 }
 
-:root:not(.dark) .upload-batch__summary {
+:root .upload-batch__summary {
   background: var(--surface-card);
 }
 
@@ -449,7 +444,7 @@
   border-radius: var(--radius);
   background: var(--surface-card);
   color: var(--text-strong);
-  box-shadow: 0 8px 24px rgb(0 0 0 / 0.15);
+  box-shadow: none;
 }
 
 .upload-batch__filter-option {
@@ -530,12 +525,8 @@
   margin-right: 0;
 }
 
-:root.dark .upload-batch__select-all:not(:checked):not(:indeterminate) {
-  background: var(--surface);
-}
-
-:root:not(.dark) .upload-item__select:not(.upload-batch__select-all):not(:checked):not(:indeterminate) {
-  background: #fff;
+:root .upload-item__select:not(.upload-batch__select-all):not(:checked):not(:indeterminate) {
+  background: #F4F3EE;
 }
 
 .upload-item__select:indeterminate::before {
@@ -570,8 +561,8 @@
   color: var(--text-muted);
 }
 
-:root:not(.dark) .upload-item__file-type {
-  background: #fff;
+:root .upload-item__file-type {
+  background: #F4F3EE;
 }
 
 .upload-item__file-type svg {
@@ -1013,8 +1004,8 @@
   }
 
   .upload-batch__summary:not(.upload-batch__summary--admin) {
-    grid-template-columns: 24px minmax(88px, 1fr) 40px 117px;
-    grid-template-areas: "selectall created status footer";
+    grid-template-columns: 24px minmax(0, 1fr) minmax(72px, auto);
+    grid-template-areas: "selectall created status" "footer footer footer";
     align-items: center;
     gap: 8px;
     padding-block: 10px;
@@ -1025,8 +1016,8 @@
   }
 
   .upload-batch__summary--admin {
-    grid-template-columns: 24px 32px minmax(0, 1fr) 40px 117px;
-    grid-template-areas: "selectall avatar username status footer";
+    grid-template-columns: 24px 32px minmax(0, 1fr) minmax(72px, auto);
+    grid-template-areas: "selectall avatar username status" "footer footer footer footer";
     align-items: center;
     gap: 8px;
     padding-block: 10px;
@@ -1055,7 +1046,7 @@
 
   .upload-batch__summary--admin .upload-batch__status-field {
     display: grid;
-    grid-template-rows: 17px 14px;
+    grid-template-rows: auto auto;
     align-content: center;
     justify-items: center;
     justify-content: center;
@@ -1082,7 +1073,7 @@
 
   .upload-batch__summary:not(.upload-batch__summary--admin) .upload-batch__status-field {
     grid-area: status;
-    grid-template-rows: 17px 14px;
+    grid-template-rows: auto auto;
     gap: 2px;
     align-self: center;
     justify-items: center;
@@ -1110,39 +1101,39 @@
 
   .upload-batch__summary .upload-status,
   .upload-item .upload-status {
-    width: 10px;
-    height: 10px;
-    min-height: 10px;
-    padding: 0;
-    border: 0;
-    border-radius: 50%;
-    color: transparent;
-    font-size: 0;
-    overflow: hidden;
+    width: auto;
+    height: auto;
+    min-height: 24px;
+    padding: 2px 6px;
+    border: 1px solid var(--border-control);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 0.75rem;
   }
 
   .upload-status--completed,
   .upload-status--success {
-    background: #2fa66a;
+    background: var(--surface);
   }
 
   .upload-status--pending,
   .upload-status--pending-upload,  .upload-status--uploading,  .upload-status--paused {
-    background: #e3a329;
+    background: var(--surface);
   }
 
   .upload-status--failed {
-    background: var(--danger);
+    background: var(--surface);
   }
 
   .upload-status--cancelled {
-    background: var(--text-muted);
+    background: var(--surface);
   }
 
   .upload-item,
   .upload-item:has(.upload-item__select) {
-    grid-template-columns: 24px minmax(0, 1fr) 40px 117px;
-    grid-template-areas: "select details status controls";
+    grid-template-columns: 24px minmax(0, 1fr) minmax(72px, auto);
+    grid-template-areas: "select details status" "controls controls controls";
     align-items: center;
     gap: 8px;
     padding-block: 8px;
@@ -1150,8 +1141,8 @@
 
   .upload-item--admin,
   .upload-item--admin:has(.upload-item__select) {
-    grid-template-columns: 24px minmax(0, 1fr) 40px 117px;
-    grid-template-areas: "select details status controls";
+    grid-template-columns: 24px minmax(0, 1fr) minmax(72px, auto);
+    grid-template-areas: "select details status" "controls controls controls";
   }
 
   .upload-item__status-field {
@@ -1174,7 +1165,8 @@
   }
 
   .upload-item__name {
-    display: none;
+    display: block;
+    overflow-wrap: anywhere;
   }
 
   .upload-item__name-group {
@@ -1261,16 +1253,16 @@
   }
 }
 
-.upload-batch__summary--unread { box-shadow: inset 3px 0 var(--upload-status-pending-border); background: var(--upload-status-pending-fill); }
+.upload-batch__summary--unread { box-shadow: none; background: var(--upload-status-pending-fill); }
 
 @media (max-width: 640px) {
   .upload-batch {
-    box-shadow: 0 3px 10px rgb(0 0 0 / 0.22);
+    box-shadow: none;
   }
 
   .upload-item__select {
     border: 0;
-    box-shadow: 0 1px 5px rgb(0 0 0 / 0.2);
+    box-shadow: none;
   }
 
   .upload-item__select:checked,

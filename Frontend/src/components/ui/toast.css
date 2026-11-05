@@ -3,25 +3,6 @@
   inset: 0;
   z-index: 2147483647;
   pointer-events: none;
-  view-transition-name: app-toasts;
-}
-
-/* Keep toasts above loading snapshots in page and theme transitions. */
-:root[data-theme-transition] body .toast-layer {
-  view-transition-name: app-toasts !important;
-}
-
-::view-transition-group(app-toasts) {
-  z-index: 2147483647;
-  animation: none;
-}
-
-::view-transition-old(app-toasts) {
-  display: none;
-}
-
-::view-transition-new(app-toasts) {
-  animation: none;
 }
 
 .toast-viewport {
@@ -45,8 +26,8 @@
 }
 
 .toast-root {
-  --toast-accent: #9ccfff;
-  --toast-accent-wash: rgba(86, 165, 255, 0.16);
+  --toast-accent: #F4F3EE;
+  --toast-accent-wash: #F8E4BE;
   position: absolute;
   z-index: calc(1000 - var(--toast-index, 0));
   bottom: 0;
@@ -55,25 +36,25 @@
   width: 100%;
   pointer-events: auto;
   cursor: pointer;
-  background: var(--surface-raised, #4d4d4d);
-  border: 1px solid var(--border, #777777);
+  background: var(--surface-raised, #6A3F36);
+  border: 1px solid var(--border, #6A3F36);
   border-radius: var(--radius, 14px);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
-  color: var(--text-strong, #dedede);
+  box-shadow: none;
+  color: var(--text-strong, #F8E4BE);
   overflow: hidden;
 }
 
-:root:not(.dark) .toast-root {
-  --toast-accent: #175b9f;
-  --toast-accent-wash: rgba(23, 91, 159, 0.12);
+:root .toast-root {
+  --toast-accent: #6A3F36;
+  --toast-accent-wash: #F8E4BE;
 }
 
-.toast-root[data-toast-type="success"] { --toast-accent: #75d99a; --toast-accent-wash: rgba(117, 217, 154, 0.12); }
-.toast-root[data-toast-type="error"], .toast-root[data-toast-type="delete"] { --toast-accent: #ff9aa5; --toast-accent-wash: rgba(255, 100, 117, 0.16); }
-.toast-root[data-toast-type="warning"] { --toast-accent: #ffc078; --toast-accent-wash: rgba(255, 160, 60, 0.16); }
-:root:not(.dark) .toast-root[data-toast-type="success"] { --toast-accent: #19733d; --toast-accent-wash: rgba(25, 115, 61, 0.12); }
-:root:not(.dark) .toast-root[data-toast-type="error"], :root:not(.dark) .toast-root[data-toast-type="delete"] { --toast-accent: #b42335; --toast-accent-wash: rgba(180, 35, 53, 0.12); }
-:root:not(.dark) .toast-root[data-toast-type="warning"] { --toast-accent: #975000; --toast-accent-wash: rgba(151, 80, 0, 0.12); }
+.toast-root[data-toast-type="success"] { --toast-accent: #C8A796; --toast-accent-wash: #F8E4BE; }
+.toast-root[data-toast-type="error"], .toast-root[data-toast-type="delete"] { --toast-accent: #EEA988; --toast-accent-wash: #F8E4BE; }
+.toast-root[data-toast-type="warning"] { --toast-accent: #EEA988; --toast-accent-wash: #F8E4BE; }
+:root .toast-root[data-toast-type="success"] { --toast-accent: #6A3F36; --toast-accent-wash: #F8E4BE; }
+:root .toast-root[data-toast-type="error"], :root .toast-root[data-toast-type="delete"] { --toast-accent: #6A3F36; --toast-accent-wash: #F8E4BE; }
+:root .toast-root[data-toast-type="warning"] { --toast-accent: #6A3F36; --toast-accent-wash: #F8E4BE; }
 
 .toast-content {
   display: flex;
@@ -106,7 +87,7 @@
   font-weight: 600;
   font-size: 1rem;
   line-height: 1.5;
-  color: var(--text-strong, #fafafa);
+  color: var(--text-strong, #F4F3EE);
   margin: 0;
 }
 
@@ -134,7 +115,7 @@
 .toast-description {
   font-size: 0.875rem;
   line-height: 1.5;
-  color: var(--text-muted, #b8aaa1);
+  color: var(--text-muted, #C8A796);
   margin: 0;
 }
 
@@ -145,9 +126,9 @@
   align-items: center;
   gap: 6px;
   background: transparent;
-  border: 1px solid var(--border, #777777);
+  border: 1px solid var(--border, #6A3F36);
   border-radius: 8px;
-  color: var(--text-strong, #fafafa);
+  color: var(--text-strong, #F4F3EE);
   cursor: pointer;
   font: inherit;
   font-size: 0.8rem;
@@ -178,7 +159,7 @@
 .toast-close {
   background: transparent;
   border: none;
-  color: var(--text-muted, #b8aaa1);
+  color: var(--text-muted, #C8A796);
   cursor: pointer;
   padding: 4px;
   border-radius: 6px;
@@ -188,7 +169,7 @@
 }
 
 .toast-close:hover {
-  color: var(--text-strong, #fafafa);
+  color: var(--text-strong, #F4F3EE);
   background: var(--surface-hover);
 }
 

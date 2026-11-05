@@ -1,6 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { animate, useInView, type TargetAndTransition } from "motion/react";
-import { flushSync } from "react-dom";
+import { useInView } from "motion/react";
 import { Particles, ParticlesEffect } from "@animate-ui/react/primitives/effects/particles";
 import { useShouldReduceMotion } from "@animate-ui/react/utils/motion";
 import { CopyButton, CopyButtonIcon } from "@animate-ui/react/primitives/buttons/copy";
@@ -29,8 +28,6 @@ import { mediaPreviewUrl, mediaUrl } from "../../../utils/media";
 import type { MediaFile } from "../types";
 import { VideoPlayer } from "./VideoPlayer";
 import { MediaFavoriteButton } from "./MediaFavoriteButton";
-import { mediaViewerTransition } from "../../../components/layout/PageTransition";
-import { readPageTransitionEffect } from "../../../utils/pageTransition";
 
 const SaveToAlbumDialog = lazy(() =>
   import("../../albums/components/SaveToAlbumDialog").then((module) => ({ default: module.SaveToAlbumDialog })),
@@ -217,7 +214,6 @@ export function MediaPreviewDialog({
   const dialogRef = useRef<HTMLDialogElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const closingRef = useRef(false);
-  const entranceRef = useRef<TargetAndTransition | null>(null);
   const albumButtonRef = useRef<HTMLButtonElement>(null);
   const lastViewedId = useRef(initialMediaId);
   const [initialIndex] = useState(() => {
@@ -277,12 +273,7 @@ export function MediaPreviewDialog({
     if (!dialog) return;
     dialog.showModal();
     closeRef.current?.focus();
-    const { enter } = mediaViewerTransition(dialog, readPageTransitionEffect(), window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-    entranceRef.current = enter;
-    const { transition, ...target } = enter;
-    const animation = animate(dialog, target, transition);
-    dialog.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 250, pseudoElement: "::backdrop" });
-    return () => { animation.stop(); dialog.close(); };
+    return () => dialog.close();
   }, []);
 
   useEffect(() => {
@@ -305,43 +296,11 @@ export function MediaPreviewDialog({
 
   if (media.length === 0) return null;
 
-  const close = async () => {
+  const close = () => {
     const dialog = dialogRef.current;
     if (!dialog || closingRef.current) return;
     closingRef.current = true;
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const sourceTile = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-media-id]"))
-      .find((tile) => tile.dataset.mediaId === lastViewedId.current);
-    const activeMedia = dialog.querySelector<HTMLElement>(
-      '.media-preview-dialog__stage[data-active="true"] .media-preview-dialog__original-image, .media-preview-dialog__stage[data-active="true"] video, .media-preview-dialog__stage[data-active="true"] .media-preview-dialog__preview-image',
-    );
-    const targetMedia = sourceTile?.querySelector<HTMLElement>(".media-tile__preview") ?? sourceTile;
-    const sourceRect = activeMedia?.getBoundingClientRect();
-    const targetRect = targetMedia?.getBoundingClientRect();
-    if (!reducedMotion && activeMedia && sourceRect && targetRect && sourceRect.width > 0 && targetRect.width > 0) {
-      const deltaX = targetRect.left + targetRect.width / 2 - (sourceRect.left + sourceRect.width / 2);
-      const deltaY = targetRect.top + targetRect.height / 2 - (sourceRect.top + sourceRect.height / 2);
-      const scaleX = targetRect.width / sourceRect.width;
-      const scaleY = targetRect.height / sourceRect.height;
-      const exitAnimation = animate(dialog, {
-        opacity: [1, 0],
-        transition: { duration: 0.34, ease: "easeIn" },
-      });
-      const mediaAnimation = activeMedia.animate([
-        { transform: "translate3d(0, 0, 0) scale(1, 1)", borderRadius: getComputedStyle(activeMedia).borderRadius },
-        { transform: `translate3d(${deltaX}px, ${deltaY}px, 0) scale(${scaleX}, ${scaleY})`, borderRadius: getComputedStyle(targetMedia).borderRadius || "8px" },
-      ], { duration: 340, easing: "cubic-bezier(0.22, 0.72, 0.2, 1)", fill: "forwards" });
-      dialog.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 340, fill: "forwards", pseudoElement: "::backdrop" });
-      await Promise.all([exitAnimation, mediaAnimation.finished.catch(() => undefined)]);
-      flushSync(() => onClose(lastViewedId.current));
-      return;
-    }
-    const { transition, ...target } = entranceRef.current ?? mediaViewerTransition(dialog, readPageTransitionEffect(), false).enter;
-    const reversed = Object.fromEntries(Object.entries(target).map(([key, value]) => [key, Array.isArray(value) ? [...value].reverse() : value]));
-    const duration = typeof transition?.duration === "number" ? transition.duration * 1000 : 300;
-    dialog.animate([{ opacity: 1 }, { opacity: 0 }], { duration, fill: "forwards", pseudoElement: "::backdrop" });
-    await animate(dialog, reversed, transition);
-    flushSync(() => onClose(lastViewedId.current));
+    onClose(lastViewedId.current);
   };
   const toggleFavorite = () => {
     if (current && !favoriteBusy) onToggleFavorite?.(current.id, current.isFavorited);

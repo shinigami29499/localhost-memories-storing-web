@@ -6,6 +6,7 @@ using Apis.Realtime;
 using Services.Interfaces;
 using Services.Models.Place;
 using Services.Requests.Place;
+using Services.Responses.Place;
 
 namespace Apis.Controllers;
 
@@ -28,10 +29,24 @@ public class PlacesController(
         CancellationToken cancellationToken)
         => Ok(await placeService.GetPlacesAsync(cancellationToken));
 
+    [HttpGet("saved/page")]
+    public async Task<ActionResult<PlacePageResponse<PlaceDto>>> GetPlacesPageAsync(
+        CancellationToken cancellationToken, [FromQuery] int page = 1, [FromQuery] int limit = 20,
+        [FromQuery] string? search = null, [FromQuery] int minimumRating = 0)
+        => Ok(await placeService.GetPlacesPageAsync(page, limit, search, minimumRating, cancellationToken));
+
     [HttpGet("map")]
     public async Task<ActionResult<IReadOnlyList<PlaceMapDto>>> GetMapPlacesAsync(
         CancellationToken cancellationToken)
         => Ok(await placeService.GetMapPlacesAsync(cancellationToken));
+
+    [HttpGet("map/page")]
+    public async Task<ActionResult<PlacePageResponse<PlaceMapDto>>> GetMapPlacesPageAsync(
+        CancellationToken cancellationToken, [FromQuery] int page = 1, [FromQuery] int limit = 100,
+        [FromQuery] double west = -180, [FromQuery] double south = -90,
+        [FromQuery] double east = 180, [FromQuery] double north = 90)
+        => Ok(await placeService.GetMapPlacesPageAsync(page, limit,
+            new PlaceMapBounds(west, south, east, north), cancellationToken));
 
     [HttpGet("{placeId:guid}")]
     public async Task<ActionResult<PlaceDto>> GetPlaceAsync(
@@ -50,6 +65,13 @@ public class PlacesController(
     public async Task<ActionResult<IReadOnlyList<PlaceVisitDto>>> GetAllPlaceVisitHistoryAsync(
         CancellationToken cancellationToken)
         => Ok(await placeService.GetAllPlaceVisitHistoryAsync(cancellationToken));
+
+    [HttpGet("history/page")]
+    public async Task<ActionResult<PlacePageResponse<PlaceVisitDto>>> GetVisitPageAsync(
+        CancellationToken cancellationToken, [FromQuery] int page = 1, [FromQuery] int limit = 20,
+        [FromQuery] bool all = false, [FromQuery] Guid? placeId = null)
+        => Ok(await placeService.GetVisitPageAsync(page, limit,
+            all ? null : currentUser.RequireUserId(), placeId, cancellationToken));
 
     [HttpGet("{placeId:guid}/visits")]
     public async Task<ActionResult<IReadOnlyList<PlaceVisitDto>>> GetPlaceVisitHistoryForPlaceAsync(

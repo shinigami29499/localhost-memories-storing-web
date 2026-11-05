@@ -3,6 +3,7 @@ using Infrastructures.Data.Interfaces;
 using Services.Exceptions;
 using Services.Interfaces;
 using Services.Models.Media;
+using Services.Models.Place;
 using Services.Requests.Media;
 using Services.Responses.Media;
 using Domains.Entities;
@@ -69,6 +70,56 @@ public partial class MediaService(
         return media is null ? null : new MediaFileDto(media.Id, media.MediaKind, media.MimeType,
             media.OriginalFilename, media.FileSizeBytes, media.CreatedAt, false, media.OwnerId,
             UpdatedAt: media.UpdatedAt);
+    }
+
+    public async Task<MediaFileDto> GetMediaAsync(Guid mediaId, Guid viewerId,
+        CancellationToken cancellationToken = default)
+    {
+        var media = await _repository.FindOwnedMediaAsync(mediaId, cancellationToken);
+        if (media is null || media.IsPreviewOnly)
+            throw new NotFoundException($"Media '{mediaId}' was not found.");
+        var favorites = await _repository.GetFavoritedMediaIdsAsync(viewerId, [mediaId], cancellationToken);
+        var ownerUsername = await _repository.GetOwnerUsernameAsync(media.OwnerId, cancellationToken);
+        return _mapper.Map(media, favorites.Contains(mediaId)) with { OwnerUsername = ownerUsername };
+    }
+
+    public async Task<PagedMediaResponse<MediaFileDto>> GetLocatedMediaPageAsync(Guid viewerId, int offset,
+        int limit, PlaceMapBounds bounds, CancellationToken cancellationToken = default)
+    {
+        if (offset < 0 || limit is < 1 or > 100 || !double.IsFinite(bounds.West) || !double.IsFinite(bounds.East)
+            || !double.IsFinite(bounds.South) || !double.IsFinite(bounds.North)
+            || bounds.West is < -180 or > 180 || bounds.East is < -180 or > 180
+            || bounds.South is < -90 or > 90 || bounds.North is < -90 or > 90 || bounds.South > bounds.North)
+            throw new ValidationException("Invalid map page.", new Dictionary<string, string[]>
+            {
+                ["bounds"] = ["Provide valid bounds, a nonnegative offset and a limit from 1 to 100."],
+            });
+        var (page, total) = await _repository.GetLocatedMediaPageAsync(offset, limit, bounds, cancellationToken);
+        var favorites = (await _repository.GetFavoritedMediaIdsAsync(
+            viewerId, page.Select(item => item.Media.Id).ToArray(), cancellationToken)).ToHashSet();
+        return new PagedMediaResponse<MediaFileDto>(offset, limit, total,
+            page.Select(item => _mapper.Map(item.Media, favorites.Contains(item.Media.Id)) with
+            {
+                OwnerUsername = item.OwnerUsername,
+            }).ToList());
+    }
+
+    public async Task<PagedMediaResponse<MediaFileDto>> GetUnlocatedMediaPageAsync(Guid viewerId, int offset,
+        int limit, CancellationToken cancellationToken = default)
+    {
+        if (offset < 0 || limit is < 1 or > 100)
+            throw new ValidationException("Invalid photo page.", new Dictionary<string, string[]>
+            {
+                ["offset"] = ["Use a nonnegative offset and a limit from 1 to 100."],
+            });
+        var (page, total) = await _repository.GetUnlocatedMediaPageAsync(offset, limit, cancellationToken);
+        var favorites = (await _repository.GetFavoritedMediaIdsAsync(
+            viewerId, page.Select(item => item.Media.Id).ToArray(), cancellationToken)).ToHashSet();
+        return new PagedMediaResponse<MediaFileDto>(offset, limit, total,
+            page.Select(item => _mapper.Map(item.Media, favorites.Contains(item.Media.Id)) with
+            {
+                OwnerUsername = item.OwnerUsername,
+            }).ToList());
     }
 
     public async Task DeleteMediaAsync(Guid mediaId, Guid actorId, bool isAdmin, CancellationToken cancellationToken = default)

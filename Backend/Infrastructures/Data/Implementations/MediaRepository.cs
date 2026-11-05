@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Domains.Entities;
 using Infrastructures.Data.Interfaces;
 using Services.Models.Media;
+using Services.Models.Place;
 
 namespace Infrastructures.Data.Implementations;
 
@@ -47,6 +48,10 @@ public sealed class MediaRepository(ApplicationDbContext db) : IMediaRepository
     public Task<MediaFile?> FindOwnedMediaAsync(
         Guid mediaId, CancellationToken cancellationToken = default)
         => db.MediaFiles.FirstOrDefaultAsync(m => m.Id == mediaId, cancellationToken);
+
+    public Task<string?> GetOwnerUsernameAsync(Guid ownerId, CancellationToken cancellationToken = default)
+        => db.Users.AsNoTracking().Where(user => user.Id == ownerId)
+            .Select(user => user.Username).FirstOrDefaultAsync(cancellationToken);
 
     public Task<MediaFile?> FindMediaIncludingDeletedAsync(
         Guid mediaId, CancellationToken cancellationToken = default)
@@ -102,6 +107,55 @@ public sealed class MediaRepository(ApplicationDbContext db) : IMediaRepository
             })
             .ToListAsync(cancellationToken);
         return page.Select(item => (item.Media, item.OwnerUsername)).ToList();
+    }
+
+    public async Task<(IReadOnlyList<(MediaFile Media, string? OwnerUsername)> Items, long Total)> GetLocatedMediaPageAsync(
+        int offset, int limit, PlaceMapBounds bounds, CancellationToken cancellationToken = default)
+    {
+        // CASE avoids casting malformed or missing legacy location metadata.
+        var located = db.MediaFiles.FromSqlInterpolated($"""
+            SELECT * FROM media_files
+            WHERE media_kind = 'image' AND NOT is_preview_only
+              AND (CASE WHEN jsonb_typeof(metadata->'location'->'latitude') = 'number'
+                   THEN (metadata->'location'->>'latitude')::double precision END) BETWEEN {bounds.South} AND {bounds.North}
+              AND (({bounds.West} <= {bounds.East} AND
+                    (CASE WHEN jsonb_typeof(metadata->'location'->'longitude') = 'number'
+                     THEN (metadata->'location'->>'longitude')::double precision END) BETWEEN {bounds.West} AND {bounds.East})
+                OR ({bounds.West} > {bounds.East} AND
+                    ((CASE WHEN jsonb_typeof(metadata->'location'->'longitude') = 'number'
+                      THEN (metadata->'location'->>'longitude')::double precision END) >= {bounds.West}
+                     OR (CASE WHEN jsonb_typeof(metadata->'location'->'longitude') = 'number'
+                         THEN (metadata->'location'->>'longitude')::double precision END) <= {bounds.East})))
+            """).AsNoTracking();
+        var total = await located.LongCountAsync(cancellationToken);
+        var page = await located.OrderByDescending(media => media.CreatedAt).ThenByDescending(media => media.Id)
+            .Skip(offset).Take(limit)
+            .Select(media => new
+            {
+                Media = media,
+                OwnerUsername = db.Users.Where(user => user.Id == media.OwnerId)
+                    .Select(user => user.Username).FirstOrDefault(),
+            }).ToListAsync(cancellationToken);
+        return (page.Select(item => (item.Media, item.OwnerUsername)).ToList(), total);
+    }
+
+    public async Task<(IReadOnlyList<(MediaFile Media, string? OwnerUsername)> Items, long Total)> GetUnlocatedMediaPageAsync(
+        int offset, int limit, CancellationToken cancellationToken = default)
+    {
+        var unlocated = db.MediaFiles.FromSqlRaw("""
+            SELECT * FROM media_files
+            WHERE media_kind = 'image' AND NOT is_preview_only AND metadata->>'location' IS NULL
+            """).AsNoTracking();
+        var total = await unlocated.LongCountAsync(cancellationToken);
+        var page = await unlocated.OrderByDescending(media => media.CreatedAt).ThenByDescending(media => media.Id)
+            .Skip(offset).Take(limit)
+            .Select(media => new
+            {
+                Media = media,
+                OwnerUsername = db.Users.Where(user => user.Id == media.OwnerId)
+                    .Select(user => user.Username).FirstOrDefault(),
+            }).ToListAsync(cancellationToken);
+        return (page.Select(item => (item.Media, item.OwnerUsername)).ToList(), total);
     }
 
     public Task<long> CountMediaAsync(

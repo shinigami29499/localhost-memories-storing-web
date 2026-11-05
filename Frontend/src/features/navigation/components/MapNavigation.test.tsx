@@ -22,6 +22,14 @@ vi.mock("../../../components/ui", () => ({
     <button {...props} disabled={props.disabled || busy} />,
 }));
 vi.mock("../../../components/animate-ui/icons/x", () => ({ XIcon: () => <svg /> }));
+vi.mock("./NavigationOptions", async (original) => ({
+  ...await original<typeof import("./NavigationOptions")>(),
+  NavigationModeSelect: ({ mode, onChange, disabled }: {
+    mode: "driving" | "walking" | "cycling"; onChange: (mode: "driving" | "walking" | "cycling") => void; disabled?: boolean;
+  }) => <select value={mode} disabled={disabled} onChange={(event) => onChange(event.target.value as typeof mode)}>
+    <option value="driving">Driving</option><option value="walking">Walking</option><option value="cycling">Cycling</option>
+  </select>,
+}));
 vi.mock("../services/directionsService", async (original) => ({
   ...await original<typeof import("../services/directionsService")>(),
   getDirections: vi.fn(),
@@ -53,7 +61,7 @@ describe("MapNavigation", () => {
   const onOpenChange = vi.fn();
   const watchPosition = vi.fn();
   const getCurrentPosition = vi.fn();
-  const button = (text: string) => [...container.querySelectorAll("button")].find((item) => item.textContent === text)!;
+  const button = (text: string) => [...document.body.querySelectorAll("button")].find((item) => item.textContent?.trim() === text)!;
   const click = async (text: string) => { await act(async () => { button(text).click(); }); };
   const render = async (point = destination, homeLocation?: { latitude: number; longitude: number }) => {
     await act(async () => root.render(
@@ -128,17 +136,14 @@ describe("MapNavigation", () => {
     expect(clearWatch).toHaveBeenCalledWith(42);
   });
 
-  it("clears the old route on travel mode change and requests the chosen profile", async () => {
+  it("requests the chosen profile when the travel mode changes", async () => {
     await preview();
     await act(async () => {
       const select = container.querySelector("select")!;
       select.value = "cycling";
       select.dispatchEvent(new Event("change", { bubbles: true }));
     });
-    expect(container.querySelector("[data-route]")).toBeNull();
     expect(new URL(container.querySelector("a")!.href).searchParams.get("travelmode")).toBe("bicycling");
-    await click("Preview with Mapbox");
-    await act(async () => { locate(fix()); });
     expect(getDirections).toHaveBeenLastCalledWith(expect.anything(), destination, "cycling", "pk.test", "en", expect.any(AbortSignal));
   });
 
@@ -254,7 +259,7 @@ describe("MapNavigation", () => {
   it("ignores delayed location callbacks after closing", async () => {
     await click("Navigate");
     await click("Preview with Mapbox");
-    await act(async () => { container.querySelector<HTMLButtonElement>('[aria-label="Close navigation"]')!.click(); });
+    await click("Navigate");
     await act(async () => { locate(fix()); });
     expect(getDirections).not.toHaveBeenCalled();
     expect(button("Navigate")).toBeDefined();

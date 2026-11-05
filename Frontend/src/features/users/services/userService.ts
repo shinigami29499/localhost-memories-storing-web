@@ -1,6 +1,15 @@
 import { api } from "../../../services/api";
 import type { AuthUser } from "../../auth/types";
 
+export interface UserPage {
+  items: AuthUser[];
+  page: number;
+  limit: number;
+  total: number;
+  allCount: number;
+  pendingCount: number;
+}
+
 /** Account profiles and user management endpoints under /api/users. */
 export const userService = {
   profile(): Promise<AuthUser> {
@@ -17,6 +26,10 @@ export const userService = {
 
   list(): Promise<AuthUser[]> {
     return api("/api/users");
+  },
+
+  page(page: number, limit: number, pendingOnly = false, signal?: AbortSignal): Promise<UserPage> {
+    return api(`/api/users/page?page=${page}&limit=${limit}&pendingOnly=${pendingOnly}`, { signal });
   },
 
   heartbeat(): Promise<{ lastSeenAt: string }> {

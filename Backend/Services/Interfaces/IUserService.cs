@@ -1,12 +1,15 @@
 using Services.Responses.Auth;
 using Services.Models.Users;
 using Services.Requests.Users;
+using Services.Responses.Users;
 
 namespace Services.Interfaces;
 
 public interface IUserService
 {
     Task<IReadOnlyList<UserResponse>> ListAsync(CancellationToken cancellationToken = default);
+    Task<UserPageResponse> GetPageAsync(int page, int limit, bool pendingOnly,
+        CancellationToken cancellationToken = default);
     Task<DateTime> HeartbeatAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<UserResponse> GetProfileAsync(Guid userId, CancellationToken cancellationToken = default);
     Task ChangePasswordAsync(Guid userId, ChangePasswordRequest request, CancellationToken cancellationToken = default);

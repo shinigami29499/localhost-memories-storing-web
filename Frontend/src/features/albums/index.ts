@@ -8,6 +8,8 @@ export {
   useAlbum,
   useAlbumMedia,
   useAlbums,
+  useInfiniteAlbums,
+  useAlbumMembership,
   useInfiniteAlbumMedia,
   useInvalidateAlbums,
 } from "./hooks/useAlbums";

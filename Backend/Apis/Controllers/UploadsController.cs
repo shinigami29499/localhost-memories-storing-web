@@ -62,6 +62,11 @@ public sealed class UploadsController(
         => Ok(await _uploadService.GetBatchAsync(
             _currentUser.RequireUserId(), _currentUser.IsAdmin, batchId, cancellationToken));
 
+    [HttpGet("batches/{batchId:guid}/images")]
+    public async Task<ActionResult<IReadOnlyList<Guid>>> GetBatchImageIdsAsync(
+        Guid batchId, CancellationToken cancellationToken)
+        => Ok(await _uploadService.GetBatchImageIdsAsync(_currentUser.RequireUserId(), batchId, cancellationToken));
+
     [HttpPut("batches/{batchId:guid}/viewed")]
     public async Task<IActionResult> MarkBatchViewedAsync(Guid batchId, CancellationToken cancellationToken)
         => await _uploadService.MarkBatchViewedAsync(_currentUser.RequireUserId(), batchId, cancellationToken)

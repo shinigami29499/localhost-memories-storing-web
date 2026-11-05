@@ -1,8 +1,7 @@
+import { PageActionBar } from "../../components/layout/PageActionBar";
 import { Link } from "react-router-dom";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useInfiniteQuery, useQueries, useQueryClient } from "@tanstack/react-query";
-import { ScrollProgress, ScrollProgressContainer, ScrollProgressProvider } from "@animate-ui/react/primitives/scroll-progress";
-import { ScrollFade } from "@animate-ui/react/primitives/effects/scroll-fade";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { Bookmark } from "@/components/animate-ui/icons/bookmark";
 import { Heart } from "@/components/animate-ui/icons/heart";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
@@ -10,11 +9,10 @@ import { Plus } from "@/components/animate-ui/icons/plus";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
 import { BulkSaveToAlbumDialog } from "../../features/albums/components/BulkSaveToAlbumDialog";
 import { albumKeys } from "../../features/albums/hooks/useAlbums";
-import { albumService } from "../../features/albums/services/albumService";
+import { useAlbumMembership } from "../../features/albums/hooks/useAlbums";
 import { ConfirmationDialog, EmptyState, ErrorState, Spinner } from "../../components/ui";
 import { showToast } from "../../components/ui/Toast";
 import { useLocale } from "../../context/LocaleContext";
-import { MediaTile } from "../../features/media/components/MediaTile";
 import { MediaRetryProvider } from "../../features/media/components/MediaRetryProvider";
 import { MediaPreviewDialog } from "../../features/media/components/MediaPreviewDialog";
 import { useMediaSelectionDrag } from "../../features/media/hooks/useMediaSelectionDrag";
@@ -24,23 +22,12 @@ import { SelectionActions } from "./SelectionActions";
 import { uploadService } from "../../features/uploads/services/uploadService";
 import type { MediaFile, MediaKindFilter } from "../../features/media/types";
 import { useGalleryWindow } from "../../features/media/hooks/useGalleryWindow";
+import { VirtualGalleryGroup } from "./VirtualGalleryGroup";
+import { resolveFocusMediaId } from "./resolveFocusMediaId";
 import "./gallery.css";
 import "../../features/media/components/media.css";
 
 export type GalleryView = "pictures" | "favorites";
-
-function GalleryRow({ item, visible, selectionMode, selected, onSelect, onFavorite, favoriteBusy, onOpen }: {
-  item: MediaFile; visible: boolean;
-  selectionMode: boolean; selected: boolean; onSelect: (id: string) => void; onFavorite: (id: string) => void;
-  favoriteBusy: boolean; onOpen: (id: string) => void;
-}) {
-  return (
-    <div data-gallery-window-id={item.id} className="gallery-window-cell">
-      {visible ? <MediaTile media={item} preload selectionMode={selectionMode} selectionDragEnabled selected={selected} onSelect={onSelect}
-        onFavorite={onFavorite} favoriteDisabled={favoriteBusy} onOpen={onOpen} /> : null}
-    </div>
-  );
-}
 
 const viewCopy: Record<GalleryView, { title: string; description: string; emptyTitle: string; emptyHint: string }> = {
   pictures: {
@@ -73,14 +60,8 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedItems, setSelectedItems] = useState<Map<string, MediaFile>>(() => new Map());
   const selectedIds = [...selectedItems.keys()];
-  const albumQueries = useQueries({
-    queries: selectedIds.map((mediaId) => ({
-      queryKey: albumKeys.list("mine", mediaId),
-      queryFn: () => albumService.list("mine", mediaId),
-    })),
-  });
-  const inAlbum = albumQueries.some((query) => query.data?.some((album) => album.containsMedia));
-  const failedAlbumQueries = albumQueries.filter((query) => query.isError);
+  const membership = useAlbumMembership(selectedIds);
+  const inAlbum = membership.data?.items.some((item) => item.albumIds.length > 0) ?? false;
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [favoriteBusyId, setFavoriteBusyId] = useState<string | null>(null);
@@ -88,16 +69,18 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
   const [previewMediaId, setPreviewMediaId] = useState<string | null>(null);
   const galleryRef = useRef<HTMLElement>(null);
   const returnToMediaId = useRef<string | null>(null);
+  const returnToIndex = useRef(0);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const showingFavorites = view === "favorites";
   const query = useInfiniteQuery({ ...mediaQueryOptions(20, showingFavorites ? "favorites" : "all", selectedFilter), staleTime: 0 });
-  const windowIds = useGalleryWindow(galleryRef, `${view}:${selectedFilter}`, query.data?.pages.reduce((count, page) => count + page.items.length, 0) ?? 0);
+  const viewport = useGalleryWindow(galleryRef, `${view}:${selectedFilter}`);
 
   const media = useMemo(
     () => (Array.isArray(query.data?.pages) ? query.data.pages : [])
       .filter((page) => page && Array.isArray(page.items)).flatMap((page) => page.items),
     [query.data],
   );
+  const focusMediaId = resolveFocusMediaId(media, returnToMediaId.current, returnToIndex.current);
   const total = query.data?.pages[0]?.total ?? 0;
   const groups = useMemo(() => {
     const byDate = new Map<string, { date: Date; items: MediaFile[] }>();
@@ -166,12 +149,20 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
 
   useEffect(() => {
     if (previewMediaId || !returnToMediaId.current) return;
+    if (query.isFetching && !media.some((item) => item.id === returnToMediaId.current)) return;
+    const focusId = resolveFocusMediaId(media, returnToMediaId.current, returnToIndex.current);
+    if (!focusId && !query.hasNextPage) {
+      returnToMediaId.current = null;
+      galleryRef.current?.focus({ preventScroll: true });
+      return;
+    }
     const tile = Array.from(galleryRef.current?.querySelectorAll<HTMLButtonElement>("[data-media-id]") ?? [])
-      .find((element) => element.dataset.mediaId === returnToMediaId.current);
+      .find((element) => element.dataset.mediaId === focusId);
+    if (!tile) return;
     returnToMediaId.current = null;
-    tile?.focus({ preventScroll: true });
-    tile?.scrollIntoView({ block: "center", inline: "center", behavior: "auto" });
-  }, [previewMediaId]);
+    tile.focus({ preventScroll: true });
+    tile.scrollIntoView({ block: "center", inline: "center", behavior: "auto" });
+  }, [previewMediaId, media, viewport, query.isFetching, query.hasNextPage]);
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
@@ -360,15 +351,9 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
                     </time>
                   </h2>
                 </div>
-                  <div
-                    className="gallery-date-grid" data-media-kind={selectedFilter}
-                  >
-                    {group.items.map((item) => (
-                      <GalleryRow key={item.id} item={item} visible={windowIds.has(item.id)}
-                        selectionMode={selectionMode} selected={selectedItems.has(item.id)} onSelect={toggleSelected}
-                        onFavorite={(mediaId) => void toggleFavorite(mediaId, false)} favoriteBusy={favoriteBusy} onOpen={setPreviewMediaId} />
-                    ))}
-                  </div>
+                  <VirtualGalleryGroup items={group.items} viewport={viewport} mediaKind={selectedFilter} pinnedId={focusMediaId}
+                    selectionMode={selectionMode} selectedItems={selectedItems} onSelect={toggleSelected}
+                    onFavorite={(mediaId) => void toggleFavorite(mediaId, false)} favoriteBusy={favoriteBusy} onOpen={setPreviewMediaId} />
               </section>
               );
             })}
@@ -384,17 +369,17 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
       {query.isError && !query.isFetchNextPageError && media.length > 0 ? (
         <ErrorState message={t("Could not refresh media.")} onRetry={() => void query.refetch()} />
       ) : null}
-      {failedAlbumQueries.length > 0 ? (
+      {membership.isError ? (
         <ErrorState
           message={t("Could not load albums.")}
-          onRetry={() => { for (const query of failedAlbumQueries) void query.refetch(); }}
+          onRetry={() => void membership.refetch()}
         />
       ) : null}
     </>
   );
 
   return (
-    <main ref={galleryRef} className="gallery-page" {...selectionDragHandlers}
+    <main ref={galleryRef} tabIndex={-1} className="gallery-page" {...selectionDragHandlers}
       onClickCapture={(event) => {
         selectionDragHandlers.onClickCapture(event);
         if (event.defaultPrevented) return;
@@ -402,39 +387,28 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
         if (!selectionMode || (event.target instanceof Element && event.target.closest("[data-media-id], .gallery-selection-bar"))) return;
         cancelSelection();
       }}>
-      <ScrollProgressProvider>
-        <div className="gallery-page__scroll-track" aria-hidden="true">
-          <ScrollProgress mode="scaleX" className="gallery-page__scroll-progress" />
+      <div className="gallery-page__fixed-layout">
+        <div className="gallery-page__fixed-tabs">
+          <div className="gallery-page__content gallery-page__media-scroll">
+            <div className="gallery-page__tab-panel gallery-page__tab-panel--media">{galleryContent}</div>
+          </div>
         </div>
-        <div className="gallery-page__fixed-layout">
-            <div className="gallery-page__fixed-tabs">
-              <ScrollFade asChild blur={0} shrink={0}>
-              <ScrollProgressContainer className="gallery-page__content gallery-page__media-scroll gallery-page__media-scroll--smooth">
-              <div className="gallery-page__tab-panel gallery-page__tab-panel--media">
-                <div className="page-transition">
-                  {galleryContent}
-                </div>
-              </div>
-              </ScrollProgressContainer>
-              </ScrollFade>
-            </div>
-        </div>
-      </ScrollProgressProvider>
+      </div>
 
-        <footer className="gallery-page__footer gallery-page__footer--transition">
-          <div className="gallery-selection-bar gallery-selection-bar--compact" role="group" aria-label={t("{count} selected", { count: selectedItems.size })} aria-busy={bulkFavoriteBusy}>
+          <PageActionBar className="gallery-selection-bar gallery-selection-bar--compact" role="group" aria-label={t("{count} selected", { count: selectedItems.size })} aria-busy={bulkFavoriteBusy}>
             <span className="gallery-selection-bar__status" role="status">{t("{count} selected", { count: selectedItems.size })}</span>
             <input ref={uploadInput} type="file" accept="image/*,video/*" multiple hidden onChange={(event) => {
               const files = Array.from(event.currentTarget.files ?? []);
               event.currentTarget.value = "";
               void uploadFiles(files);
             }} />
-              <button type="button" className="gallery-selection-bar__action" aria-label={t("Upload media")} title={t("Upload media")}
+              <button key="primary" type="button" className="gallery-selection-bar__action" aria-label={t("Upload media")} title={t("Upload media")}
                 disabled={uploading || bulkFavoriteBusy} aria-busy={uploading || undefined} onClick={() => uploadInput.current?.click()}>
                 {uploading ? <LoaderCircle size={20} className="spinner__wheel" aria-hidden="true" /> : <Plus size={20} aria-hidden="true" />}
               </button>
             {selectionMode ? (
               <button
+                key="favorite"
                 type="button"
                 className="gallery-selection-bar__action gallery-selection-bar__action--favorite"
                 aria-label={t(allSelectedFavorited ? "Remove from favorites" : "Add to favorites")}
@@ -449,7 +423,7 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
                   : <Heart size={20} fill={allSelectedFavorited ? "currentColor" : "none"} aria-hidden="true" />}
               </button>
             ) : (
-              <Link className="gallery-selection-bar__action" to={showingFavorites ? "/gallery" : "/gallery/favorites"} aria-label={t(showingFavorites ? "Gallery" : "Favorites")} title={t(showingFavorites ? "Gallery" : "Favorites")}><Heart size={20} fill={showingFavorites ? "currentColor" : "none"} aria-hidden="true" /></Link>
+              <Link key="favorite" className="gallery-selection-bar__action" to={showingFavorites ? "/gallery" : "/gallery/favorites"} aria-label={t(showingFavorites ? "Gallery" : "Favorites")} title={t(showingFavorites ? "Gallery" : "Favorites")}><Heart size={20} fill={showingFavorites ? "currentColor" : "none"} aria-hidden="true" /></Link>
             )}
             <SelectionActions open={selectionMode}>
                 <button
@@ -458,7 +432,7 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
                   aria-label={t("Save to album")}
                   title={t("Save to album")}
                   aria-pressed={inAlbum}
-                  aria-busy={albumQueries.some((query) => query.isPending) || undefined}
+                  aria-busy={membership.isPending || undefined}
                   disabled={favoriteBusy || selectedMedia.length === 0}
                   onClick={() => setSaveDialogOpen(true)}
                 >
@@ -475,8 +449,7 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
                 <Trash2 size={20} aria-hidden="true" />
               </button>
             </SelectionActions>
-          </div>
-        </footer>
+          </PageActionBar>
 
       {saveDialogOpen ? (
         <BulkSaveToAlbumDialog
@@ -506,6 +479,7 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
           favoriteBusy={favoriteBusy}
           onToggleFavorite={(mediaId, isFavorited) => void toggleFavorite(mediaId, isFavorited)}
           onClose={(mediaId) => {
+            returnToIndex.current = Math.max(0, media.findIndex((item) => item.id === mediaId));
             returnToMediaId.current = mediaId;
             setPreviewMediaId(null);
           }}

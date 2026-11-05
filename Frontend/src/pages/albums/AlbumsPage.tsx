@@ -1,6 +1,6 @@
+import { PageActionBar } from "../../components/layout/PageActionBar";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ScrollFade } from "@animate-ui/react/primitives/effects/scroll-fade";
 import { Plus } from "@/components/animate-ui/icons/plus";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
 import { ConfirmationDialog, EmptyState, ErrorState, Spinner, showToast } from "../../components/ui";
@@ -9,7 +9,7 @@ import {
   AlbumCard,
   AlbumFormDialog,
   albumService,
-  useAlbums,
+  useInfiniteAlbums,
   useInvalidateAlbums,
   type Album,
 } from "../../features/albums";
@@ -27,10 +27,9 @@ export function AlbumsPage() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [deleting, setDeleting] = useState(false);
-  const ownAlbums = useAlbums("mine");
-  const publicAlbums = useAlbums("public");
+  const albumsQuery = useInfiniteAlbums("feed");
   const invalidate = useInvalidateAlbums();
-  const items = [...new Map([...(ownAlbums.data ?? []), ...(publicAlbums.data ?? [])].map((album) => [album.id, album])).values()];
+  const items = albumsQuery.data?.pages.flatMap((page) => page.items) ?? [];
   const selectedAlbums = items.filter((album) => selectedIds.has(album.id));
   const canDelete = selectedAlbums.length > 0 && selectedAlbums.every((album) => album.owner.id === me?.id);
   const cancelSelection = () => { setSelectionMode(false); setSelectedIds(new Set()); };
@@ -73,19 +72,18 @@ export function AlbumsPage() {
         }
       }}>
       <div className="gallery-page__fixed-layout">
-          <ScrollFade asChild blur={0} shrink={0}>
           <div className="gallery-page__content gallery-page__media-scroll">
           <div className="gallery-page__tab-panel--media">
-          <div className="page-transition">
-          {ownAlbums.isPending || publicAlbums.isPending ? <Spinner label={t("Loading albums…")} /> : ownAlbums.isError || publicAlbums.isError ? (
-            <ErrorState message={t("Could not load albums.")} onRetry={() => { void ownAlbums.refetch(); void publicAlbums.refetch(); }} />
+          <div className="gallery-page__content-body">
+          {albumsQuery.isPending ? <Spinner label={t("Loading albums…")} /> : albumsQuery.isError && items.length === 0 ? (
+            <ErrorState message={t("Could not load albums.")} onRetry={() => void albumsQuery.refetch()} />
           ) : items.length === 0 ? (
             <EmptyState
               title="No albums yet"
               hint="Use New album to organize your media into collections."
             />
           ) : (
-            <div className="gallery-groups" aria-busy={ownAlbums.isFetching || publicAlbums.isFetching}>
+            <div className="gallery-groups" aria-busy={albumsQuery.isFetching}>
               {dateGroups.map(([key, group]) => (
                 <section key={key} aria-label={dateFormatter.format(group.date)}>
                   <div className="gallery-group__header">
@@ -113,21 +111,29 @@ export function AlbumsPage() {
               ))}
             </div>
           )}
+          {albumsQuery.isFetchNextPageError ? (
+            <ErrorState message={t("Could not load more albums.")} onRetry={() => void albumsQuery.fetchNextPage()} />
+          ) : null}
+          {albumsQuery.hasNextPage ? (
+            <button type="button" className="btn btn--secondary" disabled={albumsQuery.isFetchingNextPage}
+              onClick={() => void albumsQuery.fetchNextPage()}>
+              {t(albumsQuery.isFetchingNextPage ? "Loading albums…" : "Load more")}
+            </button>
+          ) : null}
           </div>
           </div>
           </div>
-      </ScrollFade>
       </div>
       <footer className="gallery-page__footer albums-page__footer">
-        <div className="gallery-selection-bar gallery-selection-bar--compact" role="group" aria-label={t("{count} selected", { count: selectedIds.size })}>
+        <PageActionBar className="gallery-selection-bar gallery-selection-bar--compact" role="group" aria-label={t("{count} selected", { count: selectedIds.size })}>
           <span className="gallery-selection-bar__status" role="status">{t("{count} selected", { count: selectedIds.size })}</span>
-          <button type="button" className="gallery-selection-bar__action" aria-label={t("New album")} title={t("New album")} disabled={deleting} onClick={() => setCreating(true)}>
+          <button key="primary" type="button" className="gallery-selection-bar__action" aria-label={t("New album")} title={t("New album")} disabled={deleting} onClick={() => setCreating(true)}>
             <Plus size={20} aria-hidden="true" />
           </button>
           <SelectionActions open={selectionMode}>
           <button type="button" className="gallery-selection-bar__action gallery-selection-bar__action--danger" aria-label={t("Delete selected albums")} title={t("Delete selected albums")}
             disabled={!canDelete || deleting} onClick={() => setDeleting(true)}><Trash2 size={20} aria-hidden="true" /></button></SelectionActions>
-        </div>
+        </PageActionBar>
       </footer>
       {deleting && <ConfirmationDialog title="Delete selected albums?" danger onClose={() => setDeleting(false)} onConfirm={async () => {
         try {

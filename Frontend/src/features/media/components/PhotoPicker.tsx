@@ -52,7 +52,6 @@ export function PhotoPicker({
   const [uploaded, setUploaded] = useState<MediaFile[]>([]);
   const [uploadingPreview, setUploadingPreview] = useState(false);
   const [galleryBatchId, setGalleryBatchId] = useState<string | null>(null);
-  const [scrollProgress, setScrollProgress] = useState(0);
   const [initialized, setInitialized] = useState(!selectedId);
   const tabId = useId();
   const initialImage = useQuery({
@@ -183,12 +182,8 @@ export function PhotoPicker({
                 </Dialog.Description>
               </div>
             </header>
-            <div className="place-picker__scroll-progress" aria-hidden="true">
-              <span style={{ width: `${scrollProgress}%` }} />
-            </div>
             <Tabs.Root className="photo-picker__tabs" value={source} onValueChange={(value) => {
               setSource(value === "preview" ? "preview" : "gallery");
-              setScrollProgress(0);
               bodyRef.current?.scrollTo({ top: 0 });
             }}>
               <Tabs.List className="photo-picker__tab-list" aria-label={t("Photo source")}>
@@ -207,7 +202,6 @@ export function PhotoPicker({
                 onScroll={(event) => {
                   const element = event.currentTarget;
                   const range = element.scrollHeight - element.clientHeight;
-                  setScrollProgress(range > 0 ? Math.min(100, Math.max(0, element.scrollTop / range * 100)) : 0);
                   if (range - element.scrollTop < 160 && query.hasNextPage
                     && !query.isFetchingNextPage && !query.isFetchNextPageError) void query.fetchNextPage();
                 }}>

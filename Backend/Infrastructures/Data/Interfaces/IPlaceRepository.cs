@@ -6,12 +6,18 @@ namespace Infrastructures.Data.Interfaces;
 public interface IPlaceRepository
 {
     Task<IReadOnlyList<PlaceSource>> GetPlacesAsync(CancellationToken cancellationToken = default);
+    Task<(IReadOnlyList<PlaceSource> Items, int Total)> GetPlacesPageAsync(
+        int page, int limit, string? search, int minimumRating, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<PlaceSource>> GetMapPlacesAsync(CancellationToken cancellationToken = default);
+    Task<(IReadOnlyList<PlaceSource> Items, int Total)> GetMapPlacesPageAsync(
+        int page, int limit, PlaceMapBounds bounds, CancellationToken cancellationToken = default);
     Task<PlaceSource?> GetPlaceSourceAsync(Guid placeId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<PlaceVisitSource>> GetPlaceVisitHistoryAsync(
         Guid userId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<PlaceVisitSource>> GetAllPlaceVisitHistoryAsync(
         CancellationToken cancellationToken = default);
+    Task<(IReadOnlyList<PlaceVisitSource> Items, int Total)> GetVisitPageAsync(
+        int page, int limit, Guid? userId, Guid? placeId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<PlaceVisitSource>> GetPlaceVisitHistoryForPlaceAsync(
         Guid placeId, CancellationToken cancellationToken = default);
     Task<Place?> FindPlaceAsync(Guid placeId, CancellationToken cancellationToken = default);

@@ -8,6 +8,46 @@ namespace Infrastructures.Data.Implementations;
 
 public sealed class CollectionRepository(ApplicationDbContext db) : ICollectionRepository
 {
+    public async Task<IReadOnlyList<CollectionSource>> GetCollectionsPageAsync(
+        Guid viewerId, string scope, Guid? mediaId, int limit, DateTime? cursorDate, Guid? cursorId, string? search,
+        CancellationToken cancellationToken = default)
+    {
+        IQueryable<Collection> query = scope switch
+        {
+            "mine" => db.Collections.AsNoTracking().Where(collection => collection.OwnerId == viewerId),
+            "public" => db.Collections.AsNoTracking().Where(collection => collection.IsPublic && collection.OwnerId != viewerId),
+            "feed" => db.Collections.AsNoTracking().Where(collection => collection.IsPublic || collection.OwnerId == viewerId),
+            "all" => db.Collections.AsNoTracking(),
+            _ => throw new ArgumentOutOfRangeException(nameof(scope)),
+        };
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var escaped = search.Trim().Replace("\\", "\\\\", StringComparison.Ordinal)
+                .Replace("%", "\\%", StringComparison.Ordinal).Replace("_", "\\_", StringComparison.Ordinal);
+            var pattern = $"%{escaped}%";
+            query = query.Where(collection => EF.Functions.ILike(collection.Name, pattern, "\\"));
+        }
+        if (cursorDate is { } date && cursorId is { } id)
+            query = query.Where(collection => EF.Functions.LessThan(
+                ValueTuple.Create(collection.CreatedAt, collection.Id), ValueTuple.Create(date, id)));
+        return await Project(query.OrderByDescending(collection => collection.CreatedAt)
+                .ThenByDescending(collection => collection.Id).Take(limit + 1), mediaId)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<(Guid MediaId, Guid AlbumId)>> GetOwnedMembershipAsync(
+        Guid ownerId, IReadOnlyCollection<Guid> mediaIds, CancellationToken cancellationToken = default)
+    {
+        var rows = await db.CollectionMedia.AsNoTracking()
+            .Where(item => item.Collection.OwnerId == ownerId
+                && mediaIds.Contains(item.MediaFileId)
+                && item.MediaFile.DeletedAt == null
+                && !item.MediaFile.IsPreviewOnly)
+            .Select(item => new { MediaId = item.MediaFileId, AlbumId = item.CollectionId })
+            .ToListAsync(cancellationToken);
+        return rows.Select(row => (row.MediaId, row.AlbumId)).ToList();
+    }
+
     public async Task<IReadOnlyList<CollectionSource>> GetOwnedCollectionsAsync(
         Guid ownerId, Guid? mediaId, CancellationToken cancellationToken = default)
         => await Project(

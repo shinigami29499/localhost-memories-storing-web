@@ -1,13 +1,12 @@
 /* Albums ------------------------------------------------------------- */
 
-.albums-page__footer { view-transition-name: albums-footer; }
-::view-transition-group(albums-footer) { z-index: 3; }
+.albums-page__footer { }
 
 .album-save-menu__content {
   background: var(--surface-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  box-shadow: var(--shadow-popover);
+  box-shadow: none;
   color: var(--text-strong);
   max-width: calc(100vw - 1rem);
   min-width: 12rem;
@@ -99,7 +98,7 @@
   background: var(--surface-raised);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  box-shadow: var(--shadow-popover);
+  box-shadow: none;
   display: block;
   overflow: hidden;
   position: relative;
@@ -163,9 +162,9 @@
 
 .album-card__body {
   align-items: center;
-  background: linear-gradient(transparent, rgba(0, 0, 0, 0.82));
+  background: #6A3F36;
   bottom: 0;
-  color: #fff;
+  color: #F4F3EE;
   display: flex;
   gap: 8px;
   left: 0;
@@ -201,9 +200,9 @@
 }
 
 .album-card__count {
-  background: rgba(0, 0, 0, 0.68);
+  background: #6A3F36;
   border-radius: 4px;
-  color: #fff;
+  color: #F4F3EE;
   flex-shrink: 0;
   font-size: 0.75rem;
   font-variant-numeric: tabular-nums;
@@ -220,7 +219,7 @@
 
 .album-page__tabs .gallery-page__filter[data-state="active"] {
   background: var(--accent-wash);
-  box-shadow: inset 0 -2px var(--accent-soft);
+  box-shadow: none;
   color: var(--text-strong);
 }
 
@@ -244,9 +243,9 @@
   width: 200px;
 }
 
-:root:not(.dark) .album-hero__preview:not(:has(img)) {
-  background: #fff;
-  box-shadow: 0 2px 8px rgb(0 0 0 / 16%);
+:root .album-hero__preview:not(:has(img)) {
+  background: #F4F3EE;
+  box-shadow: none;
 }
 
 .album-hero__preview img {
@@ -294,15 +293,15 @@
   max-width: min(420px, calc(100vw - 32px));
   overflow: hidden;
   padding: 0;
-  background: #101112;
+  background: #6A3F36;
   border: 0;
-  box-shadow: var(--shadow-popover);
+  box-shadow: none;
 }
 
 .album-caption-dialog__header {
   padding: 20px 24px;
   border-bottom: 1px solid var(--border);
-  background: #1c1f23;
+  background: #6A3F36;
 }
 
 .album-caption-dialog__title {
@@ -314,7 +313,7 @@
 
 .album-caption-dialog__content {
   padding: 24px;
-  background: #101112;
+  background: #6A3F36;
 }
 
 .album-caption-dialog__field {
@@ -323,7 +322,7 @@
 
 .album-caption-dialog__field textarea {
   box-sizing: border-box;
-  background: #1c1f23;
+  background: #6A3F36;
   border: 1px solid var(--border-control);
   border-radius: 8px;
   color: var(--text-strong);
@@ -340,38 +339,38 @@
   flex-direction: column;
   gap: 8px;
   padding: 0 24px 16px;
-  background: #101112;
+  background: #6A3F36;
 }
 
 .album-caption-dialog__actions > button {
   width: 100%;
   border: 0;
-  box-shadow: 0 2px 8px rgb(0 0 0 / 20%);
+  box-shadow: none;
 }
 
 .album-caption-dialog__actions > button:first-child {
-  background: #f0f0f0;
-  color: #17191d;
+  background: #F4F3EE;
+  color: #6A3F36;
 }
 
 .album-caption-dialog__actions > .btn--danger {
-  background: #b42335;
-  color: #fff;
+  background: #6A3F36;
+  color: #F4F3EE;
 }
 
-:root:not(.dark) .album-caption-dialog,
-:root:not(.dark) .album-caption-dialog__content,
-:root:not(.dark) .album-caption-dialog__actions {
-  background: #eef0f2;
+:root .album-caption-dialog,
+:root .album-caption-dialog__content,
+:root .album-caption-dialog__actions {
+  background: #F4F3EE;
 }
 
-:root:not(.dark) .album-caption-dialog__header {
-  background: #fafafa;
+:root .album-caption-dialog__header {
+  background: #F4F3EE;
 }
 
-:root:not(.dark) .album-caption-dialog__field textarea {
-  background: #fafafa;
-  color: #17191d;
+:root .album-caption-dialog__field textarea {
+  background: #F4F3EE;
+  color: #6A3F36;
 }
 
 .album-hero__actions {
@@ -436,15 +435,15 @@
 }
 
 .btn.album-hero__delete {
-  background: #e32424;
+  background: #6A3F36;
   border-radius: 50%;
-  box-shadow: 0 2px 8px rgb(0 0 0 / 20%);
-  color: #fff;
+  box-shadow: none;
+  color: #F4F3EE;
 }
 
 .btn.album-hero__delete:hover:not(:disabled) {
-  background: #bf1e1e;
-  color: #fff;
+  background: #6A3F36;
+  color: #F4F3EE;
 }
 
 .album-item {
@@ -564,6 +563,6 @@
 .album-page .album-page__create-button,
 .album-hero__actions .btn--secondary {
   border: 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: none;
 }
 

@@ -16,7 +16,6 @@ describe("PlaceEditor", () => {
     name: "Peace Vegan",
     address: "",
     note: "",
-    rating: 0,
     markerIcon: DEFAULT_PLACE_MARKER_ICON,
     markerColor: DEFAULT_PLACE_MARKER_COLOR,
     mediaIds: [],

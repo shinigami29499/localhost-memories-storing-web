@@ -6,12 +6,14 @@ import { EyeClosed } from "../animate-ui/icons/eye-closed";
 import { AnimateIcon } from "../animate-ui/icons/icon";
 import { useLocale } from "../../context/LocaleContext";
 import { useAnimationStore } from "../../store/animationStore";
+import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { Input } from "./Input";
 import "./password-input.css";
 
 export function PasswordInput(props: Omit<ComponentProps<typeof Input>, "type">) {
   const { t } = useLocale();
   const iconsEnabled = useAnimationStore((state) => state.iconsEnabled);
+  const mobile = useMediaQuery("(max-width: 640px)");
   const [visible, setVisible] = useState(false);
   const shouldReduceMotion = useShouldReduceMotion();
   const transition = useTempoTransition(motionTokens.transition.collapse);
@@ -33,9 +35,9 @@ export function PasswordInput(props: Omit<ComponentProps<typeof Input>, "type">)
             key={String(visible)}
             className="password-input__icon"
             aria-hidden="true"
-            initial={shouldReduceMotion || !iconsEnabled ? false : { scaleY: 0.1 }}
+            initial={shouldReduceMotion || !iconsEnabled || mobile ? false : { scaleY: 0.1 }}
             animate={{ scaleY: 1 }}
-            transition={shouldReduceMotion || !iconsEnabled ? { duration: 0 } : transition}
+            transition={shouldReduceMotion || !iconsEnabled || mobile ? { duration: 0 } : transition}
           >
             {visible ? <Eye size={20} /> : <EyeClosed size={20} />}
           </motion.span>

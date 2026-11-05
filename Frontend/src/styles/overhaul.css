@@ -1,0 +1,324 @@
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.btn { min-height: 44px; border-radius: 6px; box-shadow: none; transition: none; }
+.btn--secondary { background: var(--surface); }
+.btn--primary:hover:not(:disabled) { filter: none; text-decoration: underline; }
+.btn:disabled { opacity: 1; color: var(--text); background: var(--surface-hover); border-color: var(--border-control); }
+input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]),
+textarea, select { min-height: 44px; border-radius: 6px; }
+
+.app-shell,
+.app-shell.app-shell--sidebar-collapsed {
+  --app-topbar-height: 60px;
+  --sidebar-width: 240px;
+  background: var(--bg);
+}
+
+.app-shell.app-shell--sidebar-collapsed { --sidebar-width: 80px; }
+.app-shell .sidebar-gap { width: var(--sidebar-width); }
+
+.app-shell .sidebar,
+.app-shell .sidebar--collapsed {
+  top: 0;
+  left: 0;
+  width: var(--sidebar-width);
+  height: 100dvh;
+  padding: 0;
+  border: 0;
+  border-right: 1px solid var(--border);
+  border-radius: 0;
+  background: var(--sidebar-bg);
+  box-shadow: none;
+  transform: none;
+  transition: none;
+}
+
+.sidebar__inner,
+.sidebar__nav,
+.sidebar__footer,
+.sidebar__account-menu {
+  background: var(--sidebar-bg);
+  color: var(--text);
+}
+
+.sidebar__brand { padding: 16px 52px 16px 16px; }
+.sidebar__nav { gap: 4px; padding: 8px; }
+.sidebar__link,
+.sidebar__account-trigger {
+  min-height: 44px;
+  border-radius: 6px;
+  color: var(--text);
+  box-shadow: none;
+  transition: none;
+}
+
+:root .sidebar__nav .sidebar__link:hover,
+:root .sidebar__nav .sidebar__link--active,
+.sidebar__account-trigger:hover,
+.sidebar__account-trigger[aria-expanded="true"] {
+  background: var(--surface-hover);
+  color: var(--text);
+  box-shadow: none;
+}
+
+.sidebar__link--active {
+  border-left: 3px solid var(--accent);
+  font-weight: 700;
+}
+
+.sidebar__link--active::before { content: none; }
+
+:root .sidebar__nav .sidebar__link:is(:hover, .sidebar__link--active) .sidebar__home-icon,
+:root .sidebar__account-trigger:is(:hover, [aria-expanded="true"]) :is(.sidebar__account-name, .sidebar__account-role) {
+  color: inherit;
+}
+
+.sidebar__toggle,
+.sidebar--collapsed ~ .sidebar__toggle {
+  top: 8px;
+  left: calc(var(--sidebar-width) - 52px);
+  width: 44px;
+  height: 44px;
+  color: var(--text);
+  transition: none;
+  transform: none;
+}
+
+.sidebar__account-menu {
+  border: 1px solid var(--border-control);
+  box-shadow: none;
+}
+
+.sidebar__upload-counts,
+.sidebar__upload-count--success,
+.sidebar__upload-count--pending,
+.sidebar__upload-count--failed {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.sidebar__upload-count--failed { border: 1px solid var(--border-control); }
+
+.app-shell__main { min-width: 0; min-height: 0; }
+
+.app-topbar {
+  min-height: var(--app-topbar-height);
+  height: var(--app-topbar-height);
+  justify-content: space-between;
+  padding: 8px 24px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.app-topbar::after { content: none; }
+.app-topbar__title { font-size: 1rem; font-weight: 700; }
+
+.control-bar,
+:root .control-bar {
+  --control-bar-bg: var(--accent);
+  --control-bar-fg: var(--text-on-accent);
+  --control-bar-hover: var(--accent);
+  border: 1px solid var(--border-control);
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.control-bar > button { min-width: 44px; min-height: 44px; }
+.control-bar > button:first-child,
+.control-bar > .control-bar__action { border-radius: 6px; }
+.control-bar > button:hover:not(:focus-visible):not(:disabled) { background: var(--surface-hover); }
+
+.control-bar > .notification-bar__trigger,
+.control-bar > button.notification-bar__trigger:hover:not(:focus-visible):not(:disabled),
+.control-bar > .notification-bar__trigger:focus-visible { color: var(--text-on-accent); }
+
+.notification-bar__badge {
+  min-width: 20px;
+  height: 20px;
+  background: var(--accent);
+  color: var(--text-on-accent);
+  border-color: var(--surface);
+}
+
+.notification-bar__panel { border-color: var(--border-control); box-shadow: none; }
+
+.page-action-bar {
+  bottom: 0;
+  padding: 8px 16px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+.gallery-page .gallery-page__content { padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
+
+.gallery-selection-bar,
+.gallery-selection-bar--compact {
+  --selection-bar-hover: #F8E4BE;
+  background: var(--accent);
+  color: var(--text-on-accent);
+  border: 1px solid var(--border-control);
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.gallery-selection-bar--compact .gallery-selection-bar__count { color: var(--text-on-accent); }
+.gallery-selection-bar .gallery-selection-bar__action:hover:not(:disabled):not(.gallery-selection-bar__action--danger),
+.gallery-selection-bar .gallery-selection-bar__cancel:hover { color: var(--text); }
+
+.gallery-selection-bar__action,
+.gallery-selection-bar__cancel { min-height: 44px; }
+
+.gallery-page__media-filters { border: 1px solid var(--border-control); border-radius: 8px; box-shadow: none; }
+.gallery-page__media-option { min-height: 44px; border-radius: 6px; color: var(--text); }
+:root .gallery-page__media-filters > .gallery-page__media-option:is([aria-selected="true"], [aria-pressed="true"]) {
+  background: var(--accent);
+  color: var(--text-on-accent);
+  font-weight: 700;
+}
+
+:root .navigation-highlight > :is(.gallery-page__media-option[aria-current="page"], .place__view-option[aria-pressed="true"], .admin-users__tab[aria-selected="true"]) {
+  background: transparent;
+  color: var(--text-on-accent);
+}
+
+:is(.admin-users__filters, .place__view-switch, .gallery-page__media-filters) .navigation-highlight > :is(.admin-users__tab, .place__view-option, .gallery-page__media-option) {
+  min-height: 31px;
+  padding-block: 2px;
+}
+
+.bottom-navigation { display: none; }
+
+@media (max-width: 1199px) and (min-width: 768px) {
+  .app-shell { --sidebar-width: 80px; }
+  .app-shell .sidebar { width: var(--sidebar-width); }
+  .app-shell .sidebar-gap { width: var(--sidebar-width); }
+  .sidebar__activity { display: none; }
+  .sidebar__toggle { display: none; }
+}
+
+@media (max-width: 767px) {
+  :root { --page-gutter: 16px; --page-padding-top: 16px; --page-padding-bottom: 24px; }
+  .app-shell,
+  .app-shell.app-shell--sidebar-collapsed {
+    --app-topbar-height: calc(56px + env(safe-area-inset-top));
+    --sidebar-width: 0px;
+    flex-direction: column;
+  }
+  .app-shell__main { flex: 1; }
+  .app-topbar { padding: env(safe-area-inset-top) 16px 0; }
+  .app-shell__content { padding-bottom: 0; }
+  .bottom-navigation {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    align-items: start;
+    height: calc(64px + env(safe-area-inset-bottom));
+    padding: 4px 4px env(safe-area-inset-bottom);
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    z-index: 50;
+  }
+  .bottom-navigation__item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-width: 0;
+    min-height: 52px;
+    padding: 4px 0;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text);
+    font: inherit;
+    font-size: 0.7rem;
+    line-height: 1.15;
+    text-decoration: none;
+  }
+  .bottom-navigation__item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+  .bottom-navigation__item:hover,
+  .bottom-navigation__item[aria-current="page"],
+  .bottom-navigation__item[aria-expanded="true"] {
+    background: var(--surface-hover);
+    box-shadow: none;
+    font-weight: 700;
+  }
+  .page-action-bar { bottom: 0; }
+  .bottom-navigation__dialog {
+    position: fixed;
+    inset: auto 0 0;
+    width: 100%;
+    max-width: 100%;
+    max-height: min(70dvh, 480px);
+    margin: 0;
+    padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+    border: 2px solid var(--border-control);
+    border-radius: 12px 12px 0 0;
+    background: var(--surface);
+    color: var(--text);
+  }
+  .bottom-navigation__dialog::backdrop { background: var(--accent); }
+  .bottom-navigation__dialog-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; }
+  .bottom-navigation__dialog-header button,
+  .bottom-navigation__dialog nav a,
+  .bottom-navigation__dialog nav button {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 48px;
+    padding: 8px 12px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text);
+    font: inherit;
+    text-decoration: none;
+    text-align: left;
+  }
+  .bottom-navigation__dialog-header button { width: auto; }
+  .bottom-navigation__dialog nav a:hover,
+  .bottom-navigation__dialog nav button:hover { background: var(--surface-hover); }
+}
+
+:root[data-motion="off"] *,
+:root[data-motion="off"] *::before,
+:root[data-motion="off"] *::after {
+  animation-duration: 0s !important;
+  transition-duration: 0s !important;
+  scroll-behavior: auto !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root *, :root *::before, :root *::after {
+    animation-duration: 0s !important;
+    transition-duration: 0s !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Shared control shape and hover treatment. */
+:root { --control-radius: 6px; }
+
+:root :is(button, [role="button"], .btn, .sidebar__link,
+  .gallery-page__media-highlight, .admin-tab-highlight, .gallery-page__media-filters,
+  .place__view-switch, .admin-users__filters):not(.place__marker):not(.locations__marker):not(.place__color-option),
+:root .navigation-highlight__indicator::before {
+  border-radius: var(--control-radius);
+}
+
+@media (hover: hover) {
+  :root :is(button, [role="button"], .btn, .sidebar__link):hover:not(.navigation-highlight *):not(:disabled):not([aria-disabled="true"]):not(.place__marker):not(.locations__marker):not(.place__color-option) {
+    background-color: var(--surface-hover);
+    color: var(--text);
+  }
+}

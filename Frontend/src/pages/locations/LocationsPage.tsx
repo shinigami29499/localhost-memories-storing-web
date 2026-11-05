@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useIsMutating, useQueryClient } from "@tanstack/react-query";
-import { ScrollProgress, ScrollProgressContainer, ScrollProgressProvider } from "@animate-ui/react/primitives/scroll-progress";
+import { useInfiniteQuery, useIsMutating, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { Button, ConfirmationDialog, ErrorState, showToast, Spinner } from "../../components/ui";
 import { useLocale } from "../../context/LocaleContext";
@@ -11,7 +10,9 @@ import { mediaPreviewUrl } from "../../utils/media";
 import { useHomeLocation } from "../../features/locations/hooks/useHomeLocation";
 import { HomeLocationPhotoConfirmation } from "../../features/locations/components/HomeLocationPhotoConfirmation";
 import { useLocations } from "../../features/locations/hooks/useLocations";
+import { useMapBounds } from "../../features/locations/hooks/useMapBounds";
 import { locationService } from "../../features/locations/services/locationService";
+import { locateUploadedBatch } from "../../features/locations/services/locateUploadedBatch";
 import { LocationMap } from "../../features/locations/components/LocationMap";
 import { CameraCaptureDialog } from "../../features/locations/components/CameraCaptureDialog";
 import { LocationEditor } from "../../features/locations/components/LocationEditor";
@@ -28,10 +29,20 @@ export function LocationsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedMediaId = searchParams.get("mediaId");
   const focusedMediaId = searchParams.get("focusMediaId");
+  const { bounds: mapBounds, update: handleMapBounds } = useMapBounds();
   const user = useAuthStore((state) => state.user);
   const home = useHomeLocation(user?.id);
-  const { query, media, scanning, scanProgress, scanResult, scanError } = useLocations();
   const [selection, setSelection] = useState<{ id: string; draft: PickedLocation | null; editing: boolean } | null>(null);
+  const [showUnlocated, setShowUnlocated] = useState(false);
+  const unlocated = useInfiniteQuery({
+    queryKey: ["media", "unlocated"], initialPageParam: 0,
+    queryFn: ({ pageParam, signal }) => locationService.unlocatedPage(pageParam, signal),
+    getNextPageParam: (page) => page.items.length > 0 && page.offset + page.items.length < page.total
+      ? page.offset + page.items.length : undefined,
+    enabled: showUnlocated,
+  });
+  const { query, media, scanning, scanProgress, scanResult, scanError } = useLocations(true,
+    [requestedMediaId, focusedMediaId, selection?.id].filter((id): id is string => !!id), mapBounds);
   const [relocatingId, setRelocatingId] = useState<string | null>(null);
   const [homePicking, setHomePicking] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -191,35 +202,23 @@ export function LocationsPage() {
     }
     uploadInFlight.current = true;
     setUploading(true);
-    const existingIds = new Set(media.map((item) => item.id));
     try {
       const batch = await uploadService.submit(files, (createdBatch) => {
         registerUploadCompletionAction(createdBatch.id, async (completedBatch) => {
-          const successfulNames = completedBatch.items
-            .filter((item) => item.status === "Success")
-            .map((item) => item.originalFilename);
-          if (!successfulNames.length) return;
-
-          const refreshed = await query.refetch();
-          const newMedia = refreshed.data?.pages.flatMap((page) => page.items)
-            .filter((item) => !existingIds.has(item.id)) ?? [];
-          const matched: MediaFile[] = [];
-          for (const filename of successfulNames) {
-            const item = newMedia.find((candidate) => candidate.originalFilename === filename
-              && !matched.some((current) => current.id === candidate.id));
-            if (item) matched.push(item);
+          if (!completedBatch.successfulFiles) return;
+          let taggedIds: string[];
+          try {
+            taggedIds = await locateUploadedBatch(completedBatch.id, coordinate);
+          } catch {
+            showToast.error(t("Photos uploaded, but could not mark their location."));
+            return;
           }
-
-          const tagged = await Promise.allSettled(
-            matched.map((item) => locationService.set(item.id, coordinate)),
-          );
-          const taggedIds = matched.filter((_item, index) => tagged[index].status === "fulfilled").map((item) => item.id);
           await queryClient.invalidateQueries({ queryKey: ["media"] });
           if (!taggedIds.length) {
             showToast.error(t("Photos uploaded, but could not mark their location."));
             return;
           }
-          if (taggedIds.length < matched.length) showToast.error(t("Some uploaded photos could not be marked."));
+          if (taggedIds.length < completedBatch.successfulFiles) showToast.error(t("Some uploaded photos could not be marked."));
           return `/location/travel?focusMediaId=${encodeURIComponent(taggedIds[0])}`;
         });
       });
@@ -234,17 +233,13 @@ export function LocationsPage() {
   };
   return (
     <main className="locations">
-      <ScrollProgressProvider>
-        <div className="locations__scroll-track" aria-hidden="true">
-          <ScrollProgress mode="scaleX" className="locations__scroll-progress" />
-        </div>
-        <ScrollProgressContainer className="locations__content">
+        <header className="locations__header">
+          <p className="locations__eyebrow">{t("Your library")}</p>
+          <h1>{t("Scenery")}<span className="brand__dot">.</span></h1>
+          <p>{t("Places we have been to")}</p>
+        </header>
+        <div className="locations__content">
           <div className="locations__inner">
-            <header className="locations__header">
-              <p className="locations__eyebrow">{t("Your library")}</p>
-              <h1>{t("Scenery")}<span className="brand__dot">.</span></h1>
-              <p>{t("Places we have been to")}</p>
-            </header>
             {homePicking && (
               <div className="locations__notice" role="status">
                 <span>{t("Click the map or search for a place to set your home location.")}</span>
@@ -278,6 +273,7 @@ export function LocationsPage() {
               <div ref={workspaceRef} className={`locations__workspace${showDetails ? "" : " locations__workspace--map-only"}`}>
             <div className="locations__map-panel">
               <LocationMap media={media} selected={selected} focused={focused} draft={draft} editable={canEdit && !saving}
+                onBoundsChange={handleMapBounds}
                 editing={!!selection?.editing} relocating={relocating}
                 onConfirmRelocation={() => setMoveConfirmationOpen(true)}
                 homeLocation={home.query.data ?? null} homeLocationReady={home.query.isFetched}
@@ -330,18 +326,63 @@ export function LocationsPage() {
                       setSelection(null);
                       setRelocatingId(null);
                     }} />
-                ) : <p className="locations__hint">{t("Only the uploader or an administrator can change this location.")}</p>}
+                ) : <p className="locations__hint">{t(isMobile
+                  ? "Editing photo locations is available on desktop."
+                  : "Only the uploader or an administrator can change this location.")}</p>}
               </aside>
             )}
             </div>
-              {query.isFetchNextPageError && <ErrorState message="Could not load all photos." onRetry={() => void query.fetchNextPage()} />}
+              {query.isFetchNextPageError && <ErrorState message={t("Could not load more photos.")} onRetry={() => void query.fetchNextPage()} />}
               {query.isRefetchError && <ErrorState message="Could not refresh photos." onRetry={() => void query.refetch()} />}
-              {query.hasNextPage && !query.isFetchNextPageError && <Spinner label="Loading photos…" />}
+              {query.hasNextPage && !query.isFetchNextPageError && (
+                <div className="locations__load-more">
+                  <p>{t("Showing {count} of {total} photos in this area.", {
+                    count: query.data?.pages.reduce((sum, page) => sum + page.items.length, 0) ?? 0,
+                    total: query.data?.pages[0]?.total ?? 0,
+                  })}</p>
+                  <Button type="button" variant="secondary" disabled={query.isFetchingNextPage || query.isPlaceholderData}
+                    onClick={() => void query.fetchNextPage()}>
+                    {query.isFetchingNextPage ? t("Loading photos…") : t("Load more photos")}
+                  </Button>
+                </div>
+              )}
             </>
           )}
+              <details className="locations__unlocated" onToggle={(event) => setShowUnlocated(event.currentTarget.open)}>
+                <summary>{t("Photos without a location")}</summary>
+                {unlocated.isPending && showUnlocated ? <Spinner label={t("Loading photos…")} /> : null}
+                {unlocated.isError && !unlocated.data ? (
+                  <ErrorState message={t("Could not load photos.")} onRetry={() => void unlocated.refetch()} />
+                ) : unlocated.data ? (
+                  <>
+                    {unlocated.data.pages[0]?.total === 0 ? <p>{t("All photos have a location.")}</p> : (
+                      <ul className="locations__unlocated-list">
+                        {unlocated.data.pages.flatMap((page) => page.items).map((item) => (
+                          <li key={item.id}>
+                            <button type="button" onClick={() => {
+                              queryClient.setQueryData(["media", "detail", item.id], item);
+                              select(item, true);
+                            }} aria-pressed={selectedId === item.id}>
+                              <img src={mediaPreviewUrl(item.id, false, 320)} alt="" loading="lazy" />
+                              <span>{item.originalFilename}</span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {unlocated.isFetchNextPageError ? (
+                      <ErrorState message={t("Could not load more photos.")} onRetry={() => void unlocated.fetchNextPage()} />
+                    ) : unlocated.hasNextPage ? (
+                      <Button type="button" variant="secondary" disabled={unlocated.isFetchingNextPage}
+                        onClick={() => void unlocated.fetchNextPage()}>
+                        {t(unlocated.isFetchingNextPage ? "Loading photos…" : "Load more photos")}
+                      </Button>
+                    ) : null}
+                  </>
+                ) : null}
+              </details>
           </div>
-        </ScrollProgressContainer>
-      </ScrollProgressProvider>
+        </div>
 
       {selected && draft && relocating && moveConfirmationOpen && (
         <ConfirmationDialog

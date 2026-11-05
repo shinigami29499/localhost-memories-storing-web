@@ -18,7 +18,9 @@
 
 .map-loading-overlay {
   align-items: center;
-  background: #1c1f23;
+  background: #6A3F36;
+  --text-muted: #F4F3EE;
+  --accent-soft: #F4F3EE;
   border-radius: inherit;
   display: grid;
   inset: 0;
@@ -53,10 +55,10 @@
   z-index: 1;
 }
 .map-draft-marker::before {
-  background: #9f2528;
+  background: #6A3F36;
   border-radius: 50%;
   bottom: -6px;
-  box-shadow: 0 0 0 2px #fff, 0 3px 8px rgb(0 0 0 / 55%);
+  box-shadow: none;
   content: "";
   height: 9px;
   left: 12px;
@@ -65,9 +67,9 @@
   width: 20px;
 }
 .map-draft-marker__pin {
-  background: #ef4444;
+  background: #EEA988;
   border-radius: 50% 50% 50% 0;
-  box-shadow: 0 0 0 2px #fff, 0 3px 8px rgb(0 0 0 / 45%);
+  box-shadow: none;
   height: 44px;
   left: 0;
   position: absolute;
@@ -76,7 +78,7 @@
   width: 44px;
 }
 .map-draft-marker__pin::after {
-  background: #fff;
+  background: #F4F3EE;
   border-radius: 50%;
   content: "";
   inset: 7px;
@@ -105,9 +107,9 @@
 }
 
 :is(.place, .locations) .map-controls .mapboxgl-ctrl-group:has(.mapboxgl-ctrl-geolocate) {
-  background: #1c1f23;
+  background: #6A3F36;
   border-radius: var(--radius);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  box-shadow: none;
 }
 
 :is(.place, .locations) .map-controls .mapboxgl-ctrl-group .mapboxgl-ctrl-geolocate {
@@ -121,7 +123,7 @@
 }
 
 :is(.place, .locations) .map-controls .mapboxgl-ctrl-geolocate:not(:disabled):is(:hover, :active, .mapboxgl-ctrl-geolocate-active) {
-  background-color: #30343a;
+  background-color: #6A3F36;
 }
 
 :is(.place, .locations) .map-controls .mapboxgl-ctrl-geolocate:not(:disabled) .mapboxgl-ctrl-icon {
@@ -136,10 +138,10 @@
 
 :is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes):not([open]) {
   width: 54px;
-  background: #1c1f23;
-  color: #dedede;
+  background: #6A3F36;
+  color: #F8E4BE;
   border: 0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  box-shadow: none;
 }
 
 :is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes)[open] {
@@ -259,7 +261,7 @@
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: var(--map-swatch, #4569f5);
+  background: var(--map-swatch, #6A3F36);
 }
 
 :is(.place, .locations) .map-appearance__swatches {
@@ -273,41 +275,41 @@
 }
 
 :is(.place, .locations) .map-appearance__swatches span:nth-child(2) {
-  background: var(--map-swatch-secondary, #8b9bb3);
+  background: var(--map-swatch-secondary, #C8A796);
 }
 
 :is(.place, .locations) .map-appearance__swatches span:nth-child(3) {
-  background: var(--map-swatch-tertiary, #91b79d);
+  background: var(--map-swatch-tertiary, #C8A796);
 }
 
 :is(.place, .locations) .map-appearance__theme[data-theme="faded"] {
-  --map-swatch: #9da2a8;
-  --map-swatch-secondary: #b7babd;
-  --map-swatch-tertiary: #d0d1d2;
+  --map-swatch: #C8A796;
+  --map-swatch-secondary: #C8A796;
+  --map-swatch-tertiary: #F8E4BE;
 }
 
 :is(.place, .locations) .map-appearance__theme[data-theme="mono"] {
-  --map-swatch: #333333;
-  --map-swatch-secondary: #777777;
-  --map-swatch-tertiary: #aaaaaa;
+  --map-swatch: #6A3F36;
+  --map-swatch-secondary: #6A3F36;
+  --map-swatch-tertiary: #C8A796;
 }
 
 :is(.place, .locations) .map-appearance__theme[data-theme="ocean"] {
-  --map-swatch: #008baa;
-  --map-swatch-secondary: #22a9bd;
-  --map-swatch-tertiary: #6bc6c9;
+  --map-swatch: #6A3F36;
+  --map-swatch-secondary: #C8A796;
+  --map-swatch-tertiary: #C8A796;
 }
 
 :is(.place, .locations) .map-appearance__theme[data-theme="warm"] {
-  --map-swatch: #d17a31;
-  --map-swatch-secondary: #e19a4b;
-  --map-swatch-tertiary: #9e6440;
+  --map-swatch: #EEA988;
+  --map-swatch-secondary: #EEA988;
+  --map-swatch-tertiary: #6A3F36;
 }
 
 :is(.place, .locations) .map-appearance__theme[data-theme="vivid"] {
-  --map-swatch: #ff4d55;
-  --map-swatch-secondary: #48d97a;
-  --map-swatch-tertiary: #4775ff;
+  --map-swatch: #EEA988;
+  --map-swatch-secondary: #C8A796;
+  --map-swatch-tertiary: #6A3F36;
 }
 
 :is(.place, .locations) .map-controls :is(.place__scenes-title, .locations__scenes-title) {
@@ -328,7 +330,7 @@
 
 :is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes):not([open]) summary {
   display: grid;
-  color: #dedede;
+  color: #F8E4BE;
   grid-template-columns: 44px;
   justify-content: start;
   padding: 0;
@@ -343,13 +345,13 @@
 }
 
 :is(.place, .locations) .map-controls .place__location-search {
-  --sidebar-bg: #1c1f23;
-  --surface: #1c1f23;
-  --text: #dedede;
-  --text-strong: #f4f5f7;
-  --text-muted: #b2b8c2;
-  --border: #3e444d;
-  --surface-hover: rgba(222, 222, 222, 0.14);
+  --sidebar-bg: #6A3F36;
+  --surface: #6A3F36;
+  --text: #F8E4BE;
+  --text-strong: #F4F3EE;
+  --text-muted: #F4F3EE;
+  --border: #6A3F36;
+  --surface-hover: #F8E4BE;
   color: var(--text);
   right: 8px;
   top: 8px;
@@ -357,9 +359,9 @@
 }
 
 :is(.place, .locations) .map-controls .place__location-search:not(:focus-within) .place__location-search-form {
-  background: #1c1f23;
+  background: #6A3F36;
   border: 0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  box-shadow: none;
 }
 
 :is(.place, .locations) .map-controls .place__location-search:focus-within {
@@ -387,7 +389,7 @@
   right: 0;
   width: 54px;
   height: 54px;
-  color: #dedede;
+  color: #F8E4BE;
   transform: translateY(-50%);
 }
 
@@ -434,15 +436,15 @@
   bottom: auto;
   height: 54px;
   width: 54px;
-  background: #1c1f23;
+  background: #6A3F36;
   border: 0;
   border-radius: var(--radius);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-  color: #dedede;
+  box-shadow: none;
+  color: #F8E4BE;
 }
 
 :is(.place, .locations) .map-controls :is(.place__map-home-control, .locations__map-home-control):is(:hover, :active, [aria-pressed="true"]):not(:disabled) {
-  background: #30343a;
+  background: #6A3F36;
 }
 
 .place .map-controls .place__add-marker-control,
@@ -460,18 +462,18 @@
   height: 54px;
   padding: 0;
   z-index: 5;
-  background: #1c1f23;
+  background: #6A3F36;
   border: 0;
   border-radius: var(--radius);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-  color: #dedede;
+  box-shadow: none;
+  color: #F8E4BE;
   cursor: pointer;
 }
 
 .place .map-controls .place__add-marker-control:is(:hover, :active):not(:disabled),
 .locations .map-controls .locations__add-marker-control:is(:hover, :active):not(:disabled),
 .locations .map-controls .locations__camera-control:is(:hover, :active):not(:disabled) {
-  background: #30343a;
+  background: #6A3F36;
 }
 
 .place .map-controls .place__map-home-control,
@@ -491,16 +493,16 @@
   width: 20px;
   height: 9px;
   border-radius: 50%;
-  background: #1f2226;
-  box-shadow: 0 0 0 2px #fff, 0 3px 8px rgb(0 0 0 / 45%);
+  background: #6A3F36;
+  box-shadow: none;
   pointer-events: none;
 }
 
 :is(.place, .locations) .home-location-marker :is(.place__home-pin, .locations__home-pin) {
-  background: #30353b;
+  background: #6A3F36;
   border: 0;
-  box-shadow: 0 0 0 2px #fff, 0 3px 8px rgb(0 0 0 / 45%);
-  color: #000;
+  box-shadow: none;
+  color: #6A3F36;
   cursor: grab;
   height: 44px;
   width: 44px;
@@ -520,13 +522,13 @@
   width: 30px;
   height: 30px;
   margin: auto;
-  background: #fff;
+  background: #F4F3EE;
   border-radius: 50%;
   transform: rotate(45deg);
 }
 :is(.place, .locations) .home-location-marker button svg { transform: none; }
-:is(.place, .locations) .home-location-marker button svg path:first-child { fill: #000; stroke: #fff; }
-:is(.place, .locations) .home-location-marker button svg path:last-child { stroke: #fff; }
+:is(.place, .locations) .home-location-marker button svg path:first-child { fill: #6A3F36; stroke: #F4F3EE; }
+:is(.place, .locations) .home-location-marker button svg path:last-child { stroke: #F4F3EE; }
 
 :is(.place, .locations) .home-location-marker button:active { cursor: grabbing; }
 :is(.place, .locations) .home-location-marker svg { stroke-width: 2; }
@@ -785,11 +787,11 @@
 .locations__cluster--group[data-open="true"] .locations__cluster-toggle { bottom: -6px; left: auto; right: -10px; top: auto; }
 .locations__cluster-count {
   align-items: center;
-  background: #f4f5f7;
-  border: 2px solid #30343a;
+  background: #F4F3EE;
+  border: 2px solid #6A3F36;
   border-radius: 999px;
   bottom: -6px;
-  color: #30343a;
+  color: #6A3F36;
   display: inline-flex;
   font-size: 0.75rem;
   font-variant-numeric: tabular-nums;
@@ -826,15 +828,15 @@
   bottom: -6px;
   width: 20px;
   height: 9px;
-  background: color-mix(in srgb, var(--marker-color, #30353b), black 35%);
+  background: #6A3F36;
   border-radius: 50%;
-  box-shadow: 0 0 0 2px #fff, 0 3px 8px rgb(0 0 0 / 45%);
+  box-shadow: none;
   pointer-events: none;
 }
 .locations__pin {
   align-items: center;
-  background: var(--marker-color, #30353b);
-  border: 0;
+  background: var(--marker-color, #F4F3EE);
+  border: 1px solid #6A3F36;
   border-radius: 50% 50% 50% 0;
   color: var(--text-strong);
   cursor: pointer;
@@ -848,20 +850,25 @@
   transform: rotate(-45deg);
   transition: scale 140ms ease-out;
   width: 44px;
-  box-shadow: 0 0 0 2px #fff, 0 3px 8px rgb(0 0 0 / 45%);
+  box-shadow: none;
 }
-.locations__pin > span { display: inline-flex; align-items: center; justify-content: center; height: 30px; width: 30px; margin: auto; background: #fff; border-radius: 50%; color: #30353b; transform: rotate(45deg); }
-.locations__pin > span svg path { fill: #000; stroke: #fff; }
-.locations__pin > span svg circle { stroke: #fff; }
+.locations__pin > span { display: inline-flex; align-items: center; justify-content: center; height: 30px; width: 30px; margin: auto; background: #F4F3EE; border-radius: 50%; color: #6A3F36; transform: rotate(45deg); }
+
+.place:not(.place--saved) .place__map-panel {
+  height: 100%;
+  min-height: 320px;
+}
+.locations__pin > span svg path { fill: #6A3F36; stroke: #F4F3EE; }
+.locations__pin > span svg circle { stroke: #F4F3EE; }
 .locations__pin[data-movable="true"] { cursor: grab; touch-action: none; user-select: none; }
 .locations__pin[data-movable="true"]:active { cursor: grabbing; }
 .locations__popup {
-  background: #fff;
-  border: 4px solid #fff;
+  background: #F4F3EE;
+  border: 4px solid #F4F3EE;
   border-radius: 10px;
   bottom: calc(100% + 12px);
-  box-shadow: var(--shadow-popover);
-  color: #30353b;
+  box-shadow: none;
+  color: #6A3F36;
   left: 50%;
   overflow: visible;
   opacity: 0;
@@ -878,7 +885,7 @@
 @media (hover: hover) and (pointer: fine) {
   .locations__marker:hover .locations__popup { opacity: 1; transform: translate(-50%, 0); visibility: visible; }
 }
-.locations__popup::after { border: 8px solid transparent; border-top-color: #fff; content: ""; left: calc(50% - 8px); position: absolute; top: 100%; }
+.locations__popup::after { border: 8px solid transparent; border-top-color: #F4F3EE; content: ""; left: calc(50% - 8px); position: absolute; top: 100%; }
 .locations__popup > img { aspect-ratio: 1; border-radius: 6px 6px 0 0; display: block; object-fit: cover; width: 100%; }
 .locations__popup > div { display: grid; gap: 2px; padding: 10px 12px 12px; }
 .locations__popup small { color: inherit; font-size: 0.75rem; overflow-wrap: anywhere; }

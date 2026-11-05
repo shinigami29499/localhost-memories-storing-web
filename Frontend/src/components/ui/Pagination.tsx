@@ -121,15 +121,19 @@ export function Pagination({
 }
 
 function getPageNumbers(page: number, totalPages: number): (number | "ellipsis")[] {
-  if (totalPages <= 5) {
+  if (totalPages <= 7) {
     return Array.from({ length: totalPages }, (_, index) => index + 1);
   }
-
-  const start = Math.max(1, Math.min(page - 1, totalPages - 4));
-  const leadingPages = Array.from({ length: 3 }, (_, index) => start + index);
-  const trailingPages = [totalPages - 1, totalPages];
-
-  return leadingPages[2] + 1 < trailingPages[0]
-    ? [...leadingPages, "ellipsis", ...trailingPages]
-    : [...leadingPages, ...trailingPages];
+  const visible = new Set([1, totalPages, page - 1, page, page + 1]);
+  if (page <= 3) { visible.add(2); visible.add(3); visible.add(4); }
+  if (page >= totalPages - 2) { visible.add(totalPages - 1); visible.add(totalPages - 2); visible.add(totalPages - 3); }
+  const pages = [...visible].filter((value) => value >= 1 && value <= totalPages).sort((a, b) => a - b);
+  const result: (number | "ellipsis")[] = [];
+  pages.forEach((value, index) => {
+    const previous = pages[index - 1];
+    if (previous !== undefined && value - previous === 2) result.push(previous + 1);
+    else if (previous !== undefined && value - previous > 2) result.push("ellipsis");
+    result.push(value);
+  });
+  return result;
 }

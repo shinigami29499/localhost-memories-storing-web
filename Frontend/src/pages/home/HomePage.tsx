@@ -1,7 +1,6 @@
 import { EmptyState, ErrorState, Spinner } from "../../components/ui";
 import { useLocale } from "../../context/LocaleContext";
-import { ScrollProgress, ScrollProgressContainer, ScrollProgressProvider } from "@animate-ui/react/primitives/scroll-progress";
-import { useAlbums, type Album } from "../../features/albums";
+import { useInfiniteAlbums, type Album } from "../../features/albums";
 import { AlbumFeedPost } from "../../features/albums/components/AlbumFeedPost";
 import { useAuthStore } from "../../store/authStore";
 import "../albums/albums.css";
@@ -11,23 +10,12 @@ export function HomePage() {
   const { t } = useLocale();
   const user = useAuthStore((state) => state.user);
   const isAdmin = user?.role.toLowerCase() === "admin";
-  const mine = useAlbums("mine", !isAdmin);
-  const publicAlbums = useAlbums("public", !isAdmin);
-  const allAlbums = useAlbums("all", isAdmin);
-  const albums: Album[] = isAdmin ? (allAlbums.data ?? []) : Array.from(
-    new Map([...(mine.data ?? []), ...(publicAlbums.data ?? [])].map((album) => [album.id, album])).values(),
-  );
-  const isPending = isAdmin ? allAlbums.isPending : mine.isPending || publicAlbums.isPending;
-  const isError = isAdmin ? allAlbums.isError : mine.isError || publicAlbums.isError;
-  const isFetching = isAdmin ? allAlbums.isFetching : mine.isFetching || publicAlbums.isFetching;
+  const albumsQuery = useInfiniteAlbums(isAdmin ? "all" : "feed");
+  const albums: Album[] = albumsQuery.data?.pages.flatMap((page) => page.items) ?? [];
 
   return (
     <main className="home-page">
-      <ScrollProgressProvider>
-        <div className="home-page__scroll-track" aria-hidden="true">
-          <ScrollProgress mode="scaleX" className="home-page__scroll-progress" />
-        </div>
-        <ScrollProgressContainer className="home-page__content">
+        <div className="home-page__content">
           <div className="home-page__inner">
             <header className="home-page__header">
               <p className="home-page__eyebrow">{t("Your library")}</p>
@@ -35,16 +23,10 @@ export function HomePage() {
               <p>{t(isAdmin ? "Browse all albums, including private albums." : "Browse albums you own and albums shared publicly.")}</p>
             </header>
 
-            {isPending ? <Spinner label={t("Loading albums…")} /> : isError ? (
+            {albumsQuery.isPending ? <Spinner label={t("Loading albums…")} /> : albumsQuery.isError && albums.length === 0 ? (
               <ErrorState
                 message={t("Could not load albums.")}
-                onRetry={() => {
-                  if (isAdmin) void allAlbums.refetch();
-                  else {
-                    void mine.refetch();
-                    void publicAlbums.refetch();
-                  }
-                }}
+                onRetry={() => void albumsQuery.refetch()}
               />
             ) : albums.length === 0 ? (
               <EmptyState
@@ -52,7 +34,7 @@ export function HomePage() {
                 hint="Create an album in Albums to start organizing your media."
               />
             ) : (
-              <div className="home-feed" aria-busy={isFetching}>
+              <div className="home-feed" aria-busy={albumsQuery.isFetching}>
                 {albums.map((album) => {
                   const isOwner = album.owner.id === user?.id;
                   return (
@@ -65,9 +47,17 @@ export function HomePage() {
                 })}
               </div>
             )}
+            {albumsQuery.isFetchNextPageError ? (
+              <ErrorState message={t("Could not load more albums.")} onRetry={() => void albumsQuery.fetchNextPage()} />
+            ) : null}
+            {albumsQuery.hasNextPage ? (
+              <button type="button" className="btn btn--secondary" disabled={albumsQuery.isFetchingNextPage}
+                onClick={() => void albumsQuery.fetchNextPage()}>
+                {t(albumsQuery.isFetchingNextPage ? "Loading albums…" : "Load more")}
+              </button>
+            ) : null}
           </div>
-        </ScrollProgressContainer>
-      </ScrollProgressProvider>
+        </div>
     </main>
   );
 }

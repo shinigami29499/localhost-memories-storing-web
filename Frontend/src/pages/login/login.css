@@ -3,9 +3,7 @@
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  background:
-    radial-gradient(ellipse at 12% 80%, var(--accent-wash), transparent 48%),
-    radial-gradient(ellipse at 92% 18%, var(--accent-wash), transparent 35%);
+  background: var(--bg);
 }
 
 .login__header,
@@ -45,10 +43,10 @@
   border-radius: 18px;
   background: var(--bg);
   color: var(--text);
-  box-shadow: var(--shadow-popover);
+  box-shadow: none;
 }
 
-.login__settings-dialog::backdrop { background: rgba(0, 0, 0, 0.6); }
+.login__settings-dialog::backdrop { background: #6A3F36; }
 .login__settings-close {
   position: sticky;
   top: 16px;
@@ -59,7 +57,7 @@
   border-radius: 999px;
   background: var(--surface-raised);
   color: var(--text-strong);
-  box-shadow: var(--shadow-popover);
+  box-shadow: none;
   cursor: pointer;
 }
 
@@ -84,7 +82,7 @@
   background: var(--surface-card);
   border: 0;
   border-radius: 24px;
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.18);
+  box-shadow: none;
 }
 
 .login__badge {
@@ -120,7 +118,7 @@
   margin-bottom: 20px;
   background: var(--surface-card-raised);
   border: 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  box-shadow: none;
 }
 
 .login__card input:autofill,

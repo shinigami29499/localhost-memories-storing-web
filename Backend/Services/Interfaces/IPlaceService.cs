@@ -1,4 +1,5 @@
 using Services.Models.Place;
+using Services.Responses.Place;
 using Services.Requests.Place;
 
 namespace Services.Interfaces;
@@ -6,7 +7,13 @@ namespace Services.Interfaces;
 public interface IPlaceService
 {
     Task<IReadOnlyList<PlaceDto>> GetPlacesAsync(CancellationToken cancellationToken = default);
+    Task<PlacePageResponse<PlaceDto>> GetPlacesPageAsync(int page, int limit,
+        string? search, int minimumRating, CancellationToken cancellationToken = default);
+    Task<PlacePageResponse<PlaceVisitDto>> GetVisitPageAsync(int page, int limit,
+        Guid? userId, Guid? placeId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<PlaceMapDto>> GetMapPlacesAsync(CancellationToken cancellationToken = default);
+    Task<PlacePageResponse<PlaceMapDto>> GetMapPlacesPageAsync(int page, int limit,
+        PlaceMapBounds bounds, CancellationToken cancellationToken = default);
     Task<PlaceDto> GetPlaceAsync(Guid placeId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<PlaceVisitDto>> GetPlaceVisitHistoryAsync(
         Guid userId, CancellationToken cancellationToken = default);

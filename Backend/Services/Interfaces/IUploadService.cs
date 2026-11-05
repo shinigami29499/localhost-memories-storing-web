@@ -16,6 +16,8 @@ public interface IUploadService
         DateTimeOffset? createdFrom, DateTimeOffset? createdBefore, CancellationToken cancellationToken = default);
     Task<UploadBatchDto> GetBatchAsync(
         Guid actorId, bool isAdmin, Guid batchId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Guid>> GetBatchImageIdsAsync(Guid ownerId, Guid batchId,
+        CancellationToken cancellationToken = default);
     Task<bool> MarkBatchViewedAsync(Guid ownerId, Guid batchId, CancellationToken cancellationToken = default);
     Task MarkBatchesViewedAsync(Guid ownerId, IReadOnlyCollection<Guid> batchIds, CancellationToken cancellationToken = default);
     Task MarkAllBatchesViewedAsync(Guid ownerId, CancellationToken cancellationToken = default);

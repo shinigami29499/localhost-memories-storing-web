@@ -57,6 +57,15 @@ public sealed class UploadRepository(ApplicationDbContext db) : IUploadRepositor
             .Include(batch => batch.Items.OrderBy(item => item.CreatedAt))
             .FirstOrDefaultAsync(batch => batch.Id == batchId, cancellationToken);
 
+    public async Task<IReadOnlyList<Guid>> GetBatchImageIdsAsync(
+        Guid ownerId, Guid batchId, CancellationToken cancellationToken = default)
+        => await (from item in db.UploadItems.AsNoTracking()
+                  join media in db.MediaFiles.AsNoTracking() on item.RelativePath equals media.RelativePath
+                  where item.UploadBatchId == batchId && item.Batch.OwnerId == ownerId
+                      && item.Status == UploadItemStatus.Success && media.OwnerId == ownerId
+                      && media.MediaKind == "image" && !media.IsPreviewOnly
+                  select media.Id).Distinct().ToListAsync(cancellationToken);
+
     public async Task<bool> MarkBatchViewedAsync(Guid ownerId, Guid batchId, CancellationToken cancellationToken = default)
     {
         var batch = await db.UploadBatches.FirstOrDefaultAsync(

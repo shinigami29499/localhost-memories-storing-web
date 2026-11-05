@@ -31,6 +31,10 @@ export const uploadService = {
     return api(`${BASE_PATH}/batches/${batchId}`);
   },
 
+  imageIds(batchId: string): Promise<string[]> {
+    return api(`${BASE_PATH}/batches/${encodeURIComponent(batchId)}/images`);
+  },
+
   markBatchViewed(batchId: string): Promise<void> {
     return api(`${BASE_PATH}/batches/${batchId}/viewed`, { method: "PUT" });
   },

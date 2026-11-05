@@ -1,5 +1,4 @@
 import { useState, type FormEvent } from "react";
-import { useQueries } from "@tanstack/react-query";
 import { CustomDialog as AlertDialog, useCustomDialog } from "../../../components/ui/CustomDialog";
 import { Bookmark } from "@/components/animate-ui/icons/bookmark";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
@@ -9,7 +8,8 @@ import { showToast } from "../../../components/ui/Toast";
 import { useLocale } from "../../../context/LocaleContext";
 import { ApiError } from "../../../services/api";
 import { mediaPreviewUrl } from "../../../utils/media";
-import { albumKeys, useInvalidateAlbums } from "../hooks/useAlbums";
+import { useDebouncedValue } from "../../../hooks/useDebouncedValue";
+import { useAlbumMembership, useInfiniteAlbums, useInvalidateAlbums } from "../hooks/useAlbums";
 import { albumService } from "../services/albumService";
 import type { Album } from "../types";
 import { ALBUM_NAME_MAX_LENGTH } from "../types";
@@ -29,20 +29,17 @@ async function updateAlbumMedia(albumId: string, mediaIds: string[], action: "ad
 export function BulkSaveToAlbumDialog({ mediaIds, onSaved, onClose }: Props) {
   const { t } = useLocale();
   const [selectedMediaIds] = useState(mediaIds);
-  const albumQueries = useQueries({
-    queries: selectedMediaIds.map((mediaId) => ({
-      queryKey: albumKeys.list("mine", mediaId),
-      queryFn: () => albumService.list("mine", mediaId),
-    })),
-  });
+  const [search, setSearch] = useState("");
+  const albumsQuery = useInfiniteAlbums("mine", true, 30, undefined, useDebouncedValue(search));
+  const membership = useAlbumMembership(selectedMediaIds);
   const invalidate = useInvalidateAlbums();
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [creating, setCreating] = useState(false);
 
-  const savedMediaIds = (album: Album) => selectedMediaIds.filter((_, index) =>
-    albumQueries[index]?.data?.find((item) => item.id === album.id)?.containsMedia,
-  );
+  const membershipByMediaId = new Map(membership.data?.items.map((item) => [item.mediaId, item.albumIds]) ?? []);
+  const savedMediaIds = (album: Album) => selectedMediaIds.filter((id) =>
+    membershipByMediaId.get(id)?.includes(album.id));
 
   const reportSaveResults = async (albumName: string, undo: () => Promise<void>) => {
     await invalidate();
@@ -102,9 +99,9 @@ export function BulkSaveToAlbumDialog({ mediaIds, onSaved, onClose }: Props) {
     }
   };
 
-  const items = albumQueries[0]?.data ?? [];
-  const isPending = albumQueries.some((query) => query.isPending);
-  const failedQueries = albumQueries.filter((query) => query.isError);
+  const items = albumsQuery.data?.pages.flatMap((page) => page.items) ?? [];
+  const isPending = albumsQuery.isPending || membership.isPending;
+  const loadError = (albumsQuery.isError && !albumsQuery.data) || membership.isError;
   const busy = pendingId !== null || creating;
   const { dialogProps, dismiss } = useCustomDialog(onClose, { blocked: busy });
 
@@ -118,15 +115,18 @@ export function BulkSaveToAlbumDialog({ mediaIds, onSaved, onClose }: Props) {
               {t("Save {count} media items to albums", { count: selectedMediaIds.length })}
             </AlertDialog.Title>
             <div className="album-dialog__body" aria-busy={busy}>
-              {isPending ? <Spinner label={t("Loading albums…")} /> : failedQueries.length > 0 ? (
+              <input type="search" value={search} maxLength={120} onChange={(event) => setSearch(event.target.value)}
+                aria-label={t("Search albums")} placeholder={t("Search albums")} />
+              {isPending ? <Spinner label={t("Loading albums…")} /> : loadError ? (
                 <ErrorState
                   message={t("Could not load albums.")}
                   onRetry={() => {
-                    for (const query of failedQueries) void query.refetch();
+                    if (albumsQuery.isError) void albumsQuery.refetch();
+                    if (membership.isError) void membership.refetch();
                   }}
                 />
               ) : items.length === 0 ? (
-                <p className="album-dialog__empty">{t("You have no albums yet. Create one below.")}</p>
+                <p className="album-dialog__empty">{t(search.trim() ? "No matching albums." : "You have no albums yet. Create one below.")}</p>
               ) : (
                 <ul className="album-picker" aria-label={t("Your albums")}>
                   {items.map((album) => (
@@ -158,6 +158,15 @@ export function BulkSaveToAlbumDialog({ mediaIds, onSaved, onClose }: Props) {
                   ))}
                 </ul>
               )}
+              {albumsQuery.isFetchNextPageError ? (
+                <ErrorState message={t("Could not load more albums.")} onRetry={() => void albumsQuery.fetchNextPage()} />
+              ) : null}
+              {albumsQuery.hasNextPage ? (
+                <button type="button" className="btn btn--secondary" disabled={busy || albumsQuery.isFetchingNextPage}
+                  onClick={() => void albumsQuery.fetchNextPage()}>
+                  {t(albumsQuery.isFetchingNextPage ? "Loading albums…" : "Load more")}
+                </button>
+              ) : null}
               <form className="album-dialog__create" onSubmit={(event) => void create(event)}>
                 <input
                   value={name}

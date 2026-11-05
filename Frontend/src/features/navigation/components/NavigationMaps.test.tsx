@@ -11,6 +11,11 @@ import type { MediaFile } from "../../media/types";
 const viewport = vi.hoisted(() => ({
   failed: false,
   jumpTo: vi.fn(), easeTo: vi.fn(), fitBounds: vi.fn(), resize: vi.fn(),
+  setCooperativeGestures: vi.fn(),
+  on: vi.fn(), off: vi.fn(),
+  project: vi.fn(() => ({ x: 0, y: 0 })),
+  getMap: () => viewport,
+  getBounds: () => ({ getWest: () => 170, getEast: () => 190, getSouth: () => -20, getNorth: () => 30 }),
   getContainer: () => document.body,
   getZoom: () => 12,
 }));
@@ -22,11 +27,11 @@ vi.mock("react-map-gl/mapbox", () => ({
   Layer: () => null,
   default: function MockMap({ children, onLoad, onError, onClick }: {
     children: ReactNode;
-    onLoad: () => void;
+    onLoad: (event: { target: typeof viewport }) => void;
     onError: () => void;
     onClick: (event: { lngLat: { wrap: () => { lat: number; lng: number } } }) => void;
   }) {
-    useEffect(() => { if (viewport.failed) onError(); else onLoad(); }, []);
+    useEffect(() => { if (viewport.failed) onError(); else onLoad({ target: viewport }); }, []);
     return <div>
       <button onClick={() => onClick({ lngLat: { wrap: () => ({ lat: 1, lng: 2 }) } })}>Map click</button>
       {children}
@@ -37,7 +42,9 @@ vi.mock("@animate-ui/react/utils/motion", () => ({ useShouldReduceMotion: () => 
 vi.mock("../../../hooks/useMediaQuery", () => ({ useMediaQuery: () => false }));
 vi.mock("../../../components/animate-ui/icons/icon", () => ({
   AnimateIcon: ({ children }: { children: ReactNode }) => children,
+  AnimatedAction: ({ children }: { children: ReactNode }) => children,
   IconWrapper: () => <svg aria-hidden="true" />,
+  useAnimateIconOnChange: () => 0,
 }));
 vi.mock("../../../components/ui", () => ({
   Button: ({ busy, variant: _variant, ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { busy?: boolean; variant?: string }) =>
@@ -47,6 +54,7 @@ vi.mock("../../../components/ui", () => ({
   showToast: { error: vi.fn() },
 }));
 vi.mock("../../locations/components/MapAppearanceSettings", () => ({
+  getMapAppearanceConfig: () => ({}),
   useMapAppearance: () => ({}),
   MapAppearanceSettings: () => null,
   MapAppearanceConfig: () => null,
@@ -69,22 +77,26 @@ describe.each(["travel", "place"] as const)("%s map navigation integration", (ki
   let root: Root;
   let client: QueryClient;
   const pick = vi.fn();
-  const button = (text: string) => [...container.querySelectorAll("button")].find((item) => item.textContent === text)!;
+  const boundsChanged = vi.fn();
+  const button = (text: string) => [...document.body.querySelectorAll("button")].find((item) => item.textContent?.trim() === text)!;
   const click = async (text: string) => { await act(async () => { button(text).click(); }); };
   const render = async (selected = true) => {
     const shared = {
       homeLocation: null, homeLocationReady: true, homePicking: false, homeActionDisabled: false,
-      onPickHome: vi.fn(), onHomeClick: vi.fn(), onPick: pick, onSelect: vi.fn(),
+      onPickHome: vi.fn(), onHomeClick: vi.fn(), onPick: pick, onSelect: vi.fn(), onBoundsChange: boundsChanged,
     };
     await act(async () => root.render(
       <QueryClientProvider client={client}>
         {kind === "travel" ? (
           <LocationMap {...shared} media={[photo]} selected={selected ? photo : undefined}
-            draft={coordinate} editable canMove={() => true} onMove={vi.fn()} />
+            draft={coordinate} editable canMove={() => true} onMove={vi.fn()}
+            onEdit={vi.fn()} onCancelSelection={vi.fn()} onAddPhotos={vi.fn()} onOpenCamera={vi.fn()} />
         ) : (
           <PlaceMap {...shared} places={[place]} selectedId={selected ? place.id : null}
-            draft={null} draftIcon="" draftColor="" picking={false}
-            canChange={() => true} onMove={vi.fn()} onDelete={vi.fn()} />
+            draft={null} picking={false} canChange={() => true} onMove={vi.fn()} onDelete={vi.fn()}
+            canMovePhoto={() => true} onSelectPhoto={vi.fn()} onMovePhoto={vi.fn()} onEditPhoto={vi.fn()}
+            onConfirmPhotoMove={vi.fn()} onEdit={vi.fn()} onEditDraft={vi.fn()} onCancelSelection={vi.fn()}
+            onCancelDraft={vi.fn()} onCreateAtCurrentLocation={vi.fn()} onAddPhotos={vi.fn()} />
         )}
       </QueryClientProvider>,
     ));
@@ -111,18 +123,19 @@ describe.each(["travel", "place"] as const)("%s map navigation integration", (ki
   });
 
   it("offers both providers for the selected destination, including editable travel photos", async () => {
+    expect(boundsChanged).toHaveBeenCalledWith({ west: 170, south: -20, east: -170, north: 30 });
     await click("Navigate");
-    expect(container.textContent).toContain(kind === "travel" ? "Directions to Holiday.jpg" : "Directions to Lunch");
-    expect(container.querySelector("a")?.textContent).toBe("Open Google Maps");
+    expect(document.body.textContent).toContain(kind === "travel" ? "Directions to Holiday.jpg" : "Directions to Lunch");
+    expect(document.body.querySelector("a")?.textContent).toBe("Open Google Maps");
     expect(button("Preview with Mapbox")).toBeDefined();
-    expect(new URL(container.querySelector("a")!.href).searchParams.get("destination")).toBe("0,0.01");
+    expect(new URL(document.body.querySelector("a")!.href).searchParams.get("destination")).toBe("0,0.01");
   });
 
   it("prevents map clicks from editing destinations while navigation is open", async () => {
     await click("Navigate");
     await click("Map click");
     expect(pick).not.toHaveBeenCalled();
-    await act(async () => { container.querySelector<HTMLButtonElement>('[aria-label="Close navigation"]')!.click(); });
+    await click("Navigate");
     await click("Map click");
     expect(pick).toHaveBeenCalledOnce();
   });
@@ -130,7 +143,7 @@ describe.each(["travel", "place"] as const)("%s map navigation integration", (ki
   it("removes navigation when the destination is deselected", async () => {
     await click("Navigate");
     await render(false);
-    expect(container.querySelector(".map-navigation")).toBeNull();
+    expect(document.body.querySelector('.map-navigation[data-expanded="true"]')).toBeNull();
   });
 
   it.each(["", "sk.invalid"])("keeps Google directions available without a usable Mapbox token (%s)", async (token) => {
@@ -139,7 +152,7 @@ describe.each(["travel", "place"] as const)("%s map navigation integration", (ki
     expect(container.textContent).toContain("Mapbox navigation is unavailable");
     const link = container.querySelector("a")!;
     expect(new URL(link.href).searchParams.get("destination")).toBe("0,0.01");
-    expect(container.querySelector("select")?.value).toBe("driving");
+    expect(container.querySelector(".map-navigation__mode-trigger")?.textContent).toContain("Driving");
     expect(button("Preview with Mapbox")).toBeUndefined();
   });
 

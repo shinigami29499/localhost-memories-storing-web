@@ -7,6 +7,7 @@ using Domains.Entities;
 using Domains.Enums;
 using Services.Models.Users;
 using Services.Requests.Users;
+using Services.Responses.Users;
 using Services.Models.Media;
 
 namespace Infrastructures.Data.ApplicationServices;
@@ -68,6 +69,19 @@ public class UserService(
         var users = await _repository.ListUsersAsync(cancellationToken);
 
         return users.Select(mapper.Map).ToList();
+    }
+
+    public async Task<UserPageResponse> GetPageAsync(int page, int limit, bool pendingOnly,
+        CancellationToken cancellationToken = default)
+    {
+        if (page < 1 || page > 1_000_000 || limit is < 1 or > 100)
+            throw new ValidationException("Invalid user page.", new Dictionary<string, string[]>
+            {
+                ["page"] = ["Use a page between 1 and 1000000 and a limit between 1 and 100."],
+            });
+        var (items, total, allCount, pendingCount) = await _repository.GetUserPageAsync(
+            page, limit, pendingOnly, cancellationToken);
+        return new UserPageResponse(items.Select(mapper.Map).ToList(), page, limit, total, allCount, pendingCount);
     }
 
     public async Task<DateTime> HeartbeatAsync(Guid userId, CancellationToken cancellationToken = default)

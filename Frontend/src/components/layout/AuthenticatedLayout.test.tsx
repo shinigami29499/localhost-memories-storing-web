@@ -33,7 +33,9 @@ describe("AuthenticatedLayout sidebar", () => {
       disconnect() {}
     });
     vi.stubGlobal("matchMedia", vi.fn((query: string) => ({
-      matches: (query === "(max-width: 900px)" && narrowScreen) || (query === "(max-width: 640px)" && mobileScreen),
+      matches: (query === "(max-width: 1199px)" && narrowScreen)
+        || (query === "(min-width: 768px) and (max-width: 1199px)" && narrowScreen && !mobileScreen)
+        || (query === "(max-width: 767px)" && mobileScreen),
       media: query,
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
@@ -81,7 +83,7 @@ describe("AuthenticatedLayout sidebar", () => {
     });
   }
 
-  it("keeps the animated spacer beside the fixed panel and page content", async () => {
+  it("keeps the sidebar spacer beside the panel and page content", async () => {
     await renderLayout();
     const shell = container.querySelector(".app-shell");
     expect(container.querySelector(".sidebar-gap")?.parentElement).toBe(shell);
@@ -99,51 +101,31 @@ describe("AuthenticatedLayout sidebar", () => {
     expect(shell?.getAttribute("data-state")).toBe("expanded");
   });
 
-  it("starts as an icon rail on narrow screens and can expand", async () => {
+  it("uses an icon rail at intermediate widths", async () => {
     narrowScreen = true;
     await renderLayout();
     expect(container.querySelector(".app-shell")?.getAttribute("data-state")).toBe("collapsed");
     await act(async () => container.querySelector<HTMLButtonElement>(".sidebar__toggle")!.click());
-    expect(container.querySelector(".app-shell")?.getAttribute("data-state")).toBe("expanded");
+    expect(container.querySelector(".app-shell")?.getAttribute("data-state")).toBe("collapsed");
   });
 
-  it("shows Gallery and admin Trash in the collapsed rail", async () => {
+  it("shows Gallery in the collapsed rail", async () => {
     narrowScreen = true;
     useAuthStore.setState({
       user: { id: "admin", username: "Admin", role: "admin", status: "active", createdAt: "2026-01-01T00:00:00Z" },
     });
     await renderLayout();
-    expect(container.querySelector<HTMLAnchorElement>('[aria-label="Gallery"]')?.getAttribute("href")).toBe("/library/gallery");
-    expect(container.querySelector('[href="/library/gallery/trash"]')).not.toBeNull();
+    expect(container.querySelector<HTMLAnchorElement>('[aria-label="Gallery"]')?.getAttribute("href")).toBe("/gallery");
   });
 
-  it("uses an off-canvas drawer with a top bar on phones", async () => {
+  it("uses bottom navigation with a top bar on phones", async () => {
     narrowScreen = true;
     mobileScreen = true;
-    await renderLayout("/library/gallery");
-    const shell = container.querySelector(".app-shell")!;
-    expect(container.querySelector(".app-topbar .brand")).toBeNull();
-    expect(shell.getAttribute("data-state")).toBe("collapsed");
-    expect(container.querySelector(".sidebar-backdrop")).toBeNull();
-    expect(container.querySelector(".sidebar")?.hasAttribute("inert")).toBe(true);
-
-    await act(async () => container.querySelector<HTMLButtonElement>(".sidebar__toggle")!.click());
-    expect(shell.getAttribute("data-state")).toBe("expanded");
-    expect(document.body.style.overflow).toBe("hidden");
-    expect(container.querySelector(".sidebar")?.hasAttribute("inert")).toBe(false);
-    expect(container.querySelector(".app-shell__main")?.hasAttribute("inert")).toBe(true);
-    expect(document.activeElement).toBe(container.querySelector(".sidebar a"));
-
-    await act(async () => container.querySelector<HTMLDivElement>(".sidebar-backdrop")!.click());
-    expect(shell.getAttribute("data-state")).toBe("collapsed");
-    expect(container.querySelector(".sidebar-backdrop")).toBeNull();
-    expect(document.body.style.overflow).toBe("");
-    expect(container.querySelector(".app-shell__main")?.hasAttribute("inert")).toBe(false);
-    expect(document.activeElement).toBe(container.querySelector(".sidebar__toggle"));
-
-    await act(async () => container.querySelector<HTMLButtonElement>(".sidebar__toggle")!.click());
-    await act(async () => document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })));
-    expect(shell.getAttribute("data-state")).toBe("collapsed");
+    await renderLayout("/gallery");
+    expect(container.querySelector(".sidebar")).toBeNull();
+    expect(container.querySelector(".sidebar__toggle")).toBeNull();
+    expect(container.querySelectorAll(".bottom-navigation a")).toHaveLength(4);
+    expect(container.querySelector(".app-topbar")?.textContent).toContain("Gallery");
   });
 
   it("provides a localized keyboard shortcut to the routed content", async () => {
@@ -156,28 +138,14 @@ describe("AuthenticatedLayout sidebar", () => {
     expect(skip.textContent).toBe("Chuyển đến nội dung");
   });
 
-  it("wraps keyboard focus inside the open mobile navigation", async () => {
+  it("keeps mobile destinations keyboard accessible", async () => {
     narrowScreen = true;
     mobileScreen = true;
-    const rect = new DOMRect(0, 0, 44, 44);
-    vi.spyOn(HTMLElement.prototype, "getClientRects").mockReturnValue(
-      Object.assign([rect], { item: (index: number) => index === 0 ? rect : null }),
-    );
     await renderLayout();
-    const toggle = container.querySelector<HTMLButtonElement>(".sidebar__toggle")!;
-    const first = container.querySelector<HTMLAnchorElement>(".sidebar a")!;
-    await act(async () => toggle.click());
-    toggle.focus();
-
-    await act(async () => document.dispatchEvent(new KeyboardEvent("keydown", {
-      key: "Tab", cancelable: true,
-    })));
+    const first = container.querySelector<HTMLAnchorElement>(".bottom-navigation a")!;
+    first.focus();
     expect(document.activeElement).toBe(first);
-
-    await act(async () => document.dispatchEvent(new KeyboardEvent("keydown", {
-      key: "Tab", shiftKey: true, cancelable: true,
-    })));
-    expect(document.activeElement).toBe(toggle);
+    expect(container.querySelector<HTMLButtonElement>(".bottom-navigation button")?.getAttribute("aria-haspopup")).toBe("dialog");
   });
 
   it("reserves a shared header above page content on wider screens", async () => {
@@ -189,36 +157,35 @@ describe("AuthenticatedLayout sidebar", () => {
     expect(header?.nextElementSibling).toBe(container.querySelector(".app-shell__content"));
   });
 
-  it("keeps mobile drawer sections expanded when opening and closing", async () => {
+  it("keeps upload and account destinations available on mobile", async () => {
     narrowScreen = true;
     mobileScreen = true;
     await renderLayout();
-    expect(container.querySelector('[aria-label="Upload"]')).not.toBeNull();
-
-    await act(async () => container.querySelector<HTMLButtonElement>(".sidebar__toggle")!.click());
-    await act(async () => container.querySelector<HTMLButtonElement>(".sidebar__toggle")!.click());
+    expect(container.querySelector('.bottom-navigation a[href="/uploads"]')).not.toBeNull();
+    expect(container.querySelector(".bottom-navigation button")?.textContent).toContain("More");
   });
 
-  it("shows the brand on non-home pages and keeps controls inside the mobile header", async () => {
+  it("shows the page title and notifications in the mobile header", async () => {
     narrowScreen = true;
     mobileScreen = true;
-    await renderLayout("/library/album");
+    await renderLayout("/gallery/album");
     const header = container.querySelector(".app-topbar");
-    expect(header?.querySelector(".brand")).not.toBeNull();
+    expect(header?.textContent).toContain("Album");
     expect(header?.querySelector(".notification-bar")).not.toBeNull();
-    expect(header?.querySelector(".notification-bar .theme-toggler")).not.toBeNull();
+    expect(header?.querySelector(".notification-bar .theme-toggler")).toBeNull();
     expect(container.querySelector(".sidebar .theme-toggler")).toBeNull();
     expect(header?.nextElementSibling).toBe(container.querySelector(".app-shell__content"));
   });
 
-  it("keeps theme, language, and notification controls inside the mobile header on home", async () => {
+  it("keeps language and notification controls inside the mobile header on home", async () => {
     narrowScreen = true;
     mobileScreen = true;
     await renderLayout();
     const header = container.querySelector(".app-topbar");
     expect(header?.querySelector(".brand")).toBeNull();
     expect(header?.querySelector(".notification-bar")).not.toBeNull();
-    expect(header?.querySelector(".notification-bar .theme-toggler")).not.toBeNull();
+    expect(header?.querySelector(".notification-bar .theme-toggler")).toBeNull();
+    expect(header?.querySelector(".language-toggler")).not.toBeNull();
     expect(container.querySelector(".sidebar .theme-toggler")).toBeNull();
     expect(header?.nextElementSibling).toBe(container.querySelector(".app-shell__content"));
   });
@@ -270,23 +237,16 @@ describe("AuthenticatedLayout sidebar", () => {
     expect(container.querySelector(".sidebar__nav a")?.textContent).toContain("Home");
   });
 
-  it("places the theme toggle beside language and notifications and persists the selected theme", async () => {
+  it("uses one theme without exposing a theme toggle", async () => {
+    window.localStorage.setItem("shinigacim.theme", "dark");
     await renderLayout();
     const bar = container.querySelector<HTMLElement>(".notification-bar")!;
-    const themeButton = bar.querySelector<HTMLButtonElement>(".theme-toggler")!;
     expect(Array.from(bar.querySelectorAll("button"))).toEqual([
-      themeButton,
       bar.querySelector(".language-toggler"),
       bar.querySelector(".notification-bar__trigger"),
     ]);
-    expect(container.querySelectorAll(".theme-toggler")).toHaveLength(1);
-    expect(container.querySelector(".sidebar .theme-toggler")).toBeNull();
-    expect(themeButton.dataset.theme).toBe("dark");
-
-    await act(async () => themeButton.click());
-
-    expect(themeButton.dataset.theme).toBe("light");
+    expect(container.querySelectorAll(".theme-toggler")).toHaveLength(0);
     expect(document.documentElement.dataset.theme).toBe("light");
-    expect(window.localStorage.getItem("shinigacim.theme")).toBe("light");
+    expect(window.localStorage.getItem("shinigacim.theme")).toBe("dark");
   });
 });

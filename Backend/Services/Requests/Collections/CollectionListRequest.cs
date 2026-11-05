@@ -4,6 +4,7 @@ public record CollectionListRequest
 {
     public const string MineScope = "mine";
     public const string PublicScope = "public";
+    public const string FeedScope = "feed";
     public const string AdminScope = "all";
 
     /// <summary>"mine" (default), "public" for shared collections, or admin-only "all".</summary>

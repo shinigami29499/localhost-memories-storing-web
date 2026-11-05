@@ -14,12 +14,50 @@ public sealed class PlaceRepository(ApplicationDbContext db) : IPlaceRepository
                 .OrderByDescending(place => place.CreatedAt)
                 .ThenByDescending(place => place.Id)), cancellationToken);
 
+    public async Task<(IReadOnlyList<PlaceSource> Items, int Total)> GetPlacesPageAsync(
+        int page, int limit, string? search, int minimumRating, CancellationToken cancellationToken = default)
+    {
+        var places = db.Places.AsNoTracking();
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var escaped = search.Trim().Replace("\\", "\\\\", StringComparison.Ordinal)
+                .Replace("%", "\\%", StringComparison.Ordinal).Replace("_", "\\_", StringComparison.Ordinal);
+            var pattern = $"%{escaped}%";
+            places = places.Where(place => EF.Functions.ILike(place.Name, pattern, "\\")
+                || EF.Functions.ILike(place.Owner.Username, pattern, "\\"));
+        }
+        if (minimumRating > 0)
+            places = places.Where(place => (db.PlaceVisits
+                .Where(visit => visit.PlaceId == place.Id && visit.Rating > 0)
+                .Average(visit => (double?)visit.Rating) ?? 0) >= minimumRating - 0.05);
+        var total = await places.CountAsync(cancellationToken);
+        var items = await WithAverageRating(Project(places
+            .OrderByDescending(place => place.CreatedAt).ThenByDescending(place => place.Id)
+            .Skip((page - 1) * limit).Take(limit)), cancellationToken);
+        return (items, total);
+    }
+
     public async Task<IReadOnlyList<PlaceSource>> GetMapPlacesAsync(
         CancellationToken cancellationToken = default)
         => await WithAverageRating(db.Places.AsNoTracking()
             .OrderByDescending(place => place.CreatedAt)
             .ThenByDescending(place => place.Id)
             .Select(place => new PlaceSource(place, place.Owner, Array.Empty<Guid>(), 0)), cancellationToken);
+
+    public async Task<(IReadOnlyList<PlaceSource> Items, int Total)> GetMapPlacesPageAsync(
+        int page, int limit, PlaceMapBounds bounds, CancellationToken cancellationToken = default)
+    {
+        var places = db.Places.AsNoTracking()
+            .Where(place => place.Latitude >= bounds.South && place.Latitude <= bounds.North);
+        places = bounds.West <= bounds.East
+            ? places.Where(place => place.Longitude >= bounds.West && place.Longitude <= bounds.East)
+            : places.Where(place => place.Longitude >= bounds.West || place.Longitude <= bounds.East);
+        var total = await places.CountAsync(cancellationToken);
+        var items = await WithAverageRating(places.OrderByDescending(place => place.CreatedAt)
+            .ThenByDescending(place => place.Id).Skip((page - 1) * limit).Take(limit)
+            .Select(place => new PlaceSource(place, place.Owner, Array.Empty<Guid>(), 0)), cancellationToken);
+        return (items, total);
+    }
 
     public async Task<PlaceSource?> GetPlaceSourceAsync(
         Guid placeId, CancellationToken cancellationToken = default)
@@ -80,6 +118,25 @@ public sealed class PlaceRepository(ApplicationDbContext db) : IPlaceRepository
                 visit.Note,
                 visit.Rating))
             .ToListAsync(cancellationToken);
+    }
+
+    public async Task<(IReadOnlyList<PlaceVisitSource> Items, int Total)> GetVisitPageAsync(
+        int page, int limit, Guid? userId, Guid? placeId, CancellationToken cancellationToken = default)
+    {
+        var visits = db.PlaceVisits.AsNoTracking().Where(visit => visit.DeletedAt == null);
+        if (userId is { } ownerId) visits = visits.Where(visit => visit.UserId == ownerId);
+        if (placeId is { } id) visits = visits.Where(visit => visit.PlaceId == id);
+        var total = await visits.CountAsync(cancellationToken);
+        var items = await (
+            from visit in visits
+            join place in db.Places.IgnoreQueryFilters() on visit.PlaceId equals place.Id
+            join user in db.Users.IgnoreQueryFilters() on visit.UserId equals user.Id
+            orderby visit.CreatedAt descending, visit.Id descending
+            select new PlaceVisitSource(visit.Id, visit.PlaceId, place.Name, place.Address,
+                place.MarkerIcon, place.MarkerColor, visit.CreatedAt, user.Id, user.Username,
+                user.AvatarSeed, visit.Note, visit.Rating))
+            .Skip((page - 1) * limit).Take(limit).ToListAsync(cancellationToken);
+        return (items, total);
     }
 
     public async Task<IReadOnlyList<PlaceVisitSource>> GetPlaceVisitHistoryForPlaceAsync(

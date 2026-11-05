@@ -1,5 +1,6 @@
 using Services.Models.Media;
 using Services.Responses.Media;
+using Services.Models.Place;
 using Services.Requests.Media;
 
 namespace Services.Interfaces;
@@ -7,6 +8,12 @@ namespace Services.Interfaces;
 public interface IMediaService
 {
     Task<MediaFileDto?> GetMediaForNotificationAsync(Guid mediaId, CancellationToken cancellationToken = default);
+    Task<MediaFileDto> GetMediaAsync(Guid mediaId, Guid viewerId,
+        CancellationToken cancellationToken = default);
+    Task<PagedMediaResponse<MediaFileDto>> GetLocatedMediaPageAsync(Guid viewerId, int offset, int limit,
+        PlaceMapBounds bounds, CancellationToken cancellationToken = default);
+    Task<PagedMediaResponse<MediaFileDto>> GetUnlocatedMediaPageAsync(Guid viewerId, int offset, int limit,
+        CancellationToken cancellationToken = default);
     Task SetLocationAsync(
         Guid mediaId, Guid actorId, bool isAdmin, SetMediaLocationRequest request,
         CancellationToken cancellationToken = default);

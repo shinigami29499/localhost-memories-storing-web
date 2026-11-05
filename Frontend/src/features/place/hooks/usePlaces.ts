@@ -1,6 +1,6 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "../../../store/authStore";
-import { placeService } from "../services/placeService";
+import { placeService, type PlaceMapBounds } from "../services/placeService";
 import type { Place, PlaceVisit, SavePlaceInput } from "../types";
 
 export const placeKeys = {
@@ -20,8 +20,47 @@ export function usePlaces(enabled = true) {
   });
 }
 
+export function useInfinitePlaces(enabled: boolean, search: string, minimumRating: number) {
+  return useInfiniteQuery({
+    queryKey: [...placeKeys.list(), "page", search.trim(), minimumRating],
+    initialPageParam: 1,
+    queryFn: ({ pageParam, signal }) => placeService.page(pageParam, 30, search, minimumRating, signal),
+    getNextPageParam: (lastPage) => lastPage.page * lastPage.limit < lastPage.total
+      ? lastPage.page + 1 : undefined,
+    enabled,
+  });
+}
+
+export function usePagedPlaceVisitHistory(page: number, limit: number, enabled = true) {
+  const userId = useAuthStore((state) => state.user?.id);
+  return useQuery({
+    queryKey: [...placeKeys.visitHistory(), "page", userId, page, limit],
+    queryFn: async ({ signal }) => {
+      if (!userId || useAuthStore.getState().user?.id !== userId)
+        throw new Error("Cannot load visit history without the signed-in user.");
+      const visits = await placeService.visitPage(page, limit, true, undefined, signal);
+      if (useAuthStore.getState().user?.id !== userId)
+        throw new Error("The signed-in user changed while loading visit history.");
+      return visits;
+    },
+    enabled: enabled && Boolean(userId),
+  });
+}
+
 export function useMapPlaces(enabled = true) {
   return useQuery({ queryKey: placeKeys.map(), queryFn: () => placeService.map(), enabled });
+}
+
+export function useInfiniteMapPlaces(enabled: boolean, bounds: PlaceMapBounds) {
+  return useInfiniteQuery({
+    queryKey: [...placeKeys.map(), "page", bounds],
+    initialPageParam: 1,
+    queryFn: ({ pageParam, signal }) => placeService.mapPage(pageParam, bounds, signal),
+    getNextPageParam: (lastPage) => lastPage.page * lastPage.limit < lastPage.total
+      ? lastPage.page + 1 : undefined,
+    placeholderData: (previous) => previous,
+    enabled,
+  });
 }
 
 export function usePlace(id: string | null, enabled = true) {
@@ -53,14 +92,14 @@ export function usePlaceVisitHistory(enabled = true) {
   });
 }
 
-export function usePlaceVisits(placeId: string) {
+export function usePlaceVisits(placeId: string, page = 1, limit = 5) {
   const userId = useAuthStore((state) => state.user?.id);
-  return useQuery<PlaceVisit[]>({
-    queryKey: placeKeys.placeVisitHistory(placeId, userId),
-    queryFn: async () => {
+  return useQuery({
+    queryKey: [...placeKeys.placeVisitHistory(placeId, userId), page, limit],
+    queryFn: async ({ signal }) => {
       if (!userId || useAuthStore.getState().user?.id !== userId)
         throw new Error("Cannot load visit history without the signed-in user.");
-      const visits = await placeService.visitsForPlace(placeId);
+      const visits = await placeService.visitPage(page, limit, true, placeId, signal);
       if (useAuthStore.getState().user?.id !== userId)
         throw new Error("The signed-in user changed while loading visit history.");
       return visits;

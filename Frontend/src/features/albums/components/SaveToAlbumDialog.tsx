@@ -1,5 +1,4 @@
 import { useState, type FormEvent } from "react";
-import { useQueries } from "@tanstack/react-query";
 import { CustomDialog as AlertDialog, useCustomDialog } from "../../../components/ui/CustomDialog";
 import { Bookmark } from "@/components/animate-ui/icons/bookmark";
 import { Button } from "../../../components/ui/Button";
@@ -8,7 +7,8 @@ import { showToast } from "../../../components/ui/Toast";
 import { useLocale } from "../../../context/LocaleContext";
 import { ApiError } from "../../../services/api";
 import { mediaPreviewUrl } from "../../../utils/media";
-import { albumKeys, useInvalidateAlbums } from "../hooks/useAlbums";
+import { useDebouncedValue } from "../../../hooks/useDebouncedValue";
+import { useAlbumMembership, useInfiniteAlbums, useInvalidateAlbums } from "../hooks/useAlbums";
 import { albumService } from "../services/albumService";
 import type { Album } from "../types";
 import { ALBUM_NAME_MAX_LENGTH } from "../types";
@@ -22,12 +22,11 @@ interface Props {
 /** Lists the viewer's albums with save state for selected media, and creates albums inline. */
 export function SaveToAlbumDialog({ mediaIds, onClose, portalContainer }: Props) {
   const { t } = useLocale();
-  const albumQueries = useQueries({
-    queries: mediaIds.map((mediaId) => ({
-      queryKey: albumKeys.list("mine", mediaId),
-      queryFn: () => albumService.list("mine", mediaId),
-    })),
-  });
+  const [search, setSearch] = useState("");
+  const albumsQuery = useInfiniteAlbums("mine", true, 30, undefined, useDebouncedValue(search));
+  const membership = useAlbumMembership(mediaIds);
+  const membershipByMediaId = new Map(membership.data?.items.map((item) => [item.mediaId, item.albumIds]) ?? []);
+  const savedMediaIds = (album: Album) => mediaIds.filter((id) => membershipByMediaId.get(id)?.includes(album.id));
   const invalidate = useInvalidateAlbums();
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [name, setName] = useState("");
@@ -41,13 +40,11 @@ export function SaveToAlbumDialog({ mediaIds, onClose, portalContainer }: Props)
     if (busy) return;
     setPendingId(album.id);
     try {
-      const savedMediaIds = mediaIds.filter((_, index) =>
-        albumQueries[index]?.data?.find((item) => item.id === album.id)?.containsMedia,
-      );
-      const removing = savedMediaIds.length === mediaIds.length;
+      const saved = savedMediaIds(album);
+      const removing = saved.length === mediaIds.length;
       const mediaIdsToChange = removing
-        ? savedMediaIds
-        : mediaIds.filter((mediaId) => !savedMediaIds.includes(mediaId));
+        ? saved
+        : mediaIds.filter((mediaId) => !saved.includes(mediaId));
       const results = await Promise.allSettled(mediaIdsToChange.map((mediaId) =>
         removing
           ? albumService.removeMedia(album.id, mediaId)
@@ -106,9 +103,9 @@ export function SaveToAlbumDialog({ mediaIds, onClose, portalContainer }: Props)
     }
   };
 
-  const items = albumQueries[0]?.data ?? [];
-  const isPending = albumQueries.some((query) => query.isPending);
-  const failedQueries = albumQueries.filter((query) => query.isError);
+  const items = albumsQuery.data?.pages.flatMap((page) => page.items) ?? [];
+  const isPending = albumsQuery.isPending || membership.isPending;
+  const loadError = (albumsQuery.isError && !albumsQuery.data) || membership.isError;
 
   return (
     <AlertDialog.Root {...dialogProps}>
@@ -118,15 +115,18 @@ export function SaveToAlbumDialog({ mediaIds, onClose, portalContainer }: Props)
           <AlertDialog.Popup className="confirmation-dialog album-dialog">
             <AlertDialog.Title className="confirmation-dialog__title">{t("Save to album")}</AlertDialog.Title>
             <div className="album-dialog__body">
-                {isPending ? <Spinner label={t("Loading albums…")} /> : failedQueries.length > 0 ? (
+                <input type="search" value={search} maxLength={120} onChange={(event) => setSearch(event.target.value)}
+                  aria-label={t("Search albums")} placeholder={t("Search albums")} />
+                {isPending ? <Spinner label={t("Loading albums…")} /> : loadError ? (
                   <ErrorState
                     message={t("Could not load albums.")}
                     onRetry={() => {
-                      for (const query of failedQueries) void query.refetch();
+                      if (albumsQuery.isError) void albumsQuery.refetch();
+                      if (membership.isError) void membership.refetch();
                     }}
                   />
                 ) : items.length === 0 ? (
-                  <p className="album-dialog__empty">{t("You have no albums yet. Create one below.")}</p>
+                  <p className="album-dialog__empty">{t(search.trim() ? "No matching albums." : "You have no albums yet. Create one below.")}</p>
                 ) : (
                   <ul className="album-picker" aria-label={t("Your albums")}>
                     {items.map((album) => (
@@ -134,9 +134,7 @@ export function SaveToAlbumDialog({ mediaIds, onClose, portalContainer }: Props)
                         <button
                           type="button"
                           className="album-picker__item"
-                          aria-pressed={mediaIds.every((_, index) =>
-                            albumQueries[index]?.data?.find((item) => item.id === album.id)?.containsMedia,
-                          )}
+                          aria-pressed={savedMediaIds(album).length === mediaIds.length}
                           disabled={busy}
                           aria-busy={pendingId === album.id || undefined}
                           onClick={() => void toggle(album)}
@@ -152,9 +150,7 @@ export function SaveToAlbumDialog({ mediaIds, onClose, portalContainer }: Props)
                           </span>
                           <span className="album-picker__state">
                             {t("{count} of {total} saved", {
-                              count: mediaIds.filter((_, index) =>
-                                albumQueries[index]?.data?.find((item) => item.id === album.id)?.containsMedia,
-                              ).length,
+                              count: savedMediaIds(album).length,
                               total: mediaIds.length,
                             })}
                           </span>
@@ -163,6 +159,15 @@ export function SaveToAlbumDialog({ mediaIds, onClose, portalContainer }: Props)
                     ))}
                   </ul>
                 )}
+                {albumsQuery.isFetchNextPageError ? (
+                  <ErrorState message={t("Could not load more albums.")} onRetry={() => void albumsQuery.fetchNextPage()} />
+                ) : null}
+                {albumsQuery.hasNextPage ? (
+                  <button type="button" className="btn btn--secondary" disabled={busy || albumsQuery.isFetchingNextPage}
+                    onClick={() => void albumsQuery.fetchNextPage()}>
+                    {t(albumsQuery.isFetchingNextPage ? "Loading albums…" : "Load more")}
+                  </button>
+                ) : null}
                 <form className="album-dialog__create" onSubmit={(event) => void create(event)}>
                   <input
                     value={name}

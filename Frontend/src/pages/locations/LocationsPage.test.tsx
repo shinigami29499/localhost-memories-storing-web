@@ -30,6 +30,9 @@ const maps = vi.hoisted(() => ({
     isStyleLoaded: vi.fn(() => true),
     getConfig: vi.fn(() => ({})),
     setConfig: vi.fn(),
+    getMap: vi.fn(() => maps.viewport),
+    setCooperativeGestures: vi.fn(),
+    getBounds: vi.fn(() => ({ getWest: () => -180, getEast: () => 180, getSouth: () => -90, getNorth: () => 90 })),
   },
 }));
 vi.mock("react-map-gl/mapbox", () => ({
@@ -38,12 +41,12 @@ vi.mock("react-map-gl/mapbox", () => ({
   default: function MockMap({ children, onClick, onLoad, onError, mapStyle }: {
     children: ReactNode;
     onClick: (event: { lngLat: { lat: number; lng: number; wrap: typeof maps.wrapClick } }) => void;
-    onLoad: () => void;
+    onLoad: (event: { target: typeof maps.viewport }) => void;
     onError: () => void;
     mapStyle: string;
   }) {
     useEffect(() => {
-      if (maps.status === "LOADED") onLoad();
+      if (maps.status === "LOADED") onLoad({ target: maps.viewport });
       if (maps.status === "FAILED") onError();
     }, []);
     return (
@@ -107,9 +110,9 @@ vi.mock("../../components/ui", () => ({
     </div>
   ),
 }));
-vi.mock("../../features/media/services/mediaService", () => ({ mediaService: { list: vi.fn() } }));
+vi.mock("../../features/media/services/mediaService", () => ({ mediaService: { list: vi.fn(), get: vi.fn() } }));
 vi.mock("../../features/locations/services/locationService", () => ({
-  locationService: { set: vi.fn(), scan: vi.fn() },
+  locationService: { set: vi.fn(), scan: vi.fn(), mapPage: vi.fn(), unlocatedPage: vi.fn() },
 }));
 vi.mock("../../features/locations/services/homeLocationService", () => ({
   homeLocationService: { get: vi.fn(), set: vi.fn(), clear: vi.fn() },
@@ -154,6 +157,18 @@ describe("Locations", () => {
     vi.mocked(mediaService.list).mockImplementation(async (offset = 0, limit = 100) => ({
       offset, limit, total: photos.length, items: photos.slice(offset, offset + limit),
     }));
+    vi.mocked(mediaService.get).mockImplementation(async (id) => {
+      const item = photos.find((candidate) => candidate.id === id);
+      if (!item) throw new Error("Photo not found");
+      return item;
+    });
+    vi.mocked(locationService.mapPage).mockImplementation(async (offset) => ({
+      offset, limit: 100, total: photos.length, items: photos.slice(offset, offset + 100),
+    }));
+    vi.mocked(locationService.unlocatedPage).mockImplementation(async (offset) => {
+      const unlocated = photos.filter((item) => !item.location);
+      return { offset, limit: 50, total: unlocated.length, items: unlocated.slice(offset, offset + 50) };
+    });
     vi.mocked(locationService.set).mockImplementation(async (id, location) => {
       photos = photos.map((item) => item.id === id ? { ...item, location } : item);
     });
@@ -186,6 +201,17 @@ describe("Locations", () => {
     expect(container.querySelector('[title="gps.jpg"]')?.closest("[data-marker]")?.getAttribute("data-lat")).toBe("0");
     expect(container.querySelector('[title="gps.jpg"]')?.closest("[data-marker]")?.getAttribute("data-lng")).toBe("0");
     expect(container.textContent).toContain("2 of 3 located");
+  });
+
+  it("loads unlocated photos on demand and selects one for editing", async () => {
+    await render();
+    expect(locationService.unlocatedPage).not.toHaveBeenCalled();
+    const details = container.querySelector<HTMLDetailsElement>(".locations__unlocated")!;
+    await act(async () => { details.open = true; details.dispatchEvent(new Event("toggle")); });
+    await settle();
+    expect(details.textContent).toContain("desktop.jpg");
+    await act(async () => details.querySelector<HTMLButtonElement>(".locations__unlocated-list button")!.click());
+    expect(container.querySelector(".locations__details h2")?.textContent).toBe("desktop.jpg");
   });
 
   it("does not render home-location or scan header actions", async () => {

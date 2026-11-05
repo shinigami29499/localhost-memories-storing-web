@@ -3,11 +3,16 @@ using Services.Models.Media;
 using Services.Requests.Collections;
 using Services.Requests.Media;
 using Services.Responses.Media;
+using Services.Responses.Collections;
 
 namespace Services.Interfaces;
 
 public interface ICollectionService
 {
+    Task<CollectionMembershipResponse> GetOwnedMembershipAsync(
+        Guid ownerId, CollectionMembershipRequest request, CancellationToken cancellationToken = default);
+    Task<CollectionPageResponse> GetCollectionsPageAsync(
+        Guid viewerId, CollectionPageRequest request, bool isAdmin, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<CollectionDto>> GetCollectionsAsync(
         Guid viewerId, CollectionListRequest request, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<CollectionDto>> GetCollectionsAsync(

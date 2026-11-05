@@ -18,7 +18,7 @@ export class ApiError extends Error {
 }
 
 interface RequestOptions extends Omit<RequestInit, "body"> {
-  body?: BodyInit | Record<string, unknown> | null;
+  body?: BodyInit | Record<string, unknown> | readonly unknown[] | null;
   /** Skip the automatic refresh-on-401 flow (used by the auth endpoints themselves). */
   skipAuthRefresh?: boolean;
 }
@@ -197,7 +197,7 @@ async function performRequest(
   path: string,
   extraHeaders: HeadersInit | undefined,
   rest: Partial<RequestInit>,
-  body: BodyInit | Record<string, unknown> | null | undefined,
+  body: BodyInit | Record<string, unknown> | readonly unknown[] | null | undefined,
 ): Promise<Response> {
   const headers: Record<string, string> = { ...sessionHeader(), ...(extraHeaders as Record<string, string>) };
 

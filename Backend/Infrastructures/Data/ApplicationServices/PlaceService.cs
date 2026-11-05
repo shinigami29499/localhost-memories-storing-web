@@ -5,6 +5,7 @@ using Services.Exceptions;
 using Services.Interfaces;
 using Services.Models.Place;
 using Services.Requests.Place;
+using Services.Responses.Place;
 
 namespace Infrastructures.Data.ApplicationServices;
 
@@ -25,14 +26,65 @@ public sealed partial class PlaceService(
     public async Task<IReadOnlyList<PlaceDto>> GetPlacesAsync(CancellationToken cancellationToken = default)
         => (await repository.GetPlacesAsync(cancellationToken)).Select(mapper.Map).ToList();
 
+    public async Task<PlacePageResponse<PlaceDto>> GetPlacesPageAsync(int page, int limit,
+        string? search, int minimumRating, CancellationToken cancellationToken = default)
+    {
+        ValidatePage(page, limit);
+        if (search?.Length > 120 || minimumRating is < 0 or > 5)
+            throw new ValidationException("Invalid place filter.", new Dictionary<string, string[]>
+            {
+                ["search"] = ["Use at most 120 characters and a rating from 0 to 5."],
+            });
+        var (items, total) = await repository.GetPlacesPageAsync(page, limit, search, minimumRating, cancellationToken);
+        return new PlacePageResponse<PlaceDto>(items.Select(mapper.Map).ToList(), page, limit, total);
+    }
+
+    public async Task<PlacePageResponse<PlaceVisitDto>> GetVisitPageAsync(int page, int limit,
+        Guid? userId, Guid? placeId, CancellationToken cancellationToken = default)
+    {
+        ValidatePage(page, limit);
+        if (placeId is { } id && await repository.FindPlaceAsync(id, cancellationToken) is null)
+            throw new NotFoundException($"Place '{id}' was not found.");
+        var (items, total) = await repository.GetVisitPageAsync(page, limit, userId, placeId, cancellationToken);
+        return new PlacePageResponse<PlaceVisitDto>(items.Select(mapper.Map).ToList(), page, limit, total);
+    }
+
+    private static void ValidatePage(int page, int limit)
+    {
+        if (page < 1 || page > 1_000_000 || limit is < 1 or > 100)
+            throw new ValidationException("Invalid page.", new Dictionary<string, string[]>
+            {
+                ["page"] = ["Use a page between 1 and 1000000 and a limit between 1 and 100."],
+            });
+    }
+
     public async Task<IReadOnlyList<PlaceMapDto>> GetMapPlacesAsync(CancellationToken cancellationToken = default)
-        => (await repository.GetMapPlacesAsync(cancellationToken)).Select(source =>
-        {
-            var place = mapper.Map(source);
-            return new PlaceMapDto(place.Id, place.Name, place.Address, place.Note, place.Latitude,
-                place.Longitude, place.Rating, place.MarkerIcon, place.MarkerColor, place.Owner,
-                place.CreatedAt, place.UpdatedAt);
-        }).ToList();
+        => (await repository.GetMapPlacesAsync(cancellationToken)).Select(MapSummary).ToList();
+
+    public async Task<PlacePageResponse<PlaceMapDto>> GetMapPlacesPageAsync(int page, int limit,
+        PlaceMapBounds bounds, CancellationToken cancellationToken = default)
+    {
+        ValidatePage(page, limit);
+        if (!double.IsFinite(bounds.West) || !double.IsFinite(bounds.East)
+            || !double.IsFinite(bounds.South) || !double.IsFinite(bounds.North)
+            || bounds.West is < -180 or > 180 || bounds.East is < -180 or > 180
+            || bounds.South is < -90 or > 90 || bounds.North is < -90 or > 90
+            || bounds.South > bounds.North)
+            throw new ValidationException("Invalid map bounds.", new Dictionary<string, string[]>
+            {
+                ["bounds"] = ["Provide valid latitude and longitude bounds."],
+            });
+        var (items, total) = await repository.GetMapPlacesPageAsync(page, limit, bounds, cancellationToken);
+        return new PlacePageResponse<PlaceMapDto>(items.Select(MapSummary).ToList(), page, limit, total);
+    }
+
+    private PlaceMapDto MapSummary(PlaceSource source)
+    {
+        var place = mapper.Map(source);
+        return new PlaceMapDto(place.Id, place.Name, place.Address, place.Note, place.Latitude,
+            place.Longitude, place.Rating, place.MarkerIcon, place.MarkerColor, place.Owner,
+            place.CreatedAt, place.UpdatedAt);
+    }
 
     public async Task<PlaceDto> GetPlaceAsync(
         Guid placeId, CancellationToken cancellationToken = default)

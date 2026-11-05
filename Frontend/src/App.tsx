@@ -1,4 +1,3 @@
-import { GalleryLayout } from "./pages/gallery/GalleryLayout";
 import {
   Navigate,
   Outlet,
@@ -8,27 +7,26 @@ import {
   useNavigate,
   useParams,
 } from "react-router-dom";
-import { lazy, useEffect, useRef, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useRef, type ReactNode } from "react";
 import { App as CapacitorApp } from "@capacitor/app";
 import { Capacitor } from "@capacitor/core";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AnimateUIProvider } from "@animate-ui/react/provider";
-import { Click } from "@animate-ui/react/primitives/effects/click";
-import { useAuthStore } from "./store/authStore";
 import { useAnimationStore } from "./store/animationStore";
-import { useClickAnimationStore } from "./store/clickAnimationStore";
-import { AuthenticatedLayout } from "./components/layout/AuthenticatedLayout";
-import { LoginPage } from "./pages/login/LoginPage";
-import { RegisterPage } from "./pages/register/RegisterPage";
-import { HomePage } from "./pages/home/HomePage";
-import { ErrorPage } from "./pages/ErrorPage";
-import { ThemeProvider } from "./context/ThemeContext";
+import { useAuthStore } from "./store/authStore";
 import { LocaleProvider } from "./context/LocaleContext";
 import { ToastProvider, showToast } from "./components/ui";
 import { useLocale } from "./context/LocaleContext";
 import { SessionReplacedDialog } from "./features/auth/SessionReplacedDialog";
 
 const GalleryPage = lazy(() => import("./pages/gallery/GalleryPage").then((module) => ({ default: module.GalleryPage })));
+const ErrorPage = lazy(() => import("./pages/ErrorPage").then((module) => ({ default: module.ErrorPage })));
+const errorPage = <Suspense fallback={<main role="alert">Page unavailable.</main>}><ErrorPage /></Suspense>;
+const AuthenticatedLayout = lazy(() => import("./components/layout/AuthenticatedLayout").then((module) => ({ default: module.AuthenticatedLayout })));
+const GalleryLayout = lazy(() => import("./pages/gallery/GalleryLayout").then((module) => ({ default: module.GalleryLayout })));
+const HomePage = lazy(() => import("./pages/home/HomePage").then((module) => ({ default: module.HomePage })));
+const LoginPage = lazy(() => import("./pages/login/LoginPage").then((module) => ({ default: module.LoginPage })));
+const RegisterPage = lazy(() => import("./pages/register/RegisterPage").then((module) => ({ default: module.RegisterPage })));
 const TrashPage = lazy(() => import("./pages/gallery/TrashPage").then((module) => ({ default: module.TrashPage })));
 const AlbumsPage = lazy(() => import("./pages/albums/AlbumsPage").then((module) => ({ default: module.AlbumsPage })));
 const AlbumPage = lazy(() => import("./pages/albums/AlbumPage").then((module) => ({ default: module.AlbumPage })));
@@ -52,13 +50,13 @@ function LegacyLocationRedirect() {
 const router = createBrowserRouter([
   {
     element: <RouteNotifications />,
-    errorElement: <ErrorPage />,
+    errorElement: errorPage,
     children: [
       {
-        errorElement: <ErrorPage />,
+        errorElement: errorPage,
         element: (
           <RequireAuth>
-            <AuthenticatedLayout />
+            <Suspense fallback={null}><AuthenticatedLayout /></Suspense>
           </RequireAuth>
         ),
         children: [
@@ -86,10 +84,15 @@ const router = createBrowserRouter([
           { path: "/saved/:albumId", element: <LegacyAlbumRedirect /> },
           { path: "/uploads", element: <UploadManagementPage /> },
           { path: "/location/travel", element: <LocationsPage /> },
-          { path: "/location", element: <PlacePage /> },
+          {
+            path: "/location",
+            element: <PlacePage />,
+            children: [
+              { path: "saved" },
+              { path: "history" },
+            ],
+          },
           { path: "/location/place", element: <LegacyLocationRedirect /> },
-          { path: "/location/saved", element: <PlacePage /> },
-          { path: "/location/history", element: <PlacePage /> },
           { path: "/profile", element: <ProfilePage /> },
           { path: "/settings", element: <SettingsPage /> },
           { path: "/sync/upload", element: <Navigate replace to="/uploads" /> },
@@ -105,8 +108,8 @@ const router = createBrowserRouter([
       {
         element: <Outlet />,
         children: [
-          { path: "/login", element: <LoginPage />, errorElement: <ErrorPage /> },
-          { path: "/register", element: <RegisterPage />, errorElement: <ErrorPage /> },
+          { path: "/login", element: <Suspense fallback={null}><LoginPage /></Suspense>, errorElement: errorPage },
+          { path: "/register", element: <Suspense fallback={null}><RegisterPage /></Suspense>, errorElement: errorPage },
         ],
       },
       { path: "*", element: <Navigate replace to="/" /> },
@@ -167,37 +170,24 @@ function LegacyAlbumRedirect() {
 }
 
 export function App() {
-  const animationsEnabled = useAnimationStore((state) => state.enabled);
-  const clickAnimation = useClickAnimationStore((state) => state.effect);
-
-  useEffect(() => {
-    const preventTouchContextMenu = (event: MouseEvent) => {
-      if (window.matchMedia("(hover: none) and (pointer: coarse)").matches) {
-        event.preventDefault();
-      }
-    };
-
-    document.addEventListener("contextmenu", preventTouchContextMenu);
-    return () => document.removeEventListener("contextmenu", preventTouchContextMenu);
-  }, []);
-
   return (
-    <ThemeProvider>
       <LocaleProvider>
         <QueryClientProvider client={queryClient}>
-          <AnimateUIProvider tempo={1}>
+          <MotionPreferences>
             <ToastProvider>
-              {animationsEnabled && (clickAnimation === "ripple" ? (
-                <Click variant="ripple" color="var(--accent-strong)" size={100} duration={400} />
-              ) : clickAnimation !== "off" ? (
-                <Click variant={clickAnimation} color="var(--accent-strong)" size={100} duration={400} />
-              ) : null)}
               <RouterProvider router={router} future={{ v7_startTransition: true }} />
               <SessionReplacedDialog />
             </ToastProvider>
-          </AnimateUIProvider>
+          </MotionPreferences>
         </QueryClientProvider>
       </LocaleProvider>
-    </ThemeProvider>
   );
+}
+
+function MotionPreferences({ children }: { children: ReactNode }) {
+  const enabled = useAnimationStore((state) => state.enabled);
+  useEffect(() => {
+    document.documentElement.dataset.motion = enabled ? "on" : "off";
+  }, [enabled]);
+  return <AnimateUIProvider tempo={1} reducedMotion={enabled ? "user" : "always"}>{children}</AnimateUIProvider>;
 }

@@ -191,10 +191,10 @@ function NavigationSession({ libraryColors, destination, accessToken, homeLocati
         <Source id={sourceId} type="geojson" data={geometry}>
           <Layer id={`${sourceId}-outline`} type="line" slot="top"
             layout={{ "line-cap": "round", "line-join": "round" }}
-            paint={{ "line-color": "#ffffff", "line-width": 9 }} />
+            paint={{ "line-color": "#F4F3EE", "line-width": 9 }} />
           <Layer id={`${sourceId}-route`} type="line" slot="top"
             layout={{ "line-cap": "round", "line-join": "round" }}
-            paint={{ "line-color": "#1769d2", "line-width": 5 }} />
+            paint={{ "line-color": "#6A3F36", "line-width": 5 }} />
         </Source>
       )}
       {position && (
@@ -224,6 +224,7 @@ function NavigationSession({ libraryColors, destination, accessToken, homeLocati
         onWheel={(event) => event.stopPropagation()}
       >
           <>
+            <strong>{t("Directions to {name}", { name: destination.name })}</strong>
             <NavigationModeSelect mode={navigation.mode} disabled={tracking || busy} onChange={navigation.setMode} />
             {navigation.usingHomeOrigin && (
               <p className="map-navigation__hint">
@@ -267,6 +268,8 @@ function NavigationSession({ libraryColors, destination, accessToken, homeLocati
                 {!arrived && (
                   tracking ? (
                     <Button type="button" variant="secondary" onClick={navigation.stop}>{t("Stop navigation")}</Button>
+                  ) : !error && !navigation.usingHomeOrigin && position ? (
+                    <Button type="button" disabled={busy} onClick={navigation.start}>{t("Start navigation")}</Button>
                   ) : null
                 )}
                 <details className="map-navigation__steps">
