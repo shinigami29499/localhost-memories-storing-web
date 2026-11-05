@@ -115,14 +115,6 @@
 
 .gallery-page__media-toolbar { margin-bottom: var(--page-section-gap); }
 .gallery-page:has(.gallery-page__media-toolbar) .gallery-page__header { margin-bottom: var(--page-section-gap); }
-.gallery-page__media-filters { background: var(--surface-raised); border: 0; border-radius: 999px; box-shadow: none; box-sizing: border-box; display: flex; isolation: isolate; padding: 4px; width: 100%; }
-:root .gallery-page__media-filters { background: var(--surface-hover); }
-.gallery-page__media-highlight { background: #6A3F36; border-radius: 999px; inset: 0; pointer-events: none; }
-.gallery-page__media-option { background: transparent; border: 0; border-radius: 999px; box-sizing: border-box; color: var(--text-muted); cursor: pointer; flex: 1; font: inherit; font-weight: 600; line-height: 1.5; padding: 4px 16px; position: relative; }
-.gallery-page__media-option:is([aria-selected="true"], [aria-pressed="true"]) { color: #F4F3EE; }
-.gallery-page__media-option:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
-.gallery-page__media-option:disabled { cursor: wait; opacity: 0.5; }
-
 .gallery-page__selection-actions {
   align-items: center;
   display: flex;
@@ -460,11 +452,10 @@
 
 
 .gallery-selection-bar {
-  --selection-bar-hover: #F8E4BE;
   align-items: center;
-  background: #6A3F36;
-  border: 0;
-  border-radius: 999px;
+  background: var(--accent);
+  border: 1px solid var(--border-control);
+  border-radius: var(--control-radius);
   box-shadow: none;
   display: flex;
   gap: 4px;
@@ -472,7 +463,7 @@
   overflow-x: auto;
   padding: 6px;
   pointer-events: auto;
-  color: #F4F3EE;
+  color: var(--text-on-accent);
 }
 
 .gallery-selection-bar__count {
@@ -495,7 +486,7 @@
   align-items: center;
   background: transparent;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--control-radius);
   color: inherit;
   cursor: pointer;
   display: inline-flex;
@@ -510,16 +501,10 @@
   white-space: nowrap;
 }
 
-.gallery-selection-bar__action:hover:not(:disabled),
-.gallery-selection-bar__cancel:hover {
-  background: var(--surface-hover);
-  color: var(--text-strong);
-}
-
 .gallery-selection-bar .gallery-selection-bar__action:hover:not(:disabled):not(.gallery-selection-bar__action--danger),
-.gallery-selection-bar .gallery-selection-bar__cancel:hover {
-  background: var(--selection-bar-hover);
-  color: inherit;
+.gallery-selection-bar .gallery-selection-bar__cancel:hover:not(:disabled) {
+  background: var(--surface-hover);
+  color: var(--accent);
 }
 
 .gallery-selection-bar__action:focus-visible,
@@ -583,8 +568,7 @@
 }
 
 .gallery-selection-bar--compact .gallery-selection-bar__action[aria-pressed="false"],
-.gallery-selection-bar--compact .gallery-selection-bar__cancel,
-.gallery-selection-bar--compact .gallery-selection-bar__cancel:hover {
+.gallery-selection-bar--compact .gallery-selection-bar__cancel {
   color: inherit;
 }
 
@@ -599,8 +583,8 @@
 @media (min-width: 641px) {
   .gallery-selection-bar--compact .gallery-selection-bar__action:disabled,
   .gallery-selection-bar--compact .gallery-selection-bar__cancel:disabled {
-    color: var(--text-muted);
-    opacity: 1;
+    color: var(--text-on-accent);
+    opacity: 0.5;
   }
 
   .gallery-selection-bar--compact .gallery-selection-bar__action:disabled svg {
@@ -775,19 +759,12 @@
 @media (min-width: 1600px) { .gallery-date-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); } }
 @media (min-width: 1920px) { .gallery-date-grid { grid-template-columns: repeat(8, minmax(0, 1fr)); } }
 @media (min-width: 2400px) { .gallery-date-grid { grid-template-columns: repeat(9, minmax(0, 1fr)); } }
-.gallery-page__media-option[aria-current="page"] { color: #F4F3EE; }
-.gallery-page__media-option[href] { text-align: center; text-decoration: none; }
-
-.gallery-navigation__item { flex: 1; min-width: 0; }
-.gallery-navigation__item .gallery-page__media-option { display: block; }
-
 .gallery-layout { display: flex; flex: 1 1 0; flex-direction: column; height: 100%; min-height: 0; }
 .gallery-layout__header { box-sizing: border-box; flex: none; margin-inline: auto; max-width: calc(var(--page-content-max-width) + 2 * var(--page-gutter)); padding: var(--page-padding-top) var(--page-gutter) 0; width: 100%; }
 .gallery-layout__header .gallery-page__header { margin-bottom: var(--page-section-gap); }
 .gallery-layout__content { display: flex; flex: 1 1 0; flex-direction: column; min-height: 0; }
 .gallery-layout .gallery-page__fixed-layout { padding-top: 0; }
 .gallery-layout .gallery-page--trash .gallery-page__content { padding-top: var(--shadow-space); }
-.navigation-highlight .gallery-page__media-option[aria-current="page"] { color: #F4F3EE; }
 @media (max-width: 640px) { .gallery-layout__header { padding: var(--page-padding-top) var(--page-gutter) 0; } }
 
 /* Keep page actions outside page snapshots and loading overlays. */
@@ -808,8 +785,12 @@
 .page-action-bar__item {
   display: flex;
   flex-shrink: 0;
+  left: 50%;
   overflow: hidden;
-  position: relative;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
 }
 .page-action-bar .gallery-selection-bar--compact {
   flex: none;
@@ -821,23 +802,8 @@
 .page-action-bar__item > .gallery-selection-bar:empty { display: none; }
 .page-action-bar__item > .gallery-selection-bar:not([data-exiting]) { position: relative; z-index: 1; }
 .page-action-bar__item > [data-exiting] { position: absolute; inset: 0 auto auto 0; pointer-events: none; }
+.page-action-bar__item > [data-exiting]:only-child,
+.page-action-bar__item:has(> .gallery-selection-bar--selection-only:not(:has(.gallery-selection-bar__selection-actions))) > [data-exiting] { position: relative; }
+.page-action-bar__item:has(> [data-exiting]:only-child),
+.page-action-bar__item:has(> .gallery-selection-bar--selection-only:not(:has(.gallery-selection-bar__selection-actions))) { justify-content: center; }
 
-/* Match action bars to the shared control shape and hover colors. */
-:root .page-action-bar .gallery-selection-bar--compact {
-  border-radius: var(--control-radius);
-}
-
-:root .page-action-bar .gallery-selection-bar--compact :is(.gallery-selection-bar__action, .gallery-selection-bar__cancel) {
-  border-radius: var(--control-radius);
-}
-
-@media (hover: hover) {
-  :root .page-action-bar .gallery-selection-bar--compact :is(.gallery-selection-bar__action, .gallery-selection-bar__cancel):hover:not(:disabled) {
-    background: var(--surface-hover);
-    color: var(--text);
-  }
-
-  :root .page-action-bar .gallery-selection-bar--compact :is(.gallery-selection-bar__action, .gallery-selection-bar__cancel):hover:not(:disabled) svg {
-    color: currentColor;
-  }
-}

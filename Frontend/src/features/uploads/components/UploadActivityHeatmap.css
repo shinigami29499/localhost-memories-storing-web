@@ -112,43 +112,28 @@
   justify-self: center;
   align-self: center;
   border-radius: 2px;
-  background: var(--surface-raised);
+  background: #fff;
+  box-shadow: inset 0 0 0 1px var(--surface-raised);
 }
 
 .upload-activity__day--1 {
-  background: color-mix(in srgb, var(--accent) 25%, var(--surface-raised));
+  background: var(--surface-raised);
+}
+
+.upload-activity__day:not(.upload-activity__day--0) {
+  box-shadow: none;
 }
 
 .upload-activity__day--2 {
-  background: color-mix(in srgb, var(--accent) 50%, var(--surface-raised));
+  background: var(--border);
 }
 
 .upload-activity__day--3 {
-  background: color-mix(in srgb, var(--accent) 75%, var(--surface-raised));
+  background: color-mix(in srgb, var(--accent) 65%, white);
 }
 
 .upload-activity__day--4 {
   background: var(--accent);
-}
-
-:root .upload-activity__day {
-  background: var(--surface-raised);
-}
-
-:root .upload-activity__day--1 {
-  background: #C8A796;
-}
-
-:root .upload-activity__day--2 {
-  background: #C8A796;
-}
-
-:root .upload-activity__day--3 {
-  background: #C8A796;
-}
-
-:root .upload-activity__day--4 {
-  background: #6A3F36;
 }
 
 .upload-activity__status,

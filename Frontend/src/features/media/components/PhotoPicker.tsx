@@ -2,10 +2,10 @@ import { useEffect, useId, useRef, useState } from "react";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CustomDialog as Dialog, useCustomDialog } from "../../../components/ui/CustomDialog";
 import * as Tabs from "@radix-ui/react-tabs";
-import { Highlight, HighlightItem } from "@animate-ui/react/primitives/effects/highlight";
+import { HighlightItem } from "@animate-ui/react/primitives/effects/highlight";
 import { AnimateIcon } from "../../../components/animate-ui/icons/icon";
 import { UploadLift } from "../../../components/animate-ui/icons/upload-lift";
-import { Button, ErrorState, Spinner, showToast } from "../../../components/ui";
+import { Button, ErrorState, NavigationHighlight, Spinner, showToast } from "../../../components/ui";
 import { useLocale } from "../../../context/LocaleContext";
 import { useDialogViewportStyle } from "../../../hooks/useDialogViewportStyle";
 import { mediaPreviewUrl } from "../../../utils/media";
@@ -186,17 +186,17 @@ export function PhotoPicker({
               setSource(value === "preview" ? "preview" : "gallery");
               bodyRef.current?.scrollTo({ top: 0 });
             }}>
-              <Tabs.List className="photo-picker__tab-list" aria-label={t("Photo source")}>
-                <Highlight value={source} controlledItems className="photo-picker__highlight">
+              <Tabs.List className="navigation-highlight-bar photo-picker__tab-list" aria-label={t("Photo source")}>
+                <NavigationHighlight value={source}>
                   {sources.map(({ value, label }) => (
-                    <HighlightItem key={value} value={value} className="photo-picker__tab-item">
-                      <Tabs.Trigger id={`${tabId}-${value}`} className="photo-picker__tab" value={value}
+                    <HighlightItem key={value} value={value} asChild>
+                      <Tabs.Trigger id={`${tabId}-${value}`} value={value}
                         disabled={busy || !initialized}>
                         {t(label)}
                       </Tabs.Trigger>
                     </HighlightItem>
                   ))}
-                </Highlight>
+                </NavigationHighlight>
               </Tabs.List>
               <div ref={bodyRef} className="place-picker__body" role="tabpanel" tabIndex={-1} aria-labelledby={`${tabId}-${source}`}
                 onScroll={(event) => {

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Marker } from "react-map-gl/mapbox";
+import { Marker, useMap } from "react-map-gl/mapbox";
 import { AnimateIcon } from "../../../components/animate-ui/icons/icon";
 import { Home } from "../../../components/animate-ui/icons/home";
 import { ConfirmationDialog, showToast } from "../../../components/ui";
@@ -19,6 +19,8 @@ interface Props {
 type Action = { type: "remove" } | { type: "move"; location: HomeLocation };
 
 export function HomeLocationMarker({ location, variant, onClick, onHoverChange }: Props) {
+  const { current: map } = useMap();
+  const [screenY, setScreenY] = useState(0);
   const { t } = useLocale();
   const userId = useAuthStore((state) => state.user?.id);
   const home = useHomeLocation(userId);
@@ -91,6 +93,14 @@ export function HomeLocationMarker({ location, variant, onClick, onHoverChange }
     }
   };
   const position = action?.type === "move" ? action.location : location;
+  useEffect(() => {
+    if (!map || typeof map.project !== "function") return;
+    const update = () => setScreenY(map.project([position.longitude, position.latitude]).y);
+    update();
+    map.on("move", update);
+    map.on("resize", update);
+    return () => { map.off("move", update); map.off("resize", update); };
+  }, [map, position.latitude, position.longitude]);
   const drag = useMarkerDrag(position, (nextLocation) => {
     cancelHold();
     suppressClick.current = true;
@@ -104,8 +114,7 @@ export function HomeLocationMarker({ location, variant, onClick, onHoverChange }
         latitude={position.latitude}
         longitude={position.longitude}
         anchor="bottom"
-        style={{ zIndex: 21 }}
-        onClick={(event) => event.originalEvent.stopPropagation()}
+        style={{ zIndex: Math.round(screenY * 10) + 1 }}
       >
         <div className={`${variant}__marker home-location-marker`}
           style={{ translate: `${drag.offset.x}px ${drag.offset.y}px` }}

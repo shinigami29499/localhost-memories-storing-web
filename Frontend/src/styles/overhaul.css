@@ -160,41 +160,6 @@ textarea, select { min-height: 44px; border-radius: 6px; }
 }
 .gallery-page .gallery-page__content { padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
 
-.gallery-selection-bar,
-.gallery-selection-bar--compact {
-  --selection-bar-hover: #F8E4BE;
-  background: var(--accent);
-  color: var(--text-on-accent);
-  border: 1px solid var(--border-control);
-  border-radius: 8px;
-  box-shadow: none;
-}
-
-.gallery-selection-bar--compact .gallery-selection-bar__count { color: var(--text-on-accent); }
-.gallery-selection-bar .gallery-selection-bar__action:hover:not(:disabled):not(.gallery-selection-bar__action--danger),
-.gallery-selection-bar .gallery-selection-bar__cancel:hover { color: var(--text); }
-
-.gallery-selection-bar__action,
-.gallery-selection-bar__cancel { min-height: 44px; }
-
-.gallery-page__media-filters { border: 1px solid var(--border-control); border-radius: 8px; box-shadow: none; }
-.gallery-page__media-option { min-height: 44px; border-radius: 6px; color: var(--text); }
-:root .gallery-page__media-filters > .gallery-page__media-option:is([aria-selected="true"], [aria-pressed="true"]) {
-  background: var(--accent);
-  color: var(--text-on-accent);
-  font-weight: 700;
-}
-
-:root .navigation-highlight > :is(.gallery-page__media-option[aria-current="page"], .place__view-option[aria-pressed="true"], .admin-users__tab[aria-selected="true"]) {
-  background: transparent;
-  color: var(--text-on-accent);
-}
-
-:is(.admin-users__filters, .place__view-switch, .gallery-page__media-filters) .navigation-highlight > :is(.admin-users__tab, .place__view-option, .gallery-page__media-option) {
-  min-height: 31px;
-  padding-block: 2px;
-}
-
 .bottom-navigation { display: none; }
 
 @media (max-width: 1199px) and (min-width: 768px) {
@@ -310,14 +275,12 @@ textarea, select { min-height: 44px; border-radius: 6px; }
 :root { --control-radius: 6px; }
 
 :root :is(button, [role="button"], .btn, .sidebar__link,
-  .gallery-page__media-highlight, .admin-tab-highlight, .gallery-page__media-filters,
-  .place__view-switch, .admin-users__filters):not(.place__marker):not(.locations__marker):not(.place__color-option),
-:root .navigation-highlight__indicator::before {
+  .admin-tab-highlight):not(.place__marker):not(.locations__marker):not(.place__pin):not(.locations__pin):not(.place__home-pin):not(.locations__home-pin):not(.place__color-option) {
   border-radius: var(--control-radius);
 }
 
 @media (hover: hover) {
-  :root :is(button, [role="button"], .btn, .sidebar__link):hover:not(.navigation-highlight *):not(:disabled):not([aria-disabled="true"]):not(.place__marker):not(.locations__marker):not(.place__color-option) {
+  :root :is(button, [role="button"], .btn, .sidebar__link):hover:not(.navigation-highlight *):not(.map-navigation *):not(.place__location-search *):not(.gallery-selection-bar__action):not(.gallery-selection-bar__cancel):not(:disabled):not([aria-disabled="true"]):not(.place__marker):not(.locations__marker):not(.place__pin):not(.locations__pin):not(.place__home-pin):not(.locations__home-pin):not(.place__color-option) {
     background-color: var(--surface-hover);
     color: var(--text);
   }

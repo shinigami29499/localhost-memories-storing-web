@@ -187,7 +187,7 @@ export function UploadManagementPage() {
   }, [unread.syncSeenStatus]);
 
   return (
-    <main className="upload-page" aria-labelledby="upload-page-title">
+    <main className="upload-page" aria-label={t("Upload")}>
       <div className="upload-page__content">
         <input
           ref={retryInput}
@@ -200,12 +200,6 @@ export function UploadManagementPage() {
             event.currentTarget.value = "";
           }}
         />
-        <header className="upload-page__header">
-          <div>
-            <h1 id="upload-page-title">{t("Upload")}<span className="brand__dot">.</span></h1>
-            <p>{t("Upload images and videos.")}</p>
-          </div>
-        </header>
 
         <div className="upload-page__toolbar">
           <input

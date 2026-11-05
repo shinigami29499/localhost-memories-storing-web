@@ -128,10 +128,11 @@ export function useMapAppearance() {
   return { lighting, colorTheme, selectLighting, selectColorTheme };
 }
 
-export function getMapAppearanceConfig(lighting: MapLighting, colorTheme: MapColorTheme) {
+export function getMapAppearanceConfig(lighting: MapLighting, colorTheme: MapColorTheme, show3dObjects = true) {
   const colors = customThemes[colorTheme];
   return {
     lightPreset: lighting,
+    show3dObjects,
     theme: colorTheme === "mono" ? "monochrome" : colors ? "default" : colorTheme,
     ...(colors ?? {}),
   };
@@ -140,7 +141,8 @@ export function getMapAppearanceConfig(lighting: MapLighting, colorTheme: MapCol
 export function MapAppearanceConfig({
   lighting,
   colorTheme,
-}: Pick<ReturnType<typeof useMapAppearance>, "lighting" | "colorTheme">) {
+  show3dObjects,
+}: Pick<ReturnType<typeof useMapAppearance>, "lighting" | "colorTheme"> & { show3dObjects: boolean }) {
   const { current: mapRef } = useMap();
 
   useEffect(() => {
@@ -150,7 +152,7 @@ export function MapAppearanceConfig({
     const applyAppearance = () => {
       if (!map.isStyleLoaded() || map.getConfig("basemap") == null) return;
 
-      map.setConfig("basemap", getMapAppearanceConfig(lighting, colorTheme));
+      map.setConfig("basemap", getMapAppearanceConfig(lighting, colorTheme, show3dObjects));
     };
 
     map.on("style.load", applyAppearance);
@@ -158,7 +160,7 @@ export function MapAppearanceConfig({
     return () => {
       map.off("style.load", applyAppearance);
     };
-  }, [mapRef, lighting, colorTheme]);
+  }, [mapRef, lighting, colorTheme, show3dObjects]);
 
   return null;
 }

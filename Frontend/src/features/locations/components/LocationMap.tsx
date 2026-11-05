@@ -337,8 +337,7 @@ function PhotoMarkerItem({ item, index, selected, canMove, onSelect, onMove, hid
 }) {
   const { t } = useLocale();
   const [hovered, setHovered] = useState(false);
-  const colors = ["#C8A796", "#F8E4BE", "#EEA988", "#F4F3EE"];
-  const color = colors[Array.from(item.id).reduce((hash, char) => (hash * 31 + char.charCodeAt(0)) >>> 0, 0) % colors.length];
+  const color = photoMarkerColor(item.id);
   return <div className="locations__marker" data-selected={selected}
     style={{ "--fan-index": index, "--marker-color": color } as CSSProperties}
     onPointerEnter={() => setHovered(true)} onPointerLeave={() => setHovered(false)}
@@ -349,6 +348,11 @@ function PhotoMarkerItem({ item, index, selected, canMove, onSelect, onMove, hid
       <div><small>{t("By {username}", { username: item.ownerUsername ?? t("Unknown") })}</small></div>
     </article>}
   </div>;
+}
+
+function photoMarkerColor(id: string) {
+  const colors = ["#C8A796", "#F8E4BE", "#EEA988", "#F4F3EE"];
+  return colors[Array.from(id).reduce((hash, char) => (hash * 31 + char.charCodeAt(0)) >>> 0, 0) % colors.length];
 }
 
 function PhotoClusterMarker({ cluster, selected, onSelect, canMove, onMove, homeExpanded, nearHome, onHomeHoverChange, hidePreview }: {
@@ -365,12 +369,9 @@ function PhotoClusterMarker({ cluster, selected, onSelect, canMove, onMove, home
   const { t } = useLocale();
   const [open, setOpen] = useState(false);
   const [page, setPage] = useState(0);
-  useEffect(() => { setPage(0); }, [selected?.id]);
   const count = cluster.items.length;
   const selectedIndex = cluster.items.findIndex((item) => item.id === selected?.id);
-  const ordered = selectedIndex > 0
-    ? [cluster.items[selectedIndex], ...cluster.items.filter((_, index) => index !== selectedIndex)]
-    : cluster.items;
+  const ordered = cluster.items;
   const pageCount = Math.ceil(count / MAX_FANNED_PHOTOS);
   const currentPage = page % Math.max(1, pageCount);
   const fanned = ordered.slice(currentPage * MAX_FANNED_PHOTOS, (currentPage + 1) * MAX_FANNED_PHOTOS);
@@ -384,15 +385,7 @@ function PhotoClusterMarker({ cluster, selected, onSelect, canMove, onMove, home
       data-home-expanded={homeExpanded}
       data-near-home={nearHome}
       data-selected={selectedIndex >= 0}
-      style={{ "--fan-count": fanned.length, "--fan-step": `${step}deg` } as CSSProperties}
-      onMouseEnter={(event) => {
-        const marker = event.currentTarget.closest<HTMLElement>(".mapboxgl-marker");
-        if (marker) marker.style.zIndex = "30";
-      }}
-      onMouseLeave={(event) => {
-        const marker = event.currentTarget.closest<HTMLElement>(".mapboxgl-marker");
-        if (marker) marker.style.zIndex = cluster.items.some((item) => item.id === selected?.id) ? "30" : "1";
-      }}
+      style={{ "--fan-count": fanned.length, "--fan-step": `${step}deg`, "--counter-color": nearHome ? "#000" : "#6A3F36" } as CSSProperties}
       onPointerEnter={() => { setOpen(true); onHomeHoverChange?.(true); }}
       onPointerLeave={() => { setOpen(false); onHomeHoverChange?.(false); }}
       onFocus={() => { setOpen(true); onHomeHoverChange?.(true); }}
@@ -403,11 +396,7 @@ function PhotoClusterMarker({ cluster, selected, onSelect, canMove, onMove, home
           canMove={canMove} onSelect={onSelect} onMove={onMove} hidePreview={hidePreview} />
       ))}
       {count > 1 && (
-        <button type="button" className="locations__cluster-toggle" aria-expanded={expanded}
-          title={t("{count} photos here", { count })} aria-label={t("{count} photos here", { count })}
-          onClick={() => setOpen((value) => !value)}>
-          <span className="locations__cluster-count" aria-hidden="true">{count}</span>
-        </button>
+        <span className="locations__cluster-count" aria-label={t("{count} photos here", { count })}>{count}</span>
       )}
       {expanded && pageCount > 1 && <button type="button" className="place__cluster-next"
         aria-label={t("Show next markers")} title={t("Show next markers")}
@@ -439,9 +428,9 @@ export function PhotoMarkers({ media, selected, ready, onSelect, canMove, onMove
     const update = () => setProject(() => (location: PhotoLocation) => map.project([location.longitude, location.latitude]));
     update();
     if (typeof map.on !== "function") return;
-    map.on("moveend", update);
+    map.on("move", update);
     map.on("resize", update);
-    return () => { map.off("moveend", update); map.off("resize", update); };
+    return () => { map.off("move", update); map.off("resize", update); };
   }, [map, ready]);
   const clusters = useMemo(() => {
     const container = map?.getContainer();
@@ -466,7 +455,7 @@ export function PhotoMarkers({ media, selected, ready, onSelect, canMove, onMove
           latitude={nearHome && homeLocation ? homeLocation.latitude : cluster.latitude}
           longitude={nearHome && homeLocation ? homeLocation.longitude : cluster.longitude}
           anchor="bottom"
-          style={{ zIndex: cluster.items.some((item) => item.id === selected?.id) ? 30 : 1 }}
+          style={{ zIndex: Math.round((project?.(nearHome && homeLocation ? homeLocation : cluster).y ?? 0) * 10) }}
           onClick={(event) => event.originalEvent.stopPropagation()}
         >
           <PhotoClusterMarker cluster={cluster}
@@ -477,8 +466,8 @@ export function PhotoMarkers({ media, selected, ready, onSelect, canMove, onMove
         </Marker>
         {nearHome && homeLocation && (cluster.items.length === 1 || !homeExpanded) && (
           <Marker latitude={homeLocation.latitude} longitude={homeLocation.longitude} anchor="bottom"
-            style={{ zIndex: 22, pointerEvents: "none" }}>
-            <div className="locations__cluster" aria-hidden="true">
+            style={{ zIndex: Math.round((project?.(homeLocation).y ?? 0) * 10) + 2, pointerEvents: "none" }}>
+            <div className="locations__cluster" style={{ "--counter-color": "#000" } as CSSProperties} aria-hidden="true">
               <span className="locations__cluster-count">{cluster.items.length}</span>
             </div>
           </Marker>
@@ -525,9 +514,6 @@ function MapContent({
     setHasInitialCenter(hasCenter);
     setInitialLocationResolved(true);
   }, []);
-  const styleUrl = mapStyle === "3d"
-    ? "mapbox://styles/mapbox/standard"
-    : "mapbox://styles/mapbox/streets-v12";
 
   useEffect(() => {
     const closeOnOutsideClick = (event: PointerEvent) => {
@@ -577,8 +563,8 @@ function MapContent({
         ref={mapRef}
         mapboxAccessToken={token}
         attributionControl={false}
-        mapStyle={styleUrl}
-        config={{ basemap: getMapAppearanceConfig(mapAppearance.lighting, mapAppearance.colorTheme) }}
+        mapStyle="mapbox://styles/mapbox/standard"
+        config={{ basemap: getMapAppearanceConfig(mapAppearance.lighting, mapAppearance.colorTheme, mapStyle === "3d") }}
         initialViewState={{ latitude: 20, longitude: 0, zoom: 2, pitch: 0, bearing: 0 }}
         cursor={!navigationOpen && (editable || homePicking) ? "crosshair" : undefined}
         cooperativeGestures={false}
@@ -592,7 +578,7 @@ function MapContent({
         onClick={(event) => {
           if (navigationOpen || scenesRef.current?.open || appearanceRef.current?.open
             || document.querySelector('[role="dialog"], [role="alertdialog"], dialog[open]')) return;
-          const place = findPlaceAt(event, mapStyle === "3d" ? "standard" : "classic");
+          const place = findPlaceAt(event, "standard");
           const point = event.lngLat.wrap();
           const location = place ?? { latitude: point.lat, longitude: point.lng };
           if (homePicking) onPickHome(location);
@@ -602,6 +588,7 @@ function MapContent({
         <MapAppearanceConfig
           lighting={mapAppearance.lighting}
           colorTheme={mapAppearance.colorTheme}
+          show3dObjects={mapStyle === "3d"}
         />
         <GeolocateControl
           position="bottom-right"

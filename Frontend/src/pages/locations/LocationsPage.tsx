@@ -94,7 +94,7 @@ export function LocationsPage() {
     };
     const onPointerDown = (event: PointerEvent) => {
       if (!(event.target instanceof Element) || hasOpenDialog()
-        || workspaceRef.current?.contains(event.target)) return;
+        || workspaceRef.current?.contains(event.target) || event.target.closest(".map-navigation__toolbar")) return;
       clearSelection();
     };
     document.addEventListener("keydown", onKeyDown, true);
@@ -110,7 +110,7 @@ export function LocationsPage() {
     const dismissPreview = (event: MouseEvent) => {
       if (!(event.target instanceof Element)
         || document.querySelector('[role="dialog"], [role="alertdialog"]')
-        || event.target.closest(".locations__marker, .locations__cluster-toggle, .locations__map-home-control, .map-navigation")) return;
+        || event.target.closest(".locations__marker, .locations__cluster-toggle, .locations__map-home-control, .map-navigation, .map-navigation__toolbar")) return;
       clearSelection();
     };
     document.addEventListener("click", dismissPreview);
@@ -233,11 +233,6 @@ export function LocationsPage() {
   };
   return (
     <main className="locations">
-        <header className="locations__header">
-          <p className="locations__eyebrow">{t("Your library")}</p>
-          <h1>{t("Scenery")}<span className="brand__dot">.</span></h1>
-          <p>{t("Places we have been to")}</p>
-        </header>
         <div className="locations__content">
           <div className="locations__inner">
             {homePicking && (

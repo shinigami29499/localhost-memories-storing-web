@@ -465,46 +465,6 @@
   max-width: var(--page-content-max-width);
 }
 
-.admin-users__filters {
-  background: var(--surface-raised);
-  border-radius: 999px;
-  box-shadow: none;
-  display: flex;
-  padding: 4px;
-  width: 100%;
-}
-
-:root .admin-users__filters { background: var(--surface-hover); }
-
-.admin-users__tab {
-  background: transparent;
-  border: 0;
-  border-radius: 999px;
-  color: var(--text-muted);
-  cursor: pointer;
-  flex: 1;
-  font: inherit;
-  font-weight: 600;
-  line-height: 1.5;
-  padding: 4px 16px;
-  white-space: nowrap;
-}
-
-.admin-users__tab[aria-selected="true"] {
-  color: #F4F3EE;
-}
-
-.admin-users__tab:focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 2px;
-}
-
-.admin-users__tab span {
-  font-size: 0.75rem;
-  font-variant-numeric: tabular-nums;
-  opacity: 0.72;
-}
-
 .admin-users__table th {
   padding-bottom: 8px;
   padding-top: 10px;

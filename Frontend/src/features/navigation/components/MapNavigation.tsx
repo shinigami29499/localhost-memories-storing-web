@@ -1,7 +1,9 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useShouldReduceMotion } from "@animate-ui/react/utils/motion";
 import { Layer, Marker, Source, useMap } from "react-map-gl/mapbox";
 import { Button } from "../../../components/ui";
+import { PageActionButton } from "../../../components/layout/PageActionButton";
+import { PageActionBar } from "../../../components/layout/PageActionBar";
 import { AnimateIcon, AnimatedAction, useAnimateIconOnChange } from "../../../components/animate-ui/icons/icon";
 import { XIcon } from "../../../components/animate-ui/icons/x";
 import { Compass } from "../../../components/animate-ui/icons/compass";
@@ -12,8 +14,8 @@ import { useLocale } from "../../../context/LocaleContext";
 import { useMediaQuery } from "../../../hooks/useMediaQuery";
 import { useNavigation } from "../hooks/useNavigation";
 import type { Coordinate, NavigationDestination } from "../services/directionsService";
-import { GoogleMapsLink, NavigationModeSelect } from "./NavigationOptions";
-import { distanceBetween, routeProgress } from "../utils/routeProgress";
+import { GoogleMapsLink } from "./NavigationOptions";
+import "../../../pages/gallery/gallery.css";
 import "./mapNavigation.css";
 
 function getNavigationPortal() {
@@ -21,7 +23,6 @@ function getNavigationPortal() {
 }
 
 interface Props {
-  libraryColors?: boolean;
   destination: NavigationDestination;
   accessToken: string;
   homeLocation?: Coordinate | null;
@@ -45,68 +46,56 @@ export function NavigationToolbar({ onEdit, onNavigate, onCancel, editAction = "
     true,
   );
   return (
-    <div className="map-navigation__toolbar">
+    <PageActionBar className="map-navigation__toolbar" role="group" aria-label={t("Navigation")}>
       <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
-        <Button type="button" variant="ghost" aria-label={t(editLabel)} title={t(editLabel)} disabled={!onEdit} onClick={onEdit}>
+        <PageActionButton aria-label={t(editLabel)} title={t(editLabel)} disabled={!onEdit} onClick={onEdit}>
           <AnimatedAction animationRevision={actionAnimationRevision}>
             {editAction === "add" ? <Plus size={20} aria-hidden="true" /> : editAction === "confirm" ? <Check size={20} aria-hidden="true" /> : <Pencil size={20} aria-hidden="true" />}
           </AnimatedAction>
-        </Button>
+        </PageActionButton>
       </AnimateIcon>
-      <span className="map-navigation__divider" aria-hidden="true" />
+      <span className="gallery-selection-bar__divider" aria-hidden="true" />
       <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
-        <Button type="button" variant="ghost" className="map-navigation__trigger" disabled={!onNavigate} onClick={onNavigate}>
+        <PageActionButton className="map-navigation__trigger" disabled={!onNavigate} onClick={onNavigate}>
           <AnimatedAction animationRevision={actionAnimationRevision}><Compass size={22} aria-hidden="true" /></AnimatedAction> {t("Navigate")}
-        </Button>
+        </PageActionButton>
       </AnimateIcon>
-      <span className="map-navigation__divider" aria-hidden="true" />
+      <span className="gallery-selection-bar__divider" aria-hidden="true" />
       <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
-        <Button type="button" variant="ghost" className="map-navigation__dismiss" aria-label={t("Cancel")} title={t("Cancel")} disabled={!onCancel} onClick={onCancel}>
+        <PageActionButton className="map-navigation__dismiss" aria-label={t("Cancel")} title={t("Cancel")} disabled={!onCancel} onClick={onCancel}>
           <AnimatedAction animationRevision={actionAnimationRevision}><XIcon size={20} aria-hidden="true" /></AnimatedAction>
-        </Button>
+        </PageActionButton>
       </AnimateIcon>
-    </div>
+    </PageActionBar>
   );
-}
-
-export function AddNavigationToolbar({ onAdd, disabled }: { onAdd: () => void; disabled?: boolean }) {
-  const { t } = useLocale();
-  return createPortal(<section className="map-navigation map-navigation--library-colors" aria-label={t("Navigation")} data-expanded={false}>
-    <div className="map-navigation__toolbar map-navigation__toolbar--add">
-      <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
-        <Button type="button" variant="ghost" aria-label={t("Add")} title={t("Add")} disabled={disabled} onClick={onAdd}><Plus size={20} aria-hidden="true" /></Button>
-      </AnimateIcon>
-    </div>
-  </section>, getNavigationPortal());
 }
 
 export function DisabledNavigationToolbar() {
-  const { t } = useLocale();
-  return createPortal(
-    <section className="map-navigation" aria-label={t("Navigation")} data-expanded={false}><NavigationToolbar /></section>,
-    getNavigationPortal(),
-  );
+  return <NavigationToolbar />;
 }
 
-export function MapNavigation({ libraryColors = false, destination, accessToken, homeLocation, onOpenChange, onMapboxPreviewChange, onEdit, editAction, onCancel }: Props) {
+export function MapNavigation({ destination, accessToken, homeLocation, onOpenChange, onMapboxPreviewChange, onEdit, editAction, onCancel }: Props) {
   const { t, language } = useLocale();
   // Changing the destination or language must cancel requests and release the GPS watch.
   return <NavigationSession
     key={`${destination.latitude}:${destination.longitude}:${language}:${accessToken}`}
-    libraryColors={libraryColors} destination={destination} accessToken={accessToken} homeLocation={homeLocation}
+    destination={destination} accessToken={accessToken} homeLocation={homeLocation}
     onOpenChange={onOpenChange} name={t("Navigation")}
     onMapboxPreviewChange={onMapboxPreviewChange}
     onEdit={onEdit} editAction={editAction} onCancel={onCancel}
   />;
 }
 
-function NavigationSession({ libraryColors, destination, accessToken, homeLocation, onOpenChange, onMapboxPreviewChange, onEdit, editAction, onCancel, name }: Props & { name: string }) {
+function NavigationSession({ destination, accessToken, homeLocation, onOpenChange, onMapboxPreviewChange, onEdit, editAction, onCancel, name }: Props & { name: string }) {
   const { t, language } = useLocale();
   const { current: map } = useMap();
   const mobile = useMediaQuery("(max-width: 640px)");
+  const shouldReduceMotion = useShouldReduceMotion();
   const navigation = useNavigation(destination, accessToken, language, homeLocation);
-  const { route, position, tracking, loading, locating, arrived, error } = navigation;
+  const { route, position, tracking, loading, locating, error } = navigation;
   const [expanded, setExpanded] = useState(false);
+  const onOpenChangeRef = useRef(onOpenChange);
+  onOpenChangeRef.current = onOpenChange;
   const restoreFocus = useRef(false);
   const id = useId();
   const sourceId = `navigation-${id}`;
@@ -115,26 +104,17 @@ function NavigationSession({ libraryColors, destination, accessToken, homeLocati
     properties: {},
     geometry: { type: "LineString" as const, coordinates: route.coordinates },
   } : null, [route]);
-  const progress = useMemo(() => route && position ? routeProgress(route, position) : null, [route, position]);
   const busy = loading || locating;
   const gpsUnreliable = tracking && navigation.gpsUnreliable;
-  const endpoint = route?.coordinates[route.coordinates.length - 1];
-  const destinationGap = endpoint
-    ? distanceBetween({ longitude: endpoint[0], latitude: endpoint[1] }, destination) : 0;
-  const arrivalGap = position ? distanceBetween(position, destination) : 0;
-  const formatDistance = (meters: number) => meters >= 1000
-    ? t("{distance} km", { distance: (meters / 1000).toFixed(1) })
-    : t("{distance} m", { distance: Math.round(meters) });
-  const formatDuration = (seconds: number) => t("{minutes} min", { minutes: Math.max(1, Math.ceil(seconds / 60)) });
 
   useEffect(() => {
-    onOpenChange(expanded);
+    onOpenChangeRef.current(expanded);
     if (!expanded && restoreFocus.current) {
       restoreFocus.current = false;
       getNavigationPortal().querySelector<HTMLButtonElement>(".map-navigation__trigger")?.focus();
     }
-  }, [expanded, onOpenChange]);
-  useEffect(() => () => onOpenChange(false), [onOpenChange]);
+  }, [expanded]);
+  useEffect(() => () => onOpenChangeRef.current(false), []);
   useEffect(() => {
     onMapboxPreviewChange?.(navigation.mapboxPreview);
   }, [navigation.mapboxPreview, onMapboxPreviewChange]);
@@ -160,9 +140,9 @@ function NavigationSession({ libraryColors, destination, accessToken, homeLocati
       maxZoom: 16,
       pitch: 0,
       bearing: 0,
-      duration: 0,
+      duration: shouldReduceMotion ? 0 : 400,
     });
-  }, [map, route, mobile]);
+  }, [map, route, mobile, shouldReduceMotion]);
 
   useEffect(() => {
     if (!map || !tracking || !position || gpsUnreliable) return;
@@ -209,14 +189,8 @@ function NavigationSession({ libraryColors, destination, accessToken, homeLocati
           <span className="map-navigation__destination" role="img" aria-label={destination.name} />
         </Marker>
       )}
-      {createPortal(<div className={`map-navigation${libraryColors ? " map-navigation--library-colors" : ""}`} data-expanded="false"
-          onClick={(event) => event.stopPropagation()}
-          onPointerDown={(event) => event.stopPropagation()}
-          onDoubleClick={(event) => event.stopPropagation()}
-          onWheel={(event) => event.stopPropagation()}>
-          <NavigationToolbar onEdit={onEdit} editAction={editAction}
-            onNavigate={() => expanded ? close() : setExpanded(true)} onCancel={onCancel} />
-        </div>, getNavigationPortal())}
+      <NavigationToolbar onEdit={onEdit} editAction={editAction}
+        onNavigate={() => expanded ? close() : setExpanded(true)} onCancel={onCancel} />
       {expanded && <section className="map-navigation" aria-label={name} data-expanded="true"
         onClick={(event) => event.stopPropagation()}
         onPointerDown={(event) => event.stopPropagation()}
@@ -224,65 +198,18 @@ function NavigationSession({ libraryColors, destination, accessToken, homeLocati
         onWheel={(event) => event.stopPropagation()}
       >
           <>
-            <strong>{t("Directions to {name}", { name: destination.name })}</strong>
-            <NavigationModeSelect mode={navigation.mode} disabled={tracking || busy} onChange={navigation.setMode} />
-            {navigation.usingHomeOrigin && (
-              <p className="map-navigation__hint">
-                {t("Could not determine your current location. This route starts at your saved home location. The selected provider receives it and your destination.")}
-              </p>
-            )}
             <div className="map-navigation__actions">
-              <GoogleMapsLink destination={destination} mode={navigation.mode}
+              <GoogleMapsLink destination={destination} mode="driving"
                 origin={navigation.usingHomeOrigin ? homeLocation ?? undefined : undefined}
                 onOpen={navigation.stop} />
               {!tracking && (
-                <Button type="button" variant="secondary" busy={busy} onClick={navigation.preview}>
+                <Button type="button" variant="secondary" busy={busy} aria-pressed={navigation.mapboxPreview} onClick={navigation.preview}>
                   {t(locating ? "Finding your locationâ€¦" : loading ? "Loading routeâ€¦" : "Preview with Mapbox")}
                 </Button>
               )}
             </div>
             {error && <p role="alert">{t(error)}</p>}
             {gpsUnreliable && <p role="status">{t("Waiting for a reliable GPS signal. Guidance is paused.")}</p>}
-            {route && (
-              <>
-                <p className="map-navigation__summary">
-                  {formatDistance(arrived ? (arrivalGap > 35 ? arrivalGap : 0)
-                    : tracking && progress ? progress.remaining : route.distance)}
-                  {" Â· "}
-                  {arrived ? t("Route complete") : formatDuration(tracking && progress ? progress.duration : route.duration)}
-                </p>
-                <div role="status" aria-live="polite">
-                  {arrived ? arrivalGap > 35
-                    ? t("Route complete. Destination is {distance} away.", { distance: formatDistance(arrivalGap) })
-                    : t("You have arrived at your destination.")
-                    : loading ? t("Recalculating routeâ€¦")
-                      : tracking && !gpsUnreliable && progress?.instruction && (
-                        <p>{progress.instruction} {t("in {distance}", { distance: formatDistance(progress.nextTurnDistance) })}</p>
-                      )}
-                </div>
-                {!arrived && destinationGap > 35 && (
-                  <p className="map-navigation__hint">
-                    {t("Route ends {distance} from the destination.", { distance: formatDistance(destinationGap) })}
-                  </p>
-                )}
-                {!arrived && (
-                  tracking ? (
-                    <Button type="button" variant="secondary" onClick={navigation.stop}>{t("Stop navigation")}</Button>
-                  ) : !error && !navigation.usingHomeOrigin && position ? (
-                    <Button type="button" disabled={busy} onClick={navigation.start}>{t("Start navigation")}</Button>
-                  ) : null
-                )}
-                <details className="map-navigation__steps">
-                  <summary>{t("Turn-by-turn directions")}</summary>
-                  <ol>{route.steps.map((step, index) => (
-                    <li key={index}>{step.instruction} <small>{formatDistance(step.distance)}</small></li>
-                  ))}</ol>
-                </details>
-                <p className="map-navigation__hint">
-                  {t("Keep this page open for GPS guidance and rerouting. Follow road signs and local traffic rules.")}
-                </p>
-              </>
-            )}
           </>
       </section>}
     </>

@@ -1,4 +1,5 @@
 import { PageActionBar } from "../../components/layout/PageActionBar";
+import { PageActionButton } from "../../components/layout/PageActionButton";
 import { Link } from "react-router-dom";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
@@ -402,15 +403,15 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
               event.currentTarget.value = "";
               void uploadFiles(files);
             }} />
-              <button key="primary" type="button" className="gallery-selection-bar__action" aria-label={t("Upload media")} title={t("Upload media")}
+              <PageActionButton key="primary" aria-label={t("Upload media")} title={t("Upload media")}
                 disabled={uploading || bulkFavoriteBusy} aria-busy={uploading || undefined} onClick={() => uploadInput.current?.click()}>
                 {uploading ? <LoaderCircle size={20} className="spinner__wheel" aria-hidden="true" /> : <Plus size={20} aria-hidden="true" />}
-              </button>
+              </PageActionButton>
             {selectionMode ? (
-              <button
+              <PageActionButton
                 key="favorite"
                 type="button"
-                className="gallery-selection-bar__action gallery-selection-bar__action--favorite"
+                className="gallery-selection-bar__action--favorite"
                 aria-label={t(allSelectedFavorited ? "Remove from favorites" : "Add to favorites")}
                 title={t(allSelectedFavorited ? "Remove from favorites" : "Add to favorites")}
                 aria-pressed={allSelectedFavorited}
@@ -421,14 +422,14 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
                 {bulkFavoriteBusy
                   ? <LoaderCircle size={20} className="spinner__wheel" aria-hidden="true" />
                   : <Heart size={20} fill={allSelectedFavorited ? "currentColor" : "none"} aria-hidden="true" />}
-              </button>
+              </PageActionButton>
             ) : (
               <Link key="favorite" className="gallery-selection-bar__action" to={showingFavorites ? "/gallery" : "/gallery/favorites"} aria-label={t(showingFavorites ? "Gallery" : "Favorites")} title={t(showingFavorites ? "Gallery" : "Favorites")}><Heart size={20} fill={showingFavorites ? "currentColor" : "none"} aria-hidden="true" /></Link>
             )}
             <SelectionActions open={selectionMode}>
-                <button
+                <PageActionButton
                   type="button"
-                  className="gallery-selection-bar__action gallery-selection-bar__action--save"
+                  className="gallery-selection-bar__action--save"
                   aria-label={t("Save to album")}
                   title={t("Save to album")}
                   aria-pressed={inAlbum}
@@ -437,17 +438,17 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
                   onClick={() => setSaveDialogOpen(true)}
                 >
                   <Bookmark size={20} fill={inAlbum ? "currentColor" : "none"} aria-hidden="true" />
-                </button>
-              <button
+                </PageActionButton>
+              <PageActionButton
                 type="button"
-                className="gallery-selection-bar__action gallery-selection-bar__action--danger"
+                className="gallery-selection-bar__action--danger"
                 aria-label={t("Move to trash")}
                 title={t("Move to trash")}
                 disabled={favoriteBusy || selectedMedia.length === 0}
                 onClick={() => setDeleteDialogOpen(true)}
               >
                 <Trash2 size={20} aria-hidden="true" />
-              </button>
+              </PageActionButton>
             </SelectionActions>
           </PageActionBar>
 

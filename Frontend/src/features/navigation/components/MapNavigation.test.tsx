@@ -22,14 +22,6 @@ vi.mock("../../../components/ui", () => ({
     <button {...props} disabled={props.disabled || busy} />,
 }));
 vi.mock("../../../components/animate-ui/icons/x", () => ({ XIcon: () => <svg /> }));
-vi.mock("./NavigationOptions", async (original) => ({
-  ...await original<typeof import("./NavigationOptions")>(),
-  NavigationModeSelect: ({ mode, onChange, disabled }: {
-    mode: "driving" | "walking" | "cycling"; onChange: (mode: "driving" | "walking" | "cycling") => void; disabled?: boolean;
-  }) => <select value={mode} disabled={disabled} onChange={(event) => onChange(event.target.value as typeof mode)}>
-    <option value="driving">Driving</option><option value="walking">Walking</option><option value="cycling">Cycling</option>
-  </select>,
-}));
 vi.mock("../services/directionsService", async (original) => ({
   ...await original<typeof import("../services/directionsService")>(),
   getDirections: vi.fn(),
@@ -136,15 +128,11 @@ describe("MapNavigation", () => {
     expect(clearWatch).toHaveBeenCalledWith(42);
   });
 
-  it("requests the chosen profile when the travel mode changes", async () => {
+  it("uses driving for both directions providers", async () => {
     await preview();
-    await act(async () => {
-      const select = container.querySelector("select")!;
-      select.value = "cycling";
-      select.dispatchEvent(new Event("change", { bubbles: true }));
-    });
-    expect(new URL(container.querySelector("a")!.href).searchParams.get("travelmode")).toBe("bicycling");
-    expect(getDirections).toHaveBeenLastCalledWith(expect.anything(), destination, "cycling", "pk.test", "en", expect.any(AbortSignal));
+    expect(container.querySelector("select")).toBeNull();
+    expect(new URL(container.querySelector("a")!.href).searchParams.get("travelmode")).toBe("driving");
+    expect(getDirections).toHaveBeenLastCalledWith(expect.anything(), destination, "driving", "pk.test", "en", expect.any(AbortSignal));
   });
 
   it("routes from saved home when location permission is denied", async () => {

@@ -43,13 +43,14 @@ import type { HomeLocation } from "../../locations/types";
 import type { PlaceCoordinate, Place } from "../types";
 import type { MediaFile } from "../../media/types";
 import { PhotoMarkers } from "../../locations/components/LocationMap";
-import { AddNavigationToolbar, MapNavigation } from "../../navigation/components/MapNavigation";
+import { MapNavigation } from "../../navigation/components/MapNavigation";
 import { NavigationFallback } from "../../navigation/components/NavigationOptions";
 import { usePlace } from "../hooks/usePlaces";
 import type { PlaceMapBounds } from "../services/placeService";
 import { viewportBounds } from "../../locations/utils/mapBounds";
 
 interface Props {
+  onAddToolbarChange: (toolbar: { visible: boolean; disabled: boolean; add: () => void } | null) => void;
   settingsRef?: RefObject<PlaceMapSettings>;
   onBoundsChange?: (bounds: PlaceMapBounds) => void;
   places: Place[];
@@ -65,6 +66,7 @@ interface Props {
   draft: PlaceCoordinate | null;
   relocatingPlace?: Place | null;
   picking: boolean;
+  editorOpen?: boolean;
   homeLocation: HomeLocation | null;
   homeLocationReady: boolean;
   homePicking: boolean;
@@ -433,13 +435,10 @@ function PlaceClusterMarker({ group, selectedId, onSelect, canChange, onMove, on
   const { t } = useLocale();
   const [open, setOpen] = useState(false);
   const [page, setPage] = useState(0);
-  useEffect(() => { setPage(0); }, [selectedId]);
   const count = group.items.length;
   const selectedIndex = group.items.findIndex((place) => place.id === selectedId);
   const expanded = count === 1 || open || selectedIndex >= 0 || homeExpanded;
-  const ordered = selectedIndex > 0
-    ? [group.items[selectedIndex], ...group.items.filter((_, index) => index !== selectedIndex)]
-    : group.items;
+  const ordered = group.items;
   const pageCount = Math.ceil(count / 20);
   const currentPage = page % Math.max(1, pageCount);
   const visiblePlaces = ordered.slice(currentPage * 20, currentPage * 20 + 20);
@@ -449,19 +448,12 @@ function PlaceClusterMarker({ group, selectedId, onSelect, canChange, onMove, on
   return (
     <div className={`place__cluster${count > 1 ? " place__cluster--group" : ""}`} data-open={expanded}
       data-home-expanded={homeExpanded} data-near-home={nearHome} data-selected={selectedIndex >= 0}
-      style={{ "--fan-count": visiblePlaces.length, "--fan-step": `${step}deg` } as CSSProperties}
+      style={{ "--fan-count": visiblePlaces.length, "--fan-step": `${step}deg`, "--counter-color": nearHome ? "#000" : `color-mix(in srgb, ${ordered[0].markerColor || "#30353b"}, black 35%)` } as CSSProperties}
       onPointerEnter={() => { setOpen(true); onHomeHoverChange?.(true); }}
       onPointerLeave={() => { setOpen(false); onHomeHoverChange?.(false); }}
       onFocus={() => { setOpen(true); onHomeHoverChange?.(true); }}
       onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) { setOpen(false); onHomeHoverChange?.(false); } }}
-      onMouseEnter={(event) => {
-        const marker = event.currentTarget.closest<HTMLElement>(".mapboxgl-marker");
-        if (marker) marker.style.zIndex = "30";
-      }}
-      onMouseLeave={(event) => {
-        const marker = event.currentTarget.closest<HTMLElement>(".mapboxgl-marker");
-        if (marker) marker.style.zIndex = group.items.some((place) => place.id === selectedId) ? "30" : "1";
-      }}>
+      >
       {visiblePlaces.map((place, index) => {
         return (
           <div
@@ -478,19 +470,7 @@ function PlaceClusterMarker({ group, selectedId, onSelect, canChange, onMove, on
         );
       })}
       {count > 1 && (
-        <button
-          type="button"
-          className="place__cluster-toggle"
-          aria-expanded={expanded}
-          aria-label={toggleLabel}
-          title={toggleLabel}
-          onClick={(event) => {
-            event.stopPropagation();
-            setOpen((value) => !value);
-          }}
-        >
-          <span className="place__cluster-count" aria-hidden="true">{count}</span>
-        </button>
+        <span className="place__cluster-count" aria-label={toggleLabel}>{count}</span>
       )}
       {expanded && pageCount > 1 && <button type="button" className="place__cluster-next"
         aria-label={t("Show next markers")} title={t("Show next markers")}
@@ -519,9 +499,9 @@ function PlaceMarkers({ places, selectedId, ready, onSelect, canChange, onMove, 
     const update = () => setProject(() => (location: MapCoordinate) => map.project([location.longitude, location.latitude]));
     update();
     if (typeof map.on !== "function") return;
-    map.on("moveend", update);
+    map.on("move", update);
     map.on("resize", update);
-    return () => { map.off("moveend", update); map.off("resize", update); };
+    return () => { map.off("move", update); map.off("resize", update); };
   }, [map, ready]);
 
   const groups = useMemo(
@@ -555,7 +535,7 @@ function PlaceMarkers({ places, selectedId, ready, onSelect, canChange, onMove, 
           latitude={nearHome && homeLocation ? homeLocation.latitude : group.location.latitude}
           longitude={nearHome && homeLocation ? homeLocation.longitude : group.location.longitude}
           anchor="bottom"
-          style={{ zIndex: group.items.some((place) => place.id === selectedId) ? 30 : 1 }}
+          style={{ zIndex: Math.round((project?.(nearHome && homeLocation ? homeLocation : group.location).y ?? 0) * 10) }}
           onClick={(event) => event.originalEvent.stopPropagation()}
         >
           <PlaceClusterMarker group={group} selectedId={selectedId} onSelect={onSelect}
@@ -566,8 +546,8 @@ function PlaceMarkers({ places, selectedId, ready, onSelect, canChange, onMove, 
         </Marker>
         {nearHome && homeLocation && (group.items.length === 1 || !homeExpanded) && (
           <Marker latitude={homeLocation.latitude} longitude={homeLocation.longitude} anchor="bottom"
-            style={{ zIndex: 22, pointerEvents: "none" }}>
-            <div className="place__cluster" aria-hidden="true">
+            style={{ zIndex: Math.round((project?.(homeLocation).y ?? 0) * 10) + 2, pointerEvents: "none" }}>
+            <div className="place__cluster" style={{ "--counter-color": "#000" } as CSSProperties} aria-hidden="true">
               <span className="place__cluster-count">{group.items.length}</span>
             </div>
           </Marker>
@@ -580,11 +560,11 @@ function PlaceMarkers({ places, selectedId, ready, onSelect, canChange, onMove, 
 }
 
 function MapContent({
-  places, photos = [], selectedPhoto, photoRelocating = false, selectedId, draft, picking, relocatingPlace, homeLocation,
+  places, photos = [], selectedPhoto, photoRelocating = false, selectedId, draft, picking, editorOpen, relocatingPlace, homeLocation,
   homeLocationReady, homePicking, homeActionDisabled, onSelect, onPick, onPickHome,
   onHomeClick, onCreateAtCurrentLocation, onAddPhotos, token,
   canChange, onMove, onDelete, onEdit, onEditDraft, onConfirmRelocation, onCancelRelocation, onCancelSelection, onCancelDraft,
-  canMovePhoto, onSelectPhoto, onMovePhoto, onEditPhoto, onConfirmPhotoMove, settingsRef, onBoundsChange,
+  canMovePhoto, onSelectPhoto, onMovePhoto, onEditPhoto, onConfirmPhotoMove, settingsRef, onBoundsChange, onAddToolbarChange,
 }: Props & { token: string }) {
   const { t } = useLocale();
   const shouldReduceMotion = useShouldReduceMotion();
@@ -599,7 +579,7 @@ function MapContent({
   const [hasInitialCenter, setHasInitialCenter] = useState(false);
   const [scene, setScene] = useState<MapScene>(() => settingsRef?.current.scene ?? "3d");
   const [showMarkers, setShowMarkers] = useState(() => settingsRef?.current.showMarkers ?? true);
-  const [showPhotoMarkers, setShowPhotoMarkers] = useState(() => settingsRef?.current.showPhotoMarkers ?? true);
+  const [showPhotoMarkers, setShowPhotoMarkers] = useState(() => settingsRef?.current.showPhotoMarkers ?? false);
   const [addChoiceOpen, setAddChoiceOpen] = useState(false);
   const mapAppearance = useMapAppearance();
   const [appearanceOpen, setAppearanceOpen] = useState(false);
@@ -644,6 +624,14 @@ function MapContent({
     () => places.find((place) => place.id === selectedId),
     [places, selectedId],
   );
+  const addRef = useRef(add);
+  addRef.current = add;
+  const showAddToolbar = !loaded || homePicking || (picking && (!!selected || !draft)) || (!selected && !selectedPhoto && !draft && !editorOpen);
+  const addDisabled = !loaded || homePicking || homeActionDisabled || (!showMarkers && !showPhotoMarkers);
+  useEffect(() => {
+    onAddToolbarChange({ visible: showAddToolbar, disabled: addDisabled, add: () => addRef.current() });
+  }, [onAddToolbarChange, showAddToolbar, addDisabled]);
+  useEffect(() => () => onAddToolbarChange(null), [onAddToolbarChange]);
   useEffect(() => {
     const closeOnOutsideClick = (event: PointerEvent) => {
       if (!(event.target instanceof Node)) return;
@@ -692,8 +680,8 @@ function MapContent({
         ref={mapRef}
         mapboxAccessToken={token}
         attributionControl={false}
-        mapStyle={scene === "3d" ? "mapbox://styles/mapbox/standard" : "mapbox://styles/mapbox/streets-v12"}
-        config={{ basemap: getMapAppearanceConfig(mapAppearance.lighting, mapAppearance.colorTheme) }}
+        mapStyle="mapbox://styles/mapbox/standard"
+        config={{ basemap: getMapAppearanceConfig(mapAppearance.lighting, mapAppearance.colorTheme, scene === "3d") }}
         initialViewState={{ latitude: 20, longitude: 0, zoom: 2, pitch: 0, bearing: 0 }}
         cursor={picking || homePicking || relocating ? "crosshair" : undefined}
         cooperativeGestures={false}
@@ -707,7 +695,7 @@ function MapContent({
         onClick={(event) => {
           if (navigationOpen || scenesRef.current?.open || appearanceRef.current?.open
             || document.querySelector('[role="dialog"], [role="alertdialog"], dialog[open]')) return;
-          const place = findPlaceAt(event, scene === "3d" ? "standard" : "classic");
+          const place = findPlaceAt(event, "standard");
           const point = place
             ? { latitude: place.latitude, longitude: place.longitude }
             : (() => {
@@ -736,6 +724,7 @@ function MapContent({
         <MapAppearanceConfig
           lighting={mapAppearance.lighting}
           colorTheme={mapAppearance.colorTheme}
+          show3dObjects={scene === "3d"}
         />
         <GeolocateControl
           position="bottom-right"
@@ -770,8 +759,8 @@ function MapContent({
           ready={loaded && !navigationOpen}
           homeLocation={homeLocation} homeRequest={homeRequest} focusRequest={focusRequest} />
         <MapResizer />
-        {loaded && !homePicking && (selected && !picking || selectedPhoto && !picking || !selected && !selectedPhoto && (picking || relocating) && draft) && (
-          <MapNavigation libraryColors destination={selected
+        {loaded && !homePicking && (selected && !picking || selectedPhoto && !picking || !selected && !selectedPhoto && (picking || relocating || editorOpen) && draft) && (
+          <MapNavigation destination={selected
             ? { latitude: selected.latitude, longitude: selected.longitude, name: selected.name }
             : selectedPhoto ? { latitude: (photoRelocating && draft ? draft : selectedPhoto.location!).latitude, longitude: (photoRelocating && draft ? draft : selectedPhoto.location!).longitude, name: selectedPhoto.originalFilename }
             : { ...draft!, name: relocatingPlace?.name ?? t("New place") }}
@@ -787,8 +776,6 @@ function MapContent({
             editAction={photoRelocating || relocatingPlace || (!selected && !selectedPhoto) ? "confirm" : "edit"}
             onCancel={photoRelocating ? onCancelSelection : relocatingPlace ? onCancelRelocation : selected || selectedPhoto ? onCancelSelection : onCancelDraft} />
         )}
-        {(!loaded || homePicking || (picking && (!!selected || !draft)) || (!selected && !selectedPhoto && !draft))
-          && <AddNavigationToolbar onAdd={add} disabled={!loaded || homePicking || homeActionDisabled || (!showMarkers && !showPhotoMarkers)} />}
         {homeLocation && !relocating && (
           <HomeLocationMarker location={homeLocation} variant="place" onHoverChange={onHomeHoverChange} onClick={() => {
             mapRef.current?.easeTo({
@@ -825,7 +812,7 @@ function MapContent({
             onClick={picking ? onCancelDraft : undefined} />
         )}
       </Map>
-      <MapLoadingOverlay ready={loaded} className="map-loading-overlay" />
+      <MapLoadingOverlay ready={loaded} closeDelay={250} className="map-loading-overlay" />
       <LocationSearch
         disabled={!loaded || navigationOpen}
         onFocus={() => {
@@ -907,14 +894,24 @@ function MapContent({
           </AnimateIcon>
           <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
             <button type="button" className="place__scene" aria-pressed={showPhotoMarkers}
-              onClick={() => { if (settingsRef) settingsRef.current.showPhotoMarkers = !showPhotoMarkers; setShowPhotoMarkers(!showPhotoMarkers); }}>
+              onClick={() => {
+                const next = !showPhotoMarkers;
+                if (settingsRef) { settingsRef.current.showPhotoMarkers = next; if (next) settingsRef.current.showMarkers = false; }
+                setShowPhotoMarkers(next);
+                if (next) setShowMarkers(false);
+              }}>
               <span className="place__scene-icon" aria-hidden="true"><MapPin size={20} /></span>
               <span className="place__scene-copy"><strong>{t("Photos")}</strong></span>
             </button>
           </AnimateIcon>
           <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
             <button type="button" className="place__scene" aria-pressed={showMarkers}
-              onClick={() => { if (settingsRef) settingsRef.current.showMarkers = !showMarkers; setShowMarkers(!showMarkers); }}>
+              onClick={() => {
+                const next = !showMarkers;
+                if (settingsRef) { settingsRef.current.showMarkers = next; if (next) settingsRef.current.showPhotoMarkers = false; }
+                setShowMarkers(next);
+                if (next) setShowPhotoMarkers(false);
+              }}>
               <span className="place__scene-icon" aria-hidden="true"><Key size={20} /></span>
               <span className="place__scene-copy"><strong>{t("Places")}</strong></span>
             </button>

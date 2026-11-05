@@ -1304,3 +1304,49 @@
     grid-template-columns: 24px minmax(0, 1fr) 40px 117px;
   }
 }
+
+/* Keep upload rows compact when a half-width desktop panel has room. */
+@container (min-width: 800px) {
+  .upload-batch__summary,
+  .upload-batch__summary--admin {
+    grid-template-columns: 24px minmax(110px, 1fr) minmax(90px, 0.8fr) minmax(100px, 1fr) auto;
+    grid-template-areas: "selectall created status progress footer";
+    gap: 8px;
+  }
+
+  .upload-batch__summary--admin {
+    grid-template-columns: 24px 36px minmax(120px, 1.2fr) minmax(110px, 1fr) minmax(90px, 0.8fr) minmax(100px, 1fr) auto;
+    grid-template-areas: "selectall avatar username created status progress footer";
+  }
+
+  .upload-item,
+  .upload-item:has(.upload-item__select),
+  .upload-item--admin,
+  .upload-item--admin:has(.upload-item__select) {
+    grid-template-columns: 24px 36px minmax(120px, 1.2fr) minmax(110px, 1fr) minmax(90px, 0.8fr) minmax(100px, 1fr) auto;
+    grid-template-areas: "select icon details date status progress controls";
+    gap: 8px;
+  }
+
+  .upload-batch__value { overflow-wrap: normal; }
+  .upload-item__progress-row { grid-column-end: auto; }
+  .upload-item__action.btn { width: 36px; min-width: 36px; height: 36px; min-height: 36px; }
+}
+
+:root .upload-batch { background: var(--surface-card); }
+:root .upload-batch__summary { background: var(--surface-card-raised); }
+:root .upload-batch__summary--unread { background: var(--surface-hover); }
+.upload-page__filters .upload-page__activity-button svg { color: var(--text-on-accent); stroke: currentColor; }
+
+.upload-batch { border: 1px solid var(--border-card); }
+.upload-batch__select-all,
+.upload-item__select { align-self: center; }
+.upload-item__details { align-self: center; }
+.upload-batch__footer .upload-item__action.btn {
+  border-color: var(--border-control);
+  background: var(--surface-card);
+  color: var(--text-strong);
+}
+.upload-batch__footer .upload-item__action.btn:hover:not(:disabled) {
+  background: var(--surface-hover);
+}

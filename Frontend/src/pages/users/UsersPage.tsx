@@ -129,15 +129,8 @@ export function UsersPage() {
   return (
     <>
       <main className="admin-page admin-page--users" aria-label={t("Users")}>
-        <header className="admin-users__header">
-          <div>
-            <p className="admin-users__eyebrow">{t("Community access")}</p>
-            <h1 id="admin-users-title">{t("Users")}<span className="brand__dot">.</span></h1>
-            <p className="admin-users__description">{t("Review accounts and membership status.")}</p>
-          </div>
-        </header>
         <div className="admin-users__content">
-        <section className="admin-users" aria-labelledby="admin-users-title">
+        <section className="admin-users" aria-label={t("Users")}>
 
           <Tabs.Root
               value={filter}
@@ -152,7 +145,7 @@ export function UsersPage() {
             >
               <div className="admin-users__toolbar">
                 <Tabs.List
-                  className="admin-users__filters"
+                  className="navigation-highlight-bar"
                   aria-label={t("Filter users by status")}
                 >
                   <NavigationHighlight value={filter}>

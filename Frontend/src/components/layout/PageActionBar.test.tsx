@@ -7,6 +7,17 @@ import { PageActionBar, PageActionBarProvider } from "./PageActionBar";
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
 describe("PageActionBar", () => {
+  it("does not render inline when the footer is unavailable", async () => {
+    const container = document.createElement("div");
+    const root = createRoot(container);
+    try {
+      await act(async () => root.render(<PageActionBar><button>Navigate</button></PageActionBar>));
+      expect(container.querySelector("button")).toBeNull();
+    } finally {
+      await act(async () => root.unmount());
+    }
+  });
+
   it("renders outside hidden page content and keeps shared actions with current handlers", async () => {
     const container = document.createElement("div");
     document.body.append(container);

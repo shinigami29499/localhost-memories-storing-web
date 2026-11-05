@@ -48,16 +48,16 @@ This was a source-level audit plus a production frontend build. No rendered page
 
 `npm.cmd run build` succeeded from `Frontend/` on the existing working tree. `npm run build` initially hit PowerShell's disabled-script policy; using `npm.cmd` worked without changing policy. Installed Vite reported 6.4.5. Build took 7.24 seconds on this machine; this is not a user-facing performance metric.
 
-| Built artifact | Minified kB | Gzip kB | Meaning |
-| --- | ---: | ---: | --- |
-| Entry JS `index-ITxlaE0i.js` | 770.74 | 242.64 | Large startup entry |
-| React vendor | 78.56 | 26.58 | Preloaded by entry HTML |
-| Query vendor | 47.26 | 14.16 | Preloaded by entry HTML |
-| Motion vendor | 143.94 | 49.03 | Preloaded by entry HTML |
-| Entry CSS | 129.16 | 23.71 | Shared startup styling |
-| Mapbox GL | 1,926.29 | 545.30 | Large optional map dependency |
-| LocationMap JS | 123.45 | 38.95 | Map feature wrapper |
-| LocationMap CSS | 80.91 | 11.12 | Map styling |
+| Built artifact               | Minified kB | Gzip kB | Meaning                       |
+| ---------------------------- | ----------: | ------: | ----------------------------- |
+| Entry JS `index-ITxlaE0i.js` |      770.74 |  242.64 | Large startup entry           |
+| React vendor                 |       78.56 |   26.58 | Preloaded by entry HTML       |
+| Query vendor                 |       47.26 |   14.16 | Preloaded by entry HTML       |
+| Motion vendor                |      143.94 |   49.03 | Preloaded by entry HTML       |
+| Entry CSS                    |      129.16 |   23.71 | Shared startup styling        |
+| Mapbox GL                    |    1,926.29 |  545.30 | Large optional map dependency |
+| LocationMap JS               |      123.45 |   38.95 | Map feature wrapper           |
+| LocationMap CSS              |       80.91 |   11.12 | Map styling                   |
 
 The entry plus three explicit JS modulepreloads totals **332.41 kB gzip**. This is a reproducible build-output lower bound for initial JS, not a measured browser waterfall or total transitive transfer. Hashes will change; compare roles and import graphs, not filenames.
 
@@ -65,22 +65,22 @@ Build warnings: Settings is both statically and dynamically imported; some chunk
 
 ### Findings ranked by implementation value
 
-| ID | Evidence | Consequence / design critique | Required response |
-| --- | --- | --- | --- |
-| A01 | `src/components/layout/AuthLayout.tsx` statically imports and mounts `SettingsPage` inside a closed dialog | Route laziness is defeated; permission/settings work mounts on auth screens | Load and mount settings on demand; retain settings access before login |
-| A02 | `PageTransition.tsx` has ten effect options, geometry reads, root animations, observers and input listeners; callers exist at page and section levels | High complexity and potential overlapping work; transitions may delay useful content | Replace with the motion contract in section 6; migrate all helper consumers |
-| A03 | `useGalleryWindow.ts` queries every retained cell and reads bounding rectangles on captured scroll events | Inner tiles are windowed, but wrapper DOM still grows with loaded items; work scales with accumulated content | Use bounded row virtualization and the actual scroll root |
-| A04 | `GalleryPage.tsx` creates `useQueries` entries for every selected media ID to fetch owned album membership | Selecting N files can issue N membership requests | Add one bounded batch membership contract; do not disable existing remove/save logic |
-| A05 | `PageActionBar.tsx` registers fresh props through a layout effect and animates each item's width | Extra provider updates and layout animation; shared component imports page CSS | Replace registration with stable portal placement; shared styles own the bar |
-| A06 | `global.css` has dark/light palettes, red status colors, gradients, global SVG zoom, and globally hidden scrollbars | Conflicts with requested identity; icon sizes and overflow affordances are difficult to control | One semantic token system; explicit icon sizes; restore scroll affordances |
-| A07 | `AuthenticatedLayout.tsx` uses a mobile off-canvas sidebar at 640px; sidebar token is 348.8px | Mobile destination access is hidden; desktop chrome consumes substantial width | Adaptive left sidebar/rail and persistent bottom navigation |
-| A08 | `useLocations.ts` automatically fetches every image page in batches of 100 | Map startup scales with the entire photo library | Add bounded spatial/map data access; retain unlocated-photo workflows |
-| A09 | `CollectionRepository` list methods have no page limits; `PlaceRepository` list/map/history queries materialize lists | Home, album chooser, places and history can become expensive at scale | Add compatible paged endpoints; keep old array contracts until all consumers migrate |
-| A10 | `UsersPage` fetches a user array, paginates locally, polls admins every 15s, ticks the page every 5s, and opens its own hub connection | Large-list rerenders and duplicate connection ownership alongside `PresenceRuntime` | Isolate clocks; reuse one authenticated event runtime; page data server-side |
-| A11 | `PlaceVisitHistory` updates `now` every second when removal is enabled | Whole history rerenders for an eligibility deadline | Schedule the next relevant deadline and recheck eligibility on activation |
-| A12 | Home merges arrays during render and mounts all feed posts; media/preview features have substantial shared imports | Potential broad rerenders and eager loading | Stable derived data, selective memoization, and dialog/feature boundaries |
-| A13 | `PresenceRuntime` owns live events and depends on token and locale translator; upload runtime also depends on translator | Locale/session changes may restart work; needs lifetime review | Separate resource ownership from translated presentation while preserving logout/account semantics |
-| A14 | Native/PWA behavior lives in `App.tsx`, `index.html`, manifest, service worker, and Capacitor files | Theme/chunk changes can leave stale launch colors or unavailable offline chunks | Include launch assets, safe areas, Back handling and offline shell in rollout |
+| ID  | Evidence                                                                                                                                              | Consequence / design critique                                                                                 | Required response                                                                                  |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| A01 | `src/components/layout/AuthLayout.tsx` statically imports and mounts `SettingsPage` inside a closed dialog                                            | Route laziness is defeated; permission/settings work mounts on auth screens                                   | Load and mount settings on demand; retain settings access before login                             |
+| A02 | `PageTransition.tsx` has ten effect options, geometry reads, root animations, observers and input listeners; callers exist at page and section levels | High complexity and potential overlapping work; transitions may delay useful content                          | Replace with the motion contract in section 6; migrate all helper consumers                        |
+| A03 | `useGalleryWindow.ts` queries every retained cell and reads bounding rectangles on captured scroll events                                             | Inner tiles are windowed, but wrapper DOM still grows with loaded items; work scales with accumulated content | Use bounded row virtualization and the actual scroll root                                          |
+| A04 | `GalleryPage.tsx` creates `useQueries` entries for every selected media ID to fetch owned album membership                                            | Selecting N files can issue N membership requests                                                             | Add one bounded batch membership contract; do not disable existing remove/save logic               |
+| A05 | `PageActionBar.tsx` registers fresh props through a layout effect and animates each item's width                                                      | Extra provider updates and layout animation; shared component imports page CSS                                | Replace registration with stable portal placement; shared styles own the bar                       |
+| A06 | `global.css` has dark/light palettes, red status colors, gradients, global SVG zoom, and globally hidden scrollbars                                   | Conflicts with requested identity; icon sizes and overflow affordances are difficult to control               | One semantic token system; explicit icon sizes; restore scroll affordances                         |
+| A07 | `AuthenticatedLayout.tsx` uses a mobile off-canvas sidebar at 640px; sidebar token is 348.8px                                                         | Mobile destination access is hidden; desktop chrome consumes substantial width                                | Adaptive left sidebar/rail and persistent bottom navigation                                        |
+| A08 | `useLocations.ts` automatically fetches every image page in batches of 100                                                                            | Map startup scales with the entire photo library                                                              | Add bounded spatial/map data access; retain unlocated-photo workflows                              |
+| A09 | `CollectionRepository` list methods have no page limits; `PlaceRepository` list/map/history queries materialize lists                                 | Home, album chooser, places and history can become expensive at scale                                         | Add compatible paged endpoints; keep old array contracts until all consumers migrate               |
+| A10 | `UsersPage` fetches a user array, paginates locally, polls admins every 15s, ticks the page every 5s, and opens its own hub connection                | Large-list rerenders and duplicate connection ownership alongside `PresenceRuntime`                           | Isolate clocks; reuse one authenticated event runtime; page data server-side                       |
+| A11 | `PlaceVisitHistory` updates `now` every second when removal is enabled                                                                                | Whole history rerenders for an eligibility deadline                                                           | Schedule the next relevant deadline and recheck eligibility on activation                          |
+| A12 | Home merges arrays during render and mounts all feed posts; media/preview features have substantial shared imports                                    | Potential broad rerenders and eager loading                                                                   | Stable derived data, selective memoization, and dialog/feature boundaries                          |
+| A13 | `PresenceRuntime` owns live events and depends on token and locale translator; upload runtime also depends on translator                              | Locale/session changes may restart work; needs lifetime review                                                | Separate resource ownership from translated presentation while preserving logout/account semantics |
+| A14 | Native/PWA behavior lives in `App.tsx`, `index.html`, manifest, service worker, and Capacitor files                                                   | Theme/chunk changes can leave stale launch colors or unavailable offline chunks                               | Include launch assets, safe areas, Back handling and offline shell in rollout                      |
 
 Preserve good foundations: feature-owned services, Query server state, Zustand client state, existing route lazy imports, shared primitives, async repositories, deterministic ordering already present in several queries, viewer-specific favorites, image previews, upload recovery, and preview cleanup/compensation. Do not replace these merely for aesthetic consistency.
 
@@ -88,27 +88,27 @@ Preserve good foundations: feature-owned services, Query server state, Zustand c
 
 For every row below, record implementation status, relevant existing tests, and outstanding manual verification in a companion checklist during execution. A restyled screen is incomplete if any operation disappears.
 
-| Surface and current route | Functions to preserve | Desktop design | Mobile design |
-| --- | --- | --- | --- |
-| Login `/login`, registration `/register` | Validation, password visibility, pending approval, session replacement, auth errors, language and pre-login settings | Focused form up to 440px with quiet supporting brand area | One column, 16px inputs, keyboard-safe submit; no oversized artwork |
-| Home `/` | Owned/public feed; admin all-album feed including private albums; cover, owner, dates, caption expansion, media count, favorite/save actions, permitted album deletion, preview retry | Readable feed up to 760px; useful metadata beside content where space allows | Same feed and actions; compact metadata, no sidebar duplicate |
-| Gallery `/gallery` | Images AND videos, date grouping, incremental loading, selection, drag/hold/keyboard paths, bulk favorites, save/remove album membership, uploads, preview, retry | Dense responsive grid, header actions and selection toolbar | Two or three columns as space allows; explicit Select button and tap checkboxes; actions above bottom nav |
-| Favorites `/gallery/favorites` | Caller-specific favorite list, unfavorite, bulk operations, same viewer and save behavior | Gallery pattern with clear active section | Same operations and empty-state recovery |
-| Albums `/gallery/album` | Existing scope/view controls and role visibility; create/edit/privacy/cover/caption/delete; open detail | Content grid with cover, title, count, owner/privacy metadata | Two columns when readable, otherwise list; edit actions in menu |
-| Album detail `/gallery/album/:albumId` | Media paging; owner membership changes; title/privacy/cover editing; public caption editing per existing policy; deletion permissions; gallery media survives album deletion | Compact cover/header, caption and metadata, then media grid | Header stacks; caption disclosure; same permission-driven controls |
-| Trash `/gallery/trash` | Admin guard, deleted previews, selection, restore, permanent deletion and confirmations | Grid and explicit destructive selection bar | Same authorized operations; clear permanent-delete wording |
-| Uploads `/uploads` | File selection/submission, batch/item progress, pause/resume/retry, missing-file reselection, record removal, date filter, pagination/page size, viewed/unread state | Active queue followed by history; expanded metadata when useful | Compact batch summaries with expandable items; active progress stays visible |
-| Places `/location`, `/location/saved`, `/location/history` | Map, saved list/history, create/edit/delete place, name/address/note/rating/marker, linked photos, check-ins, visit details/edit/removal, existing visibility scope | Map plus 320–400px list/details pane | Map/list switch and detail sheet; history remains a dedicated section |
-| Travel `/location/travel` | Located photo markers/groups, unlocated photos, GPS scan/progress/errors, manual coordinates/moves, home fallback, preview, search, geolocation, camera path, navigation | Map and photo/detail side pane | Map with compact controls and selected-item sheet; all operations remain discoverable |
-| Shared map functions | Scene/appearance choices, marker visibility, grouping/spiderfy, home set/move/remove and confirmation, applying home to own unlocated images | Labeled controls; keyboard coordinate alternatives | Touch controls; no hover-only actions; map gestures do not activate app navigation |
-| Directions | Driving/walking/cycling, route guidance/progress and existing controls, external Google Maps fallback | Compact route pane | Sheet with destination and next action; keep fallback when map provider fails |
-| Users `/users` | Signed-in directory; admin pending filter, approve/activate/disable/delete/role changes, presence and last activity, paging | Table with explicit column headings and labeled action tooltips | User cards/disclosure with identical authorized admin actions |
-| Profile `/profile` | Account details, avatar selection and password change | Two focused sections with inline status | Single column; avatar picker loads when opened |
-| Settings `/settings` and auth dialog | Locale access, sound enablement/options, toast preferences, notification permission, camera/location permission guidance, photo library guidance | Grouped labeled rows | Same groups; no misleading switch suggesting browser permission can be revoked by the app |
-| Notifications and presence | Upload/public-album/media/place/check-in notifications, read state, browser notification preference, refresh/navigation actions, account/session changes | Header bell and anchored panel | Header bell and sheet; badge readable, not color-only |
-| Viewer/pickers/dialogs | Image/video viewing, previous/next, clipboard where supported, favorites, album save, location links, trash actions, retry; photo picker Gallery/Preview tabs and draft lifecycle | Viewer with optional detail rail, bounded dialogs | Fullscreen viewer/editor where needed; visible Close and accessible controls |
-| PWA / Android | App-shell offline launch, online-only protected data, notification-click routing, safe areas, hardware Back, camera teardown, upload continuity | Responsive browser/installed app | Android WebView and installed-browser behavior remain intact |
-| Errors and empty states | Route errors, 401/403/404, retry, empty collections, partial failures and offline explanations | Inline recovery near failure | Same recovery without hiding primary navigation |
+| Surface and current route                                  | Functions to preserve                                                                                                                                                                 | Desktop design                                                               | Mobile design                                                                                             |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Login `/login`, registration `/register`                   | Validation, password visibility, pending approval, session replacement, auth errors, language and pre-login settings                                                                  | Focused form up to 440px with quiet supporting brand area                    | One column, 16px inputs, keyboard-safe submit; no oversized artwork                                       |
+| Home `/`                                                   | Owned/public feed; admin all-album feed including private albums; cover, owner, dates, caption expansion, media count, favorite/save actions, permitted album deletion, preview retry | Readable feed up to 760px; useful metadata beside content where space allows | Same feed and actions; compact metadata, no sidebar duplicate                                             |
+| Gallery `/gallery`                                         | Images AND videos, date grouping, incremental loading, selection, drag/hold/keyboard paths, bulk favorites, save/remove album membership, uploads, preview, retry                     | Dense responsive grid, header actions and selection toolbar                  | Two or three columns as space allows; explicit Select button and tap checkboxes; actions above bottom nav |
+| Favorites `/gallery/favorites`                             | Caller-specific favorite list, unfavorite, bulk operations, same viewer and save behavior                                                                                             | Gallery pattern with clear active section                                    | Same operations and empty-state recovery                                                                  |
+| Albums `/gallery/album`                                    | Existing scope/view controls and role visibility; create/edit/privacy/cover/caption/delete; open detail                                                                               | Content grid with cover, title, count, owner/privacy metadata                | Two columns when readable, otherwise list; edit actions in menu                                           |
+| Album detail `/gallery/album/:albumId`                     | Media paging; owner membership changes; title/privacy/cover editing; public caption editing per existing policy; deletion permissions; gallery media survives album deletion          | Compact cover/header, caption and metadata, then media grid                  | Header stacks; caption disclosure; same permission-driven controls                                        |
+| Trash `/gallery/trash`                                     | Admin guard, deleted previews, selection, restore, permanent deletion and confirmations                                                                                               | Grid and explicit destructive selection bar                                  | Same authorized operations; clear permanent-delete wording                                                |
+| Uploads `/uploads`                                         | File selection/submission, batch/item progress, pause/resume/retry, missing-file reselection, record removal, date filter, pagination/page size, viewed/unread state                  | Active queue followed by history; expanded metadata when useful              | Compact batch summaries with expandable items; active progress stays visible                              |
+| Places `/location`, `/location/saved`, `/location/history` | Map, saved list/history, create/edit/delete place, name/address/note/rating/marker, linked photos, check-ins, visit details/edit/removal, existing visibility scope                   | Map plus 320–400px list/details pane                                         | Map/list switch and detail sheet; history remains a dedicated section                                     |
+| Travel `/location/travel`                                  | Located photo markers/groups, unlocated photos, GPS scan/progress/errors, manual coordinates/moves, home fallback, preview, search, geolocation, camera path, navigation              | Map and photo/detail side pane                                               | Map with compact controls and selected-item sheet; all operations remain discoverable                     |
+| Shared map functions                                       | Scene/appearance choices, marker visibility, grouping/spiderfy, home set/move/remove and confirmation, applying home to own unlocated images                                          | Labeled controls; keyboard coordinate alternatives                           | Touch controls; no hover-only actions; map gestures do not activate app navigation                        |
+| Directions                                                 | Driving/walking/cycling, route guidance/progress and existing controls, external Google Maps fallback                                                                                 | Compact route pane                                                           | Sheet with destination and next action; keep fallback when map provider fails                             |
+| Users `/users`                                             | Signed-in directory; admin pending filter, approve/activate/disable/delete/role changes, presence and last activity, paging                                                           | Table with explicit column headings and labeled action tooltips              | User cards/disclosure with identical authorized admin actions                                             |
+| Profile `/profile`                                         | Account details, avatar selection and password change                                                                                                                                 | Two focused sections with inline status                                      | Single column; avatar picker loads when opened                                                            |
+| Settings `/settings` and auth dialog                       | Locale access, sound enablement/options, toast preferences, notification permission, camera/location permission guidance, photo library guidance                                      | Grouped labeled rows                                                         | Same groups; no misleading switch suggesting browser permission can be revoked by the app                 |
+| Notifications and presence                                 | Upload/public-album/media/place/check-in notifications, read state, browser notification preference, refresh/navigation actions, account/session changes                              | Header bell and anchored panel                                               | Header bell and sheet; badge readable, not color-only                                                     |
+| Viewer/pickers/dialogs                                     | Image/video viewing, previous/next, clipboard where supported, favorites, album save, location links, trash actions, retry; photo picker Gallery/Preview tabs and draft lifecycle     | Viewer with optional detail rail, bounded dialogs                            | Fullscreen viewer/editor where needed; visible Close and accessible controls                              |
+| PWA / Android                                              | App-shell offline launch, online-only protected data, notification-click routing, safe areas, hardware Back, camera teardown, upload continuity                                       | Responsive browser/installed app                                             | Android WebView and installed-browser behavior remain intact                                              |
+| Errors and empty states                                    | Route errors, 401/403/404, retry, empty collections, partial failures and offline explanations                                                                                        | Inline recovery near failure                                                 | Same recovery without hiding primary navigation                                                           |
 
 ### Permission and data invariants
 
@@ -134,35 +134,35 @@ Intent: content-first browsing for media, efficient operation for uploads/admin 
 
 ### Exact palette and tokens
 
-| Color | Role | Usage restrictions |
-| --- | --- | --- |
-| `#6A3F36` | Ink, interactive boundaries, primary action, focus, selected indicator | Primary text on ivory/cream; not normal text on peach or taupe |
-| `#C8A796` | Decorative dividers, nonessential surface accents | Not normal text; not the only input boundary or selected cue on ivory |
-| `#F4F3EE` | Main canvas, inputs, popup background, inverse text on brown | Default reading surface |
-| `#F8E4BE` | Hover surface, highlighted information panel, selected-row wash | Brown text; essential state also needs brown outline/check/label |
-| `#EEA988` | Small accent blocks, decorative highlights, non-text symbols on brown | Do not put ordinary brown text directly on this fill |
+| Color     | Role                                                                   | Usage restrictions                                                    |
+| --------- | ---------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `#6A3F36` | Ink, interactive boundaries, primary action, focus, selected indicator | Primary text on ivory/cream; not normal text on peach or taupe        |
+| `#C8A796` | Decorative dividers, nonessential surface accents                      | Not normal text; not the only input boundary or selected cue on ivory |
+| `#F4F3EE` | Main canvas, inputs, popup background, inverse text on brown           | Default reading surface                                               |
+| `#F8E4BE` | Hover surface, highlighted information panel, selected-row wash        | Brown text; essential state also needs brown outline/check/label      |
+| `#EEA988` | Small accent blocks, decorative highlights, non-text symbols on brown  | Do not put ordinary brown text directly on this fill                  |
 
 Proposed initial CSS contract, retaining existing token names to reduce migration churn:
 
 ```css
 :root {
   color-scheme: light;
-  --bg: #F4F3EE;
-  --surface: #F4F3EE;
-  --surface-raised: #F8E4BE;
-  --surface-hover: #F8E4BE;
-  --sidebar-bg: #F4F3EE;
-  --text: #6A3F36;
-  --text-strong: #6A3F36;
-  --text-muted: #6A3F36;
-  --accent: #6A3F36;
-  --accent-strong: #6A3F36;
-  --text-on-accent: #F4F3EE;
-  --border: #C8A796;
-  --border-control: #6A3F36;
-  --focus-ring: #6A3F36;
-  --accent-wash: #F8E4BE;
-  --accent-decoration: #EEA988;
+  --bg: #f4f3ee;
+  --surface: #f4f3ee;
+  --surface-raised: #f8e4be;
+  --surface-hover: #f8e4be;
+  --sidebar-bg: #f4f3ee;
+  --text: #6a3f36;
+  --text-strong: #6a3f36;
+  --text-muted: #6a3f36;
+  --accent: #6a3f36;
+  --accent-strong: #6a3f36;
+  --text-on-accent: #f4f3ee;
+  --border: #c8a796;
+  --border-control: #6a3f36;
+  --focus-ring: #6a3f36;
+  --accent-wash: #f8e4be;
+  --accent-decoration: #eea988;
   --shadow-popover: none;
 }
 ```
@@ -177,35 +177,35 @@ For overlays, use a solid ivory fullscreen surface or opaque cream surround with
 
 Ratios below use WCAG sRGB relative luminance and are rounded for display only. Threshold decisions must use the unrounded result.
 
-| Pair | Ratio | Allowed use |
-| --- | ---: | --- |
-| Brown / ivory | 7.95:1 | Normal text, controls, focus |
-| Brown / cream | 7.08:1 | Normal text, controls, focus |
-| Brown / taupe | 3.96:1 | Large text or meaningful non-text only |
-| Brown / peach | 4.49:1 | Fails 4.5:1 normal text; non-text or large text only |
-| Taupe / ivory | 2.01:1 | Decoration only; not essential boundary/text |
-| Taupe / cream | 1.79:1 | Decoration only |
-| Taupe / peach | 1.13:1 | Decoration only |
+| Pair          |  Ratio | Allowed use                                                    |
+| ------------- | -----: | -------------------------------------------------------------- |
+| Brown / ivory | 7.95:1 | Normal text, controls, focus                                   |
+| Brown / cream | 7.08:1 | Normal text, controls, focus                                   |
+| Brown / taupe | 3.96:1 | Large text or meaningful non-text only                         |
+| Brown / peach | 4.49:1 | Fails 4.5:1 normal text; non-text or large text only           |
+| Taupe / ivory | 2.01:1 | Decoration only; not essential boundary/text                   |
+| Taupe / cream | 1.79:1 | Decoration only                                                |
+| Taupe / peach | 1.13:1 | Decoration only                                                |
 | Ivory / cream | 1.12:1 | Surface difference only; add a meaningful boundary when needed |
-| Ivory / peach | 1.77:1 | Decoration only |
-| Cream / peach | 1.58:1 | Decoration only |
+| Ivory / peach | 1.77:1 | Decoration only                                                |
+| Cream / peach | 1.58:1 | Decoration only                                                |
 
 Normal text needs 4.5:1; large text needs 3:1. Essential control/state graphics need 3:1 against adjacent colors. These constraints explain why the dark brown must carry most functional meaning. See [W3C text contrast](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html) and [non-text contrast](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html).
 
 ### Component state rules
 
-| State | Rendering |
-| --- | --- |
-| Primary action | Brown fill, ivory label/icon; only one dominant action per task area |
-| Secondary action | Ivory fill, brown border and label |
-| Hover | Cream fill with brown text; primary filled buttons may keep fill and add underline/inset cue |
-| Active navigation | Cream surface plus brown indicator and `aria-current`; no moving pill required |
-| Selected media | Brown boundary/check on an opaque ivory/cream checkbox plate |
-| Focus | 2px brown outline with 2px ivory separation; inverse treatment on brown surfaces |
-| Disabled | Keep readable colors; native disabled semantics, explicit unavailable state where useful, no hover affordance |
-| Busy | Fixed-width action with progress icon/text; reduced motion uses static progress text |
+| State                     | Rendering                                                                                                                   |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Primary action            | Brown fill, ivory label/icon; only one dominant action per task area                                                        |
+| Secondary action          | Ivory fill, brown border and label                                                                                          |
+| Hover                     | Cream fill with brown text; primary filled buttons may keep fill and add underline/inset cue                                |
+| Active navigation         | Cream surface plus brown indicator and `aria-current`; no moving pill required                                              |
+| Selected media            | Brown boundary/check on an opaque ivory/cream checkbox plate                                                                |
+| Focus                     | 2px brown outline with 2px ivory separation; inverse treatment on brown surfaces                                            |
+| Disabled                  | Keep readable colors; native disabled semantics, explicit unavailable state where useful, no hover affordance               |
+| Busy                      | Fixed-width action with progress icon/text; reduced motion uses static progress text                                        |
 | Success / warning / error | Brown icon and explicit status heading; ivory/cream surface; distinct symbol and wording, never green/yellow/red dependency |
-| Destructive action | Trash icon plus explicit action label; confirm permanent deletion separately; separation from safe actions |
+| Destructive action        | Trash icon plus explicit action label; confirm permanent deletion separately; separation from safe actions                  |
 
 Heatmaps and status charts must have labels/tooltips and distinguishable shapes/patterns/outlines when adjacent palette fills lack contrast. A taupe square alone cannot encode critical meaning. Favorite uses heart; album membership uses bookmark; rating uses star. Do not interchange them.
 
@@ -226,13 +226,13 @@ Heatmaps and status charts must have labels/tooltips and distinguishable shapes/
 
 Use one shared destination definition with role-aware children. Desktop and mobile render it differently without two mounted data runtimes.
 
-| Top-level destination | Route | Secondary destinations |
-| --- | --- | --- |
-| Home | `/` | Feed |
-| Library | `/gallery` | Gallery, Favorites, Albums, Trash for admins |
-| Places | `/location` | Map, Saved, History, Travel photos |
-| Uploads | `/uploads` | Active work and history |
-| More | Opens mobile menu/sheet | Users, Profile, Settings, language and Sign out |
+| Top-level destination | Route                   | Secondary destinations                          |
+| --------------------- | ----------------------- | ----------------------------------------------- |
+| Home                  | `/`                     | Feed                                            |
+| Library               | `/gallery`              | Gallery, Favorites, Albums, Trash for admins    |
+| Places                | `/location`             | Map, Saved, History, Travel photos              |
+| Uploads               | `/uploads`              | Active work and history                         |
+| More                  | Opens mobile menu/sheet | Users, Profile, Settings, language and Sign out |
 
 Desktop shows Users, Profile and Settings in the lower sidebar/account area rather than a literal More destination. Notifications remain in the header. Mobile uses five persistent labeled destinations; More is a button with `aria-expanded`, not a fake route. Mark Library active for album detail and Places active for all location subroutes. A menu-owned current destination also marks More appropriately.
 
@@ -240,11 +240,11 @@ Use existing paths and labels where possible. “Library” is the parent groupi
 
 ### Breakpoints and geometry
 
-| Width | Shell | Content behavior |
-| --- | --- | --- |
-| Under 768px | Bottom nav, 64px plus safe-area inset; compact 56px header | One task column, disclosure/sheets, no desktop drawer as primary navigation |
-| 768–1199px | Left 80px rail with labels/tooltips; expandable sidebar if useful | Moderate grid density; no permanent detail pane unless it fits |
-| 1200px and above | Left 240px sidebar, optional user collapse to 80px | Content max 1600px; map/detail and admin tables can use full available width |
+| Width            | Shell                                                             | Content behavior                                                             |
+| ---------------- | ----------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Under 768px      | Bottom nav, 64px plus safe-area inset; compact 56px header        | One task column, disclosure/sheets, no desktop drawer as primary navigation  |
+| 768–1199px       | Left 80px rail with labels/tooltips; expandable sidebar if useful | Moderate grid density; no permanent detail pane unless it fits               |
+| 1200px and above | Left 240px sidebar, optional user collapse to 80px                | Content max 1600px; map/detail and admin tables can use full available width |
 
 Use CSS media queries for arrangement. Use `matchMedia` only when component behavior/lifetime must change. Do not use device user-agent detection. A narrow desktop window gets the compact shell; a tablet with a wide viewport gets the rail.
 
@@ -261,9 +261,9 @@ Desktop library
 | Home           | Gallery  Favorites  Albums  Trash*               |
 | Library        | Title/count                       Select  Upload |
 | Places         | Date heading                                     |
-| Uploads        | [media] [media] [media] [media] [media]           |
+| Uploads        | [media] [media] [media] [media] [media]          |
 | Users          | Date heading                                     |
-|                | [media] [media] [media] [media] [media]           |
+|                | [media] [media] [media] [media] [media]          |
 | Profile        | Selection actions appear only during selection   |
 | Settings       |                                                  |
 +----------------+--------------------------------------------------+
@@ -275,8 +275,8 @@ Mobile library
 | Gallery Favorites Albums More* |
 | count           Select Upload  |
 | Date                           |
-| [media] [media] [media]         |
-| [media] [media] [media]         |
+| [media] [media] [media]        |
+| [media] [media] [media]        |
 | 3 selected  Favorite Save ...  | <- only while selecting
 | Home Library Places Uploads More|
 | safe area                      |
@@ -293,22 +293,22 @@ On narrow screens, secondary section overflow is labeled and keyboard-accessible
 
 Keep a single named action vocabulary shared by pages, menus and toolbars. Reuse local icon geometry; standard actions are static by default. Add a missing conventional glyph locally only when necessary.
 
-| Meaning | Glyph / label |
-| --- | --- |
+| Meaning                           | Glyph / label                                                                     |
+| --------------------------------- | --------------------------------------------------------------------------------- |
 | Home / Library / Places / Uploads | House / library or image / map pin / upward upload arrow, with visible nav labels |
-| Create album/place | Plus, “Create album” / “Add place” |
-| Select / cancel selection | Checkbox/check-square / X, “Select” / “Cancel selection” |
-| Favorite | Heart, toggled state and “Add to favorites” / “Remove from favorites” |
-| Save to album | Bookmark or folder-plus, “Save to album” |
-| Remove from album | Folder-minus or explicit text, never an ambiguous permanent-delete label |
-| Edit / settings / more | Pencil / sliders or gear / horizontal ellipsis |
-| Move to trash | Trash, “Move to trash” |
-| Restore | Counterclockwise restore arrow, “Restore” |
-| Permanently delete | Trash plus explicit menu/dialog text, “Permanently delete” |
-| Retry / pause / resume | Circular retry / pause bars / play triangle |
-| Copy / close / back | Copy squares / X / left arrow |
-| Check in / directions | Calendar-check / navigation arrow |
-| Users / approve / disable / role | Users / check / ban / shield; role changes require a label |
+| Create album/place                | Plus, “Create album” / “Add place”                                                |
+| Select / cancel selection         | Checkbox/check-square / X, “Select” / “Cancel selection”                          |
+| Favorite                          | Heart, toggled state and “Add to favorites” / “Remove from favorites”             |
+| Save to album                     | Bookmark or folder-plus, “Save to album”                                          |
+| Remove from album                 | Folder-minus or explicit text, never an ambiguous permanent-delete label          |
+| Edit / settings / more            | Pencil / sliders or gear / horizontal ellipsis                                    |
+| Move to trash                     | Trash, “Move to trash”                                                            |
+| Restore                           | Counterclockwise restore arrow, “Restore”                                         |
+| Permanently delete                | Trash plus explicit menu/dialog text, “Permanently delete”                        |
+| Retry / pause / resume            | Circular retry / pause bars / play triangle                                       |
+| Copy / close / back               | Copy squares / X / left arrow                                                     |
+| Check in / directions             | Calendar-check / navigation arrow                                                 |
+| Users / approve / disable / role  | Users / check / ban / shield; role changes require a label                        |
 
 Do not use a paperclip to mean upload submission, a plane to mean general navigation, or a bot to mean a human administrator. Preserve a paperclip only for attaching/selecting files. Icon-only row actions require localized `aria-label`, tooltip/title, and a 44px touch hit area. Toolbars use visible labels for primary/destructive actions where possible. Overflow menus retain the exact same handlers and permission checks.
 
@@ -316,20 +316,20 @@ Do not use a paperclip to mean upload submission, a plane to mean general naviga
 
 The goal is immediate feedback and continuity, not choreography. Do not install another animation library or run an animation CLI. Existing Motion/Animate UI dependencies may remain until their functional primitives have verified replacements.
 
-| Surface | Target behavior |
-| --- | --- |
-| Route changes | Immediate by default. Optional single 120ms opacity entrance on the new content only |
-| Gallery/Places section switches | Immediate; no nested page transition |
-| Filters, sorting, pagination, refetch | No route transition; preserve dimensions and current content where valid |
-| Action bars | Immediate item changes, stable height; no width/height tween or inferred animation key |
-| Buttons/nav icons | Static state changes; no hover bounce, rotation, particle burst or per-item entrance |
-| Dialog/menu open | At most 120ms opacity; optional small 4px translation for a sheet, never scale text |
-| Dialog/menu close | Immediate or at most 80ms; cleanup must also work with zero duration |
-| Toasts | Short opacity entrance; no page reflow; status remains perceivable without motion |
-| Loading | Static skeletons; genuine indeterminate spinner only while pending; static busy text when motion disabled |
-| Progress | Numeric/text state always available; no animated count-up |
-| Viewer carousel | Direct manipulation/swipe remains; disable decorative slide effects and particles |
-| Map | Keep direct panning/zoom/navigation; automatic camera moves obey reduced motion |
+| Surface                               | Target behavior                                                                                           |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Route changes                         | Immediate by default. Optional single 120ms opacity entrance on the new content only                      |
+| Gallery/Places section switches       | Immediate; no nested page transition                                                                      |
+| Filters, sorting, pagination, refetch | No route transition; preserve dimensions and current content where valid                                  |
+| Action bars                           | Immediate item changes, stable height; no width/height tween or inferred animation key                    |
+| Buttons/nav icons                     | Static state changes; no hover bounce, rotation, particle burst or per-item entrance                      |
+| Dialog/menu open                      | At most 120ms opacity; optional small 4px translation for a sheet, never scale text                       |
+| Dialog/menu close                     | Immediate or at most 80ms; cleanup must also work with zero duration                                      |
+| Toasts                                | Short opacity entrance; no page reflow; status remains perceivable without motion                         |
+| Loading                               | Static skeletons; genuine indeterminate spinner only while pending; static busy text when motion disabled |
+| Progress                              | Numeric/text state always available; no animated count-up                                                 |
+| Viewer carousel                       | Direct manipulation/swipe remains; disable decorative slide effects and particles                         |
+| Map                                   | Keep direct panning/zoom/navigation; automatic camera moves obey reduced motion                           |
 
 Settings becomes “Interface motion” with `Off` and `Subtle`; default Off. Off means zero optional motion, not a fallback fade. OS `prefers-reduced-motion: reduce` always wins. A user cannot accidentally re-enable animation against the OS preference. Keep sounds/toasts/notifications as independent existing settings.
 
@@ -505,22 +505,22 @@ Auth pages retain password managers, autocomplete, paste and validation. Remove 
 
 Implement one numbered slice at a time. Each slice must have a focused diff, its stated checks, and a short completion record. Do not combine a broad architecture rewrite with the visual changes. New paths below are suggested only when they replace repeated behavior; reuse an existing owner when possible.
 
-| Slice | Dependencies | Concrete work and likely files | Completion gate |
-| --- | --- | --- | --- |
-| P00 — Freeze inventory | None | Record current dirty tree; map routes/actions/permissions from current source; baseline build/typecheck/tests; create implementation checklist | Every section-3 row has an owner and baseline; existing failures distinguished from regressions |
-| P01 — Tokens and one theme | P00 | `global.css`, all feature CSS, `index.html`, `ThemeContext`, `ThemeTogglerButton`, UI exports, `AuthLayout`, `Sidebar`, manifest/launch colors | No theme control or dark startup flash path; five-color audit passes; old theme storage ignored safely |
-| P02 — Shared primitives | P01 | Button/Input/PasswordInput/Status/Tooltip/DatePicker/Pagination/Toast/ConfirmationDialog/CustomDialog; typography/focus/icon sizes | All component states readable; zero-duration close and focus work; no mandatory shadow |
-| P03 — Motion simplification | P02 | `PageTransition`, `utils/pageTransition`, animation/click stores, Settings, App Click provider, icon wrappers, viewer transition helpers | Off is zero optional motion; no nested route effects, particles, width animation or stale loading dependency |
-| P04 — Adaptive shell | P02, P03 | `AuthenticatedLayout`, `Sidebar`, proposed `BottomNavigation` and shared nav definition, `sidebar.css`, shared action bar CSS/portal | Left sidebar/rail and five-item mobile bottom nav; no duplicate runtime or overlapping action/nav bars |
-| P05 — Startup splitting | P03, P04 | `AuthLayout`, `App`, narrow imports, lazy settings/avatar/viewer; inspect Vite chunks | Settings warning removed; maps absent from non-map startup graph; build budget recorded |
-| P06 — Batch membership | P00 | Backend B01 plus album service/types/query keys and Gallery selection | At most one membership request per 100 IDs; correct loading/errors and ownership; BE build and FE tests |
-| P07 — Media browsing | P02–P06 | Shared virtual grid, `useGalleryWindow`, Gallery/Favorites/Trash/AlbumPage, MediaTile/viewer, selection hooks | Bounded tile DOM, stable selection/focus, preserved bulk/trash/viewer actions |
-| P08 — Album/feed paging and design | P07 | Backend B02, `useAlbums`, album chooser/forms/cards/feed/Home, preview picker | No eager all-page feed; cover drafts and all permission distinctions preserved |
-| P09 — Uploads and notifications | P04, P05 | UploadManagementPage/BatchCard/runtime display, NotificationBell, toasts, sounds | Uploads survive navigation; all retry/pause/read flows work; progress isolated |
-| P10 — Places and travel | P02–P05 | Backend B03/B04 places/history, map hooks, LocationMap/PlaceMap, PlacePage, editors/search/directions/camera | Bounded map reads; marker/list parity; permissions, drafts, home and visit rules preserved |
-| P11 — People/account and realtime | P04, P05, P09 | Backend B04 users; UsersPage/Profile/Settings; shared event owner replacing duplicate connections | Directory and admin actions remain; locale/token changes do not duplicate connections or interrupt uploads |
-| P12 — Bundle/data polish | P07–P11 | Remove genuinely unused effects/dependencies/CSS; inspect barrels; conditional B05 only if evidenced | No dead theme/motion code; startup budgets improved without lost behavior |
-| P13 — Platform, integration and docs | All | Manifest/index/worker/Capacitor review, final build/typecheck/FE suite, route/state/palette audits, guide updates | Checklist complete; unresolved manual/runtime evidence explicitly listed; rollback remains possible |
+| Slice                                | Dependencies  | Concrete work and likely files                                                                                                                 | Completion gate                                                                                              |
+| ------------------------------------ | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| P00 — Freeze inventory               | None          | Record current dirty tree; map routes/actions/permissions from current source; baseline build/typecheck/tests; create implementation checklist | Every section-3 row has an owner and baseline; existing failures distinguished from regressions              |
+| P01 — Tokens and one theme           | P00           | `global.css`, all feature CSS, `index.html`, `ThemeContext`, `ThemeTogglerButton`, UI exports, `AuthLayout`, `Sidebar`, manifest/launch colors | No theme control or dark startup flash path; five-color audit passes; old theme storage ignored safely       |
+| P02 — Shared primitives              | P01           | Button/Input/PasswordInput/Status/Tooltip/DatePicker/Pagination/Toast/ConfirmationDialog/CustomDialog; typography/focus/icon sizes             | All component states readable; zero-duration close and focus work; no mandatory shadow                       |
+| P03 — Motion simplification          | P02           | `PageTransition`, `utils/pageTransition`, animation/click stores, Settings, App Click provider, icon wrappers, viewer transition helpers       | Off is zero optional motion; no nested route effects, particles, width animation or stale loading dependency |
+| P04 — Adaptive shell                 | P02, P03      | `AuthenticatedLayout`, `Sidebar`, proposed `BottomNavigation` and shared nav definition, `sidebar.css`, shared action bar CSS/portal           | Left sidebar/rail and five-item mobile bottom nav; no duplicate runtime or overlapping action/nav bars       |
+| P05 — Startup splitting              | P03, P04      | `AuthLayout`, `App`, narrow imports, lazy settings/avatar/viewer; inspect Vite chunks                                                          | Settings warning removed; maps absent from non-map startup graph; build budget recorded                      |
+| P06 — Batch membership               | P00           | Backend B01 plus album service/types/query keys and Gallery selection                                                                          | At most one membership request per 100 IDs; correct loading/errors and ownership; BE build and FE tests      |
+| P07 — Media browsing                 | P02–P06       | Shared virtual grid, `useGalleryWindow`, Gallery/Favorites/Trash/AlbumPage, MediaTile/viewer, selection hooks                                  | Bounded tile DOM, stable selection/focus, preserved bulk/trash/viewer actions                                |
+| P08 — Album/feed paging and design   | P07           | Backend B02, `useAlbums`, album chooser/forms/cards/feed/Home, preview picker                                                                  | No eager all-page feed; cover drafts and all permission distinctions preserved                               |
+| P09 — Uploads and notifications      | P04, P05      | UploadManagementPage/BatchCard/runtime display, NotificationBell, toasts, sounds                                                               | Uploads survive navigation; all retry/pause/read flows work; progress isolated                               |
+| P10 — Places and travel              | P02–P05       | Backend B03/B04 places/history, map hooks, LocationMap/PlaceMap, PlacePage, editors/search/directions/camera                                   | Bounded map reads; marker/list parity; permissions, drafts, home and visit rules preserved                   |
+| P11 — People/account and realtime    | P04, P05, P09 | Backend B04 users; UsersPage/Profile/Settings; shared event owner replacing duplicate connections                                              | Directory and admin actions remain; locale/token changes do not duplicate connections or interrupt uploads   |
+| P12 — Bundle/data polish             | P07–P11       | Remove genuinely unused effects/dependencies/CSS; inspect barrels; conditional B05 only if evidenced                                           | No dead theme/motion code; startup budgets improved without lost behavior                                    |
+| P13 — Platform, integration and docs | All           | Manifest/index/worker/Capacitor review, final build/typecheck/FE suite, route/state/palette audits, guide updates                              | Checklist complete; unresolved manual/runtime evidence explicitly listed; rollback remains possible          |
 
 After P01/P04/P03, update both mirrored FE overview skills to remove obsolete two-theme hover values, off-canvas-only mobile guidance and animation defaults. These rules remain current until implementation lands; this plan does not prematurely rewrite them. Update project-info pages and stale overview links as part of P13, using actual paths. Preserve all validation restrictions.
 
@@ -569,21 +569,21 @@ Use the installed TypeScript binary; do not fetch a new compiler when unavailabl
 
 Targets are acceptance objectives, not measured improvements. Freeze the comparison environment and inventory before using percentage claims.
 
-| Metric | Target / pass condition |
-| --- | --- |
-| Initial JS | Entry + complete eager dependency graph <=250 kB gzip; aim for >=25% reduction from a recomputed complete baseline, not merely the 332.41 kB lower bound |
-| Public auth JS | Stretch target <=180 kB gzip; no settings body, map SDK or avatar editor until requested |
-| Entry CSS | <=20 kB gzip; no map CSS in auth/gallery startup |
-| Lazy map dependency | Remains on-demand; report its cost separately, do not disguise it with chunk naming |
-| Gallery DOM | Tile wrappers bounded by visible rows plus six overscan rows and a focused row; count does not grow with 1,000 loaded items |
-| Selection renders | Toggling one tile updates that tile and relevant selection summary; unchanged tile content does not rerender due solely to selection |
-| Membership traffic | One request for 1–100 IDs; bounded chunking above that; no per-item album-list storm |
-| Scroll handlers | No full-gallery `querySelectorAll`/rectangle scan per scroll; no alternating layout read/write loop |
-| Realtime | One authenticated connection per tab; no extra UsersPage connection; no reconnection solely for locale changes |
-| Startup data | No automatic fetch-all loop for maps/feed; visible data and selected detail bounded |
-| Field experience | At p75, LCP <=2.5s, INP <=200ms, CLS <=0.1; requires later real/browser measurement |
-| Interaction traces | No newly introduced >50ms main-thread task from selection/menu/motion logic; compare on the same device/data |
-| Backend read paths | Query count bounded with page/batch size; no per-row round trips; runtime latency claim deferred until authorized evidence exists |
+| Metric              | Target / pass condition                                                                                                                                  |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Initial JS          | Entry + complete eager dependency graph <=250 kB gzip; aim for >=25% reduction from a recomputed complete baseline, not merely the 332.41 kB lower bound |
+| Public auth JS      | Stretch target <=180 kB gzip; no settings body, map SDK or avatar editor until requested                                                                 |
+| Entry CSS           | <=20 kB gzip; no map CSS in auth/gallery startup                                                                                                         |
+| Lazy map dependency | Remains on-demand; report its cost separately, do not disguise it with chunk naming                                                                      |
+| Gallery DOM         | Tile wrappers bounded by visible rows plus six overscan rows and a focused row; count does not grow with 1,000 loaded items                              |
+| Selection renders   | Toggling one tile updates that tile and relevant selection summary; unchanged tile content does not rerender due solely to selection                     |
+| Membership traffic  | One request for 1–100 IDs; bounded chunking above that; no per-item album-list storm                                                                     |
+| Scroll handlers     | No full-gallery `querySelectorAll`/rectangle scan per scroll; no alternating layout read/write loop                                                      |
+| Realtime            | One authenticated connection per tab; no extra UsersPage connection; no reconnection solely for locale changes                                           |
+| Startup data        | No automatic fetch-all loop for maps/feed; visible data and selected detail bounded                                                                      |
+| Field experience    | At p75, LCP <=2.5s, INP <=200ms, CLS <=0.1; requires later real/browser measurement                                                                      |
+| Interaction traces  | No newly introduced >50ms main-thread task from selection/menu/motion logic; compare on the same device/data                                             |
+| Backend read paths  | Query count bounded with page/batch size; no per-row round trips; runtime latency claim deferred until authorized evidence exists                        |
 
 If a budget cannot be met without behavior loss, document the measured bottleneck and a specific follow-up. Do not remove a feature, lie about total counts, weaken permissions or arbitrarily evict data to pass.
 

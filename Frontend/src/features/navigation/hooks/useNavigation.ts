@@ -41,7 +41,6 @@ export function useNavigation(
   language: "en" | "vi",
   homeLocation?: Coordinate | null,
 ) {
-  const [mode, setMode] = useState<TravelMode>("driving");
   const [route, setRoute] = useState<NavigationRoute | null>(null);
   const [position, setPosition] = useState<LocationFix | null>(null);
   const [loading, setLoading] = useState(false);
@@ -52,7 +51,6 @@ export function useNavigation(
   const [gpsUnreliable, setGpsUnreliable] = useState(false);
   const [usingHomeOrigin, setUsingHomeOrigin] = useState(false);
   const [mapboxPreview, setMapboxPreview] = useState(false);
-  const modeRef = useRef(mode);
   const request = useRef(0);
   const controller = useRef<AbortController | null>(null);
   const lastReroute = useRef(0);
@@ -88,7 +86,7 @@ export function useNavigation(
     origin: Coordinate,
     id: number,
     rerouting: boolean,
-    travelMode: TravelMode = modeRef.current,
+    travelMode: TravelMode = "driving",
   ) => {
     const abort = new AbortController();
     controller.current = abort;
@@ -213,17 +211,6 @@ export function useNavigation(
   };
 
   return {
-    mode,
-    setMode: (next: TravelMode) => {
-      if (modeRef.current === next) return;
-      modeRef.current = next;
-      setMode(next);
-      if (locating && !position) return;
-      const origin = position ?? (usingHomeOrigin ? homeLocation ?? null : null);
-      if (!origin || (!route && !loading && !error)) return;
-      cancelRequest();
-      void loadRoute(origin, request.current, false, next);
-    },
     route,
     position,
     loading,

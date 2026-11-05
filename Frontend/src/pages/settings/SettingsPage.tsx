@@ -166,10 +166,6 @@ export function SettingsPage() {
   return (
     <main className="settings-page">
       <div className="settings-page__inner">
-        <header className="settings-page__header">
-          <h1>{t("Settings")}<span className="brand__dot">.</span></h1>
-          <p>{t("Manage app preferences.")}</p>
-        </header>
 
         <section className="settings-page__section" aria-labelledby="settings-preferences-title">
           <h2 id="settings-preferences-title">{t("Preferences")}</h2>

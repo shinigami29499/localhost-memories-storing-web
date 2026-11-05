@@ -3,6 +3,7 @@ import { startTransition, useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import * as Tabs from "@radix-ui/react-tabs";
+import { HighlightItem } from "@animate-ui/react/primitives/effects/highlight";
 import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { ExternalLink } from "@/components/animate-ui/icons/external-link";
 import { Check } from "@/components/animate-ui/icons/check";
@@ -12,7 +13,7 @@ import { NotebookPen } from "@/components/animate-ui/icons/notebook-pen";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import { Heart } from "@/components/animate-ui/icons/heart";
-import { Button, ConfirmationDialog, EmptyState, ErrorState, Spinner, showToast } from "../../components/ui";
+import { Button, ConfirmationDialog, EmptyState, ErrorState, NavigationHighlight, Spinner, showToast } from "../../components/ui";
 import { useLocale } from "../../context/LocaleContext";
 import {
   AlbumCaptionDialog,
@@ -358,9 +359,11 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
             }}
           >
             <div className="gallery-page__media-toolbar">
-              <Tabs.List className="gallery-page__media-filters" aria-label={t("Filter by media type")}>
-                <Tabs.Trigger className="gallery-page__media-option" value="image" disabled={bulkFavoriteBusy}>{t("Images")}</Tabs.Trigger>
-                <Tabs.Trigger className="gallery-page__media-option" value="video" disabled={bulkFavoriteBusy}>{t("Videos")}</Tabs.Trigger>
+              <Tabs.List className="navigation-highlight-bar" aria-label={t("Filter by media type")}>
+                <NavigationHighlight value={mediaKind}>
+                  <HighlightItem value="image" asChild><Tabs.Trigger value="image" disabled={bulkFavoriteBusy}>{t("Images")}</Tabs.Trigger></HighlightItem>
+                  <HighlightItem value="video" asChild><Tabs.Trigger value="video" disabled={bulkFavoriteBusy}>{t("Videos")}</Tabs.Trigger></HighlightItem>
+                </NavigationHighlight>
               </Tabs.List>
             </div>
             <div className="gallery-page__content gallery-page__media-scroll" ref={contentRef} tabIndex={-1}>

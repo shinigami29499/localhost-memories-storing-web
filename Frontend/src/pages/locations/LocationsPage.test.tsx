@@ -663,7 +663,7 @@ describe("Locations", () => {
     expect(container.querySelector(".locations__details")).toBeNull();
     expect(container.querySelector('.locations__pin[aria-pressed="true"]')).toBeNull();
     expect(container.querySelector("[data-map]")?.getAttribute("data-map-style"))
-      .toBe("mapbox://styles/mapbox/streets-v12");
+      .toBe("mapbox://styles/mapbox/standard");
     expect(settings.open).toBe(false);
     expect(maps.viewport.easeTo).toHaveBeenLastCalledWith({
       center: [105, 21], zoom: 18, pitch: 0, bearing: 0,
@@ -683,7 +683,7 @@ describe("Locations", () => {
     await act(async () => { settings.open = true; });
     await act(async () => container.querySelectorAll<HTMLButtonElement>(".locations__scene")[0].click());
     expect(container.querySelector("[data-map]")?.getAttribute("data-map-style"))
-      .toBe("mapbox://styles/mapbox/streets-v12");
+      .toBe("mapbox://styles/mapbox/standard");
     expect(maps.viewport.easeTo).toHaveBeenLastCalledWith({ pitch: 0, bearing: 0, duration: 400 });
     await act(async () => container.querySelectorAll<HTMLButtonElement>(".locations__scene")[1].click());
     expect(container.querySelector("[data-map]")?.getAttribute("data-map-style"))

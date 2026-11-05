@@ -1121,7 +1121,7 @@ textarea::placeholder {
   box-shadow: none;
   color: var(--text);
   display: grid;
-  grid-template-rows: auto 3px minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   max-height: min(680px, calc(100dvh - 32px));
   outline: none;
   overflow: hidden;
@@ -1224,49 +1224,7 @@ textarea::placeholder {
   z-index: 2;
 }
 
-.photo-picker__tab-list {
-  display: flex;
-  gap: 4px;
-  padding: 6px;
-  margin: 12px 20px 0;
-  border-radius: 999px;
-  background: var(--surface-raised);
-  position: relative;
-}
-
-:root .photo-picker__tab-list {
-  background: #F4F3EE;
-  margin-bottom: 8px;
-  box-shadow: none;
-}
-
-.photo-picker__highlight {
-  background: #6A3F36;
-  border-radius: 999px;
-  inset: 0;
-  pointer-events: none;
-}
-
-.photo-picker__tab-item { flex: 1; min-width: 0; }
-
-.photo-picker__tab {
-  background: transparent;
-  border: 0;
-  border-radius: 999px;
-  color: var(--text-muted);
-  cursor: pointer;
-  flex: 1;
-  font: inherit;
-  font-weight: 600;
-  padding: 4px 16px;
-  min-height: 36px;
-  position: relative;
-  width: 100%;
-}
-
-.photo-picker__tab[aria-selected="true"] { color: #F4F3EE; }
-.photo-picker__tab:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
-.photo-picker__tab:disabled { cursor: wait; opacity: 0.5; }
+.photo-picker__tab-list { margin: 12px 20px 8px; width: auto; }
 
 .place-picker__grid {
   display: grid;

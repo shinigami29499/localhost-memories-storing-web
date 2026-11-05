@@ -51,10 +51,6 @@ export function ProfilePage() {
   return (
     <main className="profile-page">
       <div className="profile-page__inner">
-        <header className="profile-page__header">
-          <h1>{t("User profile")}<span className="brand__dot">.</span></h1>
-          <p>{t("View your account details.")}</p>
-        </header>
 
         <section className="profile-page__card" aria-labelledby="profile-account-title">
           <div className="profile-page__identity">

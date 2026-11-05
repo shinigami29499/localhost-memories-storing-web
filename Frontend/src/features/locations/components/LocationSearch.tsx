@@ -19,6 +19,7 @@ export function LocationSearch({ disabled = false, onFocus, onSelect }: Props) {
   const [open, setOpen] = useState(false);
   const { results, searching, error, retry } = useLocationSearch(query, open && !disabled);
   const showResults = open && !disabled;
+  const showMessage = showResults && (query.trim().length < 3 || searching || !!error || results?.length === 0);
 
   return (
     <AnimateIcon animateOnHover animateOnTap={false} animateOnView={false} completeOnStop asChild>
@@ -44,7 +45,7 @@ export function LocationSearch({ disabled = false, onFocus, onSelect }: Props) {
             onFocus={() => { setOpen(true); onFocus?.(); }}
             placeholder={t("Search a city or address")}
             aria-label={t("Search a city or address")}
-            aria-describedby={showResults ? `${id}-hint` : undefined}
+            aria-describedby={showMessage ? `${id}-hint` : undefined}
             autoComplete="off"
             disabled={disabled}
             maxLength={200}
@@ -54,7 +55,7 @@ export function LocationSearch({ disabled = false, onFocus, onSelect }: Props) {
           </span>
         </form>
         {showResults && <>
-          <div id={`${id}-hint`} className="place__location-search-message">
+          {showMessage && <div id={`${id}-hint`} className="place__location-search-message">
             {query.trim().length < 3 && <p role="status">{t("Enter 3 characters to begin.")}</p>}
             {searching && <p role="status">{t("Searching locations…")}</p>}
             {error && <>
@@ -63,7 +64,7 @@ export function LocationSearch({ disabled = false, onFocus, onSelect }: Props) {
               <button type="button" onClick={() => void retry()}>{t("Try again")}</button>
             </>}
             {!searching && results?.length === 0 && <p role="status">{t("No matching locations found.")}</p>}
-          </div>
+          </div>}
           {!searching && !!results?.length && <ul className="place__location-search-results" aria-label={t("Search results")}>
             {results.map((result) => <li key={result.id}>
               <button type="button" onClick={() => {

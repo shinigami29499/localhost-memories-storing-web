@@ -33,7 +33,7 @@ describe("MapAppearanceConfig", () => {
 
   const render = async (colorTheme: MapColorTheme, lighting: MapLighting = "day") => {
     await act(async () => {
-      root.render(<MapAppearanceConfig lighting={lighting} colorTheme={colorTheme} />);
+      root.render(<MapAppearanceConfig lighting={lighting} colorTheme={colorTheme} show3dObjects={true} />);
     });
   };
 

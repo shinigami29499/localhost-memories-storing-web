@@ -5,8 +5,6 @@ import { Home } from "@/components/animate-ui/icons/home";
 import { LibraryBig } from "@/components/animate-ui/icons/library-big";
 import { LogOut } from "@/components/animate-ui/icons/log-out";
 import { MapPin } from "@/components/animate-ui/icons/map-pin";
-import { PanelLeftClose } from "@/components/animate-ui/icons/panel-left-close";
-import { PanelLeftOpen } from "@/components/animate-ui/icons/panel-left-open";
 import { Settings } from "@/components/animate-ui/icons/settings";
 import { Upload } from "@/components/animate-ui/icons/upload";
 import { Users } from "@/components/animate-ui/icons/users";
@@ -19,13 +17,7 @@ import { useLocale } from "../../context/LocaleContext";
 import { UserAvatar } from "../common/UserAvatar";
 import { useUnreadUploads } from "../../features/uploads/hooks/useUnreadUploads";
 
-interface SidebarProps {
-  collapsed: boolean;
-  onToggle: () => void;
-  isMobile?: boolean;
-}
-
-export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps) {
+export function Sidebar() {
   const logout = useLogout();
   const { t } = useLocale();
   const uploadCounts = useUnreadUploads();
@@ -40,7 +32,6 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const accountRef = useRef<HTMLDivElement>(null);
   const accountTriggerRef = useRef<HTMLButtonElement>(null);
-  const compact = collapsed && !isMobile;
   const roleName = user
     ? user.role.charAt(0).toUpperCase() + user.role.slice(1).toLowerCase()
     : "";
@@ -71,7 +62,7 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
   return (
     <>
       <div className="sidebar-gap" aria-hidden="true" />
-      <aside className={`sidebar${collapsed ? " sidebar--collapsed" : ""}`} inert={isMobile && collapsed}>
+      <aside className="sidebar">
         <div className="sidebar__inner">
           <div className="sidebar__brand">
             <Brand />
@@ -113,12 +104,12 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
                   {(["success", "pending", "failed"] as const).map((status) => <span key={status} className={`sidebar__upload-count sidebar__upload-count--${status}`} aria-label={`${t(status === "success" ? "Success" : status === "pending" ? "Pending upload" : "Failed")}: ${uploadCounts[status]}`}>{uploadCounts[status]}</span>)}
                 </span>}
               </NavLink>
-            {!compact && (
+            {
               <section className="sidebar__activity" aria-labelledby="sidebar-activity-title">
                 <h2 id="sidebar-activity-title">{t("Upload activity")}</h2>
                 <UploadActivityHeatmap compact />
               </section>
-            )}
+            }
           </nav>
           <div className="sidebar__footer">
             {user ? (
@@ -206,21 +197,6 @@ export function Sidebar({ collapsed, onToggle, isMobile = false }: SidebarProps)
           </div>
         </div>
       </aside>
-        <button
-          type="button"
-          className="sidebar__toggle"
-          onClick={onToggle}
-          aria-label={t(collapsed ? "Expand navigation" : "Collapse navigation")}
-          title={t(collapsed ? "Expand navigation" : "Collapse navigation")}
-          aria-expanded={!collapsed}
-          aria-controls="sidebar-navigation"
-        >
-          {collapsed ? (
-            <PanelLeftOpen size={18} aria-hidden="true" />
-          ) : (
-            <PanelLeftClose size={18} aria-hidden="true" />
-          )}
-        </button>
     </>
   );
 }

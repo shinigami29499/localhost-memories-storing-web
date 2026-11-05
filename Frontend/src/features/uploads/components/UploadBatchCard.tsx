@@ -157,9 +157,6 @@ export function UploadBatchCard({
                 <Progress.Indicator className="upload-progress__indicator" />
               </Progress.Track>
             </Progress.Root>
-            <span className="upload-progress__value">
-              {batch.successfulFiles}/{batch.totalFiles}
-            </span>
           </div>
         </div>
         {batch.canManage ? (

@@ -92,7 +92,7 @@ describe.each(["travel", "place"] as const)("%s map navigation integration", (ki
             draft={coordinate} editable canMove={() => true} onMove={vi.fn()}
             onEdit={vi.fn()} onCancelSelection={vi.fn()} onAddPhotos={vi.fn()} onOpenCamera={vi.fn()} />
         ) : (
-          <PlaceMap {...shared} places={[place]} selectedId={selected ? place.id : null}
+          <PlaceMap {...shared} onAddToolbarChange={vi.fn()} places={[place]} selectedId={selected ? place.id : null}
             draft={null} picking={false} canChange={() => true} onMove={vi.fn()} onDelete={vi.fn()}
             canMovePhoto={() => true} onSelectPhoto={vi.fn()} onMovePhoto={vi.fn()} onEditPhoto={vi.fn()}
             onConfirmPhotoMove={vi.fn()} onEdit={vi.fn()} onEditDraft={vi.fn()} onCancelSelection={vi.fn()}
@@ -125,7 +125,7 @@ describe.each(["travel", "place"] as const)("%s map navigation integration", (ki
   it("offers both providers for the selected destination, including editable travel photos", async () => {
     expect(boundsChanged).toHaveBeenCalledWith({ west: 170, south: -20, east: -170, north: 30 });
     await click("Navigate");
-    expect(document.body.textContent).toContain(kind === "travel" ? "Directions to Holiday.jpg" : "Directions to Lunch");
+    expect(document.body.textContent).not.toContain(kind === "travel" ? "Directions to Holiday.jpg" : "Directions to Lunch");
     expect(document.body.querySelector("a")?.textContent).toBe("Open Google Maps");
     expect(button("Preview with Mapbox")).toBeDefined();
     expect(new URL(document.body.querySelector("a")!.href).searchParams.get("destination")).toBe("0,0.01");

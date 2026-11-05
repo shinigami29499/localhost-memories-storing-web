@@ -1,4 +1,4 @@
-import { Suspense, useState } from "react";
+import { Suspense } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { Sidebar } from "./Sidebar";
@@ -33,16 +33,11 @@ export function AuthenticatedLayout() {
   const { t } = useLocale();
   const location = useLocation();
   const isMobile = useMediaQuery(MOBILE_QUERY);
-  const isRail = useMediaQuery("(min-width: 768px) and (max-width: 1199px)");
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => window.matchMedia("(max-width: 1199px)").matches);
-  const collapsed = sidebarCollapsed || isRail;
 
   return (
-    <div
-      className={`app-shell${collapsed ? " app-shell--sidebar-collapsed" : ""}`}
-      data-state={collapsed ? "collapsed" : "expanded"} data-collapsible={collapsed ? "icon" : ""}>
+    <div className="app-shell" data-state="expanded">
       <a className="skip-link" href="#main-content">{t("Skip to content")}</a>
-      {!isMobile && <Sidebar collapsed={collapsed} onToggle={() => setSidebarCollapsed((value) => !value)} />}
+      {!isMobile && <Sidebar />}
       <div className="app-shell__main">
         <PresenceRuntime />
         <UploadRuntime />

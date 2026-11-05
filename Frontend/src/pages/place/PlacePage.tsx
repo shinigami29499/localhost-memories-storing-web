@@ -1,8 +1,9 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { startTransition, useCallback, useEffect, useRef, useState, useMemo, type CSSProperties } from "react";
+import { lazy, Suspense, startTransition, useCallback, useEffect, useRef, useState, useMemo, type CSSProperties } from "react";
 import { HighlightItem } from "@animate-ui/react/primitives/effects/highlight";
 import { NavigationHighlight } from "../../components/ui";
+import { PageActionBar, usePageActionBarFooter } from "../../components/layout/PageActionBar";
 import { Pagination, DEFAULT_PAGE_SIZE } from "../../components/ui/Pagination";
 import {
   Button,
@@ -29,8 +30,12 @@ import { registerUploadCompletionAction } from "../../features/uploads/services/
 import { locationService } from "../../features/locations/services/locationService";
 import { locateUploadedBatch } from "../../features/locations/services/locateUploadedBatch";
 import { LocationEditor } from "../../features/locations/components/LocationEditor";
+import { useAnimationStore } from "../../store/animationStore";
 import { HomeLocationPhotoConfirmation } from "../../features/locations/components/HomeLocationPhotoConfirmation";
-import { PlaceMap, type PlaceMapSettings } from "../../features/place/components/PlaceMap";
+import { MapLoadingOverlay } from "../../features/locations/components/MapLoadingOverlay";
+import "../../features/locations/components/mapControls.css";
+import type { PlaceMapSettings } from "../../features/place/components/PlaceMap";
+import { AddNavigationToolbar } from "../../features/navigation/components/AddNavigationToolbar";
 import { placeService } from "../../features/place/services/placeService";
 import { PlaceDialog } from "../../features/place/components/PlaceDialog";
 import { SinglePlaceVisitHistory } from "../../features/place/components/SinglePlaceVisitHistory";
@@ -60,6 +65,8 @@ import {
 } from "../../features/place/types";
 import type { MediaFile, PickedLocation } from "../../features/media/types";
 import "./place.css";
+
+const PlaceMap = lazy(() => import("../../features/place/components/PlaceMap").then((module) => ({ default: module.PlaceMap })));
 
 interface EditorState {
   id?: string;
@@ -97,11 +104,11 @@ function PlaceViewSwitch({ view, onChange }: { view: PlaceView; onChange: (view:
   const { t } = useLocale();
 
   return (
-    <div className="place__view-switch" role="group" aria-label={t("Place view")}>
+    <div className="navigation-highlight-bar place__view-switch" role="group" aria-label={t("Place view")}>
       <NavigationHighlight value={view}>
         {([ ["map", "Map"], ["saved", "Saved"], ["history", "History"] ] as const).map(([value, label]) => (
           <HighlightItem key={value} value={value} asChild>
-            <button type="button" className="place__view-option" aria-pressed={view === value}
+            <button type="button" aria-pressed={view === value}
               onClick={() => onChange(value)}>
               {t(label)}
             </button>
@@ -128,8 +135,36 @@ export function PlacePage() {
       void navigate(nextView === "map" ? "/location" : `/location/${nextView}`);
     });
   }, [navigate, view]);
-  const mapSettings = useRef<PlaceMapSettings>({ scene: "3d", showMarkers: true, showPhotoMarkers: true });
+  const mapSettings = useRef<PlaceMapSettings>({ scene: "3d", showMarkers: true, showPhotoMarkers: false });
   const saved = view !== "map";
+  const actionBarFooter = usePageActionBarFooter();
+  const animationsEnabled = useAnimationStore((state) => state.enabled);
+  const [mapStartReady, setMapStartReady] = useState(!animationsEnabled);
+  const [addToolbar, setAddToolbar] = useState<{ visible: boolean; disabled: boolean; add: () => void } | null>(null);
+  useEffect(() => {
+    if (saved) {
+      setMapStartReady(false);
+      return;
+    }
+    if (mapStartReady) return;
+    if (!animationsEnabled) {
+      setMapStartReady(true);
+      return;
+    }
+    let cancelled = false;
+    let pause: number | undefined;
+    let frame = requestAnimationFrame(() => {
+      frame = requestAnimationFrame(() => {
+        const elements = [document.querySelector(".place__view-switch"), actionBarFooter];
+        const animations = elements.flatMap((element) => element?.getAnimations({ subtree: true }) ?? [])
+          .filter((animation) => animation.effect?.getComputedTiming().iterations !== Infinity);
+        void Promise.allSettled(animations.map((animation) => animation.finished)).then(() => {
+          if (!cancelled) pause = window.setTimeout(() => setMapStartReady(true), 150);
+        });
+      });
+    });
+    return () => { cancelled = true; cancelAnimationFrame(frame); window.clearTimeout(pause); };
+  }, [actionBarFooter, animationsEnabled, mapStartReady, saved]);
   const [placeSearch, setPlaceSearch] = useState("");
   const debouncedSearch = useDebouncedValue(placeSearch);
   const [minimumRating, setMinimumRating] = useState(0);
@@ -285,7 +320,7 @@ export function PlacePage() {
     const dismissPreview = (event: MouseEvent) => {
       if (!(event.target instanceof Element)
         || document.querySelector('[role="dialog"], [role="alertdialog"]')
-        || event.target.closest(".place__marker, .locations__marker, .locations__cluster-toggle, .place__card, .place__map-home-control, .map-navigation")) return;
+        || event.target.closest(".place__marker, .locations__marker, .locations__cluster-toggle, .place__card, .place__map-home-control, .map-navigation, .map-navigation__toolbar")) return;
       clearPreview();
     };
     document.addEventListener("click", dismissPreview);
@@ -404,7 +439,7 @@ export function PlacePage() {
       if (!(event.target instanceof Node)
         || document.querySelector('[role="dialog"], [role="alertdialog"]')
         || workspaceRef.current?.contains(event.target)
-        || (event.target instanceof Element && event.target.closest(".place__notice, .map-navigation"))) return;
+        || (event.target instanceof Element && event.target.closest(".place__notice, .map-navigation, .map-navigation__toolbar"))) return;
       if (editor || manualHomePick || photoSelection) cancel();
     };
     window.addEventListener("keydown", escape);
@@ -483,13 +518,6 @@ export function PlacePage() {
     <main className={`place${saved ? " place--saved" : ""}`}>
         <div className="place__content">
           <div className="place__scroll-inner">
-            <header className="place__header">
-              <div>
-                <p className="place__eyebrow">{t("Locations")}</p>
-                <h1>{t("Locations")}<span className="brand__dot">.</span></h1>
-                <p>{t("Saved places and check-ins")}</p>
-              </div>
-            </header>
             {editor && !editor.coordinate && (
               <div className="place__notice" role="status">
                 <span>{t("Click the map, use your current location, or select a place label to set the marker.")}</span>
@@ -508,6 +536,7 @@ export function PlacePage() {
             )}
 
             <PlaceViewSwitch view={view} onChange={requestView} />
+            {!saved && (!addToolbar || addToolbar.visible) && <AddNavigationToolbar onAdd={addToolbar?.add ?? (() => {})} disabled={addToolbar?.disabled ?? true} />}
             <div className="place__view-content" aria-busy={view === "history" && visitHistory.isPending || undefined}>
             <>
             {!saved && (
@@ -517,7 +546,8 @@ export function PlacePage() {
                 ) : null}
                 <div ref={workspaceRef} className="place__workspace">
                   <div className="place__map-panel">
-                    <PlaceMap
+                    {!mapStartReady ? <MapLoadingOverlay ready={false} className="map-loading-overlay" /> : <Suspense fallback={<MapLoadingOverlay ready={false} className="map-loading-overlay" />}><PlaceMap
+                      onAddToolbarChange={setAddToolbar}
                       settingsRef={mapSettings}
                       onBoundsChange={handleMapBounds}
                       places={mapPlaces}
@@ -533,6 +563,7 @@ export function PlacePage() {
                       draft={photoRelocating ? photoSelection?.draft ?? null : placeToMove?.coordinate ?? editor?.coordinate ?? null}
                       relocatingPlace={placeToMove?.place ?? null}
                       picking={!!editor && !editorOpen}
+                      editorOpen={editorOpen}
                       homeLocation={home.query.data ?? null}
                       homeLocationReady={home.query.isFetched}
                       homeActionDisabled={save.isPending || remove.isPending || home.save.isPending || uploading}
@@ -572,7 +603,7 @@ export function PlacePage() {
                         else if (placeToMove) setPlaceToMove((current) => current ? { ...current, coordinate } : current);
                         else pickOnMap(coordinate, placeName);
                       }}
-                    />
+                    /></Suspense>}
                   </div>
                 </div>
                 {mapPlacesQuery.isFetchNextPageError ? (
@@ -681,7 +712,7 @@ export function PlacePage() {
               </>
             )
             )}
-        {view === "saved" && (
+        {view === "saved" && <PageActionBar className="place__action-bar">
           <form className={`place__search-bar${minimumRating > 0 ? " place__search-bar--rating-filtered" : ""}`} role="search" onSubmit={(event) => event.preventDefault()}>
             <input type="search" aria-label={t("Search saved places")}
               placeholder={t("Search places or users")} value={placeSearch} maxLength={120}
@@ -719,7 +750,7 @@ export function PlacePage() {
               </span>
             </AnimateIcon>
           </form>
-        )}
+        </PageActionBar>}
         {saved && view === "history" && visitHistory.data && !visitHistory.isError ? (
           <footer className="place__history-footer">
             <Pagination
