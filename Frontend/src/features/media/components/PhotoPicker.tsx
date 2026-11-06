@@ -236,20 +236,20 @@ export function PhotoPicker({
                       <ErrorState message={t("Could not load media.")} onRetry={() => void query.refetch()} />
                     ) : null}
                     {query.isSuccess && images.length === 0 ? <p className="album-photo-picker__note">{t("No images yet.")}</p> : null}
-                    {query.isFetchNextPageError ? <Button type="button" variant="secondary" className="place-picker__more"
+                    {query.isFetchNextPageError ? <Button type="button" className="dialog-action dialog-action--normal place-picker__more"
                       onClick={() => void query.fetchNextPage()}>{t("Load more")}</Button> : null}
                   </>
                 )}
               </div>
             </Tabs.Root>
             <footer className="place-picker__footer">
-              <div className="place-picker__actions">
-                <Button type="button" disabled={busy || !initialized || (!picked && selectedIds.length > 0)} onClick={() => {
+              <div className="place-picker__actions dialog-actions">
+                <Button type="button" variant="danger" className="dialog-action dialog-action--danger place-picker__cancel" disabled={busy} onClick={() => close()}>{t("Cancel")}</Button>
+                <Button type="button" className="dialog-action dialog-action--normal" disabled={busy || !initialized || (!picked && selectedIds.length > 0)} onClick={() => {
                   confirmedId.current = picked?.id ?? null;
                   onConfirm(picked, initialImage.data ?? null);
                   close();
                 }}>{t("Done")}</Button>
-                <Dialog.Close className="btn btn--danger place-picker__cancel" disabled={busy}>{t("Cancel")}</Dialog.Close>
               </div>
             </footer>
           </Dialog.Popup>

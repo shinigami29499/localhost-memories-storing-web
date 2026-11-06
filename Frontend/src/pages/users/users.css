@@ -89,7 +89,6 @@
   align-items: center;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
   color: var(--text-strong);
   cursor: pointer;
   display: flex;
@@ -225,7 +224,6 @@
 .admin-posts__field select {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
   color: var(--text);
   font: inherit;
   min-height: 44px;
@@ -296,7 +294,6 @@
 .admin-posts__date-endpoint input {
   background: transparent;
   border: 0;
-  border-radius: 0;
   min-height: 40px;
   min-width: 0;
   padding: 4px 2px;
@@ -627,7 +624,6 @@
 
 .admin-icon-btn.btn {
   border: 0;
-  border-radius: 50%;
   box-sizing: border-box;
   box-shadow: none;
   height: 34px;

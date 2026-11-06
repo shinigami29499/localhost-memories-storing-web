@@ -48,7 +48,6 @@
   width: 100%;
   padding: 8px;
   border: 1px solid var(--border-control);
-  border-radius: 6px;
   background: var(--surface);
   color: var(--text);
   font: inherit;
@@ -251,23 +250,7 @@
 .locations__home-pin {
   touch-action: none;
   user-select: none;
-  align-items: center;
-  background: #6A3F36;
-  border: 3px solid #F4F3EE;
-  border-radius: 50% 50% 50% 0;
-  box-shadow: none;
-  color: #F4F3EE;
-  cursor: pointer;
-  display: inline-flex;
-  height: 40px;
-  justify-content: center;
-  left: 2px;
-  position: absolute;
-  top: 2px;
-  transform: rotate(-45deg);
-  width: 40px;
 }
-.locations__home-pin svg { transform: rotate(45deg); }
 .locations__home-pin:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 4px; }
 .locations__home-pin:focus-visible svg { outline: none; }
 .locations .place__location-search {
@@ -290,7 +273,6 @@
 .locations .place__location-search-input {
   background: var(--surface);
   border: 1px solid transparent;
-  border-radius: 8px;
   color: var(--text);
   flex: 1;
   height: 44px;
@@ -339,7 +321,6 @@
 .locations .place__location-search-results button {
   background: transparent;
   border: 0;
-  border-radius: 8px;
   color: var(--text);
   cursor: pointer;
   padding: 10px 12px;
@@ -364,7 +345,7 @@
 .locations__scenes[open] { width: min(200px, calc(100% - 32px)); }
 .locations .locations__scenes-title {
   align-items: center;
-  border-radius: 10px;
+  border-radius: var(--radius-inner);
   color: var(--text-strong);
   cursor: pointer;
   display: flex;
@@ -427,16 +408,16 @@
   z-index: calc(var(--fan-count) - var(--fan-index));
 }
 .locations__cluster--group[data-open="false"] .locations__marker {
-  transform: translateY(calc(var(--fan-index) * -2px)) rotate(calc(var(--fan-index) * 3deg - 3deg));
+  transform: none;
 }
-.locations__cluster--group[data-open="false"] .locations__marker:not(:nth-child(-n + 3)) { opacity: 0; }
+.locations__cluster--group[data-open="false"] .locations__marker:not(:first-of-type) { opacity: 0; }
 .locations__cluster--group[data-open="false"] .locations__pin { pointer-events: none; }
 .locations__cluster--group[data-open="true"] .locations__marker,
 .locations__cluster[data-home-expanded="true"] .locations__marker {
   --fan-angle: calc((var(--fan-index) - (var(--fan-count) - 1) / 2) * var(--fan-step));
-  transform: rotate(var(--fan-angle)) translateY(-80px) rotate(calc(-1 * var(--fan-angle)));
+  transform: rotate(var(--fan-angle)) translateY(-64px) rotate(calc(-1 * var(--fan-angle)));
 }
-.locations__cluster--group[data-open="true"][data-near-home="false"] .locations__marker:first-child { transform: none; }
+.locations__cluster--group[data-open="true"][data-near-home="false"] .locations__marker:first-of-type { transform: none; }
 .locations__cluster-toggle {
   background: transparent;
   border: 0;
@@ -477,53 +458,6 @@
   .locations__cluster--group .locations__marker { transition: none; }
 }
 .locations__marker { height: 54px; position: relative; width: 44px; }
-.locations__marker:not(.home-location-marker)::before {
-  content: "";
-  position: absolute;
-  left: 12px;
-  bottom: -6px;
-  width: 20px;
-  height: 9px;
-  background: color-mix(in srgb, var(--marker-color, #F4F3EE), black 35%);
-  border-radius: 50%;
-  box-shadow: none;
-  pointer-events: none;
-  z-index: 0;
-}
-.locations__pin {
-  align-items: center;
-  background: var(--marker-color, #F4F3EE);
-  border: 1px solid #6A3F36;
-  border-radius: 50% 50% 50% 0;
-  color: var(--text-strong);
-  cursor: pointer;
-  display: inline-flex;
-  height: 44px;
-  left: 0;
-  overflow: hidden;
-  padding: 0;
-  position: absolute;
-  z-index: 1;
-  top: 0;
-  transform: rotate(-45deg);
-  transition: scale 140ms ease-out;
-  width: 44px;
-  box-shadow: none;
-}
-.locations__pin > span {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 30px;
-  width: 30px;
-  margin: auto;
-  background: #F4F3EE;
-  border-radius: 50%;
-  color: #6A3F36;
-  transform: rotate(45deg);
-}
-.locations__pin > span svg path { fill: #6A3F36; stroke: #F4F3EE; }
-.locations__pin > span svg circle { stroke: #F4F3EE; }
 .locations__pin[data-movable="true"] { cursor: grab; touch-action: none; user-select: none; }
 .locations__pin[data-movable="true"]:active { cursor: grabbing; }
 .locations__popup {

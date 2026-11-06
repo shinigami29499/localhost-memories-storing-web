@@ -9,6 +9,7 @@ import { UserRound } from "../animate-ui/icons/user-round";
 import { Settings } from "../animate-ui/icons/settings";
 import { LogOut } from "../animate-ui/icons/log-out";
 import { useLocale } from "../../context/LocaleContext";
+import { Button } from "../ui/Button";
 import { useLogout } from "../../features/auth/hooks/useLogout";
 
 export function BottomNavigation() {
@@ -54,14 +55,14 @@ export function BottomNavigation() {
       onClose={() => { setMoreOpen(false); moreRef.current?.focus(); }}>
       <div className="bottom-navigation__dialog-header">
         <strong>{t("More")}</strong>
-        <button type="button" onClick={() => dialogRef.current?.close()}>{t("Close")}</button>
+        <Button type="button" className="dialog-action dialog-action--normal" onClick={() => dialogRef.current?.close()}>{t("Close")}</Button>
       </div>
       <nav aria-label={t("More")}>
         <NavLink to="/profile" onClick={() => dialogRef.current?.close()}><UserRound size={20} aria-hidden="true" />{t("User profile")}</NavLink>
         <NavLink to="/settings" onClick={() => dialogRef.current?.close()}><Settings size={20} aria-hidden="true" />{t("Settings")}</NavLink>
-        <button type="button" onClick={() => { dialogRef.current?.close(); void logout(); }}>
+        <Button type="button" variant="danger" className="dialog-action dialog-action--danger" onClick={() => { dialogRef.current?.close(); void logout(); }}>
           <LogOut size={20} aria-hidden="true" />{t("Log out")}
-        </button>
+        </Button>
       </nav>
     </dialog>
   </>;

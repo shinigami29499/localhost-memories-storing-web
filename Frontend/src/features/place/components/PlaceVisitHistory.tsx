@@ -1,7 +1,5 @@
 import { useEffect, useState, type CSSProperties } from "react";
-import { Trash2 } from "../../../components/animate-ui/icons/trash-2";
-import { LoaderCircle } from "../../../components/animate-ui/icons/loader-circle";
-import { ConfirmationDialog, showToast } from "../../../components/ui";
+import { showToast } from "../../../components/ui";
 import { useAuthStore } from "../../../store/authStore";
 import { UserAvatar } from "../../../components/common/UserAvatar";
 import { PlaceDialog } from "./PlaceDialog";
@@ -28,7 +26,8 @@ export function PlaceVisitHistory({ visits, showPlaceDetails = true, showVisitor
   const isAdmin = useAuthStore((state) => state.user?.role?.toLowerCase() === "admin");
   const currentUserId = useAuthStore((state) => state.user?.id);
   const [now, setNow] = useState(() => Date.now());
-  const [visitToRemove, setVisitToRemove] = useState<PlaceVisit | null>(null);
+  const [confirmingRemoval, setConfirmingRemoval] = useState(false);
+  const [removalBusy, setRemovalBusy] = useState(false);
   const [selectedVisit, setSelectedVisit] = useState<PlaceVisit | null>(null);
   const [editingVisit, setEditingVisit] = useState<PlaceVisit | null>(null);
   const [editNote, setEditNote] = useState("");
@@ -50,7 +49,25 @@ export function PlaceVisitHistory({ visits, showPlaceDetails = true, showVisitor
       setNow(time);
       return;
     }
-    setVisitToRemove(visit);
+    setConfirmingRemoval(true);
+  };
+
+  const confirmRemove = async (visit: PlaceVisit) => {
+    if (!canRemove(visit, Date.now())) {
+      setNow(Date.now());
+      showToast.error(t("Check ins older than one day cannot be removed."));
+      return;
+    }
+    setRemovalBusy(true);
+    try {
+      await onRemove?.(visit);
+      setSelectedVisit(null);
+      setConfirmingRemoval(false);
+    } catch {
+      showToast.error(t("Could not complete this action. Please retry."));
+    } finally {
+      setRemovalBusy(false);
+    }
   };
 
   return (
@@ -62,7 +79,7 @@ export function PlaceVisitHistory({ visits, showPlaceDetails = true, showVisitor
             type="button"
             className="place__history-select"
             aria-label={t("View check-in details for {place}", { place: visit.placeName })}
-            onClick={() => setSelectedVisit(visit)}
+            onClick={() => { setConfirmingRemoval(false); setSelectedVisit(visit); }}
           />
           {showPlaceDetails && (
             <>
@@ -94,20 +111,6 @@ export function PlaceVisitHistory({ visits, showPlaceDetails = true, showVisitor
               {new Date(visit.visitedAt).toLocaleTimeString(language, { hour: "2-digit", minute: "2-digit", hourCycle: "h23" })}
             </span>
           </time>
-          {onRemove && visit.userId === currentUserId && (
-            <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
-              <button
-                type="button"
-                className="place__history-remove"
-                aria-label={t("Remove this check in")}
-                title={t(canRemove(visit, now) ? "Remove this check in" : "Check ins older than one day cannot be removed.")}
-                disabled={removingVisitId === visit.id || !canRemove(visit, now)}
-                onClick={() => requestRemove(visit)}
-              >
-                {removingVisitId === visit.id ? <LoaderCircle size={16} className="spinner__wheel" aria-hidden="true" /> : <Trash2 size={16} aria-hidden="true" />}
-              </button>
-            </AnimateIcon>
-          )}
         </li>
       ))}
     </ol>
@@ -126,7 +129,7 @@ export function PlaceVisitHistory({ visits, showPlaceDetails = true, showVisitor
           </AnimateIcon>
         ) : <span className="place__chip place__history-icon" style={{ "--marker-color": selectedVisit.markerColor } as CSSProperties} aria-hidden="true">{selectedVisit.markerIcon}</span>}
         hideClose
-        onClose={() => setSelectedVisit(null)}
+        onClose={() => { setConfirmingRemoval(false); setSelectedVisit(null); }}
       >
         <div className="place__visit-detail">
           {selectedVisit.placeAddress && <p>{selectedVisit.placeAddress}</p>}
@@ -137,12 +140,33 @@ export function PlaceVisitHistory({ visits, showPlaceDetails = true, showVisitor
           {!selectedVisit.note && selectedVisit.rating === 0 && (
             <p className="place__visit-no-review">{t("No review yet")}</p>
           )}
-          {canEditVisits && selectedVisit.userId === currentUserId && (
-          <Button type="button" onClick={() => {
+          {selectedVisit.userId === currentUserId && (onRemove || canEditVisits) && (
+          <div className={`dialog-actions place__visit-actions${confirmingRemoval ? " dialog-actions--confirm" : ""}`}>
+          {confirmingRemoval ? <>
+            <span className="dialog-actions__prompt">{t("Are you sure?")}</span>
+            <Button type="button" variant="danger" className="dialog-action dialog-action--danger-confirm place__visit-remove-confirm" busy={removalBusy || removingVisitId === selectedVisit.id}
+              onClick={() => void confirmRemove(selectedVisit)}>{t("Yes, remove checkin!")}</Button>
+          </> : <>
+          {onRemove && <Button type="button" variant="danger" className="dialog-action dialog-action--danger place__visit-remove"
+            title={t(canRemove(selectedVisit, now) ? "Remove this check in" : "Check ins older than one day cannot be removed.")}
+            disabled={removingVisitId === selectedVisit.id || !canRemove(selectedVisit, now)}
+            busy={removingVisitId === selectedVisit.id}
+            onClick={() => requestRemove(selectedVisit)}>
+            {t("Delete")}
+          </Button>}
+          {canEditVisits && <Button type="button" className="dialog-action dialog-action--normal" onClick={() => {
               setEditNote(selectedVisit.note);
               setEditRating(selectedVisit.rating);
               setEditingVisit(selectedVisit);
-            }}>{t("Edit check-in")}</Button>
+            }}>{t("Edit check-in")}</Button>}
+          </>}
+          </div>
+          )}
+          {confirmingRemoval && (
+            <p className="dialog-actions__note">{t("Remove your check-in at “{name}” on {date}? Its note and rating will also be removed.", {
+              name: selectedVisit.placeName,
+              date: new Date(selectedVisit.visitedAt).toLocaleString(language),
+            })}</p>
           )}
         </div>
       </PlaceDialog>
@@ -167,31 +191,9 @@ export function PlaceVisitHistory({ visits, showPlaceDetails = true, showVisitor
           <div className="place__visit-edit-rating">
             <StarRating value={editRating} onChange={setEditRating} size="lg" hideReadout />
           </div>
-          <Button type="submit" busy={updateVisit.isPending}>{t("Save changes")}</Button>
+          <Button type="submit" className="dialog-action dialog-action--normal" busy={updateVisit.isPending}>{t("Save changes")}</Button>
         </form>
       </PlaceDialog>
-    )}
-    {visitToRemove && (
-      <ConfirmationDialog
-        title="Remove this check in?"
-        confirmLabel="Yes, remove checkin!"
-        cancelPrompt="Are you sure?"
-        danger
-        onConfirm={async () => {
-          if (!canRemove(visitToRemove, Date.now())) {
-            setNow(Date.now());
-            showToast.error(t("Check ins older than one day cannot be removed."));
-            return;
-          }
-          await onRemove?.(visitToRemove);
-        }}
-        onClose={() => setVisitToRemove(null)}
-      >
-        <p>{t("Remove your check-in at “{name}” on {date}? Its note and rating will also be removed.", {
-          name: visitToRemove.placeName,
-          date: new Date(visitToRemove.visitedAt).toLocaleString(language),
-        })}</p>
-      </ConfirmationDialog>
     )}
     </>
   );

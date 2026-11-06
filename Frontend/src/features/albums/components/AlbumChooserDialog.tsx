@@ -1,4 +1,5 @@
 import { CustomDialog as AlertDialog, useCustomDialog } from "../../../components/ui/CustomDialog";
+import { Button } from "../../../components/ui/Button";
 import { Bookmark } from "@/components/animate-ui/icons/bookmark";
 import { useLocale } from "../../../context/LocaleContext";
 import { mediaPreviewUrl } from "../../../utils/media";
@@ -49,8 +50,8 @@ export function AlbumChooserDialog({ albums, onClose, onSelect }: Props) {
                 ))}
               </ul>
             </div>
-            <footer className="confirmation-dialog__actions">
-              <button type="button" className="btn btn--danger" onClick={dismiss}>{t("Cancel")}</button>
+            <footer className="confirmation-dialog__actions dialog-actions">
+              <Button type="button" variant="danger" className="dialog-action dialog-action--danger" onClick={dismiss}>{t("Cancel")}</Button>
             </footer>
           </AlertDialog.Popup>
         </AlertDialog.Viewport>

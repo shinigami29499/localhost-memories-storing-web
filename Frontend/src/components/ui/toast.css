@@ -127,7 +127,6 @@
   gap: 6px;
   background: transparent;
   border: 1px solid var(--border, #6A3F36);
-  border-radius: 8px;
   color: var(--text-strong, #F4F3EE);
   cursor: pointer;
   font: inherit;

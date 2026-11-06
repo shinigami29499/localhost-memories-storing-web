@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { HubConnectionBuilder, LogLevel } from "@microsoft/signalr";
 import { CustomDialog as AlertDialog, useCustomDialog } from "../../../components/ui/CustomDialog";
+import { Button } from "../../../components/ui/Button";
 import { useLocale } from "../../../context/LocaleContext";
 import { useAuthStore } from "../../../store/authStore";
 import { useAlbumNotificationStore, type AlbumNotification } from "../../notifications/albumNotificationStore";
@@ -255,11 +256,11 @@ export function PresenceRuntime() {
                 ? "Your account has been disabled. Reload to continue."
                 : "Your role has been updated. Reload and sign in again.")}
             </AlertDialog.Description>
-            <footer className="confirmation-dialog__actions">
-              <button type="button" className="btn btn--primary" onClick={() => close(() => {
+            <footer className="confirmation-dialog__actions dialog-actions">
+              <Button type="button" className="dialog-action dialog-action--normal" onClick={() => close(() => {
                 useAuthStore.getState().clear();
                 window.location.reload();
-              })}>{t("Reload")}</button>
+              })}>{t("Reload")}</Button>
             </footer>
           </AlertDialog.Popup>
         </AlertDialog.Viewport>

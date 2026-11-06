@@ -461,7 +461,7 @@
   gap: 4px;
   max-width: 100%;
   overflow-x: auto;
-  padding: 6px;
+  padding: var(--box-inset);
   pointer-events: auto;
   color: var(--text-on-accent);
 }
@@ -486,7 +486,6 @@
   align-items: center;
   background: transparent;
   border: 0;
-  border-radius: var(--control-radius);
   color: inherit;
   cursor: pointer;
   display: inline-flex;
@@ -538,14 +537,13 @@
 
 .gallery-selection-bar__cancel {
   border-left: 1px solid var(--border);
-  border-radius: 0 999px 999px 0;
   margin-left: 2px;
   padding-left: 14px;
 }
 
 .gallery-selection-bar--compact {
   overflow: visible;
-  padding: 4px;
+  padding: var(--box-inset);
 }
 
 .gallery-selection-bar__selection-actions {
@@ -735,7 +733,7 @@
 
   .gallery-selection-bar {
     gap: 2px;
-    padding: 4px;
+    padding: var(--box-inset);
   }
 
   .gallery-selection-bar__count {

@@ -14,24 +14,31 @@ interface Props {
   variant: "place" | "locations";
   onClick: () => void;
   onHoverChange?: (hovered: boolean) => void;
+  onSelectionChange?: (selected: boolean) => void;
+  onDragChange?: (dragging: boolean) => void;
+  onRelocate?: (location: HomeLocation) => void;
 }
 
-type Action = { type: "remove" } | { type: "move"; location: HomeLocation };
-
-export function HomeLocationMarker({ location, variant, onClick, onHoverChange }: Props) {
+export function HomeLocationMarker({ location, variant, onClick, onHoverChange, onSelectionChange, onDragChange, onRelocate }: Props) {
   const { current: map } = useMap();
   const [screenY, setScreenY] = useState(0);
   const { t } = useLocale();
   const userId = useAuthStore((state) => state.user?.id);
   const home = useHomeLocation(userId);
-  const [action, setAction] = useState<Action | null>(null);
+  const [removing, setRemoving] = useState(false);
+  const [selected, setSelected] = useState(false);
+  const selectHome = (nextSelected: boolean) => {
+    setSelected(nextSelected);
+    onSelectionChange?.(nextSelected);
+  };
   const [markerVersion, setMarkerVersion] = useState(0);
   const gestureVersion = useRef(0);
   const dialogOpen = useRef(false);
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pointer = useRef<{ id: number; x: number; y: number } | null>(null);
   const suppressClick = useRef(false);
-  const blocked = home.save.isPending || home.clear.isPending || action !== null;
+  const wasDragging = useRef(false);
+  const blocked = home.save.isPending || home.clear.isPending || removing;
 
   const cancelHold = () => {
     if (holdTimer.current !== null) clearTimeout(holdTimer.current);
@@ -71,28 +78,18 @@ export function HomeLocationMarker({ location, variant, onClick, onHoverChange }
     gestureVersion.current += 1;
     setMarkerVersion(gestureVersion.current);
   };
-  const openAction = (nextAction: Action) => {
+  const requestRemoval = () => {
     if (blocked || dialogOpen.current || markerVersion !== gestureVersion.current) return;
     dialogOpen.current = true;
     resetGesture();
-    setAction(nextAction);
+    setRemoving(true);
   };
-  const requestRemoval = () => openAction({ type: "remove" });
   const closeAction = () => {
     resetGesture();
-    setAction(null);
+    setRemoving(false);
     dialogOpen.current = false;
   };
-  const confirm = async () => {
-    if (action?.type === "move") {
-      await home.save.mutateAsync(action.location);
-      showToast.success(t("Home location saved."));
-    } else if (action?.type === "remove") {
-      await home.clear.mutateAsync();
-      showToast.delete(t("Home location removed."));
-    }
-  };
-  const position = action?.type === "move" ? action.location : location;
+  const position = location;
   useEffect(() => {
     if (!map || typeof map.project !== "function") return;
     const update = () => setScreenY(map.project([position.longitude, position.latitude]).y);
@@ -104,8 +101,27 @@ export function HomeLocationMarker({ location, variant, onClick, onHoverChange }
   const drag = useMarkerDrag(position, (nextLocation) => {
     cancelHold();
     suppressClick.current = true;
-    openAction({ type: "move", location: nextLocation });
-  }, !blocked);
+    onDragChange?.(false);
+    resetGesture();
+    selectHome(false);
+    onRelocate?.(nextLocation);
+  }, !blocked, 180);
+
+  useEffect(() => {
+    const dragging = drag.offset.x !== 0 || drag.offset.y !== 0;
+    if (dragging !== wasDragging.current) {
+      wasDragging.current = dragging;
+      onDragChange?.(dragging);
+    }
+  }, [drag.offset.x, drag.offset.y, onDragChange]);
+
+  useEffect(() => {
+    const deselectOutside = (event: MouseEvent) => {
+      if (event.target instanceof Node && !drag.ref.current?.closest(".home-location-marker")?.contains(event.target)) selectHome(false);
+    };
+    document.addEventListener("click", deselectOutside, true);
+    return () => document.removeEventListener("click", deselectOutside, true);
+  }, [drag.ref, onSelectionChange]);
 
   return (
     <>
@@ -114,9 +130,9 @@ export function HomeLocationMarker({ location, variant, onClick, onHoverChange }
         latitude={position.latitude}
         longitude={position.longitude}
         anchor="bottom"
-        style={{ zIndex: Math.round(screenY * 10) + 1 }}
+        style={{ zIndex: Math.round(screenY * 10) + 100000 }}
       >
-        <div className={`${variant}__marker home-location-marker`}
+        <div className={`${variant}__marker home-location-marker map-marker`}
           style={{ translate: `${drag.offset.x}px ${drag.offset.y}px` }}
           onPointerEnter={() => onHoverChange?.(true)}
           onPointerLeave={() => onHoverChange?.(false)}
@@ -126,9 +142,10 @@ export function HomeLocationMarker({ location, variant, onClick, onHoverChange }
             <button
               ref={drag.ref}
               type="button"
-              className={variant === "place" ? "place__home-pin" : "locations__home-pin"}
+              className={`map-marker__pin ${variant === "place" ? "place__home-pin" : "locations__home-pin"}`}
               aria-label={t("Home location")}
-              title={t("Drag to move home. Hold or right-click to remove.")}
+              aria-pressed={selected}
+              title={t("Hold briefly, then drag to move home. Hold longer or right-click to remove.")}
               aria-haspopup="dialog"
               onPointerDown={(event) => {
                 if (event.button !== 0 || !event.isPrimary || blocked
@@ -150,6 +167,7 @@ export function HomeLocationMarker({ location, variant, onClick, onHoverChange }
                 if (event.button === 2 || (!pointer.current && !suppressClick.current)) requestRemoval();
               }}
               onKeyDown={(event) => {
+                if (event.key === "Escape") selectHome(false);
                 if ((event.key === "Enter" || event.key === " ") && !blocked && !dialogOpen.current)
                   suppressClick.current = false;
                 if (event.key === "Delete" || event.key === "Backspace") {
@@ -160,28 +178,26 @@ export function HomeLocationMarker({ location, variant, onClick, onHoverChange }
               onClick={(event) => {
                 event.stopPropagation();
                 if (!blocked && !dialogOpen.current && markerVersion === gestureVersion.current
-                  && !suppressClick.current && !drag.suppressClick.current) onClick();
+                  && !suppressClick.current && !drag.suppressClick.current) {
+                  selectHome(true);
+                  onClick();
+                }
               }}
             >
-              <span aria-hidden="true"><Home size={22} /></span>
+              <span className="map-marker__center" aria-hidden="true"><Home size={22} /></span>
             </button>
           </AnimateIcon>
         </div>
       </Marker>
-      {action && (
+      {removing && (
         <ConfirmationDialog
-          title={action.type === "remove" ? "Remove your home location?" : "Change your home location?"}
-          confirmLabel={action.type === "remove" ? "Remove home location" : "Change home location"}
-          danger={action.type === "remove"}
-          onConfirm={confirm}
+          title="Remove your home location?"
+          confirmLabel="Remove home location"
+          danger
+          onConfirm={async () => { await home.clear.mutateAsync(); showToast.delete(t("Home location removed.")); }}
           onClose={closeAction}
         >
-          <p>{action.type === "remove"
-            ? t("The home marker will be removed. You can set it again later.")
-            : t("Your home marker will move to {latitude}, {longitude}.", {
-              latitude: action.location.latitude.toFixed(6),
-              longitude: action.location.longitude.toFixed(6),
-            })}</p>
+          <p>{t("The home marker will be removed. You can set it again later.")}</p>
         </ConfirmationDialog>
       )}
     </>

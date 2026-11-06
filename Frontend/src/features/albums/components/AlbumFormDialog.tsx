@@ -72,7 +72,7 @@ export function AlbumFormDialog({ album, onSubmit, onClose }: Props) {
           {editing ? (
             <div className="album-form__field">
               <span>{t("Preview image")}</span>
-              <Button type="button" className="album-form__choose-photos" onClick={() => setIsPhotoPickerOpen(true)}>
+              <Button type="button" className="dialog-action dialog-action--normal album-form__choose-photos" onClick={() => setIsPhotoPickerOpen(true)}>
                 {t("Choose photos")}
               </Button>
               <small className="album-form__hint">
@@ -83,12 +83,12 @@ export function AlbumFormDialog({ album, onSubmit, onClose }: Props) {
           ) : null}
         </fieldset>
         <footer className="place__form-actions">
-          <div className="place__form-actions-primary">
-            <Button type="submit" className="album-form__save" busy={busy} disabled={!name.trim() || isPhotoPickerOpen}>
-              {t(editing ? "Save changes" : "Create")}
-            </Button>
-            <Button type="button" className="album-form__cancel" variant="danger" disabled={busy || isPhotoPickerOpen} onClick={closeDialog}>
+          <div className="place__form-actions-primary dialog-actions">
+            <Button type="button" className="dialog-action dialog-action--danger album-form__cancel" variant="danger" disabled={busy || isPhotoPickerOpen} onClick={closeDialog}>
               {t("Cancel")}
+            </Button>
+            <Button type="submit" className="dialog-action dialog-action--normal album-form__save" busy={busy} disabled={!name.trim() || isPhotoPickerOpen}>
+              {t(editing ? "Save changes" : "Create")}
             </Button>
           </div>
         </footer>

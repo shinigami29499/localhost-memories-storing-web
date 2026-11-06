@@ -171,10 +171,10 @@ export function BulkSaveToAlbumDialog({ mediaIds, onSaved, onClose }: Props) {
                 <ErrorState message={t("Could not load more albums.")} onRetry={() => void albumsQuery.fetchNextPage()} />
               ) : null}
               {albumsQuery.hasNextPage ? (
-                <button type="button" className="btn btn--secondary" disabled={blocked || albumsQuery.isFetchingNextPage}
+                <Button type="button" className="dialog-action dialog-action--normal" disabled={blocked || albumsQuery.isFetchingNextPage}
                   onClick={() => void albumsQuery.fetchNextPage()}>
                   {t(albumsQuery.isFetchingNextPage ? "Loading albums…" : "Load more")}
-                </button>
+                </Button>
               ) : null}
               <form className="album-dialog__create" onSubmit={(event) => void create(event)}>
                 <input
@@ -185,13 +185,13 @@ export function BulkSaveToAlbumDialog({ mediaIds, onSaved, onClose }: Props) {
                   aria-label={t("New album name")}
                   disabled={blocked}
                 />
-                <Button type="submit" variant="secondary" busy={creating} disabled={!name.trim() || blocked}>
+                <Button type="submit" className="dialog-action dialog-action--normal" busy={creating} disabled={!name.trim() || blocked}>
                   {t("Create")}
                 </Button>
               </form>
             </div>
-            <footer className="confirmation-dialog__actions">
-              <button type="button" className="btn btn--primary" disabled={blocked} onClick={dismiss}>{t("Done")}</button>
+            <footer className="confirmation-dialog__actions dialog-actions">
+              <Button type="button" className="dialog-action dialog-action--normal" disabled={blocked} onClick={dismiss}>{t("Done")}</Button>
             </footer>
           </AlertDialog.Popup>
         </AlertDialog.Viewport>

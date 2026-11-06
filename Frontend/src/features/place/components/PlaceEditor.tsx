@@ -59,7 +59,7 @@ export function PlaceEditor({
       </label>
 
       <div className="place__field">
-        <Button type="button" className="place__choose-photos" disabled={busy} onClick={() => setPickingImages(true)}>
+        <Button type="button" className="dialog-action dialog-action--normal place__choose-photos" disabled={busy} onClick={() => setPickingImages(true)}>
           <UploadIcon size={18} aria-hidden="true" />
           {t("Choose photos")}
         </Button>
@@ -111,16 +111,16 @@ export function PlaceEditor({
       {error && <p className="place__form-error" role="alert">{error}</p>}
 
       <div className="place__form-actions">
-        <div className="place__form-actions-primary">
-          <Button type="button" className="place__cancel-action" variant="secondary" disabled={busy} onClick={onCancel}>
+        <div className="place__form-actions-primary dialog-actions">
+          <Button type="button" className="dialog-action dialog-action--danger place__cancel-action" variant="danger" disabled={busy} onClick={onCancel}>
             {t("Cancel")}
           </Button>
-          <Button type="submit" className="place__save-action" busy={saving} disabled={!coordinate || busy}>
+          <Button type="submit" className="dialog-action dialog-action--normal place__save-action" busy={saving} disabled={!coordinate || busy}>
             {isNew ? <><Plus size={18} aria-hidden="true" />{t("Add")}</> : t("Save changes")}
           </Button>
         </div>
         {onDelete && (
-          <Button type="button" variant="danger" busy={deleting} disabled={busy} onClick={onDelete}>
+          <Button type="button" variant="danger" className="dialog-action dialog-action--danger" busy={deleting} disabled={busy} onClick={onDelete}>
             {t("Delete")}
           </Button>
         )}

@@ -6,7 +6,6 @@
   min-height: 40px;
   padding: 0 16px;
   border: 1px solid var(--border-control);
-  border-radius: 999px;
   background: transparent;
   color: var(--text-muted);
   font: inherit;
@@ -98,7 +97,6 @@
   height: 32px;
   padding: 0;
   border: 0;
-  border-radius: 999px;
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
@@ -199,7 +197,6 @@
   min-height: 32px;
   padding: 0 12px;
   border: 0;
-  border-radius: 999px;
   background: transparent;
   color: var(--text-strong);
   font: inherit;

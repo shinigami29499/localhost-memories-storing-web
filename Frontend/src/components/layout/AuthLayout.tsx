@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "rea
 import { Settings } from "@/components/animate-ui/icons/settings";
 import { useLocale } from "../../context/LocaleContext";
 import { LanguageToggleButton } from "../ui/LanguageToggleButton";
+import { Button } from "../ui/Button";
 import { Brand } from "./Brand";
 import { CommunityIntro } from "./CommunityIntro";
 import "./control-bar.css";
@@ -35,9 +36,9 @@ export function AuthLayout({ children, showSettings = true }: { children: ReactN
       {showSettings ? (
         <dialog ref={settingsDialog} className="login__settings-dialog" aria-label={t("Settings")}
           onClose={() => setSettingsOpen(false)}>
-          <button type="button" className="login__settings-close" onClick={() => settingsDialog.current?.close()}>
+          <Button type="button" className="dialog-action dialog-action--normal login__settings-close" onClick={() => settingsDialog.current?.close()}>
             {t("Close")}
-          </button>
+          </Button>
           {settingsOpen ? <Suspense fallback={<p role="status">{t("Loading settings")}</p>}><SettingsPage /></Suspense> : null}
         </dialog>
       ) : null}

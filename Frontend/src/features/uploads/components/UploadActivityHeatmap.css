@@ -36,11 +36,6 @@
   box-shadow: none;
 }
 
-.upload-activity-dialog .confirmation-dialog__actions .btn--danger {
-  background: #6A3F36;
-  color: #F4F3EE;
-}
-
 :root .upload-activity-dialog {
   background: #F4F3EE;
 }

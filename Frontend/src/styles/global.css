@@ -33,11 +33,17 @@
   --danger: #6A3F36;
   --danger-wash: #F8E4BE;
   --text-on-danger: #F4F3EE;
+  --dialog-danger-text: #ff4960;
+  --dialog-danger-border: #ff94a1;
+  --dialog-danger-wash: #ffebed;
+  --dialog-danger-solid: #ff385c;
   --notification-icon: #6A3F36;
   --focus-ring: #6A3F36;
   --shadow-popover: none;
   --overlay-backdrop: #6A3F36;
-  --radius: 10px;
+  --radius: 6px;
+  --radius-inner: calc(var(--radius) / 2);
+  --box-inset: 4px;
   --sidebar-width: 240px;
   --community-art-sun: #EEA988;
   --community-art-mountain: #C8A796;
@@ -295,7 +301,7 @@ button:focus-visible {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  :where(button:not(:disabled), a[href], [role="button"]):active {
+  :where(button:not(:disabled):not(.dialog-action), a[href], [role="button"]:not(.dialog-action)):active {
     scale: 0.97;
   }
 }
@@ -307,7 +313,6 @@ button:focus-visible {
   justify-content: center;
   padding: 10px 20px;
   border: 1px solid transparent;
-  border-radius: 999px;
   font: inherit;
   font-weight: 600;
   cursor: pointer;
@@ -415,7 +420,6 @@ textarea {
   padding: 10px 12px;
   background: var(--surface-raised);
   border: 1px solid var(--border-control);
-  border-radius: 10px;
   color: var(--text-strong);
   font: inherit;
   resize: vertical;
@@ -650,7 +654,7 @@ textarea::placeholder {
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem;
-  border-radius: calc(var(--radius) / 2);
+  border-radius: var(--radius-inner);
   font-size: 0.875rem;
   cursor: pointer;
   outline: none;
@@ -784,89 +788,37 @@ textarea::placeholder {
   background: var(--bg);
 }
 
-.confirmation-dialog__actions > .btn {
-  width: 100%;
-  border: 0;
+/* Shared dialog actions: danger, final danger confirmation, and normal. */
+.dialog-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 24%) minmax(0, 1fr);
+  gap: 8px;
 }
 
-.confirmation-dialog__actions > .btn--danger {
-  background: transparent;
-  border: 1px solid var(--danger);
-  color: var(--danger);
-}
+.dialog-actions--confirm { grid-template-columns: minmax(0, 30%) minmax(0, 1fr); }
+.dialog-actions > .dialog-action:only-child { grid-column: 1 / -1; }
+.dialog-actions > .dialog-action { box-sizing: border-box; min-width: 0; padding-inline: 8px; width: 100%; }
+.dialog-actions__prompt { align-self: center; color: var(--dialog-danger-solid); font-weight: 600; }
+.dialog-actions__note { color: var(--text); font-size: 0.8125rem; line-height: 1.5; margin: 0; }
 
-.confirmation-dialog__actions .confirmation-dialog__cancel:hover:not(:disabled) {
-  background: var(--surface-raised);
-  border-color: var(--border-control);
-  color: var(--text-strong);
-  text-decoration: underline;
+.dialog-action:hover:not(:disabled) { filter: none; text-decoration: underline; }
+.dialog-action--danger,
+.dialog-action--danger:hover:not(:disabled) {
+  background: var(--dialog-danger-wash);
+  border: 1px solid var(--dialog-danger-border);
+  color: var(--dialog-danger-text);
 }
-
-.confirmation-dialog__actions--danger {
-  align-items: stretch;
-  flex-direction: row;
+.dialog-action--danger-confirm,
+.dialog-action--danger-confirm:hover:not(:disabled) {
+  background: var(--dialog-danger-solid);
+  border: 1px solid var(--dialog-danger-solid);
+  color: #fff;
 }
-
-.confirmation-dialog__actions--danger > .btn--secondary {
-  background: #ffebed;
-  border: 1px solid #ff94a1;
-  color: #ff4960;
-  flex: 0 0 22%;
-  min-width: 88px;
-  padding-inline: 8px;
-}
-
-.confirmation-dialog__actions--danger > .btn--secondary:hover:not(:disabled) {
-  background: #ffebed;
-  border-color: #ff94a1;
-  color: #ff4960;
-  text-decoration: underline;
-}
-
-.confirmation-dialog__prompt {
-  align-self: stretch;
-  align-items: center;
-  color: #ff385c;
-  display: flex;
-  flex: 0 0 30%;
-  font-weight: 600;
-  min-width: 112px;
-}
-
-.confirmation-dialog__actions--danger > .btn--danger {
-  background: #6A3F36;
-  border-color: #6A3F36;
-  color: #F4F3EE;
-  flex: 1;
-}
-
-.confirmation-dialog__actions .confirmation-dialog__confirm {
+.dialog-action--normal,
+.dialog-action--normal:hover:not(:disabled) {
   background: var(--accent-strong);
-  border-color: var(--accent-strong);
+  border: 1px solid var(--accent-strong);
   color: var(--text-on-accent);
-}
-
-.confirmation-dialog__actions .confirmation-dialog__confirm--danger {
-  background: #ffebed;
-  border-color: #ff94a1;
-  color: #ff4960;
-}
-
-.confirmation-dialog__actions .confirmation-dialog__confirm:hover:not(:disabled) {
-  text-decoration: underline;
-}
-
-.confirmation-dialog__actions .confirmation-dialog__confirm:not(.confirmation-dialog__confirm--danger):hover:not(:disabled) {
-  background: var(--accent-strong);
-  border-color: var(--accent-strong);
-  color: var(--text-on-accent);
-  filter: none;
-}
-
-.confirmation-dialog__actions .confirmation-dialog__confirm--danger:hover:not(:disabled) {
-  background: #ffebed;
-  border-color: #ff94a1;
-  color: #ff4960;
 }
 
 /* Album dialogs ------------------------------------------------------- */
@@ -925,7 +877,6 @@ textarea::placeholder {
   box-sizing: border-box;
   background: var(--surface-card);
   border: 1px solid var(--border-control);
-  border-radius: 8px;
   color: var(--text);
   font: inherit;
   padding: 10px 12px;
@@ -963,7 +914,6 @@ textarea::placeholder {
 
 .album-form__choose-photos {
   width: fit-content;
-  border: 0;
   box-shadow: none;
 }
 
@@ -979,17 +929,7 @@ textarea::placeholder {
   box-shadow: none;
 }
 
-.album-form__save {
-  background: #F4F3EE;
-  color: #6A3F36;
-}
-
-.album-form__cancel {
-  background: #6A3F36;
-  color: #F4F3EE;
-}
-
-.album-dialog .btn {
+.album-dialog .btn:not(.dialog-action) {
   border-color: transparent;
   box-shadow: none;
 }
@@ -1246,9 +1186,7 @@ textarea::placeholder {
 .place-picker__footer small { color: var(--text-muted); font-size: 0.8125rem; }
 .place-picker__title { font-size: 1.125rem; font-weight: 600; margin: 0; }
 .place-picker__count { color: var(--text-muted); font-size: 0.8125rem; margin: 2px 0 0; }
-.place-picker__actions { display: flex; flex-direction: column; gap: 8px; width: 100%; }
-.place-picker__actions .btn { flex: 1; min-width: 0; border: 0; box-shadow: none; }
-.place-picker__actions .place-picker__cancel { background: #6A3F36; color: #F4F3EE; }
+.place-picker__actions { width: 100%; }
 
 .place-picker__body { align-content: start; background: #6A3F36; box-sizing: border-box; color: #F8E4BE; display: grid; gap: 12px; min-height: 0; overflow-y: auto; padding: var(--shadow-space) 20px; }
 .place-picker__body { scrollbar-width: none; }
@@ -1431,12 +1369,6 @@ textarea::placeholder {
   border-radius: 0 0 var(--radius) var(--radius);
 }
 
-.post-card__footer:not(:last-child),
-.post-card__footer:not(:last-child) .reactions__chip,
-.post-card__footer:not(:last-child) .post-card__comment-action {
-  border-radius: 0;
-}
-
 .post-card__comment-action,
 .reactions__chip {
   min-height: 44px;
@@ -1449,7 +1381,6 @@ textarea::placeholder {
   gap: 7px;
   padding: 0 16px;
   border: 0;
-  border-radius: 0;
   background: transparent;
   color: var(--text-muted);
   font: inherit;
@@ -1582,7 +1513,6 @@ textarea::placeholder {
   height: 44px;
   flex-shrink: 0;
   border: 1px solid var(--border);
-  border-radius: 50%;
   background: var(--surface-raised);
   color: var(--text-strong);
   font-size: 1.35rem;
@@ -1894,7 +1824,6 @@ textarea::placeholder {
   height: 8px;
   padding: 0;
   border: 0;
-  border-radius: 999px;
   background: color-mix(in srgb, currentColor 25%, transparent);
   color: inherit;
   cursor: pointer;
@@ -1961,7 +1890,6 @@ textarea::placeholder {
   padding: 0 16px;
   background: transparent;
   border: 0;
-  border-radius: 0 0 0 var(--radius);
   color: var(--text-muted);
   font: inherit;
   cursor: pointer;

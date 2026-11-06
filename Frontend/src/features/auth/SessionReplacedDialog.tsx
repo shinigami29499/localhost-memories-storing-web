@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { CustomDialog as AlertDialog, useCustomDialog } from "../../components/ui/CustomDialog";
+import { Button } from "../../components/ui/Button";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocale } from "../../context/LocaleContext";
 import { sessionReplacedEvent } from "./sessionReplacement";
@@ -23,8 +24,8 @@ export function SessionReplacedDialog() {
             <AlertDialog.Description className="confirmation-dialog__message">
               {t("Your account was signed in on another device. You have been signed out.")}
             </AlertDialog.Description>
-            <footer className="confirmation-dialog__actions">
-              <button type="button" className="btn btn--primary" onClick={() => close()}>{t("OK")}</button>
+            <footer className="confirmation-dialog__actions dialog-actions">
+              <Button type="button" className="dialog-action dialog-action--normal" onClick={() => close()}>{t("OK")}</Button>
             </footer>
           </AlertDialog.Popup>
         </AlertDialog.Viewport>

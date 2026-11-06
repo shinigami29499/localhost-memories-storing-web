@@ -26,8 +26,8 @@ export function MapDraftMarker({ location, label, draggable, onPick, onClick }: 
         onPick({ latitude: point.lat, longitude: point.lng });
       }}
     >
-      <div className="map-draft-marker" role="img" aria-label={label} title={label}>
-        <span className="map-draft-marker__pin" aria-hidden="true" />
+      <div className="map-marker map-marker--draft map-draft-marker" role="img" aria-label={label} title={label}>
+        <span className="map-marker__pin map-draft-marker__pin" aria-hidden="true"><span className="map-marker__center" /></span>
       </div>
     </Marker>
   );

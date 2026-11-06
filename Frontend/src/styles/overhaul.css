@@ -10,12 +10,12 @@ body {
   outline-offset: 2px;
 }
 
-.btn { min-height: 44px; border-radius: 6px; box-shadow: none; transition: none; }
+.btn { min-height: 44px; box-shadow: none; transition: none; }
 .btn--secondary { background: var(--surface); }
 .btn--primary:hover:not(:disabled) { filter: none; text-decoration: underline; }
 .btn:disabled { opacity: 1; color: var(--text); background: var(--surface-hover); border-color: var(--border-control); }
 input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]),
-textarea, select { min-height: 44px; border-radius: 6px; }
+textarea, select { min-height: 44px; }
 
 .app-shell,
 .app-shell.app-shell--sidebar-collapsed {
@@ -56,7 +56,6 @@ textarea, select { min-height: 44px; border-radius: 6px; }
 .sidebar__link,
 .sidebar__account-trigger {
   min-height: 44px;
-  border-radius: 6px;
   color: var(--text);
   box-shadow: none;
   transition: none;
@@ -129,13 +128,11 @@ textarea, select { min-height: 44px; border-radius: 6px; }
   --control-bar-fg: var(--text-on-accent);
   --control-bar-hover: var(--accent);
   border: 1px solid var(--border-control);
-  border-radius: 8px;
+  border-radius: var(--radius);
   box-shadow: none;
 }
 
-.control-bar > button { min-width: 44px; min-height: 44px; }
-.control-bar > button:first-child,
-.control-bar > .control-bar__action { border-radius: 6px; }
+.control-bar > button { min-width: 30px; min-height: 30px; }
 .control-bar > button:hover:not(:focus-visible):not(:disabled) { background: var(--surface-hover); }
 
 .control-bar > .notification-bar__trigger,
@@ -234,9 +231,9 @@ textarea, select { min-height: 44px; border-radius: 6px; }
   }
   .bottom-navigation__dialog::backdrop { background: var(--accent); }
   .bottom-navigation__dialog-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; }
-  .bottom-navigation__dialog-header button,
+  .bottom-navigation__dialog-header button:not(.dialog-action),
   .bottom-navigation__dialog nav a,
-  .bottom-navigation__dialog nav button {
+  .bottom-navigation__dialog nav button:not(.dialog-action) {
     display: flex;
     align-items: center;
     gap: 12px;
@@ -244,7 +241,6 @@ textarea, select { min-height: 44px; border-radius: 6px; }
     min-height: 48px;
     padding: 8px 12px;
     border: 0;
-    border-radius: 6px;
     background: transparent;
     color: var(--text);
     font: inherit;
@@ -253,7 +249,7 @@ textarea, select { min-height: 44px; border-radius: 6px; }
   }
   .bottom-navigation__dialog-header button { width: auto; }
   .bottom-navigation__dialog nav a:hover,
-  .bottom-navigation__dialog nav button:hover { background: var(--surface-hover); }
+  .bottom-navigation__dialog nav button:not(.dialog-action):hover { background: var(--surface-hover); }
 }
 
 :root[data-motion="off"] *,
@@ -273,15 +269,27 @@ textarea, select { min-height: 44px; border-radius: 6px; }
 }
 
 /* Shared control shape and hover treatment. */
-:root { --control-radius: 6px; }
+:root { --control-radius: var(--radius); }
 
-:root :is(button, [role="button"], .btn, .sidebar__link,
-  .admin-tab-highlight):not(.place__marker):not(.locations__marker):not(.place__pin):not(.locations__pin):not(.place__home-pin):not(.locations__home-pin):not(.place__color-option) {
-  border-radius: var(--control-radius);
+:root :is(button, [role="button"], .btn, .sidebar__link, .admin-tab-highlight) {
+  border-radius: var(--radius);
+}
+
+:root :is(input, textarea, select):not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="hidden"], [type="file"], [type="button"], [type="submit"], [type="reset"], [type="image"]) {
+  border-radius: var(--radius);
+}
+
+:root .gallery-selection-bar :is(button, [role="button"], .btn),
+:root :is(.control-bar, .navigation-highlight, .password-input) > :is(button, [role="button"], .btn) {
+  border-radius: var(--radius-inner);
+}
+
+:root :is(.control-bar, .navigation-highlight, .gallery-selection-bar, .place__location-search-form, .place__search-bar, .admin-posts__date-range-control) :is(input, textarea, select):not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="hidden"], [type="file"], [type="button"], [type="submit"], [type="reset"], [type="image"]) {
+  border-radius: var(--radius-inner);
 }
 
 @media (hover: hover) {
-  :root :is(button, [role="button"], .btn, .sidebar__link):hover:not(.navigation-highlight *):not(.map-navigation *):not(.place__location-search *):not(.gallery-selection-bar__action):not(.gallery-selection-bar__cancel):not(:disabled):not([aria-disabled="true"]):not(.place__marker):not(.locations__marker):not(.place__pin):not(.locations__pin):not(.place__home-pin):not(.locations__home-pin):not(.place__color-option):not(.place__cancel-action):not(.confirmation-dialog__actions .btn) {
+:root :is(button, [role="button"], .btn, .sidebar__link):hover:not(.navigation-highlight *):not(.map-navigation *):not(.place__location-search *):not(.gallery-selection-bar__action):not(.gallery-selection-bar__cancel):not(:disabled):not([aria-disabled="true"]):not(.place__marker):not(.locations__marker):not(.place__pin):not(.locations__pin):not(.place__home-pin):not(.locations__home-pin):not(.place__map-home-control):not(.locations__map-home-control):not(.place__color-option):not(.place__cancel-action):not(.dialog-action) {
     background-color: var(--surface-hover);
     color: var(--text);
   }

@@ -45,6 +45,20 @@ export function LocationsPage() {
     [requestedMediaId, focusedMediaId, selection?.id].filter((id): id is string => !!id), mapBounds);
   const [relocatingId, setRelocatingId] = useState<string | null>(null);
   const [homePicking, setHomePicking] = useState(false);
+  const [homeRelocationDraft, setHomeRelocationDraft] = useState<HomeLocation | null>(null);
+  const [homeMoveConfirmationOpen, setHomeMoveConfirmationOpen] = useState(false);
+  useEffect(() => {
+    if (!homeRelocationDraft) return;
+    const cancelOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || home.save.isPending) return;
+      event.preventDefault();
+      event.stopPropagation();
+      setHomeMoveConfirmationOpen(false);
+      setHomeRelocationDraft(null);
+    };
+    window.addEventListener("keydown", cancelOnEscape, true);
+    return () => window.removeEventListener("keydown", cancelOnEscape, true);
+  }, [homeRelocationDraft, home.save.isPending]);
   const [uploading, setUploading] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
   const uploadInFlight = useRef(false);
@@ -167,9 +181,18 @@ export function LocationsPage() {
       await home.save.mutateAsync(location);
       setHomePicking(false);
       showToast.success(t("Home location saved."));
+      return true;
     } catch (error) {
       showToast.error(error instanceof ApiError ? error.message : t("Could not save your home location."));
+      return false;
     }
+  };
+  const confirmHomeRelocation = async () => {
+    if (!homeRelocationDraft) return;
+    await home.save.mutateAsync(homeRelocationDraft);
+    setHomeMoveConfirmationOpen(false);
+    setHomeRelocationDraft(null);
+    showToast.success(t("Home location saved."));
   };
 
   const startWithCurrentLocation = async (action: () => void) => {
@@ -273,13 +296,21 @@ export function LocationsPage() {
                 onConfirmRelocation={() => setMoveConfirmationOpen(true)}
                 homeLocation={home.query.data ?? null} homeLocationReady={home.query.isFetched}
                 homeActionDisabled={saving || home.save.isPending || uploading}
-                homePicking={homePicking} onSelect={select} canMove={canMove} onMove={movePhoto}
+                homePicking={homePicking} homeRelocationDraft={homeRelocationDraft} onSelect={select} canMove={canMove} onMove={movePhoto}
                 onAddPhotos={() => void startWithCurrentLocation(() => uploadInput.current?.click())}
                 onOpenCamera={() => void startWithCurrentLocation(() => setCameraOpen(true))}
                 onEdit={startRelocating}
                 onCancelSelection={clearSelection}
                 onPick={(location) => { if (selected) updateDraft(selected.id, location); }}
-                onPickHome={(location) => void pickHome(location)}
+                onPickHome={pickHome}
+                onMoveHome={(location) => {
+                  setSelection(null);
+                  setRelocatingId(null);
+                  setHomePicking(false);
+                  setHomeRelocationDraft(location);
+                }}
+                onConfirmHomeRelocation={() => setHomeMoveConfirmationOpen(true)}
+                onCancelHomeRelocation={() => { setHomeMoveConfirmationOpen(false); setHomeRelocationDraft(null); }}
                 onHomeClick={() => {
                   setSelection(null);
                   setRelocatingId(null);
@@ -390,6 +421,20 @@ export function LocationsPage() {
             name: selected.originalFilename,
             latitude: draft.latitude.toFixed(6),
             longitude: draft.longitude.toFixed(6),
+          })}</p>
+        </ConfirmationDialog>
+      )}
+
+      {homeRelocationDraft && homeMoveConfirmationOpen && (
+        <ConfirmationDialog
+          title="Change your home location?"
+          confirmLabel="Change home location"
+          onConfirm={confirmHomeRelocation}
+          onClose={() => setHomeMoveConfirmationOpen(false)}
+        >
+          <p>{t("Your home marker will move to {latitude}, {longitude}.", {
+            latitude: homeRelocationDraft.latitude.toFixed(6),
+            longitude: homeRelocationDraft.longitude.toFixed(6),
           })}</p>
         </ConfirmationDialog>
       )}

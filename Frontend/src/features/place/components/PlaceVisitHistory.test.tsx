@@ -28,7 +28,7 @@ vi.mock("../../../components/ui", async () => ({
     </div>
   ),
   showToast: { success: vi.fn(), error: vi.fn(), delete: vi.fn() },
-  Button: ({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) => <button {...props}>{children}</button>,
+  Button: ({ children, busy: _busy, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { busy?: boolean }) => <button {...props}>{children}</button>,
 }));
 
 const userA: AuthUser = {
@@ -196,15 +196,18 @@ describe("place visit history", () => {
 
   it("removes a visit and refreshes history", async () => {
     await mount();
-    const removeBtn = placeHistory().querySelector<HTMLButtonElement>(".place__history-remove");
+    const row = placeHistory().querySelector<HTMLElement>(".place__history-item")!;
+    expect(row.querySelector(".place__history-remove")).toBeNull();
+    await act(async () => row.querySelector<HTMLButtonElement>(".place__history-select")!.click());
+    const removeBtn = document.querySelector<HTMLButtonElement>(".place__visit-remove");
     expect(removeBtn).not.toBeNull();
     await act(async () => removeBtn!.click());
     await settle();
     expect(service.removeVisit).not.toHaveBeenCalled();
-    const dialog = document.querySelector('[role="alertdialog"]')!;
-    expect(dialog.textContent).toContain("Cafe");
-    expect(dialog.textContent).toContain("note and rating");
-    const confirm = Array.from(dialog.querySelectorAll("button")).find((button) => button.textContent === "Yes, remove checkin!")!;
+    expect(document.querySelector('[role="alertdialog"]')).toBeNull();
+    expect(document.querySelector(".dialog-actions__note")?.textContent).toContain("note and rating");
+    expect(document.querySelector(".dialog-actions__prompt")?.textContent).toBe("Are you sure?");
+    const confirm = document.querySelector<HTMLButtonElement>(".place__visit-remove-confirm")!;
     await act(async () => confirm.click());
     await settle();
     expect(service.removeVisit).toHaveBeenCalledWith("a-1");
@@ -215,31 +218,30 @@ describe("place visit history", () => {
     ]);
   });
 
-  it("cancels removal of a recent check-in without writing", async () => {
+  it("shows non-clickable confirmation text without removing the check-in", async () => {
     await mount();
-    const trigger = placeHistory().querySelector<HTMLButtonElement>(".place__history-remove")!;
+    await act(async () => placeHistory().querySelector<HTMLButtonElement>(".place__history-select")!.click());
+    const trigger = document.querySelector<HTMLButtonElement>(".place__visit-remove")!;
     await act(async () => trigger.click());
     await settle();
-    const dialog = document.querySelector('[role="alertdialog"]')!;
-    const cancel = Array.from(dialog.querySelectorAll("button")).find((button) => button.textContent === "Cancel")!;
-    expect(document.activeElement).toBe(cancel);
-    await act(async () => cancel.click());
-    await settle();
-    expect(service.removeVisit).not.toHaveBeenCalled();
     expect(document.querySelector('[role="alertdialog"]')).toBeNull();
+    const prompt = document.querySelector<HTMLElement>(".dialog-actions__prompt")!;
+    expect(prompt.tagName).toBe("SPAN");
+    expect(document.querySelector(".place__visit-remove-confirm")).not.toBeNull();
+    expect(service.removeVisit).not.toHaveBeenCalled();
     expect(dates(placeHistory())).toHaveLength(2);
   });
 
   it("keeps a failed check-in removal open for retry", async () => {
     service.removeVisit.mockRejectedValueOnce(new Error("Unavailable"));
     await mount();
-    await act(async () => placeHistory().querySelector<HTMLButtonElement>(".place__history-remove")!.click());
+    await act(async () => placeHistory().querySelector<HTMLButtonElement>(".place__history-select")!.click());
+    await act(async () => document.querySelector<HTMLButtonElement>(".place__visit-remove")!.click());
     await settle();
-    const confirm = Array.from(document.querySelectorAll('[role="alertdialog"] button'))
-      .find((button) => button.textContent === "Yes, remove checkin!") as HTMLButtonElement;
+    const confirm = document.querySelector<HTMLButtonElement>(".place__visit-remove-confirm")!;
     await act(async () => confirm.click());
     await settle();
-    expect(document.querySelector('[role="alertdialog"]')).not.toBeNull();
+    expect(document.querySelector(".place__visit-remove-confirm")).not.toBeNull();
     expect(dates(placeHistory())).toHaveLength(2);
     await act(async () => confirm.click());
     await settle();

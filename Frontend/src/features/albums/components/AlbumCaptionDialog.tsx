@@ -53,9 +53,9 @@ export function AlbumCaptionDialog({ caption: initialCaption, onSave, onClose }:
                 />
               </label>
             </div>
-            <footer className="album-caption-dialog__actions">
-              <Button type="button" busy={busy} onClick={() => void save()}>{t("Save caption")}</Button>
-              <button type="button" className="btn btn--danger" disabled={busy} onClick={dismiss}>{t("Cancel")}</button>
+            <footer className="album-caption-dialog__actions dialog-actions">
+              <Button type="button" variant="danger" className="dialog-action dialog-action--danger" disabled={busy} onClick={dismiss}>{t("Cancel")}</Button>
+              <Button type="button" className="dialog-action dialog-action--normal" busy={busy} onClick={() => void save()}>{t("Save caption")}</Button>
             </footer>
           </Dialog.Popup>
         </Dialog.Viewport>

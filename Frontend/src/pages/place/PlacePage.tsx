@@ -201,6 +201,20 @@ export function PlacePage() {
   const [moveConfirmationOpen, setMoveConfirmationOpen] = useState(false);
   const workspaceRef = useRef<HTMLDivElement>(null);
   const [manualHomePick, setManualHomePick] = useState(false);
+  const [homeRelocationDraft, setHomeRelocationDraft] = useState<PlaceCoordinate | null>(null);
+  const [homeMoveConfirmationOpen, setHomeMoveConfirmationOpen] = useState(false);
+  useEffect(() => {
+    if (!homeRelocationDraft) return;
+    const cancelOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || home.save.isPending) return;
+      event.preventDefault();
+      event.stopPropagation();
+      setHomeMoveConfirmationOpen(false);
+      setHomeRelocationDraft(null);
+    };
+    window.addEventListener("keydown", cancelOnEscape, true);
+    return () => window.removeEventListener("keydown", cancelOnEscape, true);
+  }, [homeRelocationDraft, home.save.isPending]);
   const [homeDialogOpen, setHomeDialogOpen] = useState(false);
   const [confirmHomeRemoval, setConfirmHomeRemoval] = useState(false);
   const [photoMoveConfirmationOpen, setPhotoMoveConfirmationOpen] = useState(false);
@@ -332,9 +346,18 @@ export function PlacePage() {
       await home.save.mutateAsync(coordinate);
       setManualHomePick(false);
       showToast.success(t("Home location saved."));
+      return true;
     } catch (error) {
       showToast.error(error instanceof ApiError ? error.message : t("Could not save your home location."));
+      return false;
     }
+  };
+  const confirmHomeRelocation = async () => {
+    if (!homeRelocationDraft) return;
+    await home.save.mutateAsync(homeRelocationDraft);
+    setHomeMoveConfirmationOpen(false);
+    setHomeRelocationDraft(null);
+    showToast.success(t("Home location saved."));
   };
 
   const cancelHomePick = () => {
@@ -532,7 +555,7 @@ export function PlacePage() {
             )}
 
             <PlaceViewSwitch view={view} onChange={requestView} />
-            {!saved && (!addToolbar || addToolbar.visible) && <AddNavigationToolbar onAdd={addToolbar?.add ?? (() => {})} disabled={addToolbar?.disabled ?? true} />}
+            {!saved && !homeRelocationDraft && (!addToolbar || addToolbar.visible) && <AddNavigationToolbar onAdd={addToolbar?.add ?? (() => {})} disabled={addToolbar?.disabled ?? true} />}
             <div className="place__view-content" aria-busy={view === "history" && visitHistory.isPending || undefined}>
             <>
             {!saved && (
@@ -565,6 +588,7 @@ export function PlacePage() {
                       homeActionDisabled={save.isPending || remove.isPending || home.save.isPending || uploading}
                       onAddPhotos={() => void startWithCurrentLocation(() => uploadInput.current?.click())}
                       homePicking={homePicking}
+                      homeRelocationDraft={homeRelocationDraft}
                       onSelect={selectPlace}
                       onEdit={(place) => {
                         void placeService.get(place.id).then(startEdit).catch(() => showToast.error(t("Could not load places.")));
@@ -577,7 +601,16 @@ export function PlacePage() {
                       canChange={canChangeMarker}
                       onMove={movePlace}
                       onDelete={deletePlace}
-                      onPickHome={(coordinate) => void pickHome(coordinate)}
+                      onPickHome={pickHome}
+                      onMoveHome={(coordinate) => {
+                        clearPreview();
+                        setEditor(null);
+                        setEditorOpen(false);
+                        setManualHomePick(false);
+                        setHomeRelocationDraft(coordinate);
+                      }}
+                      onConfirmHomeRelocation={() => setHomeMoveConfirmationOpen(true)}
+                      onCancelHomeRelocation={() => { setHomeMoveConfirmationOpen(false); setHomeRelocationDraft(null); }}
                       onCreateAtCurrentLocation={(coordinate) => {
                         setSelectedId(null);
                         setDetailsOpen(false);
@@ -817,8 +850,7 @@ export function PlacePage() {
                   <div className="place__form-actions place__details-actions">
                     <Button
                       type="button"
-                      variant="secondary"
-                      className="place__check-in-action"
+                      className="dialog-action dialog-action--normal place__check-in-action"
                       busy={checkInMutation.isPending}
                       onClick={() => void checkIn(selected)}
                     >
@@ -826,7 +858,7 @@ export function PlacePage() {
                       {t("Check in")}
                     </Button>
                     {canEdit(selected) && (
-                      <Button variant="secondary" className="place__edit-action" onClick={() => startEdit(selected)}>
+                      <Button className="dialog-action dialog-action--normal place__edit-action" onClick={() => startEdit(selected)}>
                         <Pencil size={16} aria-hidden="true" />
                         {t("Edit")}
                       </Button>
@@ -850,8 +882,8 @@ export function PlacePage() {
                     <>
                       <p role="alert">{t("Could not load your home location. Add it manually or retry.")}</p>
                       <div className="place__form-actions">
-                        <Button type="button" onClick={startHomePick}>{t("Add manually")}</Button>
-                        <Button type="button" variant="secondary" onClick={() => void home.query.refetch()}>
+                        <Button type="button" className="dialog-action dialog-action--normal" onClick={startHomePick}>{t("Add manually")}</Button>
+                        <Button type="button" className="dialog-action dialog-action--normal" onClick={() => void home.query.refetch()}>
                           {t("Retry")}
                         </Button>
                       </div>
@@ -861,21 +893,22 @@ export function PlacePage() {
                       <p className="place__coordinate-readout">
                         {home.query.data.latitude.toFixed(6)}, {home.query.data.longitude.toFixed(6)}
                       </p>
-                      <div className="place__form-actions">
-                        <Button
-                          variant="secondary"
-                          onClick={startHomePick}
-                        >
-                          {t("Change home location")}
-                        </Button>
+                      <div className="dialog-actions">
                         <Button
                           variant="danger"
+                          className="dialog-action dialog-action--danger"
                           onClick={() => {
                             setHomeDialogOpen(false);
                             setConfirmHomeRemoval(true);
                           }}
                         >
                           {t("Remove home marker")}
+                        </Button>
+                        <Button
+                          className="dialog-action dialog-action--normal"
+                          onClick={startHomePick}
+                        >
+                          {t("Change home location")}
                         </Button>
                       </div>
                     </>
@@ -884,6 +917,7 @@ export function PlacePage() {
                       <p>{t("Home not set.")}</p>
                       <div className="place__form-actions">
                         <Button
+                          className="dialog-action dialog-action--normal"
                           onClick={startHomePick}
                         >
                           {t("Add now")}
@@ -906,6 +940,19 @@ export function PlacePage() {
                   name: placeToMove.place.name,
                   latitude: placeToMove.coordinate.latitude.toFixed(6),
                   longitude: placeToMove.coordinate.longitude.toFixed(6),
+                })}</p>
+              </ConfirmationDialog>
+            )}
+            {homeRelocationDraft && homeMoveConfirmationOpen && (
+              <ConfirmationDialog
+                title="Change your home location?"
+                confirmLabel="Change home location"
+                onConfirm={confirmHomeRelocation}
+                onClose={() => setHomeMoveConfirmationOpen(false)}
+              >
+                <p>{t("Your home marker will move to {latitude}, {longitude}.", {
+                  latitude: homeRelocationDraft.latitude.toFixed(6),
+                  longitude: homeRelocationDraft.longitude.toFixed(6),
                 })}</p>
               </ConfirmationDialog>
             )}

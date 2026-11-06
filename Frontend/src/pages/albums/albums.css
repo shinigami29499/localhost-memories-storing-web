@@ -1,7 +1,5 @@
 /* Albums ------------------------------------------------------------- */
 
-.albums-page__footer { }
-
 .album-save-menu__content {
   background: var(--surface-card);
   border: 1px solid var(--border);
@@ -324,7 +322,6 @@
   box-sizing: border-box;
   background: #6A3F36;
   border: 1px solid var(--border-control);
-  border-radius: 8px;
   color: var(--text-strong);
   font: inherit;
   line-height: 1.6;
@@ -335,27 +332,8 @@
 }
 
 .album-caption-dialog__actions {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
   padding: 0 24px 16px;
   background: #6A3F36;
-}
-
-.album-caption-dialog__actions > button {
-  width: 100%;
-  border: 0;
-  box-shadow: none;
-}
-
-.album-caption-dialog__actions > button:first-child {
-  background: #F4F3EE;
-  color: #6A3F36;
-}
-
-.album-caption-dialog__actions > .btn--danger {
-  background: #6A3F36;
-  color: #F4F3EE;
 }
 
 :root .album-caption-dialog,
@@ -437,7 +415,6 @@
 .btn.album-hero__delete {
   background: transparent;
   border: 1px solid var(--border);
-  border-radius: 50%;
   box-shadow: none;
   color: var(--danger);
 }
@@ -566,4 +543,3 @@
   border: 0;
   box-shadow: none;
 }
-

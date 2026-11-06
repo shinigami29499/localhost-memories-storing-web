@@ -20,7 +20,6 @@ interface Props {
 
 export function ConfirmationDialog({ title, confirmLabel, children, danger = false, cancelPrompt, onConfirm, onClose, portalContainer }: Props) {
   const { t } = useLocale();
-  const cancelRef = useRef<HTMLButtonElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
   const pending = useRef(false);
   const [busy, setBusy] = useState(false);
@@ -52,20 +51,18 @@ export function ConfirmationDialog({ title, confirmLabel, children, danger = fal
             className="confirmation-dialog"
             role="alertdialog"
             initialFocus={() => cancelPrompt
-              ? popupRef.current?.querySelector<HTMLButtonElement>(".confirmation-dialog__actions > .btn--danger") ?? popupRef.current
-              : cancelRef.current}
+              ? popupRef.current?.querySelector<HTMLButtonElement>(".dialog-action--danger-confirm") ?? popupRef.current
+              : popupRef.current?.querySelector<HTMLButtonElement>(".confirmation-dialog__cancel") ?? popupRef.current}
           >
             <Dialog.Title className="confirmation-dialog__title">{t(title)}</Dialog.Title>
             <Dialog.Description render={<div />}>
               <fieldset className="confirmation-dialog__message" disabled={busy}>{children}</fieldset>
             </Dialog.Description>
-            <footer className={`confirmation-dialog__actions${danger ? " confirmation-dialog__actions--danger" : ""}`}>
-              {danger ? cancelPrompt
-                ? <span className="confirmation-dialog__prompt">{t(cancelPrompt)}</span>
-                : <button ref={cancelRef} type="button" className="btn btn--secondary confirmation-dialog__cancel" disabled={busy} onClick={dismiss}>{t("Cancel")}</button>
-                : null}
-              <Button type="button" className={`confirmation-dialog__confirm${danger ? " confirmation-dialog__confirm--danger" : ""}`} variant={danger ? "danger" : "primary"} busy={busy} onClick={() => void confirm()}>{t(confirmLabel)}</Button>
-              {!danger ? <button ref={cancelRef} type="button" className="btn btn--secondary confirmation-dialog__cancel" disabled={busy} onClick={dismiss}>{t("Cancel")}</button> : null}
+            <footer className={`confirmation-dialog__actions dialog-actions${danger ? " confirmation-dialog__actions--danger" : ""}${cancelPrompt ? " dialog-actions--confirm" : ""}`}>
+              {cancelPrompt
+                ? <span className="dialog-actions__prompt">{t(cancelPrompt)}</span>
+                : <Button type="button" variant="danger" className="dialog-action dialog-action--danger confirmation-dialog__cancel" disabled={busy} onClick={dismiss}>{t("Cancel")}</Button>}
+              <Button type="button" className={`dialog-action ${danger ? "dialog-action--danger-confirm" : "dialog-action--normal"} confirmation-dialog__confirm${danger ? " confirmation-dialog__confirm--danger" : ""}`} variant={danger ? "danger" : "primary"} busy={busy} onClick={() => void confirm()}>{t(confirmLabel)}</Button>
             </footer>
           </Dialog.Popup>
         </Dialog.Viewport>

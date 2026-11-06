@@ -238,6 +238,7 @@ const vietnamese: Record<string, string> = {
   "Change your home location?": "Đổi vị trí nhà của bạn?",
   "Your home marker will move to {latitude}, {longitude}.": "Điểm đánh dấu nhà sẽ được chuyển đến {latitude}, {longitude}.",
   "Drag to move home. Hold or right-click to remove.": "Kéo để đổi vị trí nhà. Nhấn giữ hoặc nhấp chuột phải để xóa.",
+  "Hold briefly, then drag to move home. Hold longer or right-click to remove.": "Nhấn giữ ngắn rồi kéo để đổi vị trí nhà. Nhấn giữ lâu hơn hoặc nhấp chuột phải để xóa.",
   "The home marker will be removed. You can set it again later.": "Điểm đánh dấu nhà sẽ bị xóa. Bạn có thể đặt lại sau.",
   "Your home location is not set.": "Bạn chưa đặt vị trí nhà.",
   "Home not set.": "Chưa đặt vị trí nhà.",

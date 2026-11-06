@@ -115,6 +115,7 @@
 }
 
 .map-navigation__toolbar--add { grid-template-columns: 44px; }
+.map-navigation__toolbar--two-actions { grid-template-columns: 44px 1px 44px; }
 .map-navigation__toolbar--add > .gallery-selection-bar__action { width: 100%; padding: 0; }
 .map-navigation__toolbar--add > .gallery-selection-bar__action:disabled svg { color: var(--text-on-accent) !important; }
 

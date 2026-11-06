@@ -66,7 +66,6 @@
   height: 44px;
   flex-shrink: 0;
   border: 0;
-  border-radius: 8px;
   background: transparent;
   color: var(--text-strong);
   cursor: pointer;
@@ -163,11 +162,10 @@
 .language-toggler {
   display: grid;
   place-items: center;
-  width: 38px;
-  height: 38px;
+  width: 30px;
+  height: 30px;
   padding: 0;
   border: 0;
-  border-radius: 999px;
   background: transparent;
   color: inherit;
   font: inherit;
@@ -337,7 +335,6 @@
   gap: 12px;
   padding: 12px 14px;
   border: 0;
-  border-radius: 10px;
   background: transparent;
   color: var(--text-strong);
   font: inherit;
@@ -442,7 +439,6 @@
   padding: 6px 4px;
   width: 100%;
   border: 0;
-  border-radius: 10px;
   background: transparent;
   color: var(--text-strong);
   font: inherit;
@@ -623,6 +619,7 @@
     zoom: 1;
     scale: 1.2;
   }
+
 }
 @media (max-width: 900px) {
   .app-shell--sidebar-collapsed {

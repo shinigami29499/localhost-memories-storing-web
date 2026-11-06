@@ -95,10 +95,10 @@ export function CameraCaptureDialog({ onCapture, onClose }: Props) {
               {previewUrl ? <img src={previewUrl} alt={t("Captured photo preview")} /> : <video ref={videoRef} autoPlay playsInline muted />}
             </div>
             {error ? <p className="locations-camera-dialog__error" role="alert">{error}</p> : null}
-            <footer className="confirmation-dialog__actions">
-              {photo ? <Button type="button" onClick={() => close(() => onCapture(photo))}>{t("Upload photo")}</Button>
-                : <Button type="button" disabled={!stream} onClick={() => void capture()}>{t("Capture")}</Button>}
-              <Button type="button" variant="danger" onClick={dismiss}>{t("Cancel")}</Button>
+            <footer className="confirmation-dialog__actions dialog-actions">
+              <Button type="button" variant="danger" className="dialog-action dialog-action--danger" onClick={dismiss}>{t("Cancel")}</Button>
+              {photo ? <Button type="button" className="dialog-action dialog-action--normal" onClick={() => close(() => onCapture(photo))}>{t("Upload photo")}</Button>
+                : <Button type="button" className="dialog-action dialog-action--normal" disabled={!stream} onClick={() => void capture()}>{t("Capture")}</Button>}
             </footer>
           </CustomDialog.Popup>
         </CustomDialog.Viewport>

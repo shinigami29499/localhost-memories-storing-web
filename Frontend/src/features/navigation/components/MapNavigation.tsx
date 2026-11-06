@@ -33,20 +33,22 @@ interface Props {
   onCancel?: () => void;
 }
 
-export function NavigationToolbar({ onEdit, onNavigate, onCancel, editAction = "edit" }: {
+export function NavigationToolbar({ onEdit, onNavigate, onCancel, editAction = "edit", showNavigate = true, label }: {
   onEdit?: () => void;
   onNavigate?: () => void;
   onCancel?: () => void;
   editAction?: "edit" | "add" | "confirm";
+  showNavigate?: boolean;
+  label?: string;
 }) {
   const { t } = useLocale();
   const editLabel = editAction === "add" ? "Add" : editAction === "confirm" ? "Confirm" : "Edit";
   const actionAnimationRevision = useAnimateIconOnChange(
-    `${editAction}:${Boolean(onEdit)}:${Boolean(onNavigate)}:${Boolean(onCancel)}`,
+    `${editAction}:${Boolean(onEdit)}:${Boolean(onNavigate)}:${Boolean(onCancel)}:${showNavigate}`,
     true,
   );
   return (
-    <PageActionBar className="map-navigation__toolbar" role="group" aria-label={t("Navigation")}>
+    <PageActionBar className={`map-navigation__toolbar${showNavigate ? "" : " map-navigation__toolbar--two-actions"}`} role="group" aria-label={label ?? t("Navigation")}>
       <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
         <PageActionButton aria-label={t(editLabel)} title={t(editLabel)} disabled={!onEdit} onClick={onEdit}>
           <AnimatedAction animationRevision={actionAnimationRevision}>
@@ -55,12 +57,14 @@ export function NavigationToolbar({ onEdit, onNavigate, onCancel, editAction = "
         </PageActionButton>
       </AnimateIcon>
       <span className="gallery-selection-bar__divider" aria-hidden="true" />
-      <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
-        <PageActionButton className="map-navigation__trigger" disabled={!onNavigate} onClick={onNavigate}>
-          <AnimatedAction animationRevision={actionAnimationRevision}><Compass size={22} aria-hidden="true" /></AnimatedAction> {t("Navigate")}
-        </PageActionButton>
-      </AnimateIcon>
-      <span className="gallery-selection-bar__divider" aria-hidden="true" />
+      {showNavigate && <>
+        <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
+          <PageActionButton className="map-navigation__trigger" disabled={!onNavigate} onClick={onNavigate}>
+            <AnimatedAction animationRevision={actionAnimationRevision}><Compass size={22} aria-hidden="true" /></AnimatedAction> {t("Navigate")}
+          </PageActionButton>
+        </AnimateIcon>
+        <span className="gallery-selection-bar__divider" aria-hidden="true" />
+      </>}
       <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
         <PageActionButton className="map-navigation__dismiss" aria-label={t("Cancel")} title={t("Cancel")} disabled={!onCancel} onClick={onCancel}>
           <AnimatedAction animationRevision={actionAnimationRevision}><XIcon size={20} aria-hidden="true" /></AnimatedAction>
