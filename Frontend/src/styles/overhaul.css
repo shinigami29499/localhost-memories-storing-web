@@ -178,6 +178,7 @@ textarea, select { min-height: 44px; }
   .app-shell__main { flex: 1; }
   .app-topbar { padding: env(safe-area-inset-top) 16px 0; }
   .app-shell__content { padding-bottom: 0; }
+  .page-action-bar:not(:has(.gallery-selection-bar:not(.gallery-selection-bar--selection-only), .gallery-selection-bar__selection-actions, [data-collapsing-bar])) { display: none; }
   .bottom-navigation {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));

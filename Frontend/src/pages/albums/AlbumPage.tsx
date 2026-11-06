@@ -408,10 +408,10 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
           </Tabs.Root>
         </div>
       <footer className="gallery-page__footer gallery-page__footer--transition">
-        <PageActionBar className="gallery-selection-bar gallery-selection-bar--compact gallery-selection-bar--selection-only" role="group" aria-label={t("{count} selected", { count: selectedItems.size })}>
+        <PageActionBar className="gallery-page__actions gallery-selection-bar--selection-only" role="group" aria-label={t("{count} selected", { count: selectedItems.size })}>
           <span className="gallery-selection-bar__status" role="status">{t("{count} selected", { count: selectedItems.size })}</span>
           {selectionMode && <><span className="gallery-selection-bar__count" aria-hidden="true">{t("{count} selected", { count: selectedItems.size })}</span><span className="gallery-selection-bar__divider" aria-hidden="true" /></>}
-          <SelectionActions open={selectionMode}>
+          <SelectionActions open={selectionMode} mobileVertical>
           <button type="button" className="gallery-selection-bar__action gallery-selection-bar__action--favorite"
             aria-label={t(allSelectedFavorited ? "Remove from favorites" : "Add to favorites")} title={t(allSelectedFavorited ? "Remove from favorites" : "Add to favorites")}
             aria-pressed={allSelectedFavorited} disabled={!selectedMedia.length || bulkFavoriteBusy || favoriteBusyMediaId !== null} onClick={() => void favoriteSelected()}>

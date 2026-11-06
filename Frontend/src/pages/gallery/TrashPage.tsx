@@ -273,9 +273,10 @@ export function TrashPage() {
           </div>
         </div>
           <footer className="gallery-page__footer">
-            <PageActionBar className="gallery-selection-bar gallery-selection-bar--compact gallery-selection-bar--selection-only gallery-selection-bar--trash" role="group" aria-label={t("{count} selected", { count: selectedIds.size })}>
-              <SelectionActions open={selectionMode}>
-              <span className="gallery-selection-bar__count" role="status">{t("{count} selected", { count: selectedIds.size })}</span>
+            <PageActionBar className="gallery-page__actions gallery-selection-bar--selection-only gallery-selection-bar--trash" role="group" aria-label={t("{count} selected", { count: selectedIds.size })}>
+              <span className="gallery-selection-bar__status" role="status">{t("{count} selected", { count: selectedIds.size })}</span>
+              <SelectionActions open={selectionMode} mobileVertical>
+              <span className="gallery-selection-bar__count" aria-hidden="true">{t("{count} selected", { count: selectedIds.size })}</span>
               <span className="gallery-selection-bar__divider" aria-hidden="true" />
               
               <button

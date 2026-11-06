@@ -444,7 +444,7 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
         </div>
       </div>
 
-          <PageActionBar className="gallery-selection-bar gallery-selection-bar--compact" role="group" aria-label={t("{count} selected", { count: selectedItems.size })} aria-busy={bulkFavoriteBusy}>
+          <PageActionBar className="gallery-page__actions" role="group" aria-label={t("{count} selected", { count: selectedItems.size })} aria-busy={bulkFavoriteBusy}>
             <span className="gallery-selection-bar__status" role="status">{t("{count} selected", { count: selectedItems.size })}</span>
           {selectionMode && <><span className="gallery-selection-bar__count" aria-hidden="true">{t("{count} selected", { count: selectedItems.size })}</span><span className="gallery-selection-bar__divider" aria-hidden="true" /></>}
             <input ref={uploadInput} type="file" accept="image/*,video/*" multiple hidden onChange={(event) => {
@@ -485,7 +485,7 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
                 <Heart size={20} fill={showingFavorites ? "currentColor" : "none"} aria-hidden="true" />
               </Link>
             )}
-            <SelectionActions open={selectionMode}>
+            <SelectionActions open={selectionMode} mobileVertical>
                 <PageActionButton
                   type="button"
                   className="gallery-selection-bar__action--save"

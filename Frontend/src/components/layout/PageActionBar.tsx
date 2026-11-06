@@ -36,6 +36,27 @@ function animateExit(footer: HTMLElement, bar: HTMLElement, bounds: { left: numb
   animation.onfinish = () => wrapper.remove();
 }
 
+function animateMobileExit(footer: HTMLElement, bar: HTMLElement, bounds: { left: number; top: number; width: number; height: number }, nextHeight: number) {
+  const wrapper = document.createElement("div");
+  wrapper.dataset.collapsingBar = "true";
+  wrapper.setAttribute("aria-hidden", "true");
+  wrapper.inert = true;
+  Object.assign(wrapper.style, {
+    position: "absolute", right: "12px",
+    bottom: `${footer.clientHeight - bounds.top - bounds.height}px`,
+    width: `${bounds.width}px`, height: `${bounds.height}px`,
+    display: "flex", alignItems: "flex-end", justifyContent: "flex-end", overflow: "hidden", pointerEvents: "none", zIndex: "2",
+  });
+  const exiting = bar.cloneNode(true) as HTMLElement;
+  Object.assign(exiting.style, { flex: "none", width: `${bounds.width}px`, maxWidth: "none" });
+  wrapper.append(exiting);
+  footer.append(wrapper);
+  const frames = nextHeight > 0
+    ? [{ height: `${bounds.height}px` }, { height: `${nextHeight}px` }]
+    : [{ width: `${bounds.width}px` }, { width: "0px" }];
+  wrapper.animate(frames, { duration: 200, easing: "ease-out" }).onfinish = () => wrapper.remove();
+}
+
 export function PageActionBarProvider({ children }: { children: ReactNode }) {
   const [target, setTarget] = useState<HTMLElement | null>(null);
   const enabled = useAnimationStore((state) => state.enabled);
@@ -66,7 +87,10 @@ export function PageActionBarProvider({ children }: { children: ReactNode }) {
         snapshotWidth = measuredWidth;
         const rect = bar.getBoundingClientRect();
         const footerRect = footer.getBoundingClientRect();
-        snapshotBounds = { left: (footerRect.width - rect.width) / 2, top: rect.top - footerRect.top, width: rect.width, height: rect.height };
+        snapshotBounds = { left: rect.left - footerRect.left, top: rect.top - footerRect.top, width: rect.width, height: rect.height };
+      } else {
+        snapshot = null;
+        snapshotWidth = 0;
       }
       setWidth(measuredWidth);
     };
@@ -76,8 +100,21 @@ export function PageActionBarProvider({ children }: { children: ReactNode }) {
         const removed = records.flatMap((record) => Array.from(record.removedNodes))
           .find((node): node is HTMLElement => node instanceof HTMLElement && node.classList.contains("gallery-selection-bar") && !node.hasAttribute("data-exiting"));
         const nextWidth = bar?.getBoundingClientRect().width ?? 0;
+        const mobileGalleryExit = removed?.classList.contains("gallery-page__actions") && window.matchMedia("(max-width: 767px)").matches;
         if (nextWidth > 0) footer.querySelector(":scope > [data-collapsing-bar]")?.remove();
-        if (removed && !removed.classList.contains("place__action-bar") && snapshot && snapshotWidth > nextWidth && nextWidth === 0) {
+        if (mobileGalleryExit) {
+          footer.querySelector(":scope > [data-collapsing-bar]")?.remove();
+          target.querySelector(":scope > [data-exiting]")?.remove();
+          const nextHeight = bar?.getBoundingClientRect().height ?? 0;
+          if (snapshot && snapshotBounds.height > nextHeight && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+            animateMobileExit(footer, snapshot, snapshotBounds, nextHeight);
+          } else if (bar && snapshot && nextHeight > snapshotBounds.height && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+            bar.animate(
+              [{ clipPath: `inset(${nextHeight - snapshotBounds.height}px 0 0 0)` }, { clipPath: "inset(0 0 0 0)" }],
+              { duration: 200, easing: "ease-out" },
+            );
+          }
+        } else if (removed && !removed.classList.contains("place__action-bar") && snapshot && snapshotWidth > nextWidth && nextWidth === 0) {
           animateExit(footer, snapshot, snapshotBounds);
         } else if (removed && !removed.classList.contains("place__action-bar") && snapshot && snapshotWidth > nextWidth) {
           target.querySelector(":scope > [data-exiting]")?.remove();

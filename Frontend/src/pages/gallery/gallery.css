@@ -789,6 +789,44 @@
 /* Keep page actions outside page snapshots and loading overlays. */
 .app-shell__main { position: relative; }
 
+@media (max-width: 767px) {
+  .page-action-bar:has(.gallery-page__actions) {
+    background: transparent;
+    border: 0;
+    min-height: 0;
+    padding: 0;
+  }
+
+  .page-action-bar__item:has(> .gallery-page__actions) {
+    left: auto;
+    right: 12px;
+    top: auto;
+    bottom: 12px;
+    transform: none;
+  }
+
+  .gallery-page__actions,
+  .gallery-page__actions .gallery-selection-bar__selection-actions {
+    flex-direction: column-reverse;
+    gap: 0;
+  }
+
+  .gallery-page__actions .gallery-selection-bar__action {
+    min-width: 30px;
+    min-height: 30px;
+    padding: 0;
+  }
+
+  .gallery-page__actions .gallery-selection-bar__action svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .gallery-page__actions :is(.gallery-selection-bar__count, .gallery-selection-bar__divider, .gallery-selection-bar__action > span) {
+    display: none;
+  }
+}
+
 .page-action-bar {
   align-items: center;
   min-height: calc(67px + max(12px, var(--safe-area-inset-bottom, env(safe-area-inset-bottom))));
