@@ -128,6 +128,7 @@ export function AlbumsPage() {
       <footer className="gallery-page__footer albums-page__footer">
         <PageActionBar className="gallery-selection-bar gallery-selection-bar--compact" role="group" aria-label={t("{count} selected", { count: selectedIds.size })}>
           <span className="gallery-selection-bar__status" role="status">{t("{count} selected", { count: selectedIds.size })}</span>
+          {selectionMode && <><span className="gallery-selection-bar__count" aria-hidden="true">{t("{count} selected", { count: selectedIds.size })}</span><span className="gallery-selection-bar__divider" aria-hidden="true" /></>}
           <button key="primary" type="button" className="gallery-selection-bar__action gallery-selection-bar__action--primary" aria-label={t("New album")} title={t("New album")} disabled={deleting} onClick={() => setCreating(true)}>
             <Plus size={20} aria-hidden="true" />
             <span>{t("New album")}</span>

@@ -276,6 +276,7 @@ export function TrashPage() {
             <PageActionBar className="gallery-selection-bar gallery-selection-bar--compact gallery-selection-bar--selection-only gallery-selection-bar--trash" role="group" aria-label={t("{count} selected", { count: selectedIds.size })}>
               <SelectionActions open={selectionMode}>
               <span className="gallery-selection-bar__count" role="status">{t("{count} selected", { count: selectedIds.size })}</span>
+              <span className="gallery-selection-bar__divider" aria-hidden="true" />
               
               <button
                 type="button"

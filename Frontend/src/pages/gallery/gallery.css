@@ -601,9 +601,10 @@
 }
 
 .gallery-selection-bar--compact .gallery-selection-bar__action--danger:hover:not(:disabled) {
-  background: var(--trash);
-  color: #F4F3EE;
+  background: var(--dialog-danger-solid);
+  color: #fff;
 }
+.gallery-selection-bar--compact .gallery-selection-bar__action--danger:hover:not(:disabled) svg { color: #fff; }
 
 .gallery-selection-bar--compact .gallery-selection-bar__action--danger:disabled {
   color: #F4F3EE;
