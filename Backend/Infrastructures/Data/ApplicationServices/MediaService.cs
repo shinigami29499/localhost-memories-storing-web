@@ -122,6 +122,15 @@ public partial class MediaService(
             }).ToList());
     }
 
+    public async Task<bool> IsMediaFileAvailableAsync(
+        Guid mediaId, Guid actorId, bool isAdmin, CancellationToken cancellationToken = default)
+    {
+        if (!isAdmin)
+            throw new ForbiddenException("Only administrators may check media file availability.");
+        var media = await LoadOwnedMediaAsync(mediaId, actorId, isAdmin, cancellationToken);
+        return await _storage.ExistsAsync(media.RelativePath);
+    }
+
     public async Task DeleteMediaAsync(Guid mediaId, Guid actorId, bool isAdmin, CancellationToken cancellationToken = default)
     {
         var media = await LoadOwnedMediaAsync(mediaId, actorId, isAdmin, cancellationToken);
@@ -189,6 +198,24 @@ public partial class MediaService(
         _logger.LogInformation("Media {MediaId} restored by {ActorId}", mediaId, actorId);
     }
 
+    public async Task DeleteMediaRecordAsync(
+        Guid mediaId, Guid actorId, bool isAdmin, CancellationToken cancellationToken = default)
+    {
+        if (!isAdmin)
+            throw new ForbiddenException("Only administrators may permanently delete media records.");
+
+        var media = await _repository.FindMediaIncludingDeletedAsync(mediaId, cancellationToken);
+        if (media is null) return;
+        if (media.IsPreviewOnly)
+            throw new ForbiddenException("Preview-only images are removed by reference cleanup.");
+
+        await using var tx = await _unitOfWork.BeginTransactionAsync(cancellationToken);
+        await _repository.PermanentlyDeleteMediaAsync(mediaId, actorId, cancellationToken);
+        await tx.CommitAsync(cancellationToken);
+        _logger.LogInformation(
+            "Media {MediaId} database record deleted by {ActorId}; storage left untouched", mediaId, actorId);
+    }
+
     public async Task PermanentlyDeleteMediaAsync(
         Guid mediaId, Guid actorId, bool isAdmin, CancellationToken cancellationToken = default)
     {
@@ -207,8 +234,12 @@ public partial class MediaService(
         if (!media.IsDeleted)
             throw new ConflictException("Media must be in trash before permanent deletion.");
 
-        var trashPath = media.TrashRelativePath
-            ?? throw new NotFoundException($"Media '{mediaId}' has no file in trash.");
+        var trashPath = media.TrashRelativePath;
+        if (trashPath is null || !await _storage.ExistsAsync(trashPath))
+        {
+            await DeleteMediaRecordAsync(mediaId, actorId, isAdmin, cancellationToken);
+            return;
+        }
         var purgePath = await _storage.MoveToPurgeAsync(trashPath, mediaId, cancellationToken);
 
         try

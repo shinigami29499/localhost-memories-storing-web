@@ -25,12 +25,22 @@ const LocaleContext = createContext<LocaleContextValue>({
 });
 
 const vietnamese: Record<string, string> = {
+  "Permanently delete missing media records?": "Xóa vĩnh viễn bản ghi nội dung bị thiếu?",
+  "Delete records": "Xóa bản ghi",
+  "Media records permanently deleted": "Đã xóa vĩnh viễn các bản ghi nội dung",
+  "Permanently delete these library records and their album and place links? No files will be searched for, moved, or deleted. This cannot be undone.": "Xóa vĩnh viễn các bản ghi thư viện cùng liên kết album và địa điểm? Không tìm kiếm, di chuyển hay xóa tệp nào. Không thể hoàn tác.",
+  "Check unavailable media: {filename}": "Kiểm tra nội dung không khả dụng: {filename}",
+  "Could not check media availability.": "Không thể kiểm tra tình trạng tệp.",
+  "Permanently delete missing media?": "Xóa vĩnh viễn nội dung bị thiếu?",
+  "This file is missing from disk. Permanently delete its library record and remove it from albums and places? This cannot be undone.": "Tệp này bị thiếu trên ổ đĩa. Xóa vĩnh viễn bản ghi khỏi thư viện, album và địa điểm? Không thể hoàn tác.",
   "Open map": "M\u1edf b\u1ea3n \u0111\u1ed3",
   "Use 3 to 64 characters: letters, digits, '_', '.' and '-'.": "D\u00f9ng 3 \u0111\u1ebfn 64 k\u00fd t\u1ef1: ch\u1eef c\u00e1i, ch\u1eef s\u1ed1, '_', '.' v\u00e0 '-'.",
   "The map could not load. Check your connection and try again. Adding places requires the map.": "Kh\u00f4ng th\u1ec3 t\u1ea3i b\u1ea3n \u0111\u1ed3. Ki\u1ec3m tra k\u1ebft n\u1ed1i v\u00e0 th\u1eed l\u1ea1i. C\u1ea7n b\u1ea3n \u0111\u1ed3 \u0111\u1ec3 th\u00eam \u0111\u1ecba \u0111i\u1ec3m.",
   "The map could not load. Check your connection and try again. Setting photo locations requires the map.": "Kh\u00f4ng th\u1ec3 t\u1ea3i b\u1ea3n \u0111\u1ed3. Ki\u1ec3m tra k\u1ebft n\u1ed1i v\u00e0 th\u1eed l\u1ea1i. C\u1ea7n b\u1ea3n \u0111\u1ed3 \u0111\u1ec3 \u0111\u1eb7t v\u1ecb tr\u00ed \u1ea3nh.",
   "Use Home for photos": "D\u00f9ng v\u1ecb tr\u00ed nh\u00e0 cho \u1ea3nh",
   "Remove check in": "X\u00f3a l\u1ea7n gh\u00e9 th\u0103m",
+  "Yes, remove checkin!": "Có, xóa lượt ghé thăm!",
+  "Are you sure?": "Bạn có chắc không?",
   "Move place": "Di chuy\u1ec3n \u0111\u1ecba \u0111i\u1ec3m",
   "Move photo": "Di chuy\u1ec3n \u1ea3nh",
   "Browse gallery": "Xem b\u1ed9 s\u01b0u t\u1eadp",

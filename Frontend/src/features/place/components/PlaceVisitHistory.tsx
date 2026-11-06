@@ -174,7 +174,8 @@ export function PlaceVisitHistory({ visits, showPlaceDetails = true, showVisitor
     {visitToRemove && (
       <ConfirmationDialog
         title="Remove this check in?"
-        confirmLabel="Remove check in"
+        confirmLabel="Yes, remove checkin!"
+        cancelPrompt="Are you sure?"
         danger
         onConfirm={async () => {
           if (!canRemove(visitToRemove, Date.now())) {

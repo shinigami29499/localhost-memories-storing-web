@@ -3,6 +3,7 @@ import type { AuthSession } from "../features/auth/types";
 import { endReplacedSession } from "../features/auth/sessionReplacement";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+const API_REQUEST_TIMEOUT_MS = 30_000;
 
 /** Error thrown by the API client; carries the HTTP status and problem details. */
 export class ApiError extends Error {
@@ -207,11 +208,29 @@ async function performRequest(
     payload = JSON.stringify(payload);
   }
 
-  return fetch(`${API_URL}${path}`, {
-    ...rest,
-    headers,
-    body: payload as BodyInit | null | undefined,
-  });
+  const requestController = new AbortController();
+  const callerSignal = rest.signal;
+  const abortFromCaller = () => requestController.abort(callerSignal?.reason);
+  if (callerSignal?.aborted) abortFromCaller();
+  else callerSignal?.addEventListener("abort", abortFromCaller, { once: true });
+
+  const timeout = setTimeout(() => requestController.abort(), API_REQUEST_TIMEOUT_MS);
+  try {
+    return await fetch(`${API_URL}${path}`, {
+      ...rest,
+      headers,
+      body: payload as BodyInit | null | undefined,
+      signal: requestController.signal,
+    });
+  } catch (error) {
+    if (requestController.signal.aborted && !callerSignal?.aborted) {
+      throw new ApiError(0, "Request timed out", "The request timed out. Try again.");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+    callerSignal?.removeEventListener("abort", abortFromCaller);
+  }
 }
 
 let refreshInFlight: Promise<boolean> | null = null;

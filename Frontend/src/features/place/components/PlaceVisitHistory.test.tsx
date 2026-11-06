@@ -204,7 +204,7 @@ describe("place visit history", () => {
     const dialog = document.querySelector('[role="alertdialog"]')!;
     expect(dialog.textContent).toContain("Cafe");
     expect(dialog.textContent).toContain("note and rating");
-    const confirm = Array.from(dialog.querySelectorAll("button")).find((button) => button.textContent === "Remove check in")!;
+    const confirm = Array.from(dialog.querySelectorAll("button")).find((button) => button.textContent === "Yes, remove checkin!")!;
     await act(async () => confirm.click());
     await settle();
     expect(service.removeVisit).toHaveBeenCalledWith("a-1");
@@ -236,7 +236,7 @@ describe("place visit history", () => {
     await act(async () => placeHistory().querySelector<HTMLButtonElement>(".place__history-remove")!.click());
     await settle();
     const confirm = Array.from(document.querySelectorAll('[role="alertdialog"] button'))
-      .find((button) => button.textContent === "Remove check in") as HTMLButtonElement;
+      .find((button) => button.textContent === "Yes, remove checkin!") as HTMLButtonElement;
     await act(async () => confirm.click());
     await settle();
     expect(document.querySelector('[role="alertdialog"]')).not.toBeNull();

@@ -443,7 +443,7 @@ export function MediaPreviewDialog({
             <Bookmark
               size={20}
               fill={inAlbum ? "currentColor" : "none"}
-              style={{ color: "inherit" }}
+              style={{ color: inAlbum ? "var(--bookmark-active)" : "inherit" }}
               aria-hidden="true"
             />
           </button>

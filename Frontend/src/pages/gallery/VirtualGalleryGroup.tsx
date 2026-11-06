@@ -12,12 +12,13 @@ interface Props {
   onFavorite?: (id: string) => void;
   favoriteBusy: boolean;
   onOpen: (id: string) => void;
+  onUnavailable?: (id: string) => Promise<boolean>;
   mediaKind?: string;
   pinnedId?: string | null;
   includeDeleted?: boolean;
 }
 
-export function VirtualGalleryGroup({ items, viewport, selectionMode, selectedItems, onSelect, onFavorite, favoriteBusy, onOpen, mediaKind, pinnedId, includeDeleted = false }: Props) {
+export function VirtualGalleryGroup({ items, viewport, selectionMode, selectedItems, onSelect, onFavorite, favoriteBusy, onOpen, onUnavailable, mediaKind, pinnedId, includeDeleted = false }: Props) {
   const gridRef = useRef<HTMLDivElement>(null);
   const [focusTarget, setFocusTarget] = useState<string | null>(null);
   const grid = gridRef.current;
@@ -84,7 +85,7 @@ export function VirtualGalleryGroup({ items, viewport, selectionMode, selectedIt
       return <div key={item.id} className="gallery-window-cell" data-gallery-window-id={item.id}
         style={{ width: tileSize, height: tileSize, top: 8 + Math.floor(position / columns) * step, left: 8 + position % columns * step }}>
         <MediaTile media={item} preload selectionMode={selectionMode} selectionDragEnabled selected={selectedItems.has(item.id)} includeDeleted={includeDeleted}
-          onSelect={onSelect} onFavorite={onFavorite} favoriteDisabled={favoriteBusy} onOpen={onOpen} />
+          onSelect={onSelect} onFavorite={onFavorite} favoriteDisabled={favoriteBusy} onOpen={onOpen} onUnavailable={onUnavailable} />
       </div>;
     })}
   </div>;

@@ -54,6 +54,16 @@ Paths in this page are relative to the repository root.
 | EXIF GPS extraction | `Backend/Infrastructures/Adapters/Implementations/MediaStorageService.Location.cs` |
 | Upload realtime groups and delivery | `Backend/Apis/Realtime/NotificationsHub.cs`, `Backend/Apis/Realtime/UploadNotifications.cs` |
 
+Administrators can query `GET /api/library/gallery/{mediaId}/availability` for a
+non-cacheable boolean indicating whether an active gallery file exists on disk.
+`DELETE /api/library/gallery/{mediaId}/record` is an explicit admin-only,
+idempotent database-only operation. It removes the gallery record and its album,
+favorite, and place links in a transaction without invoking any storage methods.
+Gallery missing-file confirmations use this endpoint. Normal permanent deletion
+still requires trash; when its trash file or path is missing, it uses database-only
+cleanup and skips all preview/file deletion. Existing trash files retain normal
+file-staging and database rollback behavior.
+
 Current domain entities are `User`, `RefreshToken`, `MediaFile`, `MediaFavorite`,
 `Collection`, `CollectionMedia`, `UploadBatch`, `UploadItem`, `Place`, and
 `PlaceVisit`, alongside

@@ -58,11 +58,12 @@ export function PlaceEditor({
         />
       </label>
 
-      <label className="place__field">
-        <span>{t("Note")}</span>
-        <textarea className="place__textarea" value={values.note} maxLength={2000} disabled={busy}
-          onChange={(event) => onChange({ ...values, note: event.target.value })} />
-      </label>
+      <div className="place__field">
+        <Button type="button" className="place__choose-photos" disabled={busy} onClick={() => setPickingImages(true)}>
+          <UploadIcon size={18} aria-hidden="true" />
+          {t("Choose photos")}
+        </Button>
+      </div>
 
       <div className="place__field">
         <PlaceMarkerCombobox
@@ -91,12 +92,6 @@ export function PlaceEditor({
         </div>
       </div>
 
-      <div className="place__field">
-        <Button type="button" className="place__choose-photos" disabled={busy} onClick={() => setPickingImages(true)}>
-          <UploadIcon size={18} aria-hidden="true" />
-          {t("Choose photos")}
-        </Button>
-      </div>
       {pickingImages && <PhotoPicker
         selectedId={values.mediaIds[0] ?? null}
         selectedIds={values.mediaIds}
@@ -117,11 +112,11 @@ export function PlaceEditor({
 
       <div className="place__form-actions">
         <div className="place__form-actions-primary">
+          <Button type="button" className="place__cancel-action" variant="secondary" disabled={busy} onClick={onCancel}>
+            {t("Cancel")}
+          </Button>
           <Button type="submit" className="place__save-action" busy={saving} disabled={!coordinate || busy}>
             {isNew ? <><Plus size={18} aria-hidden="true" />{t("Add")}</> : t("Save changes")}
-          </Button>
-          <Button type="button" className="place__cancel-action" variant="danger" disabled={busy} onClick={onCancel}>
-            {t("Cancel")}
           </Button>
         </div>
         {onDelete && (

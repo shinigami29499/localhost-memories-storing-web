@@ -1452,6 +1452,25 @@
   box-shadow: none;
 }
 
+.place__dialog--editor .place__form > .place__form-actions { margin-top: 0; }
+.place__dialog--editor .place__form-actions-primary { flex-direction: row; }
+.place__dialog--editor .place__form-actions-primary .place__cancel-action {
+  background: #ffebed;
+  border: 1px solid #ff94a1;
+  color: #ff4960;
+  flex: 0 0 22%;
+  padding-inline: 8px;
+}
+.place__dialog--editor .place__form-actions-primary .place__cancel-action:hover:not(:disabled) {
+  color: #ff4960;
+  text-decoration: underline;
+}
+.place__dialog--editor .place__form-actions-primary .place__save-action {
+  background: #6A3F36;
+  color: #F4F3EE;
+  flex: 1;
+}
+
 .place__form-actions button {
   width: 100%;
 }

@@ -66,6 +66,17 @@ Close callbacks run after the exit transition. Form and confirmation callbacks
 may return a function to navigate after fade-out. Nested photo pickers preserve
 their own focus scope, selection draft, and stacking.
 
+Clicking a failed gallery tile as an administrator checks whether its original file
+exists on disk. A missing file opens a permanent-deletion confirmation naming the
+file; confirmation removes its library record and album/place links through
+`DELETE /api/library/gallery/{mediaId}/record`. This operation never searches for,
+moves, or deletes physical files, including cached previews. Bulk trash confirmation
+also checks selected file availability before attempting any moves. If files are
+missing, it opens a separate record-only confirmation for those files; existing
+files remain selected for a later trash action. Existing files still use the normal
+preview retry flow. Availability failures show an error, never a deletion prompt.
+Non-admin behavior remains retry-only.
+
 Deletion always requires a separate confirmation before a write. Album deletion,
 gallery trash moves, permanent trash deletion, upload record deletion, place
 deletion, photo location removal, home location removal, and check-in removal use

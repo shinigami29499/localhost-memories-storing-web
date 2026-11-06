@@ -25,6 +25,8 @@ import type { MediaFile, MediaKindFilter } from "../../features/media/types";
 import { useGalleryWindow } from "../../features/media/hooks/useGalleryWindow";
 import { VirtualGalleryGroup } from "./VirtualGalleryGroup";
 import { resolveFocusMediaId } from "./resolveFocusMediaId";
+import { useAuthStore } from "../../store/authStore";
+import { placeKeys } from "../../features/place/hooks/usePlaces";
 import "./gallery.css";
 import "../../features/media/components/media.css";
 
@@ -54,6 +56,7 @@ async function applyFavorites(mediaIds: string[], favorite: boolean) {
 
 export function GalleryPage({ view = "pictures", initialFilter }: { view?: GalleryView; initialFilter?: MediaKindFilter }) {
   const { t, language } = useLocale();
+  const isAdmin = useAuthStore((state) => state.user?.role?.toLowerCase() === "admin");
   const queryClient = useQueryClient();
   const selectedFilter = initialFilter;
   const [uploading, setUploading] = useState(false);
@@ -65,6 +68,7 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
   const inAlbum = membership.data?.items.some((item) => item.albumIds.length > 0) ?? false;
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [missingMedia, setMissingMedia] = useState<MediaFile[] | null>(null);
   const [favoriteBusyId, setFavoriteBusyId] = useState<string | null>(null);
   const [bulkFavoriteBusy, setBulkFavoriteBusy] = useState(false);
   const [previewMediaId, setPreviewMediaId] = useState<string | null>(null);
@@ -132,11 +136,12 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
     setSelectedItems(new Map());
     setSaveDialogOpen(false);
     setDeleteDialogOpen(false);
+    setMissingMedia(null);
     setPreviewMediaId(null);
   }, [view, initialFilter]);
 
   useEffect(() => {
-    if (!selectionMode || saveDialogOpen || deleteDialogOpen || bulkFavoriteBusy) return;
+    if (!selectionMode || saveDialogOpen || deleteDialogOpen || missingMedia || bulkFavoriteBusy) return;
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
@@ -146,7 +151,7 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
     };
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [selectionMode, saveDialogOpen, deleteDialogOpen, bulkFavoriteBusy]);
+  }, [selectionMode, saveDialogOpen, deleteDialogOpen, missingMedia, bulkFavoriteBusy]);
 
   useEffect(() => {
     if (previewMediaId || !returnToMediaId.current) return;
@@ -275,6 +280,17 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
 
   const deleteSelected = async () => {
     if (selectedIds.length === 0) return;
+    if (isAdmin) {
+      const missing: MediaFile[] = [];
+      for (let offset = 0; offset < selectedMedia.length; offset += 5) {
+        const batch = selectedMedia.slice(offset, offset + 5);
+        const available = await Promise.all(batch.map((item) => mediaService.isFileAvailable(item.id)));
+        batch.forEach((item, index) => {
+          if (!available[index]) missing.push(item);
+        });
+      }
+      if (missing.length > 0) return () => setMissingMedia(missing);
+    }
     const deletedIds: string[] = [];
     const failedIds: string[] = [];
     let firstFailure: unknown;
@@ -308,6 +324,36 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
     if (failedIds.length > 0) throw firstFailure;
 
     cancelSelection();
+  };
+
+  const checkUnavailable = async (mediaId: string) => {
+    if (await mediaService.isFileAvailable(mediaId)) return false;
+    const item = media.find((candidate) => candidate.id === mediaId);
+    if (item) setMissingMedia([item]);
+    return true;
+  };
+
+  const deleteMissingMedia = async () => {
+    if (!missingMedia) return;
+    const deletedIds = new Set<string>();
+    try {
+      for (const item of missingMedia) {
+        await mediaService.deleteRecord(item.id);
+        deletedIds.add(item.id);
+        // Keep only unfinished records so retries cannot repeat successful writes.
+        setMissingMedia((current) => current?.filter((candidate) => candidate.id !== item.id) ?? null);
+      }
+    } finally {
+      if (deletedIds.size > 0) {
+        setSelectedItems((current) => new Map([...current].filter(([id]) => !deletedIds.has(id))));
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ["media"] }),
+          queryClient.invalidateQueries({ queryKey: albumKeys.all }),
+          queryClient.invalidateQueries({ queryKey: placeKeys.all }),
+        ]);
+        showToast.delete(t("Media records permanently deleted"));
+      }
+    }
   };
 
   const galleryContent = (
@@ -355,7 +401,8 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
                 </div>
                   <VirtualGalleryGroup items={group.items} viewport={viewport} mediaKind={selectedFilter} pinnedId={focusMediaId}
                     selectionMode={selectionMode} selectedItems={selectedItems} onSelect={toggleSelected}
-                    onFavorite={(mediaId) => void toggleFavorite(mediaId, false)} favoriteBusy={favoriteBusy} onOpen={setPreviewMediaId} />
+                    onFavorite={(mediaId) => void toggleFavorite(mediaId, false)} favoriteBusy={favoriteBusy} onOpen={setPreviewMediaId}
+                    onUnavailable={isAdmin ? checkUnavailable : undefined} />
               </section>
               );
             })}
@@ -385,7 +432,7 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
       onClickCapture={(event) => {
         selectionDragHandlers.onClickCapture(event);
         if (event.defaultPrevented) return;
-        if (saveDialogOpen || deleteDialogOpen) return;
+        if (saveDialogOpen || deleteDialogOpen || missingMedia) return;
         if (!selectionMode || (event.target instanceof Element && event.target.closest("[data-media-id], .gallery-selection-bar"))) return;
         cancelSelection();
       }}>
@@ -448,7 +495,12 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
                   disabled={favoriteBusy || selectedMedia.length === 0}
                   onClick={() => setSaveDialogOpen(true)}
                 >
-                  <Bookmark size={20} fill={inAlbum ? "currentColor" : "none"} aria-hidden="true" />
+                  <Bookmark
+                    size={20}
+                    fill={inAlbum ? "currentColor" : "none"}
+                    style={{ color: inAlbum ? "var(--bookmark-active)" : "inherit" }}
+                    aria-hidden="true"
+                  />
                 </PageActionButton>
               <PageActionButton
                 type="button"
@@ -480,6 +532,19 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
         >
           <p>{t("{count} selected", { count: selectedIds.length })}</p>
           {t("Selected media will move to trash and can be restored later.")}
+        </ConfirmationDialog>
+      ) : null}
+      {missingMedia ? (
+        <ConfirmationDialog
+          title="Permanently delete missing media records?"
+          confirmLabel="Delete records"
+          danger
+          onClose={() => setMissingMedia(null)}
+          onConfirm={deleteMissingMedia}
+        >
+          <p>{t("{count} selected", { count: missingMedia.length })}</p>
+          <ul>{missingMedia.map((item) => <li key={item.id}>{item.originalFilename}</li>)}</ul>
+          {t("Permanently delete these library records and their album and place links? No files will be searched for, moved, or deleted. This cannot be undone.")}
         </ConfirmationDialog>
       ) : null}
       {previewMediaId ? (

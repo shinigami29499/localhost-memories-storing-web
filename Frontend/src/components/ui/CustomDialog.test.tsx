@@ -181,7 +181,9 @@ describe("Custom dialog migration", () => {
     expect(actions.map((button) => button.textContent)).toEqual(["Cancel", "Delete"]);
     expect(document.activeElement).toBe(actions[0]);
     expect(actions[0].classList.contains("btn--secondary")).toBe(true);
+    expect(actions[0].classList.contains("confirmation-dialog__cancel")).toBe(true);
     expect(actions[1].classList.contains("btn--danger")).toBe(true);
+    expect(actions[1].classList.contains("confirmation-dialog__confirm--danger")).toBe(true);
     await click("Delete");
     await outsideClick();
     await escape();
@@ -205,7 +207,10 @@ describe("Custom dialog migration", () => {
     await click("Continue");
     await settle();
     expect(onClose).not.toHaveBeenCalled();
-    expect(document.querySelector(".confirmation-dialog__actions .btn--primary")?.hasAttribute("disabled")).toBe(false);
+    const confirmButton = document.querySelector(".confirmation-dialog__actions .btn--primary");
+    expect(confirmButton?.classList.contains("confirmation-dialog__confirm")).toBe(true);
+    expect(confirmButton?.classList.contains("confirmation-dialog__confirm--danger")).toBe(false);
+    expect(confirmButton?.hasAttribute("disabled")).toBe(false);
     await click("Continue");
     await settle();
     expect(onConfirm).toHaveBeenCalledTimes(2);

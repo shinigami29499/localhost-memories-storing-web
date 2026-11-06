@@ -7,6 +7,7 @@ import { Play } from "@/components/animate-ui/icons/play";
 import { RotateCcw } from "@/components/animate-ui/icons/rotate-ccw";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import { useLocale } from "../../../context/LocaleContext";
+import { showToast } from "../../../components/ui/Toast";
 import { mediaPreviewUrl } from "../../../utils/media";
 import type { MediaFile } from "../types";
 import { useMediaRetry } from "./MediaRetryProvider";
@@ -23,10 +24,12 @@ interface Props {
   onSelect: (mediaId: string) => void;
   onOpen: (mediaId: string) => void;
   onFavorite?: (mediaId: string) => void;
+  /** Return true when unavailable media was handled instead of retried. */
+  onUnavailable?: (mediaId: string) => Promise<boolean>;
 }
 
 export function MediaTile({
-  media, selectionMode, selectionEnabled = true, selectionDragEnabled = false, selected, favoriteDisabled, includeDeleted = false, preload = false, onSelect, onOpen, onFavorite,
+  media, selectionMode, selectionEnabled = true, selectionDragEnabled = false, selected, favoriteDisabled, includeDeleted = false, preload = false, onSelect, onOpen, onFavorite, onUnavailable,
 }: Props) {
   const { t } = useLocale();
   const tileRef = useRef<HTMLButtonElement>(null);
@@ -35,6 +38,8 @@ export function MediaTile({
   const registerRetry = retryGroup?.register;
   const [failed, setFailed] = useState(false);
   const [retrying, setRetrying] = useState(false);
+  const [checkingAvailability, setCheckingAvailability] = useState(false);
+  const availabilityPending = useRef(false);
   const [attempt, setAttempt] = useState(0);
   const previewUrl = `${mediaPreviewUrl(media.id, includeDeleted)}${attempt ? `&previewRetry=${attempt}` : ""}`;
   const failedRef = useRef(false);
@@ -93,6 +98,23 @@ export function MediaTile({
     if (!includeDeleted && !isSelecting && !favoriteDisabled && !media.isFavorited) onFavorite?.(media.id);
   };
 
+  const openUnavailable = async () => {
+    if (!onUnavailable || availabilityPending.current) return;
+    availabilityPending.current = true;
+    setCheckingAvailability(true);
+    try {
+      if (await onUnavailable(media.id)) return;
+      if (retryGroup) await retryGroup.retryAll(media.id);
+      else await retryPreview();
+    } catch (error) {
+      showToast.error(t("Could not check media availability."), error instanceof Error ? error.message : undefined);
+    } finally {
+      availabilityPending.current = false;
+      setCheckingAvailability(false);
+    }
+  };
+  const failedActionLabel = onUnavailable ? "Check unavailable media: {filename}" : "Retry all failed media, starting with {filename}";
+
   return (
     <AnimateIcon asChild animateOnHover animateOnTap completeOnStop>
       <button
@@ -101,11 +123,11 @@ export function MediaTile({
         className={`media-tile${isSelecting && selected ? " media-tile--selected" : ""}`}
         data-media-id={media.id}
         aria-label={t(isSelecting ? "Select {filename}" : failed || retrying
-          ? "Retry all failed media, starting with {filename}" : "Open {filename}", { filename: media.originalFilename })}
-        aria-disabled={!isSelecting && (failed || retrying) && (retryGroup?.busy || retrying) || undefined}
+          ? failedActionLabel : "Open {filename}", { filename: media.originalFilename })}
+        aria-disabled={!isSelecting && (checkingAvailability || (failed || retrying) && (retryGroup?.busy || retrying)) || undefined}
         title={(failed || retrying) && !isSelecting
-          ? t("Retry all failed media, starting with {filename}", { filename: media.originalFilename }) : undefined}
-        aria-busy={retrying || undefined}
+          ? t(failedActionLabel, { filename: media.originalFilename }) : undefined}
+        aria-busy={retrying || checkingAvailability || undefined}
         aria-pressed={isSelecting ? selected : undefined}
         aria-description={t(selectionEnabled
           ? includeDeleted ? "Hold to select, or press Shift+Space." : "Hold to select, or press Shift+Space. Press F to add to favorites."
@@ -155,10 +177,11 @@ export function MediaTile({
           }
           if (isSelecting) {
             onSelect(media.id);
-          } else if (retrying || (failed && retryGroup?.busy)) {
+          } else if (checkingAvailability || retrying || (failed && retryGroup?.busy)) {
             return;
           } else if (failed) {
-            if (retryGroup) void retryGroup.retryAll(media.id);
+            if (onUnavailable) void openUnavailable();
+            else if (retryGroup) void retryGroup.retryAll(media.id);
             else void retryPreview();
           } else onOpen(media.id);
         }}
@@ -186,7 +209,7 @@ export function MediaTile({
       ) : null}
       {failed || retrying ? (
         <span className="media-tile__retry" aria-hidden="true">
-          {retrying
+          {retrying || checkingAvailability
             ? <LoaderCircle size={24} className="spinner__wheel" />
             : <RotateCcw size={24} />}
         </span>

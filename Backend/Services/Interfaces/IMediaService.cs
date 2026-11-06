@@ -10,6 +10,8 @@ public interface IMediaService
     Task<MediaFileDto?> GetMediaForNotificationAsync(Guid mediaId, CancellationToken cancellationToken = default);
     Task<MediaFileDto> GetMediaAsync(Guid mediaId, Guid viewerId,
         CancellationToken cancellationToken = default);
+    Task<bool> IsMediaFileAvailableAsync(
+        Guid mediaId, Guid actorId, bool isAdmin, CancellationToken cancellationToken = default);
     Task<PagedMediaResponse<MediaFileDto>> GetLocatedMediaPageAsync(Guid viewerId, int offset, int limit,
         PlaceMapBounds bounds, CancellationToken cancellationToken = default);
     Task<PagedMediaResponse<MediaFileDto>> GetUnlocatedMediaPageAsync(Guid viewerId, int offset, int limit,
@@ -28,6 +30,8 @@ public interface IMediaService
     Task DeleteMediaAsync(Guid mediaId, Guid actorId, bool isAdmin, CancellationToken cancellationToken = default);
     Task RestoreMediaAsync(Guid mediaId, Guid actorId, bool isAdmin, CancellationToken cancellationToken = default);
     Task PermanentlyDeleteMediaAsync(
+        Guid mediaId, Guid actorId, bool isAdmin, CancellationToken cancellationToken = default);
+    Task DeleteMediaRecordAsync(
         Guid mediaId, Guid actorId, bool isAdmin, CancellationToken cancellationToken = default);
     Task<PagedMediaResponse<MediaFileDto>> GetMediaPageAsync(
         Guid viewerId, int offset, int limit, string? mediaKind, bool favoritesOnly, bool includeDeleted,

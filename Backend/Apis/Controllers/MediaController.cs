@@ -76,6 +76,16 @@ public class MediaController(
         Guid mediaId, CancellationToken cancellationToken)
         => Ok(await _mediaService.GetMediaAsync(mediaId, _currentUser.RequireUserId(), cancellationToken));
 
+    /// <summary>Returns whether an active gallery media file exists on disk; restricted to admins.</summary>
+    [RequireAdmin]
+    [HttpGet("{mediaId:guid}/availability")]
+    public async Task<ActionResult<bool>> GetMediaAvailabilityAsync(Guid mediaId, CancellationToken cancellationToken)
+    {
+        Response.Headers.CacheControl = "no-store";
+        return Ok(await _mediaService.IsMediaFileAvailableAsync(
+            mediaId, _currentUser.RequireUserId(), _currentUser.IsAdmin, cancellationToken));
+    }
+
     /// <summary>Returns compact media change markers for local gallery reconciliation.</summary>
     [HttpGet("changes")]
     public async Task<ActionResult<MediaChangesResponse>> GetMediaChangesAsync(
@@ -151,6 +161,18 @@ public class MediaController(
     {
         var media = await _mediaService.GetMediaForNotificationAsync(mediaId, cancellationToken);
         await _mediaService.PermanentlyDeleteMediaAsync(
+            mediaId, _currentUser.RequireUserId(), _currentUser.IsAdmin, cancellationToken);
+        await NotifyMediaChangedAsync(media, "deleted");
+        return NoContent();
+    }
+
+    /// <summary>Removes a gallery record and its database links without accessing storage.</summary>
+    [RequireAdmin]
+    [HttpDelete("{mediaId:guid}/record")]
+    public async Task<IActionResult> DeleteMediaRecordAsync(Guid mediaId, CancellationToken cancellationToken)
+    {
+        var media = await _mediaService.GetMediaForNotificationAsync(mediaId, cancellationToken);
+        await _mediaService.DeleteMediaRecordAsync(
             mediaId, _currentUser.RequireUserId(), _currentUser.IsAdmin, cancellationToken);
         await NotifyMediaChangedAsync(media, "deleted");
         return NoContent();

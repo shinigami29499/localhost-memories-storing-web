@@ -12,6 +12,7 @@ import { App as CapacitorApp } from "@capacitor/app";
 import { Capacitor } from "@capacitor/core";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AnimateUIProvider } from "@animate-ui/react/provider";
+import { ApiError } from "./services/api";
 import { useAnimationStore } from "./store/animationStore";
 import { useAuthStore } from "./store/authStore";
 import { LocaleProvider } from "./context/LocaleContext";
@@ -38,7 +39,13 @@ const SettingsPage = lazy(() => import("./pages/settings/SettingsPage").then((mo
 const ProfilePage = lazy(() => import("./pages/profile/ProfilePage").then((module) => ({ default: module.ProfilePage })));
 
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { retry: 1, staleTime: 15_000, refetchOnWindowFocus: false } },
+  defaultOptions: {
+    queries: {
+      retry: (failureCount, error) => !(error instanceof ApiError && error.status === 0) && failureCount < 1,
+      staleTime: 15_000,
+      refetchOnWindowFocus: false,
+    },
+  },
 });
 
 function LegacyLocationRedirect() {

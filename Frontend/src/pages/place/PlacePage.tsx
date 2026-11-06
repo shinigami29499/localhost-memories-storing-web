@@ -955,4 +955,3 @@ export function PlacePage() {
     </main>
   );
 }
-

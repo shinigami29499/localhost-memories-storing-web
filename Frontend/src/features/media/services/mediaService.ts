@@ -16,6 +16,10 @@ export const mediaService = {
     return api(`/api/library/gallery/${encodeURIComponent(mediaId)}`);
   },
 
+  isFileAvailable(mediaId: string): Promise<boolean> {
+    return api(`/api/library/gallery/${encodeURIComponent(mediaId)}/availability`, { cache: "no-store" });
+  },
+
   favorites(offset = 0, limit = 20, mediaKind?: MediaKindFilter): Promise<PagedMedia> {
     return api(`/api/library/gallery/favorites?${mediaQuery(offset, limit, mediaKind)}`);
   },
@@ -49,5 +53,9 @@ export const mediaService = {
 
   permanentlyDelete(mediaId: string): Promise<void> {
     return api(`/api/library/gallery/${mediaId}/permanent`, { method: "DELETE" });
+  },
+
+  deleteRecord(mediaId: string): Promise<void> {
+    return api(`/api/library/gallery/${encodeURIComponent(mediaId)}/record`, { method: "DELETE" });
   },
 };

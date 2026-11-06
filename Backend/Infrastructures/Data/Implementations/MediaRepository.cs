@@ -78,6 +78,9 @@ public sealed class MediaRepository(ApplicationDbContext db) : IMediaRepository
         await db.MediaFavorites.IgnoreQueryFilters()
             .Where(favorite => favorite.MediaFileId == mediaId)
             .ExecuteDeleteAsync(cancellationToken);
+        await db.PlaceMedia.IgnoreQueryFilters()
+            .Where(item => item.MediaFileId == mediaId)
+            .ExecuteDeleteAsync(cancellationToken);
         await db.MediaFiles.IgnoreQueryFilters()
             .Where(media => media.Id == mediaId)
             .ExecuteDeleteAsync(cancellationToken);

@@ -281,7 +281,7 @@ textarea, select { min-height: 44px; border-radius: 6px; }
 }
 
 @media (hover: hover) {
-  :root :is(button, [role="button"], .btn, .sidebar__link):hover:not(.navigation-highlight *):not(.map-navigation *):not(.place__location-search *):not(.gallery-selection-bar__action):not(.gallery-selection-bar__cancel):not(:disabled):not([aria-disabled="true"]):not(.place__marker):not(.locations__marker):not(.place__pin):not(.locations__pin):not(.place__home-pin):not(.locations__home-pin):not(.place__color-option) {
+  :root :is(button, [role="button"], .btn, .sidebar__link):hover:not(.navigation-highlight *):not(.map-navigation *):not(.place__location-search *):not(.gallery-selection-bar__action):not(.gallery-selection-bar__cancel):not(:disabled):not([aria-disabled="true"]):not(.place__marker):not(.locations__marker):not(.place__pin):not(.locations__pin):not(.place__home-pin):not(.locations__home-pin):not(.place__color-option):not(.place__cancel-action):not(.confirmation-dialog__actions .btn) {
     background-color: var(--surface-hover);
     color: var(--text);
   }
