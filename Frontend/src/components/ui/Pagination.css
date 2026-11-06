@@ -131,6 +131,16 @@
   border-radius: 0;
   padding: 0;
   overflow: visible;
+  animation: pagination-fade-in 200ms ease-out both;
+}
+
+@keyframes pagination-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-action-bar .pagination-action-bar { animation: none; }
 }
 
 .pagination-action-bar .pagination {

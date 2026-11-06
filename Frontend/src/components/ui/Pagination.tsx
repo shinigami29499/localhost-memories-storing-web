@@ -1,4 +1,5 @@
 import { AnimateIcon } from "@/components/animate-ui/icons/icon";
+import { useLayoutEffect, useState } from "react";
 import * as PaginationPrimitive from "@animate-ui/react/primitives/pagination";
 import { Select } from "@animate-ui/react/primitives/base-ui/select";
 import "./Pagination.css";
@@ -15,6 +16,7 @@ interface PaginationProps {
   itemLabel?: string;
   isFetching?: boolean;
   inActionBar?: boolean;
+  revealBeforeTransitionEndMs?: number;
   onPageChange: (page: number) => void;
   onPageSizeChange?: (pageSize: number) => void;
 }
@@ -26,11 +28,33 @@ export function Pagination({
   itemLabel = "items",
   isFetching = false,
   inActionBar = false,
+  revealBeforeTransitionEndMs,
   onPageChange,
   onPageSizeChange,
 }: PaginationProps) {
   const { t } = useLocale();
   const actionBarFooter = usePageActionBarFooter();
+  const [ready, setReady] = useState(revealBeforeTransitionEndMs === undefined);
+  useLayoutEffect(() => {
+    if (revealBeforeTransitionEndMs === undefined) return;
+    let cancelled = false;
+    let timer: number | undefined;
+    let frame = requestAnimationFrame(() => {
+      frame = requestAnimationFrame(() => {
+        const elements = [actionBarFooter, document.querySelector(".sidebar__link--active"), document.querySelector('.bottom-navigation__item[aria-current="page"]')];
+        const remaining = elements.flatMap((element) => element?.getAnimations({ subtree: true }) ?? [])
+          .map((animation) => {
+            const end = animation.effect?.getComputedTiming().endTime ?? 0;
+            const current = typeof animation.currentTime === "number" ? animation.currentTime : 0;
+            return Number.isFinite(end) ? Math.max(0, (end - current) / Math.abs(animation.playbackRate || 1)) : 0;
+          });
+        timer = window.setTimeout(() => {
+          if (!cancelled) setReady(true);
+        }, Math.max(0, Math.max(0, ...remaining) - revealBeforeTransitionEndMs));
+      });
+    });
+    return () => { cancelled = true; cancelAnimationFrame(frame); window.clearTimeout(timer); };
+  }, [actionBarFooter, revealBeforeTransitionEndMs]);
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const pageNumbers = getPageNumbers(page, totalPages);
 
@@ -122,6 +146,8 @@ export function Pagination({
       </div> : null}
     </PaginationPrimitive.Root>
   );
+
+  if (!ready) return null;
 
   return inActionBar && actionBarFooter
     ? <PageActionBar className="pagination-action-bar">{navigation}</PageActionBar>

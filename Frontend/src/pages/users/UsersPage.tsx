@@ -222,6 +222,7 @@ export function UsersPage() {
         {users.data && total > 0 ? (
             <Pagination
               inActionBar
+              revealBeforeTransitionEndMs={200}
               page={currentPage}
               pageSize={limit}
               total={total}

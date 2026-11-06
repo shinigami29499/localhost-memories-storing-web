@@ -77,9 +77,9 @@ export function PageActionBarProvider({ children }: { children: ReactNode }) {
           .find((node): node is HTMLElement => node instanceof HTMLElement && node.classList.contains("gallery-selection-bar") && !node.hasAttribute("data-exiting"));
         const nextWidth = bar?.getBoundingClientRect().width ?? 0;
         if (nextWidth > 0) footer.querySelector(":scope > [data-collapsing-bar]")?.remove();
-        if (removed && snapshot && snapshotWidth > nextWidth && nextWidth === 0) {
+        if (removed && !removed.classList.contains("place__action-bar") && snapshot && snapshotWidth > nextWidth && nextWidth === 0) {
           animateExit(footer, snapshot, snapshotBounds);
-        } else if (removed && snapshot && snapshotWidth > nextWidth) {
+        } else if (removed && !removed.classList.contains("place__action-bar") && snapshot && snapshotWidth > nextWidth) {
           target.querySelector(":scope > [data-exiting]")?.remove();
           const exiting = snapshot;
           exiting.dataset.exiting = "true";

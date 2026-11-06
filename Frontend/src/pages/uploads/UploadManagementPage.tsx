@@ -298,6 +298,7 @@ export function UploadManagementPage() {
       {data && data.totalItems > 0 ? (
           <Pagination
             inActionBar
+            revealBeforeTransitionEndMs={200}
             page={page}
             pageSize={limit}
             total={data.totalItems}

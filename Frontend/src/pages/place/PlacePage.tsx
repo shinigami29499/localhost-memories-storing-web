@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { lazy, Suspense, startTransition, useCallback, useEffect, useRef, useState, useMemo, type CSSProperties } from "react";
+import { lazy, Suspense, startTransition, useCallback, useEffect, useLayoutEffect, useRef, useState, useMemo, type CSSProperties } from "react";
 import { HighlightItem } from "@animate-ui/react/primitives/effects/highlight";
 import { NavigationHighlight } from "../../components/ui";
 import { PageActionBar, usePageActionBarFooter } from "../../components/layout/PageActionBar";
@@ -139,6 +139,34 @@ export function PlacePage() {
   const saved = view !== "map";
   const actionBarFooter = usePageActionBarFooter();
   const animationsEnabled = useAnimationStore((state) => state.enabled);
+  const previousView = useRef(view);
+  const [historyPaginationReady, setHistoryPaginationReady] = useState(view === "history");
+  useLayoutEffect(() => {
+    const fromSaved = previousView.current === "saved" && view === "history";
+    previousView.current = view;
+    if (view !== "history" || !fromSaved || !animationsEnabled) {
+      setHistoryPaginationReady(true);
+      return;
+    }
+    setHistoryPaginationReady(false);
+    let cancelled = false;
+    let timer: number | undefined;
+    let frame = requestAnimationFrame(() => {
+      frame = requestAnimationFrame(() => {
+        const elements = [document.querySelector(".place__view-switch"), actionBarFooter];
+        const remaining = elements.flatMap((element) => element?.getAnimations({ subtree: true }) ?? [])
+          .map((animation) => {
+            const end = animation.effect?.getComputedTiming().endTime ?? 0;
+            const current = typeof animation.currentTime === "number" ? animation.currentTime : 0;
+            return Number.isFinite(end) ? Math.max(0, (end - current) / Math.abs(animation.playbackRate || 1)) : 0;
+          });
+        timer = window.setTimeout(() => {
+          if (!cancelled) setHistoryPaginationReady(true);
+        }, Math.max(0, Math.max(0, ...remaining) - 200));
+      });
+    });
+    return () => { cancelled = true; cancelAnimationFrame(frame); window.clearTimeout(timer); };
+  }, [actionBarFooter, animationsEnabled, view]);
   const [mapStartReady, setMapStartReady] = useState(!animationsEnabled);
   const [addToolbar, setAddToolbar] = useState<{ visible: boolean; disabled: boolean; add: () => void } | null>(null);
   useEffect(() => {
@@ -781,7 +809,7 @@ export function PlacePage() {
             </AnimateIcon>
           </form>
         </PageActionBar>}
-        {saved && view === "history" && visitHistory.data && historyTotal > 0 && !visitHistory.isError ? (
+        {saved && view === "history" && historyPaginationReady && visitHistory.data && historyTotal > 0 && !visitHistory.isError ? (
             <Pagination
               inActionBar
               page={currentHistoryPage}
