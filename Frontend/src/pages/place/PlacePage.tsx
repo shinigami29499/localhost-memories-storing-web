@@ -55,6 +55,7 @@ import {
   useInfinitePlaces,
   useInfiniteMapPlaces,
   usePlace,
+  usePlaceVisits,
   useSavePlace,
 } from "../../features/place/hooks/usePlaces";
 import {
@@ -225,6 +226,7 @@ export function PlacePage() {
   }, [visitHistory.data, historyPage, currentHistoryPage]);
   const [formError, setFormError] = useState<string | null>(null);
   const [placeToDelete, setPlaceToDelete] = useState<Place | null>(null);
+  const [confirmingDetailDeleteId, setConfirmingDetailDeleteId] = useState<string | null>(null);
   const [placeToMove, setPlaceToMove] = useState<{ place: Place; coordinate: PlaceCoordinate } | null>(null);
   const [moveConfirmationOpen, setMoveConfirmationOpen] = useState(false);
   const workspaceRef = useRef<HTMLDivElement>(null);
@@ -312,6 +314,7 @@ export function PlacePage() {
   const filteredPlaces = places;
   const homePicking = manualHomePick;
   const selected = saved ? places.find((place) => place.id === selectedId) : selectedPlaceQuery.data;
+  const selectedVisits = usePlaceVisits(detailsOpen ? selected?.id ?? "" : "");
   const selectedPhoto = photos.find((photo) => photo.id === photoSelection?.id);
   const photoRelocating = !!photoSelection?.editing;
   const canEdit = (place: Place) => place.owner.id === user?.id || isAdmin;
@@ -853,7 +856,6 @@ export function PlacePage() {
             {selected && !editor && detailsOpen && (
               <PlaceDialog
                 className="place__dialog--details"
-                hideClose
                 title={selected.name}
                 subtitle={t("Added by {username}", { username: selected.owner.username })}
                 icon={
@@ -865,17 +867,18 @@ export function PlacePage() {
                     {selected.markerIcon}
                   </span>
                 }
-                onClose={clearPreview}
+                onClose={() => { setConfirmingDetailDeleteId(null); clearPreview(); }}
               >
                 <div>
                   {selected.address && <p className="place__address">{selected.address}</p>}
                   <div className="place__details-rating">
+                    <span className="place__average-rating">{selected.rating.toFixed(1)}</span>
                     <StarRating value={selected.rating} hideReadout />
-                    <span className="place__average-rating">
-                      {t("{rating} out of 5", { rating: selected.rating.toFixed(1) })}
-                    </span>
+                    {selectedVisits.data && <span className="place__check-in-count">
+                      {t(selectedVisits.data.total === 1 ? "{count} check-in" : "{count} check-ins", { count: selectedVisits.data.total })}
+                    </span>}
                   </div>
-                  <div className="place__form-actions place__details-actions">
+                  <div className="place__form-actions place__details-check-in">
                     <Button
                       type="button"
                       className="dialog-action dialog-action--normal place__check-in-action"
@@ -885,14 +888,37 @@ export function PlacePage() {
                       <CalendarCheck size={16} aria-hidden="true" />
                       {t("Check in")}
                     </Button>
-                    {canEdit(selected) && (
-                      <Button className="dialog-action dialog-action--normal place__edit-action" onClick={() => startEdit(selected)}>
-                        <Pencil size={16} aria-hidden="true" />
-                        {t("Edit")}
-                      </Button>
-                    )}
                   </div>
                   <SinglePlaceVisitHistory placeId={selected.id} onShowOnMap={saved ? (visit) => { setSelectedId(visit.placeId); setDetailsOpen(false); requestView("map"); } : undefined} />
+                  {canEdit(selected) && (
+                    <>
+                      <div className="dialog-actions place__details-actions">
+                        {confirmingDetailDeleteId === selected.id ? <>
+                          <Button type="button" variant="danger" className="dialog-action dialog-action--danger" autoFocus disabled={remove.isPending}
+                            onClick={() => setConfirmingDetailDeleteId(null)}>{t("Cancel")}</Button>
+                          <Button type="button" variant="danger" className="dialog-action dialog-action--danger-confirm" busy={remove.isPending}
+                            onClick={() => void remove.mutateAsync(selected.id).then(() => {
+                              setConfirmingDetailDeleteId(null);
+                              clearPreview();
+                              showToast.delete(t("Place deleted."));
+                            }).catch((error: unknown) => {
+                              showToast.error(error instanceof ApiError ? error.message : t("Could not complete this action. Please retry."));
+                            })}>{t("Delete place")}</Button>
+                        </> : <>
+                          <Button type="button" variant="danger" className="dialog-action dialog-action--danger" onClick={() => setConfirmingDetailDeleteId(selected.id)}>
+                            {t("Delete")}
+                          </Button>
+                          <Button type="button" className="dialog-action dialog-action--normal place__edit-action" onClick={() => startEdit(selected)}>
+                            <Pencil size={16} aria-hidden="true" />
+                            {t("Edit")}
+                          </Button>
+                        </>}
+                      </div>
+                      {confirmingDetailDeleteId === selected.id && <p className="dialog-actions__note place__details-delete-note">
+                        {t("{name} will be removed from the map.", { name: selected.name })}
+                      </p>}
+                    </>
+                  )}
                 </div>
               </PlaceDialog>
             )}

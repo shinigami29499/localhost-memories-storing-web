@@ -310,7 +310,7 @@
 }
 
 .album-caption-dialog__content {
-  padding: 24px;
+  padding: 12px;
   background: #6A3F36;
 }
 
@@ -332,7 +332,7 @@
 }
 
 .album-caption-dialog__actions {
-  padding: 0 24px 16px;
+  padding: 0 12px 12px;
   background: #6A3F36;
 }
 

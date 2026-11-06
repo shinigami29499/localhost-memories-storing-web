@@ -54,7 +54,7 @@ export function AlbumFormDialog({ album, onSubmit, onClose }: Props) {
   };
 
   return (
-    <PlaceDialog title={t(editing ? "Edit album" : "New album")} onClose={closeDialog} closeDisabled={busy || isPhotoPickerOpen} hideClose className="album-dialog">
+    <PlaceDialog title={t(editing ? "Edit album" : "New album")} onClose={closeDialog} closeDisabled={busy || isPhotoPickerOpen} className="album-dialog">
       <form className="album-form place__form" onSubmit={(event) => void submit(event)}>
         <fieldset className="album-form__fields" disabled={busy || isPhotoPickerOpen}>
           <label className="album-form__field">

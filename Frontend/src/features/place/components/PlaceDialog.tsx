@@ -14,12 +14,11 @@ interface Props {
   children: ReactNode;
   onClose: () => void;
   closeDisabled?: boolean;
-  hideClose?: boolean;
   className?: string;
   headerAction?: ReactNode;
 }
 
-export function PlaceDialog({ title, icon, subtitle, subtitleSecondLine, children, onClose, closeDisabled = false, hideClose = false, className = "", headerAction }: Props) {
+export function PlaceDialog({ title, icon, subtitle, subtitleSecondLine, children, onClose, closeDisabled = false, className = "", headerAction }: Props) {
   const { t } = useLocale();
   const animationsEnabled = useAnimationStore((state) => state.enabled);
   const [open, setOpen] = useState(true);
@@ -36,7 +35,7 @@ export function PlaceDialog({ title, icon, subtitle, subtitleSecondLine, childre
         <Dialog.Viewport className="confirmation-dialog-viewport" style={viewportStyle}>
           <Dialog.Popup className={`place__dialog${animationsEnabled ? " place__dialog--animated" : ""} ${className}`}>
             <header className="place__dialog-header">
-              {icon}
+              {icon && <div className="place__dialog-icon">{icon}</div>}
               <div className="place__dialog-heading">
                 <Dialog.Title className="place__dialog-title">{title}</Dialog.Title>
                 {subtitle && <p className="place__dialog-subtitle">{subtitle}</p>}
@@ -44,7 +43,7 @@ export function PlaceDialog({ title, icon, subtitle, subtitleSecondLine, childre
               </div>
               <div className="place__dialog-actions">
                 {headerAction}
-                {!hideClose && <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
+                <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
                   <Dialog.Close
                     className="place__dialog-close"
                     aria-label={t("Cancel action")}
@@ -53,7 +52,7 @@ export function PlaceDialog({ title, icon, subtitle, subtitleSecondLine, childre
                   >
                     <XIcon size={20} aria-hidden="true" />
                   </Dialog.Close>
-                </AnimateIcon>}
+                </AnimateIcon>
               </div>
             </header>
             <div className="place__dialog-body">{children}</div>

@@ -25,13 +25,13 @@
 
 .upload-activity-dialog__hint,
 .upload-activity-dialog__body {
-  margin-right: 24px;
-  margin-left: 24px;
+  margin-right: 12px;
+  margin-left: 12px;
 }
 
 .upload-activity-dialog .confirmation-dialog__actions {
   margin: 0;
-  padding: 16px 24px;
+  padding: 12px;
   background: #6A3F36;
   box-shadow: none;
 }
@@ -56,12 +56,12 @@
 }
 
 .upload-activity-dialog .upload-activity-dialog__hint {
-  margin-right: 24px;
-  margin-left: 24px;
+  margin-right: 12px;
+  margin-left: 12px;
 }
 
 .upload-activity-dialog__body {
-  margin-bottom: 24px;
+  margin-bottom: 12px;
   overflow-x: auto;
 }
 
