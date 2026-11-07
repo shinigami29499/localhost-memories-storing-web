@@ -38,7 +38,7 @@
 }
 
 @media (min-width: 768px) {
-  .media-tile__type { transform: scale(1.35); transform-origin: bottom right; }
+  .media-tile__type { transform: scale(1.1475); transform-origin: bottom right; }
 }
 
 .media-tile__video-fade {

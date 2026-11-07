@@ -162,6 +162,8 @@
   .gallery-date-grid .gallery-window-cell:has(.media-tile:hover) { z-index: 1; }
   .gallery-date-grid .media-tile { transition: transform 160ms ease; }
   .gallery-date-grid .media-tile:not(.media-tile--selected):hover { transform: scale(1.09); z-index: 1; }
+  .gallery-window-cell[data-row-edge="start"] .media-tile { transform-origin: left center; }
+  .gallery-window-cell[data-row-edge="end"] .media-tile { transform-origin: right center; }
 }
 
 .gallery-page__filters {

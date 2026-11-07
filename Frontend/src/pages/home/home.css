@@ -87,7 +87,72 @@
 }
 
 @media (max-width: 640px) {
+  .home-feed { gap: 0; }
+
+  .home-feed .album-feed-post {
+    position: relative;
+    box-sizing: border-box;
+    height: 100cqh;
+    flex: 0 0 100cqh;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    background: #000;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .home-feed .album-feed-post + .album-feed-post {
+    border-top: 1px solid var(--accent-strong);
+  }
+
+  .home-feed .album-feed-post__avatar { border-radius: var(--radius); flex-basis: 44px; height: 44px; }
+  .home-feed .album-feed-post__preview { position: absolute; inset: 0; aspect-ratio: auto; }
+  .home-feed .album-feed-post__preview img { object-fit: cover; }
+  .home-feed .album-feed-post__header {
+    position: absolute;
+    z-index: 1;
+    inset: 0 0 auto;
+    padding: 16px;
+    color: #fff;
+    background: linear-gradient(to bottom, rgb(0 0 0 / 80%), transparent);
+    pointer-events: none;
+  }
+  .home-feed .album-feed-post__title { display: block; color: #fff; font-size: 0.9375rem; line-height: 1.2; overflow-wrap: anywhere; }
+  .home-feed .album-feed-post__owner-prefix { display: inline; }
+  .home-feed .album-feed-post__owner,
+  .home-feed .album-feed-post__meta { color: #fff; font-size: 0.75rem; line-height: 1.25; }
+  .home-feed .album-feed-post__owner { font-weight: 400; }
+  .home-feed .album-feed-post__delete { display: none; }
+  .home-feed .album-feed-post__body {
+    position: absolute;
+    z-index: 1;
+    inset: auto 0 0;
+    padding: 32px 72px 16px 16px;
+    color: #fff;
+    background: linear-gradient(to top, rgb(0 0 0 / 80%), transparent);
+    pointer-events: none;
+  }
+  .home-feed .album-feed-post__actions { position: absolute; z-index: 2; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 0; }
+  .home-feed .album-feed-post__retry { background: var(--surface); }
+  .home-feed .album-feed-post__count { z-index: 2; }
+  .home-feed .album-feed-post__caption { margin: 0; }
+  .home-feed .album-feed-post__caption p { font-size: 0.875rem; line-height: 1.3; }
+
+  .home-page__header {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
   .home-page__content {
-    padding: var(--page-padding-top) var(--page-gutter) var(--page-padding-bottom);
+    container-type: size;
+    padding: 0;
+    scroll-padding-block: 0;
+    scroll-snap-type: y mandatory;
   }
 }

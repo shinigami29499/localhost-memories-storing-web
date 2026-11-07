@@ -283,7 +283,7 @@ textarea, select { min-height: 44px; }
   .bottom-navigation__dialog nav { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
   .bottom-navigation__dialog-header button:not(.dialog-action),
   .bottom-navigation__dialog nav a,
-  .bottom-navigation__dialog nav button:not(.dialog-action):not(.media-tile) {
+  .bottom-navigation__dialog nav button:not(.dialog-action):not(.media-tile):not(.album-hero__caption-button):not(.album-hero__delete):not(.album-hero__filter[aria-pressed="true"]) {
     display: flex;
     align-items: center;
     gap: 12px;
@@ -342,7 +342,7 @@ textarea, select { min-height: 44px; }
 }
 
 @media (hover: hover) {
-:root :is(button, [role="button"], .btn, .sidebar__link):hover:not(.mapboxgl-ctrl-group button):not(.navigation-highlight *):not(.map-navigation *):not(.place__location-search *):not(.gallery-selection-bar__action):not(.gallery-selection-bar__cancel):not(:disabled):not([aria-disabled="true"]):not(.place__marker):not(.locations__marker):not(.place__pin):not(.locations__pin):not(.place__home-pin):not(.locations__home-pin):not(.place__map-home-control):not(.locations__map-home-control):not(.place__color-option):not(.star-rating__button):not(.place__cancel-action):not(.dialog-action):not(.media-tile) {
+:root :is(button, [role="button"], .btn, .sidebar__link):hover:not(.mapboxgl-ctrl-group button):not(.navigation-highlight *):not(.map-navigation *):not(.place__location-search *):not(.gallery-selection-bar__action):not(.gallery-selection-bar__cancel):not(:disabled):not([aria-disabled="true"]):not(.place__marker):not(.locations__marker):not(.place__pin):not(.locations__pin):not(.place__home-pin):not(.locations__home-pin):not(.place__map-home-control):not(.locations__map-home-control):not(.place__color-option):not(.star-rating__button):not(.place__cancel-action):not(.dialog-action):not(.media-tile):not(.album-hero__caption-button):not(.album-hero__delete):not(.album-hero__filter[aria-pressed="true"]) {
     background-color: var(--surface-hover);
     color: var(--text);
   }

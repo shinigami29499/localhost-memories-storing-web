@@ -199,32 +199,13 @@
   border-bottom: 1px solid var(--border);
   display: flex;
   flex-wrap: wrap;
-  gap: 24px;
-  margin-bottom: 24px;
-  padding-bottom: 24px;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
 }
 
-.album-hero__preview {
-  aspect-ratio: 1;
-  background: var(--surface-raised);
-  border: 0;
-  border-radius: var(--radius);
-  flex-shrink: 0;
-  overflow: hidden;
-  width: 200px;
-}
-
-:root .album-hero__preview:not(:has(img)) {
-  background: #F4F3EE;
-  box-shadow: none;
-}
-
-.album-hero__preview img {
-  display: block;
-  height: 100%;
-  object-fit: cover;
-  width: 100%;
-}
+.album-page .gallery-page__media-toolbar { margin-bottom: 8px; }
+.album-page__grid { gap: 8px; }
 
 .album-hero__text {
   flex: 1 1 16rem;
@@ -247,16 +228,62 @@
 
 .album-hero__caption {
   color: var(--text-muted);
-  line-height: 1.6;
-  margin: 8px 0 0;
+  display: -webkit-box;
+  font-size: 0.875rem;
+  line-height: 1.3;
+  margin: 0;
+  overflow: hidden;
   overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: pre-wrap;
 }
 
-@media (max-width: 640px) {
-  .album-hero__caption {
-    flex-basis: 100%;
-    margin-top: 0;
-  }
+.album-hero__caption-area { margin-top: 8px; }
+
+.album-hero__caption-expand { display: block; font-size: 0.875rem; line-height: 1.3; overflow: hidden; }
+.album-hero__caption-expand .album-hero__caption { display: block; overflow: visible; }
+.album-hero__caption-measure { display: block; font-size: 0.875rem; line-height: 1.3; overflow-wrap: anywhere; position: absolute; visibility: hidden; white-space: pre-wrap; width: 100%; }
+
+.album-hero__caption-button {
+  background: none;
+  border: 0;
+  cursor: pointer;
+  display: block;
+  font: inherit;
+  padding: 0;
+  position: relative;
+  text-align: left;
+  width: 100%;
+}
+
+.album-hero__caption-button:hover {
+  background: transparent;
+}
+
+.album-hero__caption-button:active {
+  scale: 1;
+}
+
+.album-hero__show-more {
+  color: var(--text-strong);
+  display: block;
+  font-size: 1rem;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.album-caption-view__backdrop { position: fixed; inset: 0; z-index: 1000; }
+.album-caption-view__viewport { position: fixed; inset: 0; z-index: 1001; }
+.album-caption-view { background: var(--surface); height: 100%; overflow: auto; padding: 24px; }
+.album-caption-view__header { align-items: center; display: flex; justify-content: space-between; gap: 16px; }
+.album-caption-view__header h2 { font-size: 1.25rem; margin: 0; }
+.album-caption-view__text { color: var(--text-muted); line-height: 1.5; overflow-wrap: anywhere; white-space: pre-wrap; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .album-hero__caption-expand { transition: height 200ms ease-out; }
+  .album-caption-view.custom-dialog--animated { opacity: 1; transition: opacity 200ms ease-out; }
+  .album-caption-view.custom-dialog--animated:is([data-starting-style], [data-ending-style]) { opacity: 0; }
 }
 
 .confirmation-dialog.album-caption-dialog {
@@ -333,10 +360,36 @@
 }
 
 .btn.album-hero__icon-button {
+  border: 1px solid var(--border);
   height: 44px;
   min-width: 44px;
   padding: 0;
   width: 44px;
+}
+
+.album-hero__icon-button svg {
+  height: 22px;
+  width: 22px;
+}
+
+.btn.album-hero__filter[aria-pressed="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--text-on-accent);
+}
+
+@media (max-width: 767px) {
+  .btn.album-hero__icon-button {
+    height: 35.2px;
+    min-height: 35.2px;
+    min-width: 35.2px;
+    width: 35.2px;
+  }
+
+  .album-hero__icon-button svg {
+    height: 17.6px;
+    width: 17.6px;
+  }
 }
 
 .album-caption {
@@ -386,15 +439,15 @@
 }
 
 .btn.album-hero__delete {
-  background: transparent;
-  border: 1px solid var(--border);
+  background: var(--dialog-danger-solid);
+  border: 1px solid var(--dialog-danger-solid);
   box-shadow: none;
-  color: var(--danger);
+  color: #fff;
 }
 
-.btn.album-hero__delete:hover:not(:disabled) {
-  background: var(--danger-wash);
-  color: var(--danger);
+:root .btn.album-hero__delete:hover:not(:disabled) {
+  background: var(--dialog-danger-solid);
+  color: #fff;
 }
 
 .album-item {
@@ -477,10 +530,6 @@
     display: none;
   }
 
-  .album-hero__preview {
-    width: 112px;
-  }
-
   .album-hero__text {
     flex: 1 1 0;
     min-width: 0;
@@ -510,8 +559,7 @@
   }
 }
 
-.album-page .album-page__create-button,
-.album-hero__actions .btn--secondary {
+.album-page .album-page__create-button {
   border: 0;
   box-shadow: none;
 }

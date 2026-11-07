@@ -23,6 +23,8 @@ export function DayRow<T extends { id: string }>({ items, renderItem, fallbackWi
   const step = tileSize + gap;
   const tileHeight = tileSize * (screenWidth < 768 ? 3.95 : 3.75) / 3;
   const height = (screenWidth < 768 ? 16 : 32 - tileSize * 0.2 / 3) + tileHeight;
+  const hoverInset = Math.max(8, Math.ceil(tileHeight * 0.045));
+  const hoverHeight = tileHeight + 2 * hoverInset;
   const start = Math.max(0, Math.floor(scrollLeft / step) - 3);
   const end = Math.min(items.length, Math.ceil((scrollLeft + width) / step) + 3);
   const rendered = items.slice(start, end).map((item, index) => ({ item, position: start + index }));
@@ -69,7 +71,7 @@ export function DayRow<T extends { id: string }>({ items, renderItem, fallbackWi
   };
 
   return <div ref={gridRef} className="gallery-date-grid gallery-date-grid--virtual gallery-day-row" data-media-kind={mediaKind}
-    style={{ height: screenWidth < 768 ? undefined : height }} onKeyDownCapture={handleKeyDown}
+    style={screenWidth < 768 ? undefined : { height: hoverHeight, marginTop: 8 - hoverInset, marginBottom: height - hoverHeight - (8 - hoverInset) }} onKeyDownCapture={handleKeyDown}
     onScroll={(event) => {
       const row = event.currentTarget;
       setScrollLeft(row.scrollLeft);
@@ -80,8 +82,8 @@ export function DayRow<T extends { id: string }>({ items, renderItem, fallbackWi
       <span tabIndex={0} aria-label="Enter media group" onFocus={() => enterGroup(0)} />
       <span tabIndex={0} aria-label="Enter media group from end" onFocus={() => enterGroup(items.length - 1)} />
     </>}
-    {rendered.map(({ item, position }) => <div key={item.id} className="gallery-window-cell" data-gallery-window-id={item.id}
-      style={{ width: tileSize, height: tileHeight, top: 8, left: 8 + position * step }}>
+    {rendered.map(({ item, position }) => <div key={item.id} className="gallery-window-cell" data-gallery-window-id={item.id} data-row-edge={position === 0 ? "start" : position === items.length - 1 ? "end" : undefined}
+      style={{ width: tileSize, height: tileHeight, top: screenWidth < 768 ? 8 : hoverInset, left: 8 + position * step }}>
       {renderItem(item)}
     </div>)}
   </div>;

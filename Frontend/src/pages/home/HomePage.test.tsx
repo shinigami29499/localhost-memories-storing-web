@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act } from "react";
+import { act, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -14,10 +14,11 @@ import { HomePage } from "./HomePage";
 vi.mock("motion/react", async (importOriginal) => ({
   ...await importOriginal<typeof import("motion/react")>(),
   useInView: () => true,
+  AnimatePresence: ({ children }: { children: ReactNode }) => children,
 }));
 
 vi.mock("../../features/albums/services/albumService", () => ({
-  albumService: { page: vi.fn(), remove: vi.fn() },
+  albumService: { page: vi.fn(), media: vi.fn(), remove: vi.fn() },
 }));
 
 vi.mock("../../features/media/services/mediaService", () => ({
@@ -68,7 +69,7 @@ describe("HomePage", () => {
     ));
     await vi.waitFor(() => expect(container.querySelectorAll(".album-feed-post")).toHaveLength(2));
   };
-  const preview = () => container.querySelector<HTMLAnchorElement>(".album-feed-post__preview")!;
+  const preview = () => container.querySelector<HTMLDivElement>(".album-feed-post__preview")!;
   const location = () => container.querySelector('[data-testid="location"]')?.textContent;
   const pointerClick = (element: Element, detail: number) => element.dispatchEvent(new MouseEvent("click", {
     bubbles: true, cancelable: true, detail, button: 0,
@@ -93,6 +94,13 @@ describe("HomePage", () => {
     vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
     vi.stubGlobal("IntersectionObserver", class { observe() {} unobserve() {} disconnect() {} });
     vi.mocked(albumService.page).mockResolvedValue(asPage([ownAlbum, publicAlbum]));
+    vi.mocked(albumService.media).mockImplementation(async (id, offset = 0, limit = 5) => ({
+      offset, limit, total: 6,
+      items: Array.from({ length: Math.min(limit, 6 - offset) }, (_, index) => ({
+        id: `${id}-image-${offset + index}`, mediaKind: "image" as const, mimeType: "image/jpeg",
+        originalFilename: "image.jpg", fileSizeBytes: 1, createdAt: "", isFavorited: false,
+      })),
+    }));
     vi.mocked(mediaService.favorite).mockResolvedValue(undefined);
     vi.mocked(mediaService.unfavorite).mockResolvedValue(undefined);
     vi.mocked(albumService.remove).mockResolvedValue(undefined);
@@ -115,14 +123,12 @@ describe("HomePage", () => {
     vi.unstubAllGlobals();
   });
 
-  it("shows owned and public albums with only their preview image before opening", async () => {
+  it("loads five media items for visible albums", async () => {
     await renderPage();
-    expect(container.querySelectorAll(".album-feed-post img")).toHaveLength(2);
+    await vi.waitFor(() => expect(albumService.media).toHaveBeenCalledWith("own-album", 0, 5, undefined));
+    await vi.waitFor(() => expect(container.querySelectorAll(".album-feed-post img")).toHaveLength(2));
     expect(container.querySelectorAll("video")).toHaveLength(0);
-    expect(container.querySelector('a[href="/gallery/album/own-album"]')).not.toBeNull();
-    expect(container.querySelector('a[href="/gallery/album/public-album"]')).not.toBeNull();
-    expect(container.querySelector('img[src*="own-preview"]')).not.toBeNull();
-    expect(container.querySelector('img[src*="public-preview"]')).not.toBeNull();
+    expect(container.querySelector('a[href="/gallery/album/own-album"]')).toBeNull();
     expect(albumService.page).toHaveBeenCalledWith("feed", null, 30, undefined, "", expect.any(AbortSignal));
   });
 
@@ -139,14 +145,14 @@ describe("HomePage", () => {
     expect(albumService.page).toHaveBeenCalledWith("feed", "older", 30, undefined, "", expect.any(AbortSignal));
   });
 
-  it("navigates to album detail immediately after a single pointer click", async () => {
+  it("opens the album when clicking the preview", async () => {
     await renderPage();
     await act(async () => { pointerClick(preview(), 1); });
     expect(location()).toBe("/gallery/album/own-album");
     expect(mediaService.favorite).not.toHaveBeenCalled();
   });
 
-  it("navigates on double-click without favoriting the preview", async () => {
+  it("opens the album without favoriting on double-click", async () => {
     await renderPage();
     await doubleClick();
     expect(location()).toBe("/gallery/album/own-album");
@@ -154,14 +160,28 @@ describe("HomePage", () => {
     expect(mediaService.unfavorite).not.toHaveBeenCalled();
   });
 
-  it("opens immediately on keyboard activation and preserves modified link clicks", async () => {
+  it("loads the next batch when advancing past the fifth image", async () => {
     await renderPage();
-    const modifiedClick = new MouseEvent("click", { bubbles: true, cancelable: true, detail: 1, ctrlKey: true });
-    await act(async () => { preview().dispatchEvent(modifiedClick); });
-    expect(modifiedClick.defaultPrevented).toBe(false);
+    await vi.waitFor(() => expect(preview().textContent).toContain("1 / 6"));
+    for (let index = 0; index < 5; index++) {
+      await act(async () => preview().dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true })));
+    }
+    await vi.waitFor(() => expect(albumService.media).toHaveBeenCalledWith("own-album", 5, 5, undefined));
+    await vi.waitFor(() => expect(preview().textContent).toContain("6 / 6"));
+    await act(async () => preview().dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true })));
+    expect(preview().textContent).toContain("5 / 6");
+  });
+
+  it("changes images on horizontal swipe without navigating", async () => {
+    await renderPage();
+    await vi.waitFor(() => expect(preview().textContent).toContain("1 / 6"));
+    await act(async () => {
+      preview().dispatchEvent(new MouseEvent("pointerdown", { bubbles: true, clientX: 200, clientY: 100 }));
+      preview().dispatchEvent(new MouseEvent("pointerup", { bubbles: true, clientX: 100, clientY: 105 }));
+      pointerClick(preview(), 1);
+    });
+    expect(preview().textContent).toContain("2 / 6");
     expect(location()).toBe("/");
-    await act(async () => { preview().click(); });
-    expect(location()).toBe("/gallery/album/own-album");
   });
 
   it("hides favorite and save actions without changing favorites on double-click", async () => {
@@ -191,14 +211,14 @@ describe("HomePage", () => {
     await act(async () => container.querySelector<HTMLButtonElement>(".album-feed-post__delete")!.click());
     expect(albumService.remove).not.toHaveBeenCalled();
     expect(document.body.textContent).toContain("Saved media stay in your gallery.");
-    const confirm = Array.from(document.querySelectorAll("button")).find((button) => button.textContent === "Delete")!;
+    const confirm = Array.from(document.querySelectorAll("button")).find((button) => button.textContent === "Delete album")!;
     await act(async () => confirm.click());
     await vi.waitFor(() => expect(albumService.remove).toHaveBeenCalledExactlyOnceWith("own-album"));
     expect(location()).toBe("/");
   });
 
-  it("shows no favorite or save controls when an album has no preview, but keeps navigation", async () => {
-    vi.mocked(albumService.page).mockResolvedValue(asPage([{ ...ownAlbum, previewMediaId: null }, publicAlbum]));
+  it("shows an empty placeholder when an album has no media", async () => {
+    vi.mocked(albumService.page).mockResolvedValue(asPage([{ ...ownAlbum, mediaCount: 0, previewMediaId: null }, publicAlbum]));
     await renderPage();
     const post = container.querySelector(".album-feed-post")!;
     expect(post.querySelectorAll('button[aria-label="Add to favorites"], button[aria-label="Save to album"]')).toHaveLength(0);
@@ -212,6 +232,7 @@ describe("HomePage", () => {
 
   it("retries a failed preview without navigating", async () => {
     await renderPage();
+    await vi.waitFor(() => expect(preview().querySelectorAll("img")).toHaveLength(1));
     await act(async () => preview().querySelector("img")!.dispatchEvent(new Event("error")));
     expect(preview().querySelector("img")).toBeNull();
     await act(async () => container.querySelector<HTMLButtonElement>('button[aria-label="Retry preview"]')!.click());
