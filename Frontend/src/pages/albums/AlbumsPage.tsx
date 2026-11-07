@@ -15,6 +15,7 @@ import {
 } from "../../features/albums";
 import { useAuthStore } from "../../store/authStore";
 import { useMediaSelectionDrag } from "../../features/media/hooks/useMediaSelectionDrag";
+import { DayRow } from "../gallery/DayRow";
 import "../gallery/gallery.css";
 import "./albums.css";
 
@@ -107,13 +108,10 @@ export function AlbumsPage() {
                       </time>
                     </h2>
                   </div>
-                  <div className="album-grid" onScroll={(event) => {
-                    const row = event.currentTarget;
-                    if (key === dateGroups[dateGroups.length - 1]?.[0] && row.scrollLeft + row.clientWidth >= row.scrollWidth - 200 && albumsQuery.hasNextPage && !albumsQuery.isFetching && !albumsQuery.isFetchNextPageError) void albumsQuery.fetchNextPage();
-                  }}>
-                    {group.items.map((album) => (
+                  <DayRow items={group.items}
+                    onReachEnd={key === dateGroups[dateGroups.length - 1]?.[0] && albumsQuery.hasNextPage && !albumsQuery.isFetching && !albumsQuery.isFetchNextPageError ? () => { void albumsQuery.fetchNextPage(); } : undefined}
+                    renderItem={(album) => (
                       <AlbumCard
-                        key={album.id}
                         album={album}
                         isOwner={album.owner.id === me?.id}
                         showOwner
@@ -122,8 +120,7 @@ export function AlbumsPage() {
                         selected={selectedIds.has(album.id)}
                         onSelect={(id) => setSelected(id, !selectedIds.has(id))}
                       />
-                    ))}
-                  </div>
+                    )} />
                 </section>
               ))}
             </div>

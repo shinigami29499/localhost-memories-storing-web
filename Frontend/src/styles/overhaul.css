@@ -29,6 +29,12 @@ textarea, select { min-height: 44px; }
 
 .app-shell .sidebar,
 .app-shell .sidebar--collapsed {
+  --navigation-bg: #6A3F36;
+  --text: #fff;
+  --text-strong: #fff;
+  --text-muted: #fff;
+  --surface-hover: #fff;
+  --focus-ring: #fff;
   top: 0;
   left: 0;
   width: var(--sidebar-width);
@@ -42,6 +48,30 @@ textarea, select { min-height: 44px; }
   transform: none;
   transition: none;
 }
+
+:root .sidebar :is(.brand, .brand__dot, .sidebar__link, .sidebar__home-icon, .sidebar__account-trigger, .sidebar__account-name, .sidebar__account-role, .sidebar__activity h2, .upload-activity__retry) {
+  color: #fff;
+}
+
+:root .sidebar :is(.sidebar__link, .sidebar__account-trigger, .upload-activity__retry):hover,
+:root .sidebar .sidebar__account-trigger[aria-expanded="true"] {
+  background-color: #fff;
+  color: #6A3F36 !important;
+}
+
+:root .sidebar .sidebar__link--active,
+:root .sidebar .sidebar__link--active:hover {
+  background-color: #FFFFDA !important;
+  color: #6A3F36 !important;
+}
+
+:root .sidebar :is(.sidebar__link:hover, .sidebar__link--active) .sidebar__home-icon,
+:root .sidebar .sidebar__account-trigger:is(:hover, [aria-expanded="true"]) :is(.sidebar__account-name, .sidebar__account-role) {
+  color: #6A3F36;
+}
+
+:root .sidebar__toggle { color: #fff; }
+:root .sidebar__toggle:is(:hover, :focus-visible) { background-color: #fff; color: #6A3F36 !important; }
 
 .sidebar__inner,
 .sidebar__nav,
@@ -102,11 +132,19 @@ textarea, select { min-height: 44px; }
 .sidebar__upload-count--success,
 .sidebar__upload-count--pending,
 .sidebar__upload-count--failed {
-  background: var(--surface-hover);
-  color: var(--text);
+  background: #FFFFDA;
+  color: #6A3F36;
 }
 
 .sidebar__upload-count--failed { border: 1px solid var(--border-control); }
+
+.sidebar__link--active .sidebar__upload-counts,
+.sidebar__link--active .sidebar__upload-count {
+  background: #6A3F36;
+  color: #fff;
+}
+
+.sidebar__link--active .sidebar__upload-count--failed { border-color: #fff; }
 
 .app-shell__main { min-width: 0; min-height: 0; }
 
@@ -115,7 +153,7 @@ textarea, select { min-height: 44px; }
   height: var(--app-topbar-height);
   justify-content: space-between;
   padding: 8px 24px;
-  background: var(--surface);
+  background: #FFFFDA;
   border-bottom: 1px solid var(--border);
 }
 
@@ -152,7 +190,7 @@ textarea, select { min-height: 44px; }
 .page-action-bar {
   bottom: 0;
   padding: 8px 16px;
-  background: var(--surface);
+  background: #FFFFDA;
   border-top: 1px solid var(--border);
 }
 .gallery-page .gallery-page__content { padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
@@ -176,7 +214,12 @@ textarea, select { min-height: 44px; }
     flex-direction: column;
   }
   .app-shell__main { flex: 1; }
-  .app-topbar { padding: env(safe-area-inset-top) 16px 0; }
+  .app-topbar {
+    padding: env(safe-area-inset-top) 16px 0;
+    background: #6A3F36;
+    color: #fff;
+  }
+  .app-topbar .control-bar { border-color: #fff; }
   .app-shell__content { padding-bottom: 0; }
   .page-action-bar:not(:has(.gallery-selection-bar:not(.gallery-selection-bar--selection-only), .gallery-selection-bar__selection-actions, [data-collapsing-bar], [data-user-transition-exit])) { display: none; }
   .bottom-navigation {
@@ -186,7 +229,7 @@ textarea, select { min-height: 44px; }
     align-items: start;
     height: calc(64px + env(safe-area-inset-bottom));
     padding: 4px 4px env(safe-area-inset-bottom);
-    background: var(--navigation-bg);
+    background: #6A3F36;
     border-top: 1px solid var(--border);
     z-index: 50;
   }
@@ -202,7 +245,7 @@ textarea, select { min-height: 44px; }
     border: 0;
     border-radius: 6px;
     background: transparent;
-    color: var(--text);
+    color: #fff;
     font: inherit;
     font-size: 0.7rem;
     line-height: 1.15;
@@ -210,12 +253,13 @@ textarea, select { min-height: 44px; }
   }
   .bottom-navigation__item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
   .bottom-navigation__item:hover {
-    background: var(--surface-hover);
+    background: #fff;
+    color: #6A3F36;
   }
   .bottom-navigation__item[aria-current="page"],
   .bottom-navigation__item[aria-expanded="true"] {
-    background: #6A3F36;
-    color: #F4F3EE;
+    background: #FFFFDA;
+    color: #6A3F36;
     box-shadow: none;
     font-weight: 700;
   }
@@ -256,6 +300,9 @@ textarea, select { min-height: 44px; }
   .bottom-navigation__dialog-header button { width: auto; }
   .bottom-navigation__dialog nav a:hover,
   .bottom-navigation__dialog nav button:not(.dialog-action):hover { background: var(--surface-hover); }
+  :root .bottom-navigation__item[aria-expanded="true"]:hover { background: #FFFFDA; color: #6A3F36; }
+  :root .bottom-navigation__item:focus-visible,
+  :root .app-topbar .control-bar > button:focus-visible { outline-color: #fff; }
 }
 
 :root[data-motion="off"] *:not(.btn__spinner, .spinner__wheel, .place__location-search-spinner),

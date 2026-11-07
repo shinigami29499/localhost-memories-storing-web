@@ -12,6 +12,7 @@ import { showToast } from "../../../components/ui/Toast";
 import { mediaPreviewUrl } from "../../../utils/media";
 import type { MediaFile } from "../types";
 import { useMediaRetry } from "./MediaRetryProvider";
+import { GalleryTileContent } from "../../../components/ui/GalleryTileContent";
 
 interface Props {
   media: MediaFile;
@@ -36,6 +37,11 @@ export function MediaTile({
   const [authorPrefix, authorSuffix] = t("by {username}").split("{username}");
   const tileRef = useRef<HTMLButtonElement>(null);
   const inView = useInView(tileRef, { margin: "200px 0px" });
+  const city = media.location?.city;
+  const time = new Date(media.createdAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
+  const title = city
+    ? t("{city} at {time}", { city: "{city}", time }).split("{city}").map((part, index) => index === 0 ? <span key={index} className="gallery-tile__time">{part}</span> : <span key={index}><strong>{city}</strong><span className="gallery-tile__time">{part}</span></span>)
+    : <span className="gallery-tile__time">{time}</span>;
   const retryGroup = useMediaRetry();
   const registerRetry = retryGroup?.register;
   const [failed, setFailed] = useState(false);
@@ -122,7 +128,7 @@ export function MediaTile({
       <button
         ref={tileRef}
         type="button"
-        className={`media-tile${isSelecting && selected ? " media-tile--selected" : ""}`}
+        className={`gallery-tile media-tile${isSelecting && selected ? " media-tile--selected" : ""}`}
         data-media-id={media.id}
         aria-label={t(isSelecting ? "Select {filename}" : failed || retrying
           ? failedActionLabel : "Open {filename}", { filename: media.originalFilename })}
@@ -131,9 +137,9 @@ export function MediaTile({
           ? t(failedActionLabel, { filename: media.originalFilename }) : undefined}
         aria-busy={retrying || checkingAvailability || undefined}
         aria-pressed={isSelecting ? selected : undefined}
-        aria-description={t(selectionEnabled
+        aria-description={[t(selectionEnabled
           ? includeDeleted ? "Hold to select, or press Shift+Space." : "Hold to select, or press Shift+Space. Press F to add to favorites."
-          : includeDeleted ? "Open media preview." : "Press F to add to favorites.")}
+          : includeDeleted ? "Open media preview." : "Press F to add to favorites."), city].filter(Boolean).join(" ")}
         onPointerDown={(event) => {
           clearHold();
           if (!event.isPrimary || event.button !== 0) return;
@@ -197,27 +203,17 @@ export function MediaTile({
           </span>
         </span>
       ) : null}
-      <span className="media-tile__motion">
+      <GalleryTileContent preview={<><span className="media-tile__motion">
         {failed || (!inView && !retrying && !preload) ? null : (
           <img key={attempt} className="media-tile__preview" src={previewUrl} onLoad={() => finishPreview(false)} onError={() => finishPreview(true)} alt="" loading={retrying || preload ? "eager" : "lazy"} decoding="async" draggable={false} />
         )}
-      </span>
-      {media.mediaKind === "video" && !failed && !retrying ? (
+      </span><span className="gallery-tile__badge media-tile__type" role="img" aria-label={t(media.mediaKind === "video" ? "Video" : "Image")}>
+        {media.mediaKind === "video" ? <Clapperboard size={16} /> : <ImageIcon size={16} />}
+      </span></>} overlay={media.mediaKind === "video" && !failed && !retrying ? (
         <>
           <span className="media-tile__play" aria-hidden="true"><Play size={24} /></span>
         </>
-      ) : null}
-      <span className="media-tile__info">
-        <span className="media-tile__owner">
-          <span className="media-tile__by">{authorPrefix}<strong>{media.ownerUsername || t("Unknown")}</strong>{authorSuffix}</span>
-        </span>
-        <span className="media-tile__details">
-          <time dateTime={media.createdAt}>{new Date(media.createdAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })}</time>
-          <span role="img" aria-label={t(media.mediaKind === "video" ? "Video" : "Image")}>
-            {media.mediaKind === "video" ? <Clapperboard size={16} /> : <ImageIcon size={16} />}
-          </span>
-        </span>
-      </span>
+      ) : null} title={title} author={<>{authorPrefix}<strong>{media.ownerUsername || t("Unknown")}</strong>{authorSuffix}</>} />
       {failed || retrying ? (
         <span className="media-tile__retry" aria-hidden="true">
           {retrying || checkingAvailability

@@ -9,7 +9,7 @@ internal static class MediaHomeLocation
     public static async Task ApplyAsync(
         MediaFile media, IUserRepository users, CancellationToken cancellationToken)
     {
-        if (media.MediaKind != "image" || MediaLocationMetadata.Read(media.Metadata) is not null)
+        if (MediaLocationMetadata.Read(media.Metadata) is not null)
             return;
 
         var home = await users.GetSharedHomeLocationAsync(cancellationToken);

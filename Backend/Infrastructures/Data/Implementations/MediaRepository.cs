@@ -8,7 +8,19 @@ namespace Infrastructures.Data.Implementations;
 
 public sealed class MediaRepository(ApplicationDbContext db) : IMediaRepository
 {
-    public async Task AssignHomeToUnlocatedPhotosAsync(
+    public async Task<bool> TrySetCityAsync(Guid mediaId, MediaLocationDto location, string city, CancellationToken cancellationToken)
+    {
+        var changed = await db.Database.ExecuteSqlInterpolatedAsync($$"""
+            UPDATE media_files
+            SET metadata = jsonb_set(metadata, '{location,city}', to_jsonb({{city}}::text), true)
+            WHERE id = {{mediaId}} AND deleted_at IS NULL
+              AND metadata->'location'->'latitude' = to_jsonb({{location.Latitude}}::double precision)
+              AND metadata->'location'->'longitude' = to_jsonb({{location.Longitude}}::double precision)
+              AND metadata->'location'->>'city' IS NULL
+            """, cancellationToken);
+        return changed > 0;
+    }
+    public async Task AssignHomeToUnlocatedMediaAsync(
         Guid ownerId, MediaLocationDto location, CancellationToken cancellationToken = default)
     {
         var patch = MediaLocationMetadata.Write(null, location);
@@ -17,7 +29,7 @@ public sealed class MediaRepository(ApplicationDbContext db) : IMediaRepository
             UPDATE media_files
             SET metadata = COALESCE(metadata, '{}'::jsonb) || {{patch}}::jsonb,
                 updated_at = {{DateTime.UtcNow}}, updated_by = {{ownerId}}
-            WHERE owner_id = {{ownerId}} AND media_kind = 'image' AND deleted_at IS NULL AND NOT is_preview_only
+            WHERE owner_id = {{ownerId}} AND deleted_at IS NULL AND NOT is_preview_only
                 AND metadata->>'location' IS NULL
             """, cancellationToken);
     }

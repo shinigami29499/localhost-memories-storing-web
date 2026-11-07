@@ -15,6 +15,7 @@ public partial class MediaService(
     IUnitOfWork unitOfWork,
     IMediaStorage storage,
     IMapper mapper,
+    CityLookup cityLookup,
     ILogger<MediaService> logger,
     IPreviewRepository previews) : IMediaService
 {
@@ -308,6 +309,21 @@ public partial class MediaService(
         Guid? favoriteUserId = favoritesOnly ? viewerId : null;
         var media = await _repository.GetMediaPageAsync(
             offset, limit, mediaKind, favoriteUserId, includeDeleted, cancellationToken);
+        var pendingCities = media.Select(item => (item.Media, Location: MediaLocationMetadata.Read(item.Media.Metadata)))
+            .Where(item => item.Location is { City: null }).ToList();
+        using var lookupTimeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        lookupTimeout.CancelAfter(TimeSpan.FromSeconds(6));
+        var resolvedCities = await Task.WhenAll(pendingCities.Select(async item =>
+        {
+            try { return (item.Media, Location: item.Location!, City: await cityLookup.FindAsync(item.Location!, lookupTimeout.Token)); }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            { return (item.Media, Location: item.Location!, City: (string?)null); }
+        }));
+        foreach (var item in resolvedCities)
+        {
+            if (item.City is not null && await _repository.TrySetCityAsync(item.Media.Id, item.Location, item.City, cancellationToken))
+                item.Media.Metadata = MediaLocationMetadata.Write(item.Media.Metadata, item.Location with { City = item.City });
+        }
         var total = await _repository.CountMediaAsync(
             mediaKind, favoriteUserId, includeDeleted, cancellationToken);
         var favoriteIds = (await _repository.GetFavoritedMediaIdsAsync(

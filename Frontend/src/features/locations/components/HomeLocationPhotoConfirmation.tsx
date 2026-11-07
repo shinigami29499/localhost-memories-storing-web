@@ -14,16 +14,16 @@ export function HomeLocationPhotoConfirmation({ location, onConfirm, onClose }: 
 
   return (
     <ConfirmationDialog
-      title="Use Home for photos without a location?"
-      confirmLabel="Use Home for photos"
+      title="Use Home for media without a location?"
+      confirmLabel="Use Home for media"
       onConfirm={async () => {
         await onConfirm(location);
-        showToast.success(t("Home assigned to photos without a location."));
+        showToast.success(t("Home assigned to media without a location."));
       }}
       onClose={onClose}
     >
-      <p>{t("Assign your saved Home location to your existing photos without a location? Photos with coordinates stay unchanged.")}</p>
-      <p>{t("Cancel keeps Home saved and leaves existing photos unchanged. New photos without GPS will use Home.")}</p>
+      <p>{t("Assign your saved Home location to your existing media without a location? Media with coordinates stays unchanged.")}</p>
+      <p>{t("Cancel keeps Home saved and leaves existing media unchanged. New media without coordinates will use Home.")}</p>
     </ConfirmationDialog>
   );
 }

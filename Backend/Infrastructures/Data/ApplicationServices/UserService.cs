@@ -243,7 +243,7 @@ public class UserService(
         {
             await using var transaction = await _unitOfWork.BeginTransactionAsync(cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
-            await mediaRepository.AssignHomeToUnlocatedPhotosAsync(
+            await mediaRepository.AssignHomeToUnlocatedMediaAsync(
                 userId, new MediaLocationDto(request.Latitude, request.Longitude), cancellationToken);
             await transaction.CommitAsync(cancellationToken);
         }

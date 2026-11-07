@@ -117,7 +117,7 @@
 }
 
 .upload-activity__day--1 {
-  background: var(--surface-raised);
+  background: #ccc;
 }
 
 .upload-activity__day:not(.upload-activity__day--0) {
@@ -125,15 +125,19 @@
 }
 
 .upload-activity__day--2 {
-  background: var(--border);
+  background: #999;
 }
 
 .upload-activity__day--3 {
-  background: color-mix(in srgb, var(--accent) 65%, white);
+  background: #666;
 }
 
 .upload-activity__day--4 {
-  background: var(--accent);
+  background: #333;
+}
+
+.upload-activity__day--5 {
+  background: #000;
 }
 
 .upload-activity__status,

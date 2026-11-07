@@ -24,6 +24,7 @@ public sealed class UploadService(
     MediaStorageOptions storageOptions,
     IMapper mapper,
     IUserRepository userRepository,
+    CityLookup cityLookup,
     ILogger<UploadService> logger) : IUploadService
 {
     private readonly IUploadRepository _repository = repository;
@@ -305,14 +306,17 @@ public sealed class UploadService(
 
         try
         {
+            var media = _mapper.Map(stored, ownerId, registered.OriginalFilename);
+            await MediaHomeLocation.ApplyAsync(media, userRepository, cancellationToken);
+            var location = MediaLocationMetadata.Read(media.Metadata);
+            if (location is not null && await cityLookup.FindAsync(location, cancellationToken) is { } city)
+                media.Metadata = MediaLocationMetadata.Write(media.Metadata, location with { City = city });
             await using var transaction = await _unitOfWork.BeginTransactionAsync(cancellationToken);
             await _repository.LockBatchAsync(ownerId, batchId, cancellationToken);
             var item = await FindOwnedItemAsync(ownerId, batchId, itemId, cancellationToken);
             if (item.Status != UploadItemStatus.Uploading || item.Revision != registered.Revision)
                 throw new ConflictException("This upload was cancelled or changed before it could finish.");
 
-            var media = _mapper.Map(stored, ownerId, item.OriginalFilename);
-            await MediaHomeLocation.ApplyAsync(media, userRepository, cancellationToken);
             _repository.AddMediaFile(media);
             item.StoredFilename = stored.StoredFilename;
             item.RelativePath = stored.RelativePath;

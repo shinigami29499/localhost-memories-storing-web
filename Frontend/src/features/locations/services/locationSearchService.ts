@@ -55,3 +55,4 @@ export async function searchLocations(query: string, signal?: AbortSignal): Prom
     throw new Error(INVALID_RESPONSE);
   return data.features.slice(0, 5).map(parseResult);
 }
+

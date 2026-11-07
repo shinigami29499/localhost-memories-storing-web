@@ -1,15 +1,11 @@
 .media-tile {
-  container-type: inline-size;
   position: relative;
   display: block;
   width: 100%;
   min-width: 0;
-  aspect-ratio: 3 / 4.1;
-  overflow: hidden;
   padding: 0;
   border: 0;
   border-radius: 0;
-  background: var(--surface-raised);
   cursor: pointer;
   touch-action: pan-y pinch-zoom;
   user-select: none;
@@ -32,9 +28,17 @@
 .media-tile__motion {
   display: block;
   width: 100%;
-  aspect-ratio: 1;
+  height: 100%;
   overflow: hidden;
   pointer-events: none;
+}
+
+.media-tile__type {
+  pointer-events: none;
+}
+
+@media (min-width: 768px) {
+  .media-tile__type { transform: scale(1.35); transform-origin: bottom right; }
 }
 
 .media-tile__video-fade {
@@ -90,31 +94,6 @@
   .media-tile:hover .media-tile__play { opacity: 1; }
 }
 
-.media-tile__info {
-  border-top: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 0.25rem;
-  height: calc(100% - 100% * 3 / 4.1);
-  padding: 0 5%;
-  text-align: left;
-  color: var(--text-strong);
-}
-.media-tile__owner, .media-tile__details { display: flex; align-items: center; min-width: 0; gap: 0.375rem; }
-.media-tile__by, .media-tile__details { font-size: clamp(0.625rem, 5.5cqw, 0.75rem); line-height: 1.2; }
-.media-tile__by { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.media-tile__details { justify-content: space-between; color: var(--text-muted); }
-.media-tile__details time { font-size: 0.9em; }
-.media-tile__details svg { display: block; width: clamp(11px, 7cqw, 14px); height: auto; }
-
-@media (min-width: 768px) {
-  .media-tile { aspect-ratio: 3 / 3.9; }
-  .media-tile__info { height: calc(100% - 100% * 3 / 3.9); }
-  .media-tile__by, .media-tile__details { font-size: 1rem; }
-  .media-tile__details svg { width: 20px; }
-}
-
 .media-tile__retry {
   position: absolute;
   inset: 0;
@@ -148,14 +127,18 @@
   inset: 0;
   border: 3px solid #F4F3EE;
   border-radius: inherit;
-  background: #F8E4BE;
   content: "";
   pointer-events: none;
 }
 
-.media-tile--selected .media-tile__preview {
-  filter: blur(3px);
-  transform: scale(1.04);
+.media-tile--selected .media-tile__motion {
+  background: #F8E4BE;
+}
+
+.media-tile--selected .media-tile__preview,
+.media-tile--selected .media-tile__play,
+.media-tile--selected .media-tile__type {
+  visibility: hidden;
 }
 
 .media-tile__selection {

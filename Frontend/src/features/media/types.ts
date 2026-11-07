@@ -18,6 +18,7 @@ export interface MediaFile {
 export interface PhotoLocation {
   latitude: number;
   longitude: number;
+  city?: string | null;
 }
 
 /** A map pick; `placeName` is set when the pick snapped to a basemap place and is not persisted. */

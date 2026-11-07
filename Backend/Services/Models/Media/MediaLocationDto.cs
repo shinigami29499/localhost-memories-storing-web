@@ -1,4 +1,4 @@
 namespace Services.Models.Media;
 
 /// <summary>Photo coordinates in decimal degrees (WGS 84).</summary>
-public sealed record MediaLocationDto(double Latitude, double Longitude);
+public sealed record MediaLocationDto(double Latitude, double Longitude, string? City = null);

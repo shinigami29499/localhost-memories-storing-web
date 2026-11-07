@@ -6,7 +6,8 @@ namespace Infrastructures.Data.Interfaces;
 
 public interface IMediaRepository
 {
-    Task AssignHomeToUnlocatedPhotosAsync(
+    Task<bool> TrySetCityAsync(Guid mediaId, MediaLocationDto location, string city, CancellationToken cancellationToken);
+    Task AssignHomeToUnlocatedMediaAsync(
         Guid ownerId, MediaLocationDto location, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<MediaFile>> GetLocationScanBatchAsync(
         Guid actorId, bool isAdmin, int offset, int limit, CancellationToken cancellationToken);

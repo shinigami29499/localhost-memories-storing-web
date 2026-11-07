@@ -52,7 +52,7 @@ export function ActivityHeatmap({ weeks, days, activity, isPending, isError, onR
             {days.map((day, index) => {
               const key = dateKey(day);
               const count = activity.dailyCounts.get(key) ?? 0;
-              const level = count === 0 ? 0 : count === 1 ? 1 : count <= 4 ? 2 : count <= 9 ? 3 : 4;
+              const level = count === 0 ? 0 : count === 1 ? 1 : count <= 4 ? 2 : count <= 9 ? 3 : count <= 19 ? 4 : 5;
               const countLabel = count === 1
                 ? t("1 successful file")
                 : t("{count} successful files", { count });
@@ -67,7 +67,7 @@ export function ActivityHeatmap({ weeks, days, activity, isPending, isError, onR
           </p>}
           <div className="upload-activity__legend" aria-hidden="true">
             <span>{t("Less")}</span>
-            {[0, 1, 2, 3, 4].map((level) => <span key={level} className={`upload-activity__day upload-activity__day--${level}`} />)}
+            {[0, 1, 2, 3, 4, 5].map((level) => <span key={level} className={`upload-activity__day upload-activity__day--${level}`} />)}
             <span>{t("More")}</span>
           </div>
         </>
