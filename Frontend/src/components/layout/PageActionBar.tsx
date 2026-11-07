@@ -46,15 +46,21 @@ function animateMobileExit(footer: HTMLElement, bar: HTMLElement, bounds: { left
     bottom: `${footer.clientHeight - bounds.top - bounds.height}px`,
     width: `${bounds.width}px`, height: `${bounds.height}px`,
     display: "flex", alignItems: "flex-end", justifyContent: "flex-end", overflow: "hidden", pointerEvents: "none", zIndex: "2",
+    boxSizing: "border-box", border: "2.25px solid var(--surface)", borderRadius: "var(--control-radius)", background: "var(--accent)",
   });
   const exiting = bar.cloneNode(true) as HTMLElement;
-  Object.assign(exiting.style, { flex: "none", width: `${bounds.width}px`, maxWidth: "none" });
+  Object.assign(exiting.style, { flex: "none", width: "100%", maxWidth: "none", border: "0", borderRadius: "0" });
   wrapper.append(exiting);
   footer.append(wrapper);
   const frames = nextHeight > 0
     ? [{ height: `${bounds.height}px` }, { height: `${nextHeight}px` }]
     : [{ width: `${bounds.width}px` }, { width: "0px" }];
   wrapper.animate(frames, { duration: 200, easing: "ease-out" }).onfinish = () => wrapper.remove();
+}
+
+function animateMobileExpand(bar: HTMLElement, previousHeight: number, nextHeight: number) {
+  bar.animate([{ height: `${previousHeight}px`, overflow: "hidden" }, { height: `${nextHeight}px`, overflow: "hidden" }],
+    { duration: 200, easing: "ease-out" });
 }
 
 export function PageActionBarProvider({ children }: { children: ReactNode }) {
@@ -70,7 +76,17 @@ export function PageActionBarProvider({ children }: { children: ReactNode }) {
     let measuredWidth = 0;
     let snapshotWidth = 0;
     let snapshot: HTMLElement | null = null;
+    let replacedBar: HTMLElement | null = null;
+    let pendingMobileExit: { bar: HTMLElement; bounds: typeof snapshotBounds; timer: number } | null = null;
     let snapshotBounds = { left: 0, top: 0, width: 0, height: 0 };
+    const transitions = new MutationObserver(() => {
+      if (!footer.hasAttribute("data-location-view-transition")) return;
+      if (pendingMobileExit) window.clearTimeout(pendingMobileExit.timer);
+      pendingMobileExit = null;
+      footer.querySelector(":scope > [data-collapsing-bar]")?.remove();
+      target.querySelector(":scope > [data-exiting]")?.remove();
+    });
+    transitions.observe(footer, { attributes: true, attributeFilter: ["data-location-view-transition"] });
     const resize = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(() => measure());
     resize?.observe(footer);
     const measure = () => {
@@ -96,23 +112,55 @@ export function PageActionBarProvider({ children }: { children: ReactNode }) {
     };
     const changes = new MutationObserver((records) => {
       const bar = target.querySelector(":scope > .gallery-selection-bar:not([data-exiting])");
-      if (enabled) {
+      if (enabled && !footer.hasAttribute("data-location-view-transition")) {
         const removed = records.flatMap((record) => Array.from(record.removedNodes))
           .find((node): node is HTMLElement => node instanceof HTMLElement && node.classList.contains("gallery-selection-bar") && !node.hasAttribute("data-exiting"));
+        const added = records.flatMap((record) => Array.from(record.addedNodes))
+          .find((node): node is HTMLElement => node instanceof HTMLElement && node.classList.contains("gallery-page__actions"));
         const nextWidth = bar?.getBoundingClientRect().width ?? 0;
         const mobileGalleryExit = removed?.classList.contains("gallery-page__actions") && window.matchMedia("(max-width: 767px)").matches;
-        if (nextWidth > 0) footer.querySelector(":scope > [data-collapsing-bar]")?.remove();
-        if (mobileGalleryExit) {
+        const completingMobileSwap = Boolean(removed && removed === replacedBar);
+        if (completingMobileSwap) replacedBar = null;
+        if (nextWidth > 0 && !completingMobileSwap) footer.querySelector(":scope > [data-collapsing-bar]")?.remove();
+        const mobileOverlap = added?.classList.contains("map-navigation__toolbar") && observedBar?.classList.contains("map-navigation__toolbar")
+          && observedBar !== added && !removed && snapshot && window.matchMedia("(max-width: 767px)").matches
+          && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        const pendingReplacement = added?.classList.contains("map-navigation__toolbar") && pendingMobileExit;
+        if (pendingReplacement && added) {
+          window.clearTimeout(pendingReplacement.timer);
+          pendingMobileExit = null;
+          const nextHeight = added.getBoundingClientRect().height;
+          if (pendingReplacement.bounds.height > nextHeight) {
+            animateMobileExit(footer, pendingReplacement.bar, pendingReplacement.bounds, nextHeight);
+          } else if (nextHeight > pendingReplacement.bounds.height) {
+            animateMobileExpand(added, pendingReplacement.bounds.height, nextHeight);
+          }
+        } else if (mobileOverlap && added && snapshot) {
+          replacedBar = observedBar;
+          const nextHeight = added.getBoundingClientRect().height;
+          if (snapshotBounds.height > nextHeight) {
+            animateMobileExit(footer, snapshot, snapshotBounds, nextHeight);
+          } else if (nextHeight > snapshotBounds.height) {
+            animateMobileExpand(added, snapshotBounds.height, nextHeight);
+          }
+        } else if (completingMobileSwap) {
+          // The replacement already animated when it was inserted.
+        } else if (mobileGalleryExit) {
           footer.querySelector(":scope > [data-collapsing-bar]")?.remove();
           target.querySelector(":scope > [data-exiting]")?.remove();
-          const nextHeight = bar?.getBoundingClientRect().height ?? 0;
-          if (snapshot && snapshotBounds.height > nextHeight && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          const nextHeight = bar?.classList.contains("gallery-page__actions") ? bar.getBoundingClientRect().height : 0;
+          if (removed?.classList.contains("map-navigation__toolbar") && snapshot && !bar && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+            const exitingBar = snapshot;
+            const exitingBounds = snapshotBounds;
+            const timer = window.setTimeout(() => {
+              pendingMobileExit = null;
+              if (!footer.hasAttribute("data-location-view-transition")) animateMobileExit(footer, exitingBar, exitingBounds, 0);
+            }, 80);
+            pendingMobileExit = { bar: exitingBar, bounds: exitingBounds, timer };
+          } else if (snapshot && snapshotBounds.height > nextHeight && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
             animateMobileExit(footer, snapshot, snapshotBounds, nextHeight);
           } else if (bar && snapshot && nextHeight > snapshotBounds.height && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-            bar.animate(
-              [{ clipPath: `inset(${nextHeight - snapshotBounds.height}px 0 0 0)` }, { clipPath: "inset(0 0 0 0)" }],
-              { duration: 200, easing: "ease-out" },
-            );
+            animateMobileExpand(bar as HTMLElement, snapshotBounds.height, nextHeight);
           }
         } else if (removed && !removed.classList.contains("place__action-bar") && snapshot && snapshotWidth > nextWidth && nextWidth === 0) {
           animateExit(footer, snapshot, snapshotBounds);
@@ -131,12 +179,16 @@ export function PageActionBarProvider({ children }: { children: ReactNode }) {
         } else if (removed && snapshotWidth <= nextWidth) {
           target.querySelector(":scope > [data-exiting]")?.remove();
         }
+        if (!pendingReplacement && !mobileOverlap && added?.classList.contains("map-navigation__toolbar") && !removed?.classList.contains("gallery-page__actions")
+          && window.matchMedia("(max-width: 767px)").matches && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          added.animate([{ clipPath: "inset(0 0 0 100%)" }, { clipPath: "inset(0 0 0 0)" }], { duration: 200, easing: "ease-out" });
+        }
       }
       measure();
     });
     changes.observe(target, { childList: true });
     measure();
-    return () => { changes.disconnect(); resize?.disconnect(); };
+    return () => { changes.disconnect(); transitions.disconnect(); resize?.disconnect(); if (pendingMobileExit) window.clearTimeout(pendingMobileExit.timer); };
   }, [target, enabled]);
 
   return <ActionBarContext.Provider value={target}>

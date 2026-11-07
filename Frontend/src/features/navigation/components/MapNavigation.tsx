@@ -48,7 +48,7 @@ export function NavigationToolbar({ onEdit, onNavigate, onCancel, editAction = "
     true,
   );
   return (
-    <PageActionBar className={`map-navigation__toolbar${showNavigate ? "" : " map-navigation__toolbar--two-actions"}`} role="group" aria-label={label ?? t("Navigation")}>
+    <PageActionBar className={`gallery-page__actions map-navigation__toolbar${showNavigate ? "" : " map-navigation__toolbar--two-actions"}`} role="group" aria-label={label ?? t("Navigation")}>
       <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
         <PageActionButton aria-label={t(editLabel)} title={t(editLabel)} disabled={!onEdit} onClick={onEdit}>
           <AnimatedAction animationRevision={actionAnimationRevision}>
@@ -59,8 +59,8 @@ export function NavigationToolbar({ onEdit, onNavigate, onCancel, editAction = "
       <span className="gallery-selection-bar__divider" aria-hidden="true" />
       {showNavigate && <>
         <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
-          <PageActionButton className="map-navigation__trigger" disabled={!onNavigate} onClick={onNavigate}>
-            <AnimatedAction animationRevision={actionAnimationRevision}><Compass size={22} aria-hidden="true" /></AnimatedAction> {t("Navigate")}
+          <PageActionButton className="map-navigation__trigger" aria-label={t("Navigate")} title={t("Navigate")} disabled={!onNavigate} onClick={onNavigate}>
+            <AnimatedAction animationRevision={actionAnimationRevision}><Compass size={22} aria-hidden="true" /></AnimatedAction> <span>{t("Navigate")}</span>
           </PageActionButton>
         </AnimateIcon>
         <span className="gallery-selection-bar__divider" aria-hidden="true" />

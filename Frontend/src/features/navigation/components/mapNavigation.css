@@ -119,3 +119,17 @@
 .map-navigation__toolbar--add > .gallery-selection-bar__action { width: 100%; padding: 0; }
 .map-navigation__toolbar--add > .gallery-selection-bar__action:disabled svg { color: var(--text-on-accent) !important; }
 
+@media (max-width: 767px) {
+  .page-action-bar .map-navigation__toolbar {
+    display: flex;
+    flex-direction: column-reverse;
+    width: max-content;
+  }
+  .page-action-bar .map-navigation__toolbar > .gallery-selection-bar__action {
+    min-width: 30px;
+    min-height: 30px;
+    width: 30px;
+    padding: 0;
+  }
+}
+

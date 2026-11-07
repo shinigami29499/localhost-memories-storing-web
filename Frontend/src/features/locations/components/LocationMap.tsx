@@ -621,7 +621,8 @@ function MapContent({
           show3dObjects={mapStyle === "3d"}
         />
         <GeolocateControl
-          position="bottom-right"
+          key="geolocate-bottom-left"
+          position="bottom-left"
           positionOptions={{ enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }}
           trackUserLocation={false}
           showUserLocation={false}

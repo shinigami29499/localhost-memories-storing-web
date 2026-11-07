@@ -17,6 +17,10 @@ test("mobile gallery actions stay anchored across gallery sections", async ({ pa
   await page.goto("/gallery");
   const bar = page.locator(".page-action-bar");
   const nav = page.getByRole("navigation", { name: "Gallery", exact: true });
+  const galleryActions = bar.locator(".page-action-bar__item > .gallery-page__actions");
+  await expect(galleryActions.getByRole("button", { name: "Upload media" })).toBeVisible();
+  await expect(galleryActions).toHaveCSS("border-top-width", "2px");
+  await expect(galleryActions).toHaveCSS("border-top-color", "rgb(244, 243, 238)");
   await page.evaluate(() => {
     const original = Element.prototype.animate;
     (window as Window & { mobileExitFrames: Keyframe[][]; mobileExitRects: number[][] }).mobileExitFrames = [];
@@ -44,7 +48,7 @@ test("mobile gallery actions stay anchored across gallery sections", async ({ pa
   const frames = await page.evaluate(() => (window as Window & { mobileExitFrames: Keyframe[][] }).mobileExitFrames);
   expect(frames.some(([start, end]) => Number.parseFloat(String(start.height)) > Number.parseFloat(String(end.height)))).toBe(true);
   expect(frames.some(([start, end]) => Number.parseFloat(String(start.width)) > 0 && end.width === "0px")).toBe(true);
-  expect(frames.some(([start, end]) => /^inset\([1-9]/.test(String(start.clipPath)) && end.clipPath === "inset(0 0 0 0)")).toBe(true);
+  expect(frames.some(([start, end]) => Number.parseFloat(String(start.height)) > 0 && Number.parseFloat(String(end.height)) > Number.parseFloat(String(start.height)))).toBe(true);
   const rects = await page.evaluate(() => (window as Window & { mobileExitRects: number[][] }).mobileExitRects);
   expect(rects.every(([width, height, right, bottom]) => width > 0 && height > 0 && Math.round(right) === 378 && bottom > 0)).toBe(true);
 });

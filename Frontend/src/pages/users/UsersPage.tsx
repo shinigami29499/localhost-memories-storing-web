@@ -2,8 +2,8 @@ import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { Tabs } from "@base-ui/react/tabs";
 import { HighlightItem } from "@animate-ui/react/primitives/effects/highlight";
 import { NavigationHighlight } from "../../components/ui";
-import { startTransition, useEffect, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { startTransition, useEffect, useRef, useState } from "react";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { userService } from "../../features/users";
 import { ApiError } from "../../services/api";
 import { useAuthStore } from "../../store/authStore";
@@ -16,7 +16,9 @@ import { Bot } from "@/components/animate-ui/icons/bot";
 import { Ban } from "@/components/animate-ui/icons/ban";
 import { UserRound } from "@/components/animate-ui/icons/user-round";
 import { ConfirmationDialog } from "../../components/ui/ConfirmationDialog";
-import { Pagination, DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS } from "../../components/ui/Pagination";
+import { PageActionBar } from "../../components/layout/PageActionBar";
+import { Search } from "../../components/animate-ui/icons/search";
+import "../place/place.css";
 import type { AuthUser } from "../../features/auth";
 import "../gallery/gallery.css";
 import "./users.css";
@@ -27,9 +29,9 @@ import { useUserPresenceStore } from "../../features/users/store/userPresenceSto
 const ONLINE_WINDOW_MS = 300_000;
 
 function formatLastActive(value: string | null | undefined, language: "en" | "vi", now: number): string {
-  if (!value) return "—";
+  if (!value) return "�";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
+  if (Number.isNaN(date.getTime())) return "�";
   const seconds = Math.max(0, Math.floor((now - date.getTime()) / 1000));
   const locale = language === "vi" ? "vi-VN" : "en-US";
   const relative = new Intl.RelativeTimeFormat(locale, { numeric: "always" });
@@ -56,25 +58,25 @@ export function UsersPage() {
   const queryClient = useQueryClient();
   const [action, setAction] = useState<{ type: "approve" | "activate" | "disable" | "delete" | "role"; user: AuthUser } | null>(null);
   const [filter, setFilter] = useState<UserFilter>("all");
-  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const sentinel = useRef<HTMLDivElement>(null);
   const [now, setNow] = useState(() => Date.now());
   const offlineUsers = useUserPresenceStore((state) => state.offlineUsers);
-  const [limit, setLimit] = useState<number>(() => {
-    const stored = Number(window.localStorage.getItem("users.limit"));
-    return PAGE_SIZE_OPTIONS.some((size) => size === stored) ? stored : DEFAULT_PAGE_SIZE;
+  const users = useInfiniteQuery({
+    queryKey: ["users", "page", filter], initialPageParam: 1,
+    queryFn: ({ pageParam, signal }) => userService.page(pageParam, 30, filter === "pending_approval", signal),
+    getNextPageParam: (lastPage) => lastPage.page * lastPage.limit < lastPage.total ? lastPage.page + 1 : undefined,
+    enabled: !search.trim(), refetchInterval: isAdmin ? 60_000 : false,
   });
-
-  const handlePageSizeChange = (newPageSize: number) => {
-    setLimit(newPageSize);
-    setPage(1);
-    window.localStorage.setItem("users.limit", String(newPageSize));
-  };
-
-  const users = useQuery({
-    queryKey: ["users", "page", filter, page, limit],
-    queryFn: ({ signal }) => userService.page(page, limit, filter === "pending_approval", signal),
-    refetchInterval: isAdmin ? 60_000 : false,
-  });
+  const searchUsers = useQuery({ queryKey: ["users", "search-list"], queryFn: () => userService.list(), enabled: !!search.trim(), refetchInterval: isAdmin ? 60_000 : false });
+  const activeQuery = search.trim() ? searchUsers : users;
+  useEffect(() => {
+    const target = sentinel.current;
+    if (!target || search.trim() || !users.hasNextPage || users.isFetchingNextPage || users.isFetchNextPageError) return;
+    const observer = new IntersectionObserver(([entry]) => { if (entry.isIntersecting) void users.fetchNextPage(); }, { root: target.closest(".admin-users__content"), rootMargin: "200px" });
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [filter, search, users.hasNextPage, users.isFetchingNextPage, users.isFetchNextPageError, users.fetchNextPage]);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -85,7 +87,7 @@ export function UsersPage() {
 
 
 
-  const refreshUsers = () => void queryClient.invalidateQueries({ queryKey: ["users", "page"] });
+  const refreshUsers = () => void queryClient.invalidateQueries({ queryKey: ["users"] });
 
   const approve = useMutation({
     mutationFn: (userId: string) => userService.approve(userId),
@@ -117,14 +119,9 @@ export function UsersPage() {
     onSuccess: refreshUsers,
   });
 
-  const allUsers = users.data?.items ?? [];
-  const total = users.data?.total ?? 0;
-  const currentPage = Math.min(page, Math.max(1, Math.ceil(total / limit)));
-  const pagedUsers = allUsers;
-
-  useEffect(() => {
-    if (users.data && page !== currentPage) setPage(currentPage);
-  }, [users.data, page, currentPage]);
+  const pagedUsers = search.trim()
+    ? (searchUsers.data ?? []).filter((user) => (filter === "all" || user.status === "pending_approval") && user.username.toLowerCase().includes(search.trim().toLowerCase()))
+    : users.data?.pages.flatMap((page) => page.items) ?? [];
 
   return (
     <>
@@ -138,7 +135,6 @@ export function UsersPage() {
                 if (value === "all" || value === "pending_approval") {
                   startTransition(() => {
                     setFilter(value);
-                    setPage(1);
                   });
                 }
               }}
@@ -164,15 +160,15 @@ export function UsersPage() {
                   </NavigationHighlight>
                 </Tabs.List>
               </div>
-              {users.isLoading ? <Spinner label={t("Loading users…")} /> : null}
-              {users.isError ? (
-                <ErrorState message={t("Could not load users.")} onRetry={() => void users.refetch()} />
+              {activeQuery.isLoading ? <Spinner label={t("Loading users�")} /> : null}
+              {activeQuery.isError && !pagedUsers.length ? (
+                <ErrorState message={t("Could not load users.")} onRetry={() => void activeQuery.refetch()} />
               ) : null}
               <Tabs.Panel key={filter} value={filter}>
-                {!users.data ? null : total === 0 ? (
+                {!activeQuery.data ? null : pagedUsers.length === 0 ? (
                   <EmptyState
-                    title={filter === "pending_approval" ? "No pending users" : "No users yet"}
-                    hint={filter === "pending_approval"
+                    title={search.trim() ? "No matching users" : filter === "pending_approval" ? "No pending users" : "No users yet"}
+                    hint={search.trim() ? "Try a different search." : filter === "pending_approval"
                       ? "Accounts awaiting approval will appear here."
                       : "User accounts will appear here."}
                   />
@@ -215,23 +211,19 @@ export function UsersPage() {
                     </table>
                   </div>
                 )}
+                {!search.trim() && users.isFetchNextPageError && <ErrorState message={t("Could not load more users.")} onRetry={() => void users.fetchNextPage()} />}
+                {!search.trim() && users.hasNextPage && <div ref={sentinel}>{users.isFetchingNextPage && <Spinner />}</div>}
               </Tabs.Panel>
           </Tabs.Root>
         </section>
         </div>
-        {users.data && total > 0 ? (
-            <Pagination
-              inActionBar
-              revealBeforeTransitionEndMs={200}
-              page={currentPage}
-              pageSize={limit}
-              total={total}
-              itemLabel="users"
-              isFetching={users.isFetching}
-              onPageChange={setPage}
-              onPageSizeChange={handlePageSizeChange}
-            />
-        ) : null}
+        <PageActionBar className="place__action-bar">
+          <form className="place__search-bar" role="search" onSubmit={(event) => event.preventDefault()}>
+            <input type="search" aria-label={t("Search users")} placeholder={t("Search users")} value={search} maxLength={120} onChange={(event) => setSearch(event.target.value)} />
+            {search && <><span className="place__search-divider" aria-hidden="true" /><button type="button" className="place__search-clear" aria-label={t("Clear search")} title={t("Clear search")} onClick={() => setSearch("")}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2" /></svg></button></>}
+            <AnimateIcon animateOnHover animateOnTap={false} completeOnStop asChild><span className="place__search-icon" aria-hidden="true"><Search size={22} /></span></AnimateIcon>
+          </form>
+        </PageActionBar>
       </main>
       {action && isAdmin ? (
         <ConfirmationDialog

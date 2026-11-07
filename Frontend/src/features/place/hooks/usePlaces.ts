@@ -31,18 +31,20 @@ export function useInfinitePlaces(enabled: boolean, search: string, minimumRatin
   });
 }
 
-export function usePagedPlaceVisitHistory(page: number, limit: number, enabled = true) {
+export function useInfinitePlaceVisitHistory(enabled = true) {
   const userId = useAuthStore((state) => state.user?.id);
-  return useQuery({
-    queryKey: [...placeKeys.visitHistory(), "page", userId, page, limit],
-    queryFn: async ({ signal }) => {
+  return useInfiniteQuery({
+    queryKey: [...placeKeys.visitHistory(), "infinite", userId],
+    initialPageParam: 1,
+    queryFn: async ({ pageParam, signal }) => {
       if (!userId || useAuthStore.getState().user?.id !== userId)
         throw new Error("Cannot load visit history without the signed-in user.");
-      const visits = await placeService.visitPage(page, limit, true, undefined, signal);
+      const visits = await placeService.visitPage(pageParam, 30, true, undefined, signal);
       if (useAuthStore.getState().user?.id !== userId)
         throw new Error("The signed-in user changed while loading visit history.");
       return visits;
     },
+    getNextPageParam: (lastPage) => lastPage.page * lastPage.limit < lastPage.total ? lastPage.page + 1 : undefined,
     enabled: enabled && Boolean(userId),
   });
 }

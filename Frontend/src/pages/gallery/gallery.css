@@ -811,6 +811,11 @@
     gap: 0;
   }
 
+  .gallery-page__actions {
+    border-color: var(--surface);
+    border-width: 2.25px;
+  }
+
   .gallery-page__actions .gallery-selection-bar__action {
     min-width: 30px;
     min-height: 30px;
@@ -822,7 +827,7 @@
     height: 16px;
   }
 
-  .gallery-page__actions :is(.gallery-selection-bar__count, .gallery-selection-bar__divider, .gallery-selection-bar__action > span) {
+  .gallery-page__actions :is(.gallery-selection-bar__count, .gallery-selection-bar__divider, .gallery-selection-bar__action > span:not(.animated-icon-action)) {
     display: none;
   }
 }

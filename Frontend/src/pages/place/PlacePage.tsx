@@ -4,7 +4,6 @@ import { lazy, Suspense, startTransition, useCallback, useEffect, useLayoutEffec
 import { HighlightItem } from "@animate-ui/react/primitives/effects/highlight";
 import { NavigationHighlight } from "../../components/ui";
 import { PageActionBar, usePageActionBarFooter } from "../../components/layout/PageActionBar";
-import { Pagination, DEFAULT_PAGE_SIZE } from "../../components/ui/Pagination";
 import {
   Button,
   ConfirmationDialog,
@@ -51,7 +50,8 @@ import {
   useCheckInPlace,
   useDeletePlace,
   useDeletePlaceVisit,
-  usePagedPlaceVisitHistory,
+  useInfinitePlaceVisitHistory,
+  usePlaceVisitHistory,
   useInfinitePlaces,
   useInfiniteMapPlaces,
   usePlace,
@@ -130,44 +130,83 @@ export function PlacePage() {
   const home = useHomeLocation(user?.id);
   const view: PlaceView = location.pathname.replace(/\/$/, "").endsWith("/saved") ? "saved"
     : location.pathname.replace(/\/$/, "").endsWith("/history") ? "history" : "map";
-  const requestView = useCallback((nextView: PlaceView) => {
-    if (nextView === view) return;
-    startTransition(() => {
-      void navigate(nextView === "map" ? "/location" : `/location/${nextView}`);
-    });
-  }, [navigate, view]);
-  const mapSettings = useRef<PlaceMapSettings>({ scene: "3d", showMarkers: true, showPhotoMarkers: false });
-  const saved = view !== "map";
   const actionBarFooter = usePageActionBarFooter();
   const animationsEnabled = useAnimationStore((state) => state.enabled);
-  const previousView = useRef(view);
-  const [historyPaginationReady, setHistoryPaginationReady] = useState(view === "history");
-  useLayoutEffect(() => {
-    const fromSaved = previousView.current === "saved" && view === "history";
-    previousView.current = view;
-    if (view !== "history" || !fromSaved || !animationsEnabled) {
-      setHistoryPaginationReady(true);
+  const viewTransition = useRef<{ sequence: number; animation?: Animation; entering: boolean; exit?: HTMLElement }>({ sequence: 0, entering: false });
+  const [entryVersion, setEntryVersion] = useState(0);
+  const requestView = useCallback((nextView: PlaceView) => {
+    if (view !== "map" && nextView !== "map") {
+      if (nextView !== view) startTransition(() => { void navigate(`/location/${nextView}`); });
       return;
     }
-    setHistoryPaginationReady(false);
-    let cancelled = false;
-    let timer: number | undefined;
+    const sequence = ++viewTransition.current.sequence;
+    viewTransition.current.animation?.cancel();
+    viewTransition.current.exit?.remove();
+    viewTransition.current.exit = undefined;
+    viewTransition.current.entering = false;
+    const footer = actionBarFooter;
+    footer?.removeAttribute("data-location-view-transition");
+    if (nextView === view) return;
+    const go = () => startTransition(() => { void navigate(nextView === "map" ? "/location" : `/location/${nextView}`); });
+    if (!footer || !animationsEnabled || !window.matchMedia("(max-width: 767px)").matches
+      || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      go();
+      return;
+    }
+    const current = footer.querySelector<HTMLElement>(view === "map" ? ".page-action-bar__item > .map-navigation__toolbar" : ".page-action-bar__item > .place__action-bar");
+    const bounds = current?.getBoundingClientRect();
+    const exiting = current?.cloneNode(true) as HTMLElement | undefined;
+    if (exiting && bounds) {
+      exiting.dataset.locationViewExit = "true";
+      exiting.setAttribute("aria-hidden", "true");
+      exiting.inert = true;
+      Object.assign(exiting.style, { position: "fixed", left: `${bounds.left}px`, top: `${bounds.top}px`, width: `${bounds.width}px`, height: `${bounds.height}px`, maxWidth: "none", margin: "0", pointerEvents: "none", zIndex: "2" });
+      footer.append(exiting);
+      viewTransition.current.exit = exiting;
+    }
+    footer.dataset.locationViewTransition = "closing";
+    const animation = exiting?.animate(view === "map"
+        ? [{ clipPath: "inset(0 0 0 0)" }, { clipPath: "inset(0 0 0 100%)" }]
+        : [{ transform: "translateY(0)" }, { transform: "translateY(100%)" }],
+      { duration: 200, easing: "ease-in", fill: "forwards" });
+    viewTransition.current.animation = animation;
+    go();
+    void (animation?.finished.catch(() => undefined) ?? Promise.resolve()).then(() => new Promise<void>((resolve) => window.setTimeout(resolve, 50))).then(() => {
+      if (viewTransition.current.sequence !== sequence) return;
+      exiting?.remove();
+      viewTransition.current.exit = undefined;
+      viewTransition.current.entering = true;
+      setEntryVersion((version) => version + 1);
+    });
+  }, [actionBarFooter, animationsEnabled, navigate, view]);
+  useEffect(() => () => {
+    viewTransition.current.sequence++;
+    viewTransition.current.animation?.cancel();
+    viewTransition.current.exit?.remove();
+    actionBarFooter?.removeAttribute("data-location-view-transition");
+  }, [actionBarFooter]);
+  useLayoutEffect(() => {
+    if (!viewTransition.current.entering || !actionBarFooter) return;
+    viewTransition.current.entering = false;
+    const sequence = viewTransition.current.sequence;
+    const footer = actionBarFooter;
     let frame = requestAnimationFrame(() => {
-      frame = requestAnimationFrame(() => {
-        const elements = [document.querySelector(".place__view-switch"), actionBarFooter];
-        const remaining = elements.flatMap((element) => element?.getAnimations({ subtree: true }) ?? [])
-          .map((animation) => {
-            const end = animation.effect?.getComputedTiming().endTime ?? 0;
-            const current = typeof animation.currentTime === "number" ? animation.currentTime : 0;
-            return Number.isFinite(end) ? Math.max(0, (end - current) / Math.abs(animation.playbackRate || 1)) : 0;
-          });
-        timer = window.setTimeout(() => {
-          if (!cancelled) setHistoryPaginationReady(true);
-        }, Math.max(0, Math.max(0, ...remaining) - 200));
+      const incoming = actionBarFooter.querySelector<HTMLElement>(view === "map" ? ".map-navigation__toolbar" : ".place__action-bar");
+      viewTransition.current.animation?.cancel();
+      footer.dataset.locationViewTransition = "entering";
+      const animation = incoming?.animate(view === "map"
+        ? [{ clipPath: "inset(0 0 0 100%)" }, { clipPath: "inset(0 0 0 0)" }]
+        : [{ transform: "translateY(100%)" }, { transform: "translateY(0)" }],
+      { duration: 200, easing: "ease-out" });
+      viewTransition.current.animation = animation;
+      void (animation?.finished.catch(() => undefined) ?? Promise.resolve()).then(() => {
+        if (viewTransition.current.sequence === sequence) footer?.removeAttribute("data-location-view-transition");
       });
     });
-    return () => { cancelled = true; cancelAnimationFrame(frame); window.clearTimeout(timer); };
-  }, [actionBarFooter, animationsEnabled, view]);
+    return () => cancelAnimationFrame(frame);
+  }, [actionBarFooter, entryVersion, view]);
+  const mapSettings = useRef<PlaceMapSettings>({ scene: "3d", showMarkers: true, showPhotoMarkers: false });
+  const saved = view !== "map";
   const [mapStartReady, setMapStartReady] = useState(!animationsEnabled);
   const [addToolbar, setAddToolbar] = useState<{ visible: boolean; disabled: boolean; add: () => void } | null>(null);
   useEffect(() => {
@@ -197,8 +236,11 @@ export function PlacePage() {
   const [placeSearch, setPlaceSearch] = useState("");
   const debouncedSearch = useDebouncedValue(placeSearch);
   const [minimumRating, setMinimumRating] = useState(0);
-  const [historyPage, setHistoryPage] = useState(1);
-  const [historyPageSize, setHistoryPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [historySearch, setHistorySearch] = useState("");
+  const [historyMinimumRating, setHistoryMinimumRating] = useState(0);
+  const activeRating = view === "history" ? historyMinimumRating : minimumRating;
+  const setActiveRating = view === "history" ? setHistoryMinimumRating : setMinimumRating;
+  const historySentinel = useRef<HTMLDivElement>(null);
   const [photoSelection, setPhotoSelection] = useState<{ id: string; draft: PickedLocation | null; editing: boolean } | null>(null);
   const { bounds: mapBounds, update: handleMapBounds } = useMapBounds();
   const { media: photos, query: photosQuery } = useLocations(!saved, photoSelection ? [photoSelection.id] : [], mapBounds);
@@ -218,12 +260,21 @@ export function PlacePage() {
   const [selectedId, setSelectedId] = useState<string | null>(() => !saved ? (location.state as { focusPlaceId?: string } | null)?.focusPlaceId ?? null : null);
   const selectedPlaceQuery = usePlace(selectedId, !saved);
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const visitHistory = usePagedPlaceVisitHistory(historyPage, historyPageSize, view === "history");
-  const historyTotal = visitHistory.data?.total ?? 0;
-  const currentHistoryPage = Math.min(historyPage, Math.max(1, Math.ceil(historyTotal / historyPageSize)));
+  const visitHistory = useInfinitePlaceVisitHistory(view === "history" && !historySearch.trim() && !historyMinimumRating);
+  const searchHistory = usePlaceVisitHistory(view === "history" && (!!historySearch.trim() || historyMinimumRating > 0));
+  const historyQuery = historySearch.trim() || historyMinimumRating ? searchHistory : visitHistory;
+  const historyVisits = historySearch.trim() || historyMinimumRating
+    ? (searchHistory.data ?? []).filter((visit) => visit.rating >= historyMinimumRating && [visit.placeName, visit.placeAddress, visit.username].some((value) => value.toLowerCase().includes(historySearch.trim().toLowerCase())))
+    : visitHistory.data?.pages.flatMap((page) => page.items) ?? [];
   useEffect(() => {
-    if (visitHistory.data && historyPage !== currentHistoryPage) setHistoryPage(currentHistoryPage);
-  }, [visitHistory.data, historyPage, currentHistoryPage]);
+    const target = historySentinel.current;
+    if (!target || !visitHistory.hasNextPage || visitHistory.isFetchingNextPage || visitHistory.isFetchNextPageError || historySearch.trim() || historyMinimumRating) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) void visitHistory.fetchNextPage();
+    }, { root: target.closest(".place__view-content"), rootMargin: "200px" });
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [view, historySearch, historyMinimumRating, visitHistory.hasNextPage, visitHistory.isFetchingNextPage, visitHistory.isFetchNextPageError, visitHistory.fetchNextPage]);
   const [formError, setFormError] = useState<string | null>(null);
   const [placeToDelete, setPlaceToDelete] = useState<Place | null>(null);
   const [confirmingDetailDeleteId, setConfirmingDetailDeleteId] = useState<string | null>(null);
@@ -587,7 +638,7 @@ export function PlacePage() {
 
             <PlaceViewSwitch view={view} onChange={requestView} />
             {!saved && !homeRelocationDraft && (!addToolbar || addToolbar.visible) && <AddNavigationToolbar onAdd={addToolbar?.add ?? (() => {})} disabled={addToolbar?.disabled ?? true} />}
-            <div className="place__view-content" aria-busy={view === "history" && visitHistory.isPending || undefined}>
+            <div className="place__view-content" aria-busy={view === "history" && historyQuery.isPending || undefined}>
             <>
             {!saved && (
               <>
@@ -701,14 +752,14 @@ export function PlacePage() {
             {saved && (
             view === "history" ? (
               <div className="place__history-panel">
-                {visitHistory.isError ? (
+                {historyQuery.isError && !historyVisits.length ? (
                   <ErrorState
                     message={t("Could not load visit history.")}
-                    onRetry={() => void visitHistory.refetch()}
+                    onRetry={() => void historyQuery.refetch()}
                   />
-                ) : visitHistory.isPending ? <Spinner /> : visitHistory.data?.items.length ? (
+                ) : historyQuery.isPending ? <Spinner /> : historyVisits.length ? (
                   <PlaceVisitHistory
-                    visits={visitHistory.data.items}
+                    visits={historyVisits}
                     onShowOnMap={(visit) => { setSelectedId(visit.placeId); setDetailsOpen(false); requestView("map"); }}
                     showVisitor
                     showVisitorName
@@ -716,8 +767,10 @@ export function PlacePage() {
                     removingVisitId={removeVisitMutation.isPending ? removeVisitMutation.variables : null}
                   />
                 ) : (
-                  <EmptyState title="No visits yet" hint="Your visit history will appear here after a check-in." />
+                  <EmptyState title={historySearch || historyMinimumRating ? "No matching places" : "No visits yet"} hint={historySearch || historyMinimumRating ? "Try a different search to find a visit." : "Your visit history will appear here after a check-in."} />
                 )}
+                {!historySearch.trim() && !historyMinimumRating && visitHistory.isFetchNextPageError && <ErrorState message={t("Could not load more visits.")} onRetry={() => void visitHistory.fetchNextPage()} />}
+                {!historySearch.trim() && !historyMinimumRating && visitHistory.hasNextPage && <div ref={historySentinel}>{visitHistory.isFetchingNextPage && <Spinner />}</div>}
               </div>
             ) : query.isLoading ? <Spinner /> : query.isError && !places.length ? (
               <ErrorState message="Could not load places." onRetry={() => void query.refetch()} />
@@ -773,32 +826,32 @@ export function PlacePage() {
               </>
             )
             )}
-        {view === "saved" && <PageActionBar className="place__action-bar">
-          <form className={`place__search-bar${minimumRating > 0 ? " place__search-bar--rating-filtered" : ""}`} role="search" onSubmit={(event) => event.preventDefault()}>
-            <input type="search" aria-label={t("Search saved places")}
-              placeholder={t("Search places or users")} value={placeSearch} maxLength={120}
-              onChange={(event) => setPlaceSearch(event.target.value)} />
+        {saved && <PageActionBar className="place__action-bar">
+          <form className={`place__search-bar${activeRating > 0 ? " place__search-bar--rating-filtered" : ""}`} role="search" onSubmit={(event) => event.preventDefault()}>
+            <input type="search" aria-label={t(view === "history" ? "Search visit history" : "Search saved places")}
+              placeholder={t("Search places or users")} value={view === "history" ? historySearch : placeSearch} maxLength={120}
+              onChange={(event) => view === "history" ? setHistorySearch(event.target.value) : setPlaceSearch(event.target.value)} />
             <div className="place__rating-controls">
-              {minimumRating > 0 && (
+              {activeRating > 0 && (
                 <button type="button" className="place__rating-filter-clear" aria-label={t("Clear rating filter")}
-                  title={t("Clear rating filter")} onClick={() => setMinimumRating(0)}>
+                  title={t("Clear rating filter")} onClick={() => setActiveRating(0)}>
                   <svg viewBox="0 0 24 24" aria-hidden="true">
                     <path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
                   </svg>
                 </button>
               )}
               <button type="button" className="place__rating-filter" aria-label={t("Filter places by average rating")}
-                title={t("Filter places by average rating")} aria-pressed={minimumRating > 0}
-                onClick={() => setMinimumRating((rating) => rating === 5 ? 0 : rating + 1)}>
-                <SlidingNumber number={minimumRating} aria-hidden="true" />
+                title={t("Filter places by average rating")} aria-pressed={activeRating > 0}
+                onClick={() => setActiveRating((rating) => rating === 5 ? 0 : rating + 1)}>
+                <SlidingNumber number={activeRating} aria-hidden="true" />
                 <Star size={17} fill="currentColor" aria-hidden="true" />
               </button>
             </div>
-            {placeSearch && (
+            {(view === "history" ? historySearch : placeSearch) && (
               <>
                 <span className="place__search-divider" aria-hidden="true" />
                 <button type="button" className="place__search-clear" aria-label={t("Clear search")}
-                  title={t("Clear search")} onClick={() => setPlaceSearch("")}>
+                  title={t("Clear search")} onClick={() => view === "history" ? setHistorySearch("") : setPlaceSearch("")}>
                   <svg viewBox="0 0 24 24" aria-hidden="true">
                     <path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
                   </svg>
@@ -812,18 +865,6 @@ export function PlacePage() {
             </AnimateIcon>
           </form>
         </PageActionBar>}
-        {saved && view === "history" && historyPaginationReady && visitHistory.data && historyTotal > 0 && !visitHistory.isError ? (
-            <Pagination
-              inActionBar
-              page={currentHistoryPage}
-              pageSize={historyPageSize}
-              total={historyTotal}
-              itemLabel="visits"
-              isFetching={visitHistory.isFetching}
-              onPageChange={setHistoryPage}
-              onPageSizeChange={(size) => { setHistoryPageSize(size); setHistoryPage(1); }}
-            />
-        ) : null}
             </>
             </div>
 
