@@ -9,6 +9,7 @@
 }
 
 .map-navigation__toolbar {
+  border: 2px solid #F4F3EE;
   display: grid;
   grid-template-columns: 44px 1px max-content 1px 44px;
   width: max-content;
@@ -122,6 +123,7 @@
 
 @media (max-width: 767px) {
   .page-action-bar .map-navigation__toolbar {
+    border: 2px solid #F4F3EE;
     display: flex;
     flex-direction: column-reverse;
     width: max-content;

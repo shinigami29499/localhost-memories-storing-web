@@ -15,7 +15,7 @@
   width: calc(var(--sidebar-width) - 16px);
   display: flex;
   flex-direction: column;
-  background: var(--sidebar-bg);
+  background: var(--navigation-bg);
   border: 0;
   border-radius: var(--radius);
   box-shadow: none;
@@ -30,7 +30,7 @@
 }
 
 :root .sidebar__inner {
-  background: #F4F3EE;
+  background: var(--navigation-bg);
   border-radius: inherit;
 }
 
@@ -877,6 +877,15 @@
   color: #F4F3EE;
 }
 
+:root .sidebar__nav .sidebar__link:not(.sidebar__link--active):hover {
+  background: var(--surface-hover);
+  color: var(--text-strong);
+}
+
+:root .sidebar__nav .sidebar__link:not(.sidebar__link--active):hover .sidebar__home-icon {
+  color: var(--text-strong);
+}
+
 .sidebar__upload-counts { display: grid; grid-template-columns: repeat(3, 3.5ch); align-items: center; gap: 2px; margin-left: auto; padding: 2px; border-radius: 6px; background: #6A3F36; font-size: 0.75rem; font-weight: 600; font-variant-numeric: tabular-nums; }
 .sidebar__upload-count { display: inline-flex; align-items: center; justify-content: center; border-radius: 4px; padding: 1px 0.75ch; }
 .sidebar__upload-count--right { justify-content: flex-end; }
@@ -908,14 +917,16 @@
 .sidebar__activity .upload-activity__grid {
   width: 100%;
   min-width: 0;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  grid-template-rows: repeat(7, 14px);
+  padding-inline: 16px;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  grid-template-rows: repeat(7, auto);
   gap: 3px;
 }
 
-.sidebar__activity .upload-activity__day {
-  width: 10px;
-  height: 10px;
+.sidebar__activity .upload-activity__grid .upload-activity__day {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
 }
 
 .sidebar__activity .upload-activity__range {

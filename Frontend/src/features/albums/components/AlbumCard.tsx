@@ -27,7 +27,8 @@ export function AlbumCard({ album, isOwner, showOwner = false, onEdit, selection
   const [failedId, setFailedId] = useState<string | null>(null);
   const preview = album.previewMediaId;
   const showImage = preview && failedId !== preview;
-  const ownerLabel = isOwner ? t("You") : album.owner.username;
+  const ownerLabel = album.owner.username;
+  const [ownerPrefix, ownerSuffix] = t("by {owner}", { owner: "{owner}" }).split("{owner}");
 
   return (
     <article className="album-card">
@@ -44,20 +45,20 @@ export function AlbumCard({ album, isOwner, showOwner = false, onEdit, selection
             <span className="album-card__placeholder" aria-hidden="true"><Bookmark size={32} /></span>
           )}
           <span className="album-card__badge">{t(album.isPublic ? "Public" : "Private")}</span>
+          <span className="album-card__count" aria-label={t("{count} media", { count: album.mediaCount })}>
+            {album.mediaCount}
+          </span>
           {selectionMode && <span className={`album-card__selection${selected ? " album-card__selection--selected" : ""}`} aria-hidden="true">
             {selected && <Check size={16} aria-hidden="true" />}
           </span>}
+        </span>
           <span className="album-card__body">
             <span className="album-card__details">
               <span className="album-card__name">{album.name}</span>
-              {showOwner ? <span className="album-card__owner">{t("by {owner}", { owner: ownerLabel })}</span> : null}
-            </span>
-            <span className="album-card__count" aria-hidden="true">
-              {album.mediaCount}
+              {showOwner ? <span className="album-card__owner">{ownerPrefix}<strong>{ownerLabel}</strong>{ownerSuffix}</span> : null}
+              <time dateTime={album.createdAt}>{new Date(album.createdAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })}</time>
             </span>
           </span>
-        </span>
-        {album.caption ? <span className="album-card__caption">{album.caption}</span> : null}
       </Link>
       {isOwner && onEdit && !selectionMode ? (
         <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>

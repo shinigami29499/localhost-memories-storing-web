@@ -25,13 +25,13 @@ export function VirtualGalleryGroup({ items, viewport, selectionMode, selectedIt
   const [scrollLeft, setScrollLeft] = useState(0);
   const grid = gridRef.current;
   const screenWidth = typeof window === "undefined" ? 1200 : window.innerWidth;
-  const columns = screenWidth < 641 ? 4 : screenWidth >= 2400 ? 9 : screenWidth >= 1920 ? 8 : screenWidth >= 1600 ? 7 : 6;
-  const gap = screenWidth < 641 ? 4 : 12;
+  const columns = screenWidth < 768 ? 3 : screenWidth >= 2400 ? 9 : screenWidth >= 1920 ? 8 : screenWidth >= 1600 ? 7 : 6;
+  const gap = screenWidth < 768 ? 4 : 12;
   const width = grid?.clientWidth || Math.max(200, viewport.width - 48);
   const tileSize = Math.max(1, (width - 16 - (columns - 1) * gap) / columns);
   const step = tileSize + gap;
-  const tileHeight = tileSize * 4.25 / 3;
-  const height = 32 + tileHeight;
+  const tileHeight = tileSize * (screenWidth >= 768 ? 3.9 : 4.1) / 3;
+  const height = (screenWidth < 768 ? 16 : 32) + tileHeight;
   const start = Math.max(0, Math.floor(scrollLeft / step) - 3);
   const end = Math.min(items.length, Math.ceil((scrollLeft + width) / step) + 3);
   const rendered = items.slice(start, end).map((item, index) => ({ item, position: start + index }));

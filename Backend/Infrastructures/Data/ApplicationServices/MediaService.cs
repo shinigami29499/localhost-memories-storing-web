@@ -320,6 +320,7 @@ public partial class MediaService(
             {
                 OwnerUsername = item.OwnerUsername,
                 OwnerAvatarSeed = item.OwnerAvatarSeed,
+                DeletedAt = item.Media.DeletedAt,
             }).ToList());
     }
 

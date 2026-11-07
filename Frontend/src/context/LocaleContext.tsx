@@ -651,6 +651,7 @@ const vietnamese: Record<string, string> = {
   Deleted: "Đã xóa",
   Active: "Đang hoạt động",
   "By {username}": "Bởi {username}",
+  "by {username}": "bởi {username}",
   "{count} media": "{count} nội dung",
   "{count} comments": "{count} bình luận",
   "Restore post": "Khôi phục bài viết",

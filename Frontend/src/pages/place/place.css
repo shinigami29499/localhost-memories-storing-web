@@ -380,7 +380,7 @@
 }
 
 .place__history-visitor-avatar {
-  border-radius: 50%;
+  border-radius: var(--radius);
   flex: 0 0 28px;
   height: 28px;
   width: 28px;

@@ -4,7 +4,7 @@
   display: block;
   width: 100%;
   min-width: 0;
-  aspect-ratio: 3 / 4.25;
+  aspect-ratio: 3 / 4.1;
   overflow: hidden;
   padding: 0;
   border: 0;
@@ -35,11 +35,6 @@
   aspect-ratio: 1;
   overflow: hidden;
   pointer-events: none;
-  transition: transform 160ms ease;
-}
-
-.media-tile:active .media-tile__motion {
-  transform: scale(1.06);
 }
 
 .media-tile__video-fade {
@@ -96,21 +91,29 @@
 }
 
 .media-tile__info {
+  border-top: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 0.375rem;
-  height: calc(100% - 100% * 3 / 4.25);
+  gap: 0.25rem;
+  height: calc(100% - 100% * 3 / 4.1);
   padding: 0 5%;
   text-align: left;
   color: var(--text-strong);
 }
 .media-tile__owner, .media-tile__details { display: flex; align-items: center; min-width: 0; gap: 0.375rem; }
-.media-tile__avatar.user-avatar { flex: 0 0 clamp(18px, 12cqw, 28px); width: clamp(18px, 12cqw, 28px); height: clamp(18px, 12cqw, 28px); border-radius: 50%; font-size: clamp(0.5rem, 5cqw, 0.7rem); }
-.media-tile__by, .media-tile__details { font-size: clamp(0.625rem, 6cqw, 0.8125rem); line-height: 1.2; }
+.media-tile__by, .media-tile__details { font-size: clamp(0.625rem, 5.5cqw, 0.75rem); line-height: 1.2; }
 .media-tile__by { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .media-tile__details { justify-content: space-between; color: var(--text-muted); }
-.media-tile__details svg { display: block; width: clamp(12px, 8cqw, 16px); height: auto; }
+.media-tile__details time { font-size: 0.9em; }
+.media-tile__details svg { display: block; width: clamp(11px, 7cqw, 14px); height: auto; }
+
+@media (min-width: 768px) {
+  .media-tile { aspect-ratio: 3 / 3.9; }
+  .media-tile__info { height: calc(100% - 100% * 3 / 3.9); }
+  .media-tile__by, .media-tile__details { font-size: 1rem; }
+  .media-tile__details svg { width: 20px; }
+}
 
 .media-tile__retry {
   position: absolute;
@@ -133,12 +136,6 @@
   object-fit: cover;
   pointer-events: none;
   transition: filter 160ms ease, transform 160ms ease;
-}
-
-@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
-  .media-tile:not(.media-tile--selected):hover .media-tile__preview {
-    transform: scale(1.04);
-  }
 }
 
 .media-tile:focus-visible {

@@ -20,8 +20,18 @@ for (const path of ["/location", "/location/travel"]) {
       await page.goto(path);
       const control = page.locator(".mapboxgl-ctrl-geolocate");
       await expect(control).toBeVisible();
+      const controlGroup = page.locator(".mapboxgl-ctrl-group:has(.mapboxgl-ctrl-geolocate)");
+      await expect(controlGroup).toHaveCSS("border-top-width", "2px");
+      await expect(controlGroup).toHaveCSS("border-top-color", "rgb(244, 243, 238)");
+      await control.hover();
+      await expect(control).toHaveCSS("background-color", "rgb(106, 63, 54)");
+      const hoverFill = await control.evaluate((element) => {
+        const style = getComputedStyle(element, "::before");
+        return { background: style.backgroundColor, inset: style.top };
+      });
+      expect(hoverFill).toEqual({ background: "rgb(248, 228, 190)", inset: "4px" });
       const mapBox = (await page.locator(".mapboxgl-map").boundingBox())!;
-      const controlBox = (await control.boundingBox())!;
+      const controlBox = (await controlGroup.boundingBox())!;
       const scenesBox = (await page.locator(".place__scenes, .locations__scenes").first().boundingBox())!;
       expect(Math.abs(controlBox.x - scenesBox.x)).toBeLessThanOrEqual(1);
       expect(mapBox.y + mapBox.height - controlBox.y - controlBox.height).toBeCloseTo(8, 0);

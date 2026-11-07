@@ -37,7 +37,7 @@ textarea, select { min-height: 44px; }
   border: 0;
   border-right: 1px solid var(--border);
   border-radius: 0;
-  background: var(--sidebar-bg);
+  background: var(--navigation-bg);
   box-shadow: none;
   transform: none;
   transition: none;
@@ -47,7 +47,7 @@ textarea, select { min-height: 44px; }
 .sidebar__nav,
 .sidebar__footer,
 .sidebar__account-menu {
-  background: var(--sidebar-bg);
+  background: var(--navigation-bg);
   color: var(--text);
 }
 
@@ -186,7 +186,7 @@ textarea, select { min-height: 44px; }
     align-items: start;
     height: calc(64px + env(safe-area-inset-bottom));
     padding: 4px 4px env(safe-area-inset-bottom);
-    background: var(--surface);
+    background: var(--navigation-bg);
     border-top: 1px solid var(--border);
     z-index: 50;
   }
@@ -209,10 +209,13 @@ textarea, select { min-height: 44px; }
     text-decoration: none;
   }
   .bottom-navigation__item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
-  .bottom-navigation__item:hover,
+  .bottom-navigation__item:hover {
+    background: var(--surface-hover);
+  }
   .bottom-navigation__item[aria-current="page"],
   .bottom-navigation__item[aria-expanded="true"] {
-    background: var(--surface-hover);
+    background: #6A3F36;
+    color: #F4F3EE;
     box-shadow: none;
     font-weight: 700;
   }
@@ -227,15 +230,16 @@ textarea, select { min-height: 44px; }
     margin: 0;
     padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
     border: 2px solid var(--border-control);
-    border-radius: 12px 12px 0 0;
+    border-radius: var(--radius) var(--radius) 0 0;
     background: var(--surface);
     color: var(--text);
   }
   .bottom-navigation__dialog::backdrop { background: var(--accent); }
   .bottom-navigation__dialog-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; }
+  .bottom-navigation__dialog nav { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
   .bottom-navigation__dialog-header button:not(.dialog-action),
   .bottom-navigation__dialog nav a,
-  .bottom-navigation__dialog nav button:not(.dialog-action) {
+  .bottom-navigation__dialog nav button:not(.dialog-action):not(.media-tile) {
     display: flex;
     align-items: center;
     gap: 12px;
@@ -273,7 +277,7 @@ textarea, select { min-height: 44px; }
 /* Shared control shape and hover treatment. */
 :root { --control-radius: var(--radius); }
 
-:root :is(button, [role="button"], .btn, .sidebar__link, .admin-tab-highlight) {
+:root :is(button, [role="button"], .btn, .sidebar__link, .admin-tab-highlight):not(.mapboxgl-ctrl-group button) {
   border-radius: var(--radius);
 }
 
@@ -291,7 +295,7 @@ textarea, select { min-height: 44px; }
 }
 
 @media (hover: hover) {
-:root :is(button, [role="button"], .btn, .sidebar__link):hover:not(.navigation-highlight *):not(.map-navigation *):not(.place__location-search *):not(.gallery-selection-bar__action):not(.gallery-selection-bar__cancel):not(:disabled):not([aria-disabled="true"]):not(.place__marker):not(.locations__marker):not(.place__pin):not(.locations__pin):not(.place__home-pin):not(.locations__home-pin):not(.place__map-home-control):not(.locations__map-home-control):not(.place__color-option):not(.star-rating__button):not(.place__cancel-action):not(.dialog-action) {
+:root :is(button, [role="button"], .btn, .sidebar__link):hover:not(.mapboxgl-ctrl-group button):not(.navigation-highlight *):not(.map-navigation *):not(.place__location-search *):not(.gallery-selection-bar__action):not(.gallery-selection-bar__cancel):not(:disabled):not([aria-disabled="true"]):not(.place__marker):not(.locations__marker):not(.place__pin):not(.locations__pin):not(.place__home-pin):not(.locations__home-pin):not(.place__map-home-control):not(.locations__map-home-control):not(.place__color-option):not(.star-rating__button):not(.place__cancel-action):not(.dialog-action):not(.media-tile) {
     background-color: var(--surface-hover);
     color: var(--text);
   }

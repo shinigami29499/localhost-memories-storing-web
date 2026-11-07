@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import { Pagination, DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS } from "../../components/ui/Pagination";
 import { EmptyState, ErrorState, Spinner } from "../../components/ui/Status";
 import { Button, DatePicker, showToast } from "../../components/ui";
@@ -26,7 +27,9 @@ export function UploadManagementPage() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [offset, setOffset] = useState(0);
-  const [selectedDate, setSelectedDate] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const dateParam = searchParams.get("date") ?? "";
+  const selectedDate = /^\d{4}-\d{2}-\d{2}$/.test(dateParam) && !Number.isNaN(new Date(`${dateParam}T00:00:00`).getTime()) ? dateParam : "";
   const [limit, setLimit] = useState<number>(() => {
     const stored = Number(window.localStorage.getItem("uploads.limit"));
     return PAGE_SIZE_OPTIONS.some((size) => size === stored) ? stored : DEFAULT_PAGE_SIZE;
@@ -259,7 +262,12 @@ export function UploadManagementPage() {
               label={t("Created date")}
               value={selectedDate}
               onChange={(nextDate) => {
-                setSelectedDate(nextDate);
+                setSearchParams((current) => {
+                  const next = new URLSearchParams(current);
+                  if (nextDate) next.set("date", nextDate);
+                  else next.delete("date");
+                  return next;
+                });
                 setOffset(0);
               }}
             />

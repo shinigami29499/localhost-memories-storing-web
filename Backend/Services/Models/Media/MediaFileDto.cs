@@ -13,4 +13,7 @@ public sealed record MediaFileDto(
     string? OwnerUsername = null,
     bool IsPreviewOnly = false,
     DateTime? UpdatedAt = null,
-    string? OwnerAvatarSeed = null);
+    string? OwnerAvatarSeed = null)
+{
+    public DateTime? DeletedAt { get; init; }
+}

@@ -80,7 +80,7 @@ export function TrashPage() {
   const groups = useMemo(() => {
     const byDate = new Map<string, { date: Date; items: MediaFile[] }>();
     for (const item of media) {
-      const date = new Date(item.createdAt);
+      const date = new Date(item.deletedAt ?? item.createdAt);
       const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
       const group = byDate.get(key);
       if (group) group.items.push(item);
@@ -215,7 +215,7 @@ export function TrashPage() {
 
   return (
     <>
-      <main ref={galleryRef} tabIndex={-1} className="gallery-page gallery-page--trash" {...selectionDragHandlers}
+      <main ref={galleryRef} tabIndex={-1} className={`gallery-page gallery-page--trash${selectionMode ? " gallery-page--selecting" : ""}`} {...selectionDragHandlers}
         onClickCapture={(event) => {
           selectionDragHandlers.onClickCapture(event);
           if (event.defaultPrevented) return;

@@ -85,7 +85,7 @@ At widths up to 767px, reuse `PageActionBar` and its existing mobile transitions
 - Change the page immediately. When different bar types replace each other, let the outgoing bar finish before the incoming bar starts; preserve the existing 200ms motion and 50ms handoff. Remove exit copies after use, prevent stale copies during rapid navigation, and keep the bottom navigation above sliding bars.
 - Respect the animation setting and reduced-motion preference. Preserve keyboard access and accessible names when actions are icon-only.
 
-Implementation lives in `src/components/layout/PageActionBar.tsx`, `src/pages/gallery/gallery.css`, and the relevant page styles. When browser-driven tests are explicitly authorized, use `e2e/mobile-gallery-actions.spec.ts`, `e2e/mobile-location-action-bar.spec.ts`, and `e2e/mobile-users-action-transition.spec.ts`; verify rendered positions, visible motion, handoff timing, border continuity, and absence of ghost bars, not just animation keyframes.
+Implementation lives in `src/components/layout/PageActionBar.tsx`, `src/pages/gallery/gallery.css`, and the relevant page styles. When browser-driven tests are necessary, use `e2e/mobile-gallery-actions.spec.ts`, `e2e/mobile-location-action-bar.spec.ts`, and `e2e/mobile-users-action-transition.spec.ts`; verify rendered positions, visible motion, handoff timing, border continuity, and absence of ghost bars, not just animation keyframes.
 
 ## PWA support and limits
 
@@ -98,10 +98,10 @@ Implementation lives in `src/components/layout/PageActionBar.tsx`, `src/pages/ga
 
 ## Validation
 
-Do not run frontend tests unless the user explicitly requests them or you are more
+Except for Playwright or browser-driven tests, do not run frontend tests unless the user explicitly requests them or you are more
 than 70% confident that the task is large in scope. For smaller tasks, use the
-existing build and focused code review instead. Do not run Playwright or browser-driven
-tests unless the user explicitly requests them.
+existing build and focused code review instead. Run Playwright or browser-driven
+tests when necessary.
 
 From `Frontend/`, use the existing commands:
 

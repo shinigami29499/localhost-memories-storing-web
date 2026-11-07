@@ -111,6 +111,11 @@
   box-shadow: inset 0 0 0 1px var(--surface-raised);
 }
 
+.upload-activity__grid .upload-activity__day:focus-visible {
+  outline: 2px solid var(--text-strong);
+  outline-offset: 1px;
+}
+
 .upload-activity__day--1 {
   background: var(--surface-raised);
 }

@@ -5,6 +5,7 @@
   color-scheme: light;
   --bg: #F4F3EE;
   --sidebar-bg: #F4F3EE;
+  --navigation-bg: #FFFFDA;
   --surface: #F4F3EE;
   --surface-raised: #F8E4BE;
   --surface-hover: #F8E4BE;
@@ -41,7 +42,7 @@
   --focus-ring: #6A3F36;
   --shadow-popover: none;
   --overlay-backdrop: #6A3F36;
-  --radius: 6px;
+  --radius: 4px;
   --radius-inner: calc(var(--radius) / 2);
   --box-inset: 4px;
   --sidebar-width: 240px;
@@ -559,6 +560,8 @@ textarea::placeholder {
     --page-gutter: 12px;
     --page-padding-top: 16px;
     --page-padding-bottom: 24px;
+    --page-section-gap: 8px;
+    --shadow-space: 8px;
   }
 
   .app-shell :is(.gallery-page__header, .place__header, .locations__header, .admin-users__header, .admin-posts__header, .upload-page__header, .settings-page__header, .profile-page__header) {

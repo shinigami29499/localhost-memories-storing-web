@@ -1,4 +1,4 @@
-import { Marker } from "react-map-gl/mapbox";
+import { Marker, useMap } from "react-map-gl/mapbox";
 import { useEffect, useState } from "react";
 import type { PickedLocation } from "../../media/types";
 
@@ -11,8 +11,18 @@ interface Props {
 }
 
 export function MapDraftMarker({ location, label, draggable, onPick, onClick }: Props) {
+  const { current: map } = useMap();
   const [shadowLocation, setShadowLocation] = useState(location);
+  const [screenY, setScreenY] = useState(0);
   useEffect(() => setShadowLocation(location), [location]);
+  useEffect(() => {
+    if (!map || typeof map.project !== "function") return;
+    const update = () => setScreenY(map.project([shadowLocation.longitude, shadowLocation.latitude]).y);
+    update();
+    map.on("move", update);
+    map.on("resize", update);
+    return () => { map.off("move", update); map.off("resize", update); };
+  }, [map, shadowLocation.latitude, shadowLocation.longitude]);
   return (
     <>
     <Marker latitude={shadowLocation.latitude} longitude={shadowLocation.longitude} anchor="bottom" style={{ zIndex: 0, pointerEvents: "none" }}>
@@ -23,7 +33,7 @@ export function MapDraftMarker({ location, label, draggable, onPick, onClick }: 
       longitude={location.longitude}
       anchor="bottom"
       draggable={draggable}
-      style={{ zIndex: 3 }}
+      style={{ zIndex: 100000 + Math.round(screenY * 10) }}
       onClick={(event) => {
         event.originalEvent.stopPropagation();
         onClick?.();

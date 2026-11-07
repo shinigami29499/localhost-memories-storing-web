@@ -1,5 +1,4 @@
-﻿import { Image as ImageIcon } from "@/components/animate-ui/icons/image";
-import { UserAvatar } from "../../../components/common/UserAvatar";
+import { Image as ImageIcon } from "@/components/animate-ui/icons/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useInView } from "motion/react";
 import { AnimateIcon } from "@/components/animate-ui/icons/icon";
@@ -10,7 +9,7 @@ import { RotateCcw } from "@/components/animate-ui/icons/rotate-ccw";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import { useLocale } from "../../../context/LocaleContext";
 import { showToast } from "../../../components/ui/Toast";
-import { formatTimestamp, mediaPreviewUrl } from "../../../utils/media";
+import { mediaPreviewUrl } from "../../../utils/media";
 import type { MediaFile } from "../types";
 import { useMediaRetry } from "./MediaRetryProvider";
 
@@ -33,7 +32,8 @@ interface Props {
 export function MediaTile({
   media, selectionMode, selectionEnabled = true, selectionDragEnabled = false, selected, favoriteDisabled, includeDeleted = false, preload = false, onSelect, onOpen, onFavorite, onUnavailable,
 }: Props) {
-  const { t, language } = useLocale();
+  const { t } = useLocale();
+  const [authorPrefix, authorSuffix] = t("by {username}").split("{username}");
   const tileRef = useRef<HTMLButtonElement>(null);
   const inView = useInView(tileRef, { margin: "200px 0px" });
   const retryGroup = useMediaRetry();
@@ -209,11 +209,10 @@ export function MediaTile({
       ) : null}
       <span className="media-tile__info">
         <span className="media-tile__owner">
-          <UserAvatar user={{ id: media.ownerId ?? media.ownerUsername ?? "unknown", username: media.ownerUsername ?? undefined, avatarSeed: media.ownerAvatarSeed }} className="media-tile__avatar" />
-          <span className="media-tile__by">{t("By {username}", { username: media.ownerUsername || t("Unknown") })}</span>
+          <span className="media-tile__by">{authorPrefix}<strong>{media.ownerUsername || t("Unknown")}</strong>{authorSuffix}</span>
         </span>
         <span className="media-tile__details">
-          <time dateTime={media.createdAt}>{formatTimestamp(media.createdAt, language)}</time>
+          <time dateTime={media.createdAt}>{new Date(media.createdAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })}</time>
           <span role="img" aria-label={t(media.mediaKind === "video" ? "Video" : "Image")}>
             {media.mediaKind === "video" ? <Clapperboard size={16} /> : <ImageIcon size={16} />}
           </span>

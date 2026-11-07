@@ -1,4 +1,5 @@
 import { useLocale } from "../../context/LocaleContext";
+import { Link } from "react-router-dom";
 import { dateKey } from "../../utils/activityHeatmap";
 import "../../features/uploads/components/UploadActivityHeatmap.css";
 
@@ -47,7 +48,7 @@ export function ActivityHeatmap({ weeks, days, activity, isPending, isError, onR
         <p className="upload-activity__status" role="status">{t("Loading upload activity…")}</p>
       ) : (
         <>
-          <div className="upload-activity__grid" role="img" aria-label={summary}>
+          <div className="upload-activity__grid" role="group" aria-label={summary}>
             {days.map((day, index) => {
               const key = dateKey(day);
               const count = activity.dailyCounts.get(key) ?? 0;
@@ -55,9 +56,10 @@ export function ActivityHeatmap({ weeks, days, activity, isPending, isError, onR
               const countLabel = count === 1
                 ? t("1 successful file")
                 : t("{count} successful files", { count });
-              return <span key={key} className={`upload-activity__day upload-activity__day--${level}`}
+              const dayLabel = t("{date}: {uploads}", { date: formatter.format(day), uploads: countLabel });
+              return <Link key={key} to={`/uploads?date=${key}`} className={`upload-activity__day upload-activity__day--${level}`}
                 style={{ gridColumn: Math.floor(index / 7) + 1, gridRow: (index % 7) + 1 }}
-                title={t("{date}: {uploads}", { date: formatter.format(day), uploads: countLabel })} aria-hidden="true" />;
+                title={dayLabel} aria-label={dayLabel} />;
             })}
           </div>
           {activity.total === 0 && <p className="upload-activity__status">

@@ -95,8 +95,10 @@ public sealed class MediaRepository(ApplicationDbContext db) : IMediaRepository
         CancellationToken cancellationToken = default)
     {
         var query = BuildMediaQuery(mediaKind, favoriteUserId, includeDeleted);
-        var page = await query
-            .OrderByDescending(media => media.CreatedAt)
+        var ordered = includeDeleted
+            ? query.OrderByDescending(media => media.DeletedAt)
+            : query.OrderByDescending(media => media.CreatedAt);
+        var page = await ordered
             .ThenByDescending(media => media.Id)
             .Skip(offset)
             .Take(limit)

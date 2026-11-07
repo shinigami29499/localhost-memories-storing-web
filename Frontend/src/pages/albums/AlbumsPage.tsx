@@ -1,5 +1,5 @@
 import { PageActionBar } from "../../components/layout/PageActionBar";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus } from "@/components/animate-ui/icons/plus";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
@@ -28,6 +28,19 @@ export function AlbumsPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [deleting, setDeleting] = useState(false);
   const albumsQuery = useInfiniteAlbums("feed");
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel || !albumsQuery.hasNextPage || albumsQuery.isFetching || albumsQuery.isFetchNextPageError) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        observer.disconnect();
+        void albumsQuery.fetchNextPage();
+      }
+    }, { rootMargin: "0px 0px 2000px 0px" });
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [albumsQuery.hasNextPage, albumsQuery.isFetching, albumsQuery.isFetchNextPageError, albumsQuery.fetchNextPage]);
   const invalidate = useInvalidateAlbums();
   const items = albumsQuery.data?.pages.flatMap((page) => page.items) ?? [];
   const selectedAlbums = items.filter((album) => selectedIds.has(album.id));
@@ -60,7 +73,7 @@ export function AlbumsPage() {
     else groups.set(key, { date, items: [album] });
   }
   const dateGroups = [...groups.entries()].sort(([, a], [, b]) => b.date.getTime() - a.date.getTime());
-  const dateFormatter = new Intl.DateTimeFormat(language, { year: "numeric", month: "long", day: "numeric" });
+  const dateFormatter = new Intl.DateTimeFormat(language, { month: "short", day: "numeric" });
 
   return (
     <main className="gallery-page album-page" aria-label={t("Album")} {...selectionDragHandlers}
@@ -86,15 +99,18 @@ export function AlbumsPage() {
           ) : (
             <div className="gallery-groups" aria-busy={albumsQuery.isFetching}>
               {dateGroups.map(([key, group]) => (
-                <section key={key} aria-label={dateFormatter.format(group.date)}>
+                <section key={key} aria-label={`${group.date.getFullYear()}, ${dateFormatter.format(group.date)}`}>
                   <div className="gallery-group__header">
                     <h2 className="gallery-group__title">
                       <time dateTime={`${group.date.getFullYear()}-${String(group.date.getMonth() + 1).padStart(2, "0")}-${String(group.date.getDate()).padStart(2, "0")}`}>
-                        {dateFormatter.format(group.date)}
+                        {`${group.date.getFullYear()}, ${dateFormatter.format(group.date)}`}
                       </time>
                     </h2>
                   </div>
-                  <div className="album-grid">
+                  <div className="album-grid" onScroll={(event) => {
+                    const row = event.currentTarget;
+                    if (key === dateGroups[dateGroups.length - 1]?.[0] && row.scrollLeft + row.clientWidth >= row.scrollWidth - 200 && albumsQuery.hasNextPage && !albumsQuery.isFetching && !albumsQuery.isFetchNextPageError) void albumsQuery.fetchNextPage();
+                  }}>
                     {group.items.map((album) => (
                       <AlbumCard
                         key={album.id}
@@ -115,12 +131,8 @@ export function AlbumsPage() {
           {albumsQuery.isFetchNextPageError ? (
             <ErrorState message={t("Could not load more albums.")} onRetry={() => void albumsQuery.fetchNextPage()} />
           ) : null}
-          {albumsQuery.hasNextPage ? (
-            <button type="button" className="btn btn--secondary" disabled={albumsQuery.isFetchingNextPage}
-              onClick={() => void albumsQuery.fetchNextPage()}>
-              {t(albumsQuery.isFetchingNextPage ? "Loading albums…" : "Load more")}
-            </button>
-          ) : null}
+          {albumsQuery.isFetchingNextPage ? <Spinner label={t("Loading albums…")} /> : null}
+          <div ref={sentinelRef} aria-hidden="true" />
           </div>
           </div>
           </div>
@@ -129,10 +141,10 @@ export function AlbumsPage() {
         <PageActionBar className="gallery-page__actions" role="group" aria-label={t("{count} selected", { count: selectedIds.size })}>
           <span className="gallery-selection-bar__status" role="status">{t("{count} selected", { count: selectedIds.size })}</span>
           {selectionMode && <><span className="gallery-selection-bar__count" aria-hidden="true">{t("{count} selected", { count: selectedIds.size })}</span><span className="gallery-selection-bar__divider" aria-hidden="true" /></>}
-          <button key="primary" type="button" className="gallery-selection-bar__action gallery-selection-bar__action--primary" aria-label={t("New album")} title={t("New album")} disabled={deleting} onClick={() => setCreating(true)}>
+          {!selectionMode && <button key="primary" type="button" className="gallery-selection-bar__action gallery-selection-bar__action--primary" aria-label={t("New album")} title={t("New album")} disabled={deleting} onClick={() => setCreating(true)}>
             <Plus size={20} aria-hidden="true" />
             <span>{t("New album")}</span>
-          </button>
+          </button>}
           <SelectionActions open={selectionMode} mobileVertical>
           <button type="button" className="gallery-selection-bar__action gallery-selection-bar__action--danger" aria-label={t("Delete selected albums")} title={t("Delete selected albums")}
             disabled={!canDelete || deleting} onClick={() => setDeleting(true)}><Trash2 size={20} aria-hidden="true" /><span>{t("Delete")}</span></button></SelectionActions>

@@ -99,7 +99,7 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
     return [...byDate.entries()].sort(([, a], [, b]) => b.date.getTime() - a.date.getTime());
   }, [media]);
   const dateFormatter = useMemo(
-    () => new Intl.DateTimeFormat(language, { year: "numeric", month: "long", day: "numeric" }),
+    () => new Intl.DateTimeFormat(language, { month: "short", day: "numeric" }),
     [language],
   );
   const copy = viewCopy[view];
@@ -389,7 +389,7 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
         <div className="gallery-groups" aria-busy={query.isFetching}>
           <MediaRetryProvider key={`${view}-${selectedFilter}`} order={groups.flatMap(([, group]) => group.items.map((item) => item.id))}>
             {groups.map(([key, group]) => {
-              const dateLabel = dateFormatter.format(group.date);
+              const dateLabel = `${group.date.getFullYear()}, ${dateFormatter.format(group.date)}`;
               return (
               <section key={key} aria-label={dateLabel}>
                 <div className="gallery-group__header">
@@ -453,12 +453,12 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
               event.currentTarget.value = "";
               void uploadFiles(files);
             }} />
-              <PageActionButton key="primary" aria-label={t("Upload media")} title={t("Upload media")}
+              {!selectionMode && <PageActionButton key="primary" aria-label={t("Upload media")} title={t("Upload media")}
                 className="gallery-selection-bar__action--primary"
                 disabled={uploading || bulkFavoriteBusy} aria-busy={uploading || undefined} onClick={() => uploadInput.current?.click()}>
                 {uploading ? <LoaderCircle size={20} className="spinner__wheel" aria-hidden="true" /> : <Plus size={20} aria-hidden="true" />}
                 <span>{t("Upload media")}</span>
-              </PageActionButton>
+              </PageActionButton>}
             {selectionMode ? (
               <PageActionButton
                 key="favorite"

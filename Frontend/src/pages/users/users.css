@@ -506,7 +506,7 @@
   align-items: center;
   background: color-mix(in srgb, var(--accent-soft) 18%, var(--surface-raised));
   border: 1px solid var(--border);
-  border-radius: 50%;
+  border-radius: var(--radius);
   color: var(--accent-soft);
   display: inline-flex;
   flex: 0 0 32px;

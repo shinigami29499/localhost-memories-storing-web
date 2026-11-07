@@ -29,9 +29,9 @@ import { useUserPresenceStore } from "../../features/users/store/userPresenceSto
 const ONLINE_WINDOW_MS = 300_000;
 
 function formatLastActive(value: string | null | undefined, language: "en" | "vi", now: number): string {
-  if (!value) return "�";
+  if (!value) return "";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "�";
+  if (Number.isNaN(date.getTime())) return "";
   const seconds = Math.max(0, Math.floor((now - date.getTime()) / 1000));
   const locale = language === "vi" ? "vi-VN" : "en-US";
   const relative = new Intl.RelativeTimeFormat(locale, { numeric: "always" });

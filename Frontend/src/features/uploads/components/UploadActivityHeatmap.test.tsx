@@ -2,6 +2,7 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "../../../context/LocaleContext";
 import { uploadService } from "../services/uploadService";
@@ -98,7 +99,7 @@ describe("UploadActivityHeatmap", () => {
 
   const render = async () => act(async () => root.render(
     <QueryClientProvider client={client}>
-      <LocaleProvider><UploadActivityHeatmap /></LocaleProvider>
+      <MemoryRouter><LocaleProvider><UploadActivityHeatmap /></LocaleProvider></MemoryRouter>
     </QueryClientProvider>,
   ));
 
@@ -108,7 +109,7 @@ describe("UploadActivityHeatmap", () => {
     await act(async () => {
       await vi.waitFor(() => expect(container.querySelector(".upload-activity__total")?.textContent).toBe("1 file"));
     });
-    expect(container.querySelector('[role="img"]')?.getAttribute("aria-label"))
+    expect(container.querySelector('[role="group"]')?.getAttribute("aria-label"))
       .toBe("Upload activity over the last 36 weeks: 1 successful file");
     expect(container.querySelectorAll(".upload-activity__day")).toHaveLength(expectedHeatmapCells(36));
     expect(uploadService.list).toHaveBeenCalledWith(0, 100);
@@ -122,7 +123,7 @@ describe("UploadActivityHeatmap", () => {
     await act(async () => {
       await vi.waitFor(() => expect(container.querySelector(".upload-activity__total")?.textContent).toBe("1 file"));
     });
-    expect(container.querySelector('[role="img"]')?.getAttribute("aria-label"))
+    expect(container.querySelector('[role="group"]')?.getAttribute("aria-label"))
       .toBe("Upload activity over the last 12 weeks: 1 successful file");
     expect(container.querySelectorAll(".upload-activity__day")).toHaveLength(expectedHeatmapCells(12));
   });
@@ -142,7 +143,7 @@ describe("UploadActivityHeatmap", () => {
 
     await act(async () => {
       await vi.waitFor(() => {
-        expect(container.querySelector('[role="img"]')?.getAttribute("aria-label"))
+        expect(container.querySelector('[role="group"]')?.getAttribute("aria-label"))
           .toBe("Upload activity over the last 12 weeks: 1 successful file");
       });
     });

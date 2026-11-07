@@ -5,6 +5,7 @@ export interface MediaFile {
   originalFilename: string;
   fileSizeBytes: number;
   createdAt: string;
+  deletedAt?: string | null;
   updatedAt?: string | null;
   isFavorited: boolean;
   isPreviewOnly?: boolean;

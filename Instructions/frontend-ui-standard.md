@@ -10,9 +10,9 @@ Write a short design contract in the feature PR or task notes: user goal, screen
 
 ### Box corners and padding
 
-- Use a 6px outer radius and a 3px inner radius by default: `--radius` and `--radius-inner`. Derive the inner radius as half the outer radius so the outer radius always equals twice the inner radius.
+- Use a 4px outer radius and a 2px inner radius by default: `--radius` and `--radius-inner`. Derive the inner radius as half the outer radius so the outer radius always equals twice the inner radius.
 - Use `--box-inset: 4px` as the default padding between outer and inner box borders, equal on every side. With a 1px outer border, the visible inset is 5px, as in the Upload media reference. Keep sibling items consistent; change padding only when content or layout requires it.
-- Apply the 6px outer radius to every frontend button, text input, textarea, and select, including the shared `Input` and `PasswordInput` components and native fields. Use the 3px inner radius for controls inset in a group, including search fields, date-range fields, and password visibility buttons. Use 4px padding between a bordered group's border and its controls.
+- Apply the 4px outer radius to every frontend button, text input, textarea, and select, including the shared `Input` and `PasswordInput` components and native fields. Use the 2px inner radius for controls inset in a group, including search fields, date-range fields, and password visibility buttons. Use 4px padding between a bordered group's border and its controls.
 - Keep control radius rules centralized in `src/styles/overhaul.css`. Do not add component, page, inline, or utility-class radius overrides for text fields. Checkbox, radio, range, color, file, hidden, and native button input types are not text fields.
 
 ### Dialog headers
