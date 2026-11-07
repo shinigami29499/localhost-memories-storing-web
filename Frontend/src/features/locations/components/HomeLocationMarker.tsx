@@ -125,6 +125,9 @@ export function HomeLocationMarker({ location, variant, onClick, onHoverChange, 
 
   return (
     <>
+      <Marker latitude={position.latitude} longitude={position.longitude} anchor="bottom" style={{ zIndex: 0, pointerEvents: "none" }}>
+        <div className="map-shadow-layer" aria-hidden="true"><span className="map-marker__shadow home-location-shadow" style={{ translate: `${drag.offset.x}px ${drag.offset.y}px` }} /></div>
+      </Marker>
       <Marker
         key={markerVersion}
         latitude={position.latitude}

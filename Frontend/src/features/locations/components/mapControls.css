@@ -823,7 +823,11 @@
 
 .map-marker { --marker-color: var(--accent); height: 54px; position: relative; width: 44px; }
 .map-marker::before { background: color-mix(in srgb, var(--marker-color), black 35%); border-radius: 50%; bottom: -6px; content: ""; height: 9px; left: 12px; pointer-events: none; position: absolute; width: 20px; }
+.home-location-marker.map-marker::before, .map-marker--draft::before { content: none; }
+.home-location-shadow { --marker-color: #333; }
+.map-draft-shadow { --marker-color: #da4747; }
 .map-marker__shadow { height: 54px; inset: 0; pointer-events: none; position: absolute; width: 44px; z-index: 0; }
+.map-shadow-layer { position: relative; width: 44px; height: 54px; }
 .map-marker__shadow::before { background: color-mix(in srgb, var(--marker-color), black 35%); border-radius: 50%; bottom: -6px; content: ""; height: 9px; left: 12px; position: absolute; width: 20px; }
 :is(.locations__cluster, .place__cluster) .map-marker::before { content: none; }
 :is(.locations__cluster, .place__cluster) .map-marker__pin { z-index: 1; }

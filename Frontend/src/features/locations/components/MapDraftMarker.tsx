@@ -1,4 +1,5 @@
 import { Marker } from "react-map-gl/mapbox";
+import { useEffect, useState } from "react";
 import type { PickedLocation } from "../../media/types";
 
 interface Props {
@@ -10,7 +11,13 @@ interface Props {
 }
 
 export function MapDraftMarker({ location, label, draggable, onPick, onClick }: Props) {
+  const [shadowLocation, setShadowLocation] = useState(location);
+  useEffect(() => setShadowLocation(location), [location]);
   return (
+    <>
+    <Marker latitude={shadowLocation.latitude} longitude={shadowLocation.longitude} anchor="bottom" style={{ zIndex: 0, pointerEvents: "none" }}>
+      <div className="map-shadow-layer" aria-hidden="true"><span className="map-marker__shadow map-draft-shadow" /></div>
+    </Marker>
     <Marker
       latitude={location.latitude}
       longitude={location.longitude}
@@ -21,8 +28,13 @@ export function MapDraftMarker({ location, label, draggable, onPick, onClick }: 
         event.originalEvent.stopPropagation();
         onClick?.();
       }}
+      onDrag={(event) => {
+        const point = event.lngLat.wrap();
+        setShadowLocation({ ...location, latitude: point.lat, longitude: point.lng });
+      }}
       onDragEnd={(event) => {
         const point = event.lngLat.wrap();
+        setShadowLocation({ ...location, latitude: point.lat, longitude: point.lng });
         onPick({ latitude: point.lat, longitude: point.lng });
       }}
     >
@@ -30,5 +42,6 @@ export function MapDraftMarker({ location, label, draggable, onPick, onClick }: 
         <span className="map-marker__pin map-draft-marker__pin" aria-hidden="true"><span className="map-marker__center" /></span>
       </div>
     </Marker>
+    </>
   );
 }

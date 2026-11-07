@@ -21,7 +21,7 @@
 .map-navigation[data-expanded="true"] {
   background: var(--surface);
   border: 0;
-  border-radius: 12px;
+  border-radius: var(--radius);
   box-shadow: none;
   width: max-content;
   max-height: calc(100% - 88px);
@@ -54,7 +54,7 @@
   max-width: calc(100% - 32px);
   width: max-content;
   background: var(--surface);
-  border-radius: 12px;
+  border-radius: var(--radius);
   box-shadow: none;
   padding: 6px;
 }
@@ -62,6 +62,7 @@
 .map-navigation__actions .btn,
 .map-navigation--fallback .btn {
   border: 0;
+  border-radius: var(--radius-inner);
   box-shadow: none;
 }
 .map-navigation summary:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }

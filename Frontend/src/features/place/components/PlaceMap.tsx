@@ -433,7 +433,8 @@ function PlaceMarker({ place, selected, onSelect, canChange, onMove, onDelete, o
   );
 }
 
-function PlaceClusterMarker({ group, selectedId, onSelect, canChange, onMove, onDelete, onDragChange, homeExpanded, nearHome, onHomeHoverChange, onActiveChange, hidePreview, hideCount }: {
+function PlaceClusterMarker({ group, shadowLocation, selectedId, onSelect, canChange, onMove, onDelete, onDragChange, homeExpanded, nearHome, onHomeHoverChange, onActiveChange, hidePreview, hideCount }: {
+  shadowLocation: MapCoordinate;
   homeExpanded: boolean;
   nearHome: boolean;
   onHomeHoverChange?: (hovered: boolean) => void;
@@ -459,6 +460,14 @@ function PlaceClusterMarker({ group, selectedId, onSelect, canChange, onMove, on
   const toggleLabel = t("{count} places here", { count });
 
   return (
+    <>
+    <Marker latitude={shadowLocation.latitude} longitude={shadowLocation.longitude} anchor="bottom" style={{ zIndex: 0, pointerEvents: "none" }}>
+      <div className={`place__cluster${count > 1 ? " place__cluster--group" : ""}`} data-open={expanded} data-home-expanded={homeExpanded} data-near-home={nearHome}
+        style={{ "--fan-count": visiblePlaces.length, "--fan-step": `${step}deg` } as CSSProperties} aria-hidden="true">
+        {visiblePlaces.map((place, index) => <span key={place.id} className="map-marker__shadow place__cluster-shadow"
+          style={{ "--fan-index": index, "--marker-color": place.markerColor } as CSSProperties} />)}
+      </div>
+    </Marker>
     <div className={`place__cluster${count > 1 ? " place__cluster--group" : ""}`} data-open={expanded}
       data-home-expanded={homeExpanded} data-near-home={nearHome} data-selected={selectedIndex >= 0}
       style={{ "--fan-count": visiblePlaces.length, "--fan-step": `${step}deg`, "--counter-color": nearHome ? "#000" : `color-mix(in srgb, ${ordered[0].markerColor || "#30353b"}, black 35%)` } as CSSProperties}
@@ -467,10 +476,6 @@ function PlaceClusterMarker({ group, selectedId, onSelect, canChange, onMove, on
       onFocus={() => { setOpen(true); onActiveChange?.(true); onHomeHoverChange?.(true); }}
       onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget) && !event.currentTarget.matches(":hover")) { setOpen(false); onActiveChange?.(false); onHomeHoverChange?.(false); } }}
       >
-      {visiblePlaces.map((place, index) => (
-        <span key={`shadow-${place.id}`} className="map-marker__shadow place__cluster-shadow" aria-hidden="true"
-          style={{ "--fan-index": index, "--marker-color": place.markerColor } as CSSProperties} />
-      ))}
       {visiblePlaces.map((place, index) => {
         return (
           <div
@@ -495,6 +500,7 @@ function PlaceClusterMarker({ group, selectedId, onSelect, canChange, onMove, on
         {currentPage + 1}/{pageCount} ›
       </button>}
     </div>
+    </>
   );
 }
 
@@ -558,10 +564,10 @@ function PlaceMarkers({ places, selectedId, ready, onSelect, canChange, onMove, 
           latitude={nearHome && homeLocation ? homeLocation.latitude : group.location.latitude}
           longitude={nearHome && homeLocation ? homeLocation.longitude : group.location.longitude}
           anchor="bottom"
-          style={{ zIndex: baseDepth + (selectedHere ? 2000000 : activeGroupId === groupId ? 1000000 : 0) }}
+          style={{ zIndex: 100000 + baseDepth + (selectedHere ? 2000000 : activeGroupId === groupId ? 1000000 : 0) }}
           onClick={(event) => event.originalEvent.stopPropagation()}
         >
-          <PlaceClusterMarker group={group} selectedId={selectedId} onSelect={onSelect}
+          <PlaceClusterMarker group={group} shadowLocation={nearHome && homeLocation ? homeLocation : group.location} selectedId={selectedId} onSelect={onSelect}
             homeExpanded={homeExpanded} nearHome={nearHome}
             hidePreview={hidePreview}
             hideCount={hideCount}
@@ -571,7 +577,7 @@ function PlaceMarkers({ places, selectedId, ready, onSelect, canChange, onMove, 
         </Marker>
         {!hideCount && nearHome && homeLocation && (group.items.length === 1 || !homeExpanded) && (
           <Marker latitude={homeLocation.latitude} longitude={homeLocation.longitude} anchor="bottom"
-            style={{ zIndex: Math.round((project?.(homeLocation).y ?? 0) * 10) + 2, pointerEvents: "none" }}>
+            style={{ zIndex: 100000 + Math.round((project?.(homeLocation).y ?? 0) * 10) + 2, pointerEvents: "none" }}>
             <div className="place__cluster" style={{ "--counter-color": "#000" } as CSSProperties} aria-hidden="true">
               <span className="place__cluster-count">{group.items.length}</span>
             </div>

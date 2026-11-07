@@ -367,7 +367,8 @@ function photoMarkerColor(id: string) {
   return photoMarkerPalette[hash % photoMarkerPalette.length];
 }
 
-function PhotoClusterMarker({ cluster, selected, onSelect, canMove, onMove, onDragChange, homeExpanded, nearHome, onHomeHoverChange, onActiveChange, hidePreview, hideCount }: {
+function PhotoClusterMarker({ cluster, shadowLocation, selected, onSelect, canMove, onMove, onDragChange, homeExpanded, nearHome, onHomeHoverChange, onActiveChange, hidePreview, hideCount }: {
+  shadowLocation: PhotoLocation;
   homeExpanded: boolean;
   nearHome: boolean;
   onHomeHoverChange?: (hovered: boolean) => void;
@@ -394,6 +395,14 @@ function PhotoClusterMarker({ cluster, selected, onSelect, canMove, onMove, onDr
   const step = Math.min(26, 150 / Math.max(fanned.length - 1, 1));
 
   return (
+    <>
+    <Marker latitude={shadowLocation.latitude} longitude={shadowLocation.longitude} anchor="bottom" style={{ zIndex: 0, pointerEvents: "none" }}>
+      <div className={`locations__cluster${count > 1 ? " locations__cluster--group" : ""}`} data-open={expanded} data-home-expanded={homeExpanded} data-near-home={nearHome}
+        style={{ "--fan-count": fanned.length, "--fan-step": `${step}deg` } as CSSProperties} aria-hidden="true">
+        {fanned.map((item, index) => item.location && <span key={item.id} className="map-marker__shadow locations__cluster-shadow"
+          style={{ "--fan-index": index, "--marker-color": photoMarkerColor(item.id) } as CSSProperties} />)}
+      </div>
+    </Marker>
     <div
       className={`locations__cluster${count > 1 ? " locations__cluster--group" : ""}`}
       data-open={expanded}
@@ -407,10 +416,6 @@ function PhotoClusterMarker({ cluster, selected, onSelect, canMove, onMove, onDr
       onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget) && !event.currentTarget.matches(":hover")) { setOpen(false); onActiveChange?.(false); onHomeHoverChange?.(false); } }}
     >
       {fanned.map((item, index) => item.location && (
-        <span key={`shadow-${item.id}`} className="map-marker__shadow locations__cluster-shadow" aria-hidden="true"
-          style={{ "--fan-index": index, "--marker-color": photoMarkerColor(item.id) } as CSSProperties} />
-      ))}
-      {fanned.map((item, index) => item.location && (
         <PhotoMarkerItem key={item.id} item={item} index={index} selected={selected?.id === item.id}
           canMove={canMove} onSelect={onSelect} onMove={onMove} onDragChange={onDragChange} hidePreview={hidePreview} />
       ))}
@@ -423,6 +428,7 @@ function PhotoClusterMarker({ cluster, selected, onSelect, canMove, onMove, onDr
         {currentPage + 1}/{pageCount} ›
       </button>}
     </div>
+    </>
   );
 }
 
@@ -479,10 +485,10 @@ export function PhotoMarkers({ media, selected, ready, onSelect, canMove, onMove
           latitude={nearHome && homeLocation ? homeLocation.latitude : cluster.latitude}
           longitude={nearHome && homeLocation ? homeLocation.longitude : cluster.longitude}
           anchor="bottom"
-          style={{ zIndex: baseDepth + (selectedHere ? 2000000 : activeClusterId === cluster.id ? 1000000 : 0) }}
+          style={{ zIndex: 100000 + baseDepth + (selectedHere ? 2000000 : activeClusterId === cluster.id ? 1000000 : 0) }}
           onClick={(event) => event.originalEvent.stopPropagation()}
         >
-          <PhotoClusterMarker cluster={cluster}
+          <PhotoClusterMarker cluster={cluster} shadowLocation={nearHome && homeLocation ? homeLocation : cluster}
             homeExpanded={homeExpanded} nearHome={nearHome}
             hidePreview={hidePreview}
             hideCount={hideCount}
@@ -492,7 +498,7 @@ export function PhotoMarkers({ media, selected, ready, onSelect, canMove, onMove
         </Marker>
         {!hideCount && nearHome && homeLocation && (cluster.items.length === 1 || !homeExpanded) && (
           <Marker latitude={homeLocation.latitude} longitude={homeLocation.longitude} anchor="bottom"
-            style={{ zIndex: Math.round((project?.(homeLocation).y ?? 0) * 10) + 2, pointerEvents: "none" }}>
+            style={{ zIndex: 100000 + Math.round((project?.(homeLocation).y ?? 0) * 10) + 2, pointerEvents: "none" }}>
             <div className="locations__cluster" style={{ "--counter-color": "#000" } as CSSProperties} aria-hidden="true">
               <span className="locations__cluster-count">{cluster.items.length}</span>
             </div>
