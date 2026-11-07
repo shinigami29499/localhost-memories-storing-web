@@ -402,7 +402,8 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
                   <VirtualGalleryGroup items={group.items} viewport={viewport} mediaKind={selectedFilter} pinnedId={focusMediaId}
                     selectionMode={selectionMode} selectedItems={selectedItems} onSelect={toggleSelected}
                     onFavorite={(mediaId) => void toggleFavorite(mediaId, false)} favoriteBusy={favoriteBusy} onOpen={setPreviewMediaId}
-                    onUnavailable={isAdmin ? checkUnavailable : undefined} />
+                    onUnavailable={isAdmin ? checkUnavailable : undefined}
+                    onReachEnd={key === groups[groups.length - 1]?.[0] && query.hasNextPage && !query.isFetching && !query.isFetchNextPageError ? () => { void query.fetchNextPage(); } : undefined} />
               </section>
               );
             })}

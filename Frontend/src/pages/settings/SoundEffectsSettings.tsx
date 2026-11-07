@@ -1,4 +1,5 @@
 import { Switch } from "@animate-ui/react/primitives/base-ui/switch";
+import { AnimateUIProvider } from "@animate-ui/react/provider";
 import { useLocale } from "../../context/LocaleContext";
 import { playUiSound } from "../../services/sounds";
 import { useSoundPreferencesStore } from "../../store/soundPreferencesStore";
@@ -19,7 +20,7 @@ export function SoundEffectsSettings() {
           setEnabled(checked);
           if (checked) playUiSound("ui/toggle_on");
         }} aria-describedby="settings-sounds-help">
-        <Switch.Thumb className="settings-page__switch-thumb" />
+        <AnimateUIProvider reducedMotion="user"><Switch.Thumb className="settings-page__switch-thumb" /></AnimateUIProvider>
       </Switch.Root>
     </div>
   );

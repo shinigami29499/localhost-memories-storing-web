@@ -10,10 +10,12 @@ import { useLocale } from "../../../context/LocaleContext";
 import { ApiError } from "../../../services/api";
 import { mediaPreviewUrl } from "../../../utils/media";
 import { useDebouncedValue } from "../../../hooks/useDebouncedValue";
+import { useDialogViewportStyle } from "../../../hooks/useDialogViewportStyle";
 import { useAlbumMembership, useInfiniteAlbums, useInvalidateAlbums } from "../hooks/useAlbums";
 import { albumService } from "../services/albumService";
 import type { Album } from "../types";
 import { ALBUM_NAME_MAX_LENGTH } from "../types";
+import { AlbumSearchInput } from "./AlbumSearchInput";
 
 interface Props {
   mediaIds: string[];
@@ -29,6 +31,7 @@ async function updateAlbumMedia(albumId: string, mediaIds: string[], action: "ad
 
 export function BulkSaveToAlbumDialog({ mediaIds, onSaved, onClose }: Props) {
   const { t } = useLocale();
+  const viewportStyle = useDialogViewportStyle();
   const [selectedMediaIds] = useState(mediaIds);
   const [search, setSearch] = useState("");
   const albumsQuery = useInfiniteAlbums("mine", true, 30, undefined, useDebouncedValue(search));
@@ -113,14 +116,13 @@ export function BulkSaveToAlbumDialog({ mediaIds, onSaved, onClose }: Props) {
     <AlertDialog.Root {...dialogProps}>
       <AlertDialog.Portal>
         <AlertDialog.Backdrop className="confirmation-dialog-backdrop" />
-        <AlertDialog.Viewport className="confirmation-dialog-viewport">
+        <AlertDialog.Viewport className="confirmation-dialog-viewport" style={viewportStyle}>
           <AlertDialog.Popup className="confirmation-dialog album-dialog">
             <AlertDialog.Title className="confirmation-dialog__title">
               {t("Save {count} media items to albums", { count: selectedMediaIds.length })}
             </AlertDialog.Title>
             <div className="album-dialog__body" aria-busy={busy}>
-              <input type="search" value={search} maxLength={120} onChange={(event) => setSearch(event.target.value)}
-                aria-label={t("Search albums")} placeholder={t("Search albums")} />
+              <AlbumSearchInput value={search} onChange={setSearch} />
               {isPending ? <Spinner label={t("Loading albums…")} /> : loadError ? (
                 <ErrorState
                   message={t("Could not load albums.")}

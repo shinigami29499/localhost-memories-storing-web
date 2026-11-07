@@ -19,12 +19,12 @@ public interface IMediaRepository
         Guid mediaId, CancellationToken cancellationToken = default);
     Task PermanentlyDeleteMediaAsync(
         Guid mediaId, Guid actorId, CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<(MediaFile Media, string? OwnerUsername)>> GetMediaPageAsync(
+    Task<IReadOnlyList<(MediaFile Media, string? OwnerUsername, string? OwnerAvatarSeed)>> GetMediaPageAsync(
         int offset, int limit, string? mediaKind, Guid? favoriteUserId, bool includeDeleted,
         CancellationToken cancellationToken = default);
-    Task<(IReadOnlyList<(MediaFile Media, string? OwnerUsername)> Items, long Total)> GetLocatedMediaPageAsync(
+    Task<(IReadOnlyList<(MediaFile Media, string? OwnerUsername, string? OwnerAvatarSeed)> Items, long Total)> GetLocatedMediaPageAsync(
         int offset, int limit, PlaceMapBounds bounds, CancellationToken cancellationToken = default);
-    Task<(IReadOnlyList<(MediaFile Media, string? OwnerUsername)> Items, long Total)> GetUnlocatedMediaPageAsync(
+    Task<(IReadOnlyList<(MediaFile Media, string? OwnerUsername, string? OwnerAvatarSeed)> Items, long Total)> GetUnlocatedMediaPageAsync(
         int offset, int limit, CancellationToken cancellationToken = default);
     Task<long> CountMediaAsync(
         string? mediaKind, Guid? favoriteUserId, bool includeDeleted,

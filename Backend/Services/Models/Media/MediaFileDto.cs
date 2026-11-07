@@ -12,4 +12,5 @@ public sealed record MediaFileDto(
     MediaLocationDto? Location = null,
     string? OwnerUsername = null,
     bool IsPreviewOnly = false,
-    DateTime? UpdatedAt = null);
+    DateTime? UpdatedAt = null,
+    string? OwnerAvatarSeed = null);

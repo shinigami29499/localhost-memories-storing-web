@@ -128,8 +128,8 @@
   grid-template-columns: repeat(6, minmax(0, 1fr));
   padding: 8px;
 }
-.gallery-window-cell { aspect-ratio: 1; min-width: 0; }
-.gallery-date-grid--virtual { position: relative; display: block; padding: 0; }
+.gallery-window-cell { aspect-ratio: 3 / 4.25; min-width: 0; }
+.gallery-date-grid--virtual { position: relative; display: block; overflow-x: auto; overflow-y: hidden; padding: 0; }
 .gallery-date-grid--virtual .gallery-window-cell { position: absolute; }
 
 .gallery-page .media-tile {
@@ -137,6 +137,7 @@
 }
 
 .gallery-date-grid .media-tile {
+  touch-action: pan-x pan-y pinch-zoom;
   border: 1px solid var(--border);
   border-radius: var(--radius);
 }
@@ -790,7 +791,8 @@
 .app-shell__main { position: relative; }
 
 @media (max-width: 767px) {
-  .page-action-bar:has(.gallery-page__actions) {
+  .page-action-bar:has(.page-action-bar__item > .gallery-page__actions),
+  .page-action-bar:not(:has(.page-action-bar__item > .gallery-selection-bar:not(.gallery-page__actions))):has(> [data-collapsing-bar] > .gallery-page__actions) {
     background: transparent;
     border: 0;
     min-height: 0;

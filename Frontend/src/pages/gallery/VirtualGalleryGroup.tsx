@@ -16,11 +16,13 @@ interface Props {
   mediaKind?: string;
   pinnedId?: string | null;
   includeDeleted?: boolean;
+  onReachEnd?: () => void;
 }
 
-export function VirtualGalleryGroup({ items, viewport, selectionMode, selectedItems, onSelect, onFavorite, favoriteBusy, onOpen, onUnavailable, mediaKind, pinnedId, includeDeleted = false }: Props) {
+export function VirtualGalleryGroup({ items, viewport, selectionMode, selectedItems, onSelect, onFavorite, favoriteBusy, onOpen, onUnavailable, mediaKind, pinnedId, includeDeleted = false, onReachEnd }: Props) {
   const gridRef = useRef<HTMLDivElement>(null);
   const [focusTarget, setFocusTarget] = useState<string | null>(null);
+  const [scrollLeft, setScrollLeft] = useState(0);
   const grid = gridRef.current;
   const screenWidth = typeof window === "undefined" ? 1200 : window.innerWidth;
   const columns = screenWidth < 641 ? 4 : screenWidth >= 2400 ? 9 : screenWidth >= 1920 ? 8 : screenWidth >= 1600 ? 7 : 6;
@@ -28,18 +30,10 @@ export function VirtualGalleryGroup({ items, viewport, selectionMode, selectedIt
   const width = grid?.clientWidth || Math.max(200, viewport.width - 48);
   const tileSize = Math.max(1, (width - 16 - (columns - 1) * gap) / columns);
   const step = tileSize + gap;
-  const rows = Math.ceil(items.length / columns);
-  const height = rows ? 16 + rows * tileSize + (rows - 1) * gap : 0;
-  const scrollport = grid?.closest<HTMLElement>(".gallery-page__content");
-  const groupTop = grid && scrollport
-    ? grid.getBoundingClientRect().top - scrollport.getBoundingClientRect().top + scrollport.scrollTop
-    : 0;
-  const firstRow = viewport.height > 0 ? Math.max(0, Math.floor((viewport.top - groupTop) / step) - 3) : 0;
-  const lastRow = viewport.height > 0
-    ? Math.min(rows, Math.ceil((viewport.top + viewport.height - groupTop) / step) + 3)
-    : Math.min(rows, 8);
-  const start = Math.min(items.length, firstRow * columns);
-  const end = Math.max(start, Math.min(items.length, lastRow * columns));
+  const tileHeight = tileSize * 4.25 / 3;
+  const height = 32 + tileHeight;
+  const start = Math.max(0, Math.floor(scrollLeft / step) - 3);
+  const end = Math.min(items.length, Math.ceil((scrollLeft + width) / step) + 3);
   const rendered = items.slice(start, end).map((item, index) => ({ item, position: start + index }));
   const focusedId = typeof document === "undefined" ? null : document.activeElement?.getAttribute("data-media-id");
   for (const id of new Set([pinnedId, focusedId, focusTarget])) {
@@ -66,24 +60,30 @@ export function VirtualGalleryGroup({ items, viewport, selectionMode, selectedIt
     const next = position + (event.shiftKey ? -1 : 1);
     if (position < 0 || next < 0 || next >= items.length || rendered.some((entry) => entry.position === next)) return;
     event.preventDefault();
-    if (scrollport) scrollport.scrollTop = Math.max(0, groupTop + Math.floor(next / columns) * step - 8);
+    if (grid) grid.scrollLeft = Math.max(0, next * step - 8);
     setFocusTarget(items[next].id);
   };
 
   const enterGroup = (position: number) => {
-    if (scrollport) scrollport.scrollTop = Math.max(0, groupTop + Math.floor(position / columns) * step - 8);
+    if (grid) grid.scrollLeft = Math.max(0, position * step - 8);
     setFocusTarget(items[position].id);
   };
 
   return <div ref={gridRef} className="gallery-date-grid gallery-date-grid--virtual" data-media-kind={mediaKind}
-    style={{ height }} onKeyDownCapture={handleKeyDown}>
+    style={{ height }} onKeyDownCapture={handleKeyDown}
+    onScroll={(event) => {
+      const row = event.currentTarget;
+      setScrollLeft(row.scrollLeft);
+      if (row.scrollLeft + row.clientWidth >= row.scrollWidth - 200) onReachEnd?.();
+    }}>
+    <div aria-hidden="true" style={{ width: 16 + items.length * step - gap, height: 1 }} />
     {items.length > 0 && rendered.length === 0 && <>
       <span tabIndex={0} aria-label="Enter media group" onFocus={() => enterGroup(0)} />
       <span tabIndex={0} aria-label="Enter media group from end" onFocus={() => enterGroup(items.length - 1)} />
     </>}
     {rendered.map(({ item, position }) => {
       return <div key={item.id} className="gallery-window-cell" data-gallery-window-id={item.id}
-        style={{ width: tileSize, height: tileSize, top: 8 + Math.floor(position / columns) * step, left: 8 + position % columns * step }}>
+        style={{ width: tileSize, height: tileHeight, top: 8, left: 8 + position * step }}>
         <MediaTile media={item} preload selectionMode={selectionMode} selectionDragEnabled selected={selectedItems.has(item.id)} includeDeleted={includeDeleted}
           onSelect={onSelect} onFavorite={onFavorite} favoriteDisabled={favoriteBusy} onOpen={onOpen} onUnavailable={onUnavailable} />
       </div>;

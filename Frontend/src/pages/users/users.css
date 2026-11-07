@@ -1137,17 +1137,19 @@
   }
 
   .admin-users__table tr {
-    padding: 4px 10px;
+    padding: 4px 12px;
     display: grid;
     grid-auto-flow: column;
-    grid-template-columns: minmax(0, 1fr) 64px 48px;
+    grid-template-columns: minmax(0, 1fr) 48px 48px;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     background: transparent;
+    border: 0;
+    transition: background-color 160ms ease, transform 160ms ease;
   }
 
   .admin-users__table thead tr {
-    border-color: transparent;
+    border-bottom: 1px solid var(--border);
     border-radius: 0;
     background: transparent;
   }
@@ -1168,8 +1170,8 @@
   }
 
   .admin-users__table th:nth-child(1) { grid-column: 1; grid-row: 1; }
-  .admin-users__table th:nth-child(3) { grid-column: 2; grid-row: 1; }
-  .admin-users__table th:nth-child(2) { grid-column: 3; grid-row: 1; }
+  .admin-users__table th:nth-child(2) { grid-column: 2; grid-row: 1; }
+  .admin-users__table th:nth-child(3) { grid-column: 3; grid-row: 1; }
 
   .admin-users__table tr + tr {
     margin-top: 8px;
@@ -1181,6 +1183,23 @@
 
   .admin-table tr + tr {
     margin-top: 12px;
+  }
+
+  .admin-users__table tbody tr + tr {
+    margin-top: 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .admin-users__table tbody tr:hover,
+  .admin-users__table tbody tr:focus-within {
+    background: var(--surface-hover);
+    transform: translateX(3px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .admin-users__table tbody tr { transition: none; }
+    .admin-users__table tbody tr:hover,
+    .admin-users__table tbody tr:focus-within { transform: none; }
   }
 
   .admin-table td {
@@ -1218,17 +1237,19 @@
   .admin-users .admin-users__table .admin-users__row--expanded td:nth-child(4),
   .admin-users .admin-users__table .admin-users__row--expanded td:nth-child(5) {
     display: flex;
-    grid-column: 1 / -1;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    grid-row: 2;
+    white-space: normal;
   }
 
   .admin-users .admin-users__table .admin-users__row--expanded td:nth-child(4) {
-    grid-row: 2;
-    border-top: 1px solid var(--border);
-    padding-top: 10px;
+    grid-column: 1;
   }
 
   .admin-users .admin-users__table .admin-users__row--expanded td:nth-child(5) {
-    grid-row: 3;
+    grid-column: 2 / -1;
   }
 
   .admin-users .admin-users__table .admin-users__row--expanded td:nth-child(4)::before,
@@ -1239,7 +1260,7 @@
   .admin-users .admin-users__table .admin-users__row--expanded .admin-table__actions:not(:empty) {
     display: flex;
     grid-column: 1 / -1;
-    grid-row: 4;
+    grid-row: 3;
     justify-content: flex-end;
   }
 
@@ -1250,8 +1271,8 @@
   }
 
   .admin-users__table td:nth-child(1) { grid-column: 1; }
-  .admin-users__table td:nth-child(3) { grid-column: 2; }
-  .admin-users__table td:nth-child(2) { grid-column: 3; }
+  .admin-users__table td:nth-child(2) { grid-column: 2; }
+  .admin-users__table td:nth-child(3) { grid-column: 3; }
 
   .admin-users__identity--desktop {
     display: none;

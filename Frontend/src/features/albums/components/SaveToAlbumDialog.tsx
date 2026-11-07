@@ -13,6 +13,7 @@ import { useAlbumMembership, useInfiniteAlbums, useInvalidateAlbums } from "../h
 import { albumService } from "../services/albumService";
 import type { Album } from "../types";
 import { ALBUM_NAME_MAX_LENGTH } from "../types";
+import { AlbumSearchInput } from "./AlbumSearchInput";
 
 interface Props {
   mediaIds: string[];
@@ -123,8 +124,7 @@ export function SaveToAlbumDialog({ mediaIds, onClose, portalContainer }: Props)
           <AlertDialog.Popup className="confirmation-dialog album-dialog">
             <AlertDialog.Title className="confirmation-dialog__title">{t("Save to album")}</AlertDialog.Title>
             <div className="album-dialog__body">
-                <input type="search" value={search} maxLength={120} onChange={(event) => setSearch(event.target.value)}
-                  aria-label={t("Search albums")} placeholder={t("Search albums")} />
+                <AlbumSearchInput value={search} onChange={setSearch} />
                 {isPending ? <Spinner label={t("Loading albums…")} /> : loadError ? (
                   <ErrorState
                     message={t("Could not load albums.")}

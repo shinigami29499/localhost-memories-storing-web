@@ -178,7 +178,7 @@ textarea, select { min-height: 44px; }
   .app-shell__main { flex: 1; }
   .app-topbar { padding: env(safe-area-inset-top) 16px 0; }
   .app-shell__content { padding-bottom: 0; }
-  .page-action-bar:not(:has(.gallery-selection-bar:not(.gallery-selection-bar--selection-only), .gallery-selection-bar__selection-actions, [data-collapsing-bar])) { display: none; }
+  .page-action-bar:not(:has(.gallery-selection-bar:not(.gallery-selection-bar--selection-only), .gallery-selection-bar__selection-actions, [data-collapsing-bar], [data-user-transition-exit])) { display: none; }
   .bottom-navigation {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -217,6 +217,7 @@ textarea, select { min-height: 44px; }
     font-weight: 700;
   }
   .page-action-bar { bottom: 0; }
+  .page-action-bar:has(.place__action-bar) { border-top: 0; }
   .bottom-navigation__dialog {
     position: fixed;
     inset: auto 0 0;
@@ -253,7 +254,7 @@ textarea, select { min-height: 44px; }
   .bottom-navigation__dialog nav button:not(.dialog-action):hover { background: var(--surface-hover); }
 }
 
-:root[data-motion="off"] *,
+:root[data-motion="off"] *:not(.btn__spinner, .spinner__wheel, .place__location-search-spinner),
 :root[data-motion="off"] *::before,
 :root[data-motion="off"] *::after {
   animation-duration: 0s !important;

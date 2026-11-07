@@ -20,6 +20,16 @@
   display: none !important;
 }
 
+:is(.place, .locations) .map-controls :is(
+  .place__scenes:not([open]), .locations__scenes:not([open]),
+  .place__map-home-control, .locations__map-home-control,
+  .place__add-marker-control, .locations__add-marker-control, .locations__camera-control,
+  .mapboxgl-ctrl-group:has(.mapboxgl-ctrl-geolocate),
+  .place__location-search:not(:focus-within) .place__location-search-form
+) {
+  outline: 2.25px solid #F4F3EE;
+}
+
 .map-loading-overlay {
   align-items: center;
   background: #6A3F36;

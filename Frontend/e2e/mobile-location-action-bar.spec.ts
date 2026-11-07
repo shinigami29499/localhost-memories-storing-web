@@ -46,10 +46,10 @@ test("mobile location map action is anchored like gallery and exits toward the r
         const style = getComputedStyle(this);
         (window as Window & { outlineSamples: { width: string; color: string }[] }).outlineSamples.push({ width: style.borderTopWidth, color: style.borderTopColor });
       }
-      if ((this.classList.contains("map-navigation__toolbar") || this.classList.contains("place__action-bar")) && Array.isArray(frames)) {
-        (window as Window & { viewFrames: { kind: string; time: number; frames: Keyframe[] }[] }).viewFrames.push({ kind: this.classList.contains("place__action-bar") ? "search" : "map", time: performance.now(), frames });
+      if ((this.classList.contains("map-navigation__toolbar") || this.classList.contains("page-action-bar")) && Array.isArray(frames)) {
+        (window as Window & { viewFrames: { kind: string; time: number; frames: Keyframe[] }[] }).viewFrames.push({ kind: this.classList.contains("page-action-bar") ? "search" : "map", time: performance.now(), frames });
       }
-      if (this.classList.contains("place__action-bar") && Array.isArray(frames) && frames[0]?.transform === "translateY(100%)") {
+      if (this.classList.contains("page-action-bar") && Array.isArray(frames) && frames[0]?.transform === "translateY(100%)") {
         const start = performance.now();
         const sample = () => {
           (window as Window & { ghostSamples: { time: number; count: number; html: string }[] }).ghostSamples.push({ time: performance.now() - start, count: document.querySelectorAll("[data-collapsing-bar], [data-exiting], .page-action-bar__item > .map-navigation__toolbar").length, html: document.querySelector("[data-collapsing-bar], [data-exiting], .page-action-bar__item > .map-navigation__toolbar")?.outerHTML.slice(0, 250) ?? "" });
@@ -57,7 +57,7 @@ test("mobile location map action is anchored like gallery and exits toward the r
         };
         requestAnimationFrame(sample);
       }
-      if (this.classList.contains("place__action-bar") && Array.isArray(frames) && (frames[0]?.transform === "translateY(100%)" || frames.at(-1)?.transform === "translateY(100%)")) {
+      if (this.classList.contains("page-action-bar") && Array.isArray(frames) && (frames[0]?.transform === "translateY(100%)" || frames.at(-1)?.transform === "translateY(100%)")) {
         const start = performance.now();
         const sample = () => {
           const nav = document.querySelector(".bottom-navigation");

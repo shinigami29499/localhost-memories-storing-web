@@ -57,6 +57,7 @@ This is a guide, not a requirement to create every directory. Prefer colocating 
 - Use familiar, labeled icons. Keep navigation and common controls static; use motion only where it clarifies state.
 - Use `var(--surface-hover)` for neutral hover and focus highlights. The app has one light theme and five authored UI colors in `src/styles/global.css`; keep selected and destructive states distinct through text, icons, and boundaries.
 - Row-level actions are icon buttons with descriptive `aria-label` and `title`; show a spinner while busy. Hide decorative icons from assistive technology.
+- For Delete inside an existing dialog, confirm inline: replace its action row with narrow Cancel and a solid destructive action, and show the target and consequence below. Focus Cancel and disable both actions while deleting; do not open another dialog.
 - Do not define a component inside another component's body.
 - Keep comments limited to necessary facts or non-obvious constraints.
 
@@ -70,7 +71,21 @@ This is a guide, not a requirement to create every directory. Prefer colocating 
 - Browser `<img>` and `<video>` elements cannot attach an Authorization header; protected media therefore uses the authenticated query-token URL form.
 - Admin trash requires a valid JWT with `role: admin`. Deleted-media previews use `includeDeleted=true`; the backend serves trashed files without restoring them.
 - On phones, `AuthenticatedLayout` uses bottom navigation with a native More dialog; desktop uses a left sidebar. Preserve dialog focus return and the localized skip link.
+- For mobile page-action bars, follow [Mobile action-bar behavior](#mobile-action-bar-behavior).
 - Validate frontend work with the existing build. Run tests only under the conditions in the Validation section.
+
+## Mobile action-bar behavior
+
+At widths up to 767px, reuse `PageActionBar` and its existing mobile transitions. Keep desktop behavior unchanged.
+
+- Gallery, Albums, Trash, album detail, and map navigation use a compact vertical icon bar, 12px from the main area's right and bottom edges. Put the primary/add action at the bottom. Use accessible labels and titles, and preserve the surface-colored outer border throughout motion.
+- When a vertical bar gains actions, expand upward from its bottom; when it loses actions, collapse downward. When the whole bar leaves, slide it right; when it enters, slide it left. Keep its border intact during expansion and collapse.
+- Saved, History, and Users use a horizontal search bar. Slide it upward from fully behind the bottom navigation on entry and downward behind it on exit. Keep its width stable; do not expose a sliver above the navigation before entry.
+- Between Saved, History, and Users, keep the same horizontal search bar visually continuous; do not animate its replacement or leave a blank frame. Saved-to-History and History-to-Saved also keep the bar in place.
+- Change the page immediately. When different bar types replace each other, let the outgoing bar finish before the incoming bar starts; preserve the existing 200ms motion and 50ms handoff. Remove exit copies after use, prevent stale copies during rapid navigation, and keep the bottom navigation above sliding bars.
+- Respect the animation setting and reduced-motion preference. Preserve keyboard access and accessible names when actions are icon-only.
+
+Implementation lives in `src/components/layout/PageActionBar.tsx`, `src/pages/gallery/gallery.css`, and the relevant page styles. When browser-driven tests are explicitly authorized, use `e2e/mobile-gallery-actions.spec.ts`, `e2e/mobile-location-action-bar.spec.ts`, and `e2e/mobile-users-action-transition.spec.ts`; verify rendered positions, visible motion, handoff timing, border continuity, and absence of ghost bars, not just animation keyframes.
 
 ## PWA support and limits
 

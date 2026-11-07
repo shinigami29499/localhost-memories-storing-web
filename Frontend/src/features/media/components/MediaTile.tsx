@@ -1,3 +1,5 @@
+﻿import { Image as ImageIcon } from "@/components/animate-ui/icons/image";
+import { UserAvatar } from "../../../components/common/UserAvatar";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useInView } from "motion/react";
 import { AnimateIcon } from "@/components/animate-ui/icons/icon";
@@ -8,7 +10,7 @@ import { RotateCcw } from "@/components/animate-ui/icons/rotate-ccw";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import { useLocale } from "../../../context/LocaleContext";
 import { showToast } from "../../../components/ui/Toast";
-import { mediaPreviewUrl } from "../../../utils/media";
+import { formatTimestamp, mediaPreviewUrl } from "../../../utils/media";
 import type { MediaFile } from "../types";
 import { useMediaRetry } from "./MediaRetryProvider";
 
@@ -31,7 +33,7 @@ interface Props {
 export function MediaTile({
   media, selectionMode, selectionEnabled = true, selectionDragEnabled = false, selected, favoriteDisabled, includeDeleted = false, preload = false, onSelect, onOpen, onFavorite, onUnavailable,
 }: Props) {
-  const { t } = useLocale();
+  const { t, language } = useLocale();
   const tileRef = useRef<HTMLButtonElement>(null);
   const inView = useInView(tileRef, { margin: "200px 0px" });
   const retryGroup = useMediaRetry();
@@ -202,11 +204,21 @@ export function MediaTile({
       </span>
       {media.mediaKind === "video" && !failed && !retrying ? (
         <>
-          <span className="media-tile__video-fade" aria-hidden="true" />
-          <span className="media-tile__video-indicator" aria-hidden="true"><Clapperboard size={16} /></span>
           <span className="media-tile__play" aria-hidden="true"><Play size={24} /></span>
         </>
       ) : null}
+      <span className="media-tile__info">
+        <span className="media-tile__owner">
+          <UserAvatar user={{ id: media.ownerId ?? media.ownerUsername ?? "unknown", username: media.ownerUsername ?? undefined, avatarSeed: media.ownerAvatarSeed }} className="media-tile__avatar" />
+          <span className="media-tile__by">{t("By {username}", { username: media.ownerUsername || t("Unknown") })}</span>
+        </span>
+        <span className="media-tile__details">
+          <time dateTime={media.createdAt}>{formatTimestamp(media.createdAt, language)}</time>
+          <span role="img" aria-label={t(media.mediaKind === "video" ? "Video" : "Image")}>
+            {media.mediaKind === "video" ? <Clapperboard size={16} /> : <ImageIcon size={16} />}
+          </span>
+        </span>
+      </span>
       {failed || retrying ? (
         <span className="media-tile__retry" aria-hidden="true">
           {retrying || checkingAvailability

@@ -28,8 +28,11 @@ test("mobile gallery actions stay anchored across gallery sections", async ({ pa
     Element.prototype.animate = function (frames, options) {
       if ((this.hasAttribute("data-collapsing-bar") || this.classList.contains("gallery-page__actions")) && Array.isArray(frames)) {
         (window as Window & { mobileExitFrames: Keyframe[][] }).mobileExitFrames.push(frames);
-        const rect = this.getBoundingClientRect();
-        (window as Window & { mobileExitRects: number[][] }).mobileExitRects.push([rect.width, rect.height, rect.right, rect.bottom]);
+        // A bar sliding in from the right is intentionally offset until its entry ends.
+        if (frames[0]?.clipPath !== "inset(0 0 0 100%)") {
+          const rect = this.getBoundingClientRect();
+          (window as Window & { mobileExitRects: number[][] }).mobileExitRects.push([rect.width, rect.height, rect.right, rect.bottom]);
+        }
       }
       return original.call(this, frames, options);
     };
@@ -50,6 +53,6 @@ test("mobile gallery actions stay anchored across gallery sections", async ({ pa
   expect(frames.some(([start, end]) => Number.parseFloat(String(start.width)) > 0 && end.width === "0px")).toBe(true);
   expect(frames.some(([start, end]) => Number.parseFloat(String(start.height)) > 0 && Number.parseFloat(String(end.height)) > Number.parseFloat(String(start.height)))).toBe(true);
   const rects = await page.evaluate(() => (window as Window & { mobileExitRects: number[][] }).mobileExitRects);
-  expect(rects.every(([width, height, right, bottom]) => width > 0 && height > 0 && Math.round(right) === 378 && bottom > 0)).toBe(true);
+  expect(rects.every(([width, height, right, bottom]) => width > 0 && height > 0 && Math.round(right) === 378 && bottom > 0), JSON.stringify(rects)).toBe(true);
 });
 

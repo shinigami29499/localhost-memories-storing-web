@@ -64,8 +64,13 @@
   overflow: visible;
 }
 @media (max-width: 767px) {
-  .app-shell__main:has(.place) {
+  .app-shell__main {
     z-index: 0;
+  }
+  .page-action-bar__item:has(> .place__action-bar) {
+    width: auto !important;
+    opacity: 1 !important;
+    overflow: visible;
   }
   .page-action-bar[data-location-view-transition] .page-action-bar__item {
     width: auto !important;
@@ -74,6 +79,10 @@
   }
   .page-action-bar[data-location-view-transition="closing"] .page-action-bar__item {
     visibility: hidden;
+  }
+  .page-action-bar[data-location-view-transition="closing"] {
+    background: transparent;
+    border-top-color: transparent;
   }
 }
 .place__action-bar .place__search-bar {

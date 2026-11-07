@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Switch } from "@animate-ui/react/primitives/base-ui/switch";
+import { AnimateUIProvider } from "@animate-ui/react/provider";
 import { useAnimationStore } from "../../store/animationStore";
 import { useToastPreferencesStore } from "../../store/toastPreferencesStore";
 import { toastManager } from "../../components/ui/Toast";
@@ -181,7 +182,7 @@ export function SettingsPage() {
                   setToastsEnabled(enabled);
                   if (!enabled) toastManager.close();
                 }} aria-describedby="settings-toasts-help">
-                <Switch.Thumb className="settings-page__switch-thumb" />
+                <AnimateUIProvider reducedMotion="user"><Switch.Thumb className="settings-page__switch-thumb" /></AnimateUIProvider>
               </Switch.Root>
             </div>
             <div className="settings-page__field">
@@ -192,7 +193,7 @@ export function SettingsPage() {
               <Switch.Root id="settings-animations" className="settings-page__switch"
                 checked={animationsEnabled} onCheckedChange={setAnimationsEnabled}
                 aria-describedby="settings-animations-help">
-                <Switch.Thumb className="settings-page__switch-thumb" />
+                <AnimateUIProvider reducedMotion="user"><Switch.Thumb className="settings-page__switch-thumb" /></AnimateUIProvider>
               </Switch.Root>
             </div>
           </div>
@@ -217,7 +218,7 @@ export function SettingsPage() {
                 else requestLocation();
               }}
               aria-describedby="settings-location-help">
-              <Switch.Thumb className="settings-page__switch-thumb" />
+              <AnimateUIProvider reducedMotion="user"><Switch.Thumb className="settings-page__switch-thumb" /></AnimateUIProvider>
             </Switch.Root>
           </div>
         </section>
@@ -236,7 +237,7 @@ export function SettingsPage() {
                 if (checked) void requestCamera();
                 else setCameraMessage(t("Turn off camera access in your browser or device settings."));
               }} aria-describedby="settings-camera-help">
-              <Switch.Thumb className="settings-page__switch-thumb" />
+              <AnimateUIProvider reducedMotion="user"><Switch.Thumb className="settings-page__switch-thumb" /></AnimateUIProvider>
             </Switch.Root>
           </div>
         </section>
@@ -262,7 +263,7 @@ export function SettingsPage() {
               checked={notificationsEnabled} disabled={notificationRequestPending}
               onCheckedChange={(checked) => void updateNotifications(checked)}
               aria-describedby="settings-notifications-help">
-              <Switch.Thumb className="settings-page__switch-thumb" />
+              <AnimateUIProvider reducedMotion="user"><Switch.Thumb className="settings-page__switch-thumb" /></AnimateUIProvider>
             </Switch.Root>
           </div>
           <p className="settings-page__notification-note">

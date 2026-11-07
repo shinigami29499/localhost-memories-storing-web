@@ -445,6 +445,10 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
         <AlbumFormDialog
           album={data}
           onClose={() => setEditing(false)}
+          onDelete={async () => {
+            await albumService.remove(data.id);
+            return () => { navigate("/gallery/album", { replace: true }); void invalidate(); };
+          }}
           onSubmit={async (input) => {
             await albumService.update(data.id, input);
             await invalidate();

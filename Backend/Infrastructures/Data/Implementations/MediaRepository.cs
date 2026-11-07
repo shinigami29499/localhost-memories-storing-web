@@ -86,7 +86,7 @@ public sealed class MediaRepository(ApplicationDbContext db) : IMediaRepository
             .ExecuteDeleteAsync(cancellationToken);
     }
 
-    public async Task<IReadOnlyList<(MediaFile Media, string? OwnerUsername)>> GetMediaPageAsync(
+    public async Task<IReadOnlyList<(MediaFile Media, string? OwnerUsername, string? OwnerAvatarSeed)>> GetMediaPageAsync(
         int offset,
         int limit,
         string? mediaKind,
@@ -103,16 +103,18 @@ public sealed class MediaRepository(ApplicationDbContext db) : IMediaRepository
             .Select(media => new
             {
                 Media = media,
+                OwnerAvatarSeed = db.Users.Where(user => user.Id == media.OwnerId)
+                    .Select(user => user.AvatarSeed).FirstOrDefault(),
                 OwnerUsername = db.Users
                     .Where(user => user.Id == media.OwnerId)
                     .Select(user => user.Username)
                     .FirstOrDefault(),
             })
             .ToListAsync(cancellationToken);
-        return page.Select(item => (item.Media, item.OwnerUsername)).ToList();
+        return page.Select(item => (item.Media, item.OwnerUsername, item.OwnerAvatarSeed)).ToList();
     }
 
-    public async Task<(IReadOnlyList<(MediaFile Media, string? OwnerUsername)> Items, long Total)> GetLocatedMediaPageAsync(
+    public async Task<(IReadOnlyList<(MediaFile Media, string? OwnerUsername, string? OwnerAvatarSeed)> Items, long Total)> GetLocatedMediaPageAsync(
         int offset, int limit, PlaceMapBounds bounds, CancellationToken cancellationToken = default)
     {
         // CASE avoids casting malformed or missing legacy location metadata.
@@ -136,13 +138,15 @@ public sealed class MediaRepository(ApplicationDbContext db) : IMediaRepository
             .Select(media => new
             {
                 Media = media,
+                OwnerAvatarSeed = db.Users.Where(user => user.Id == media.OwnerId)
+                    .Select(user => user.AvatarSeed).FirstOrDefault(),
                 OwnerUsername = db.Users.Where(user => user.Id == media.OwnerId)
                     .Select(user => user.Username).FirstOrDefault(),
             }).ToListAsync(cancellationToken);
-        return (page.Select(item => (item.Media, item.OwnerUsername)).ToList(), total);
+        return (page.Select(item => (item.Media, item.OwnerUsername, item.OwnerAvatarSeed)).ToList(), total);
     }
 
-    public async Task<(IReadOnlyList<(MediaFile Media, string? OwnerUsername)> Items, long Total)> GetUnlocatedMediaPageAsync(
+    public async Task<(IReadOnlyList<(MediaFile Media, string? OwnerUsername, string? OwnerAvatarSeed)> Items, long Total)> GetUnlocatedMediaPageAsync(
         int offset, int limit, CancellationToken cancellationToken = default)
     {
         var unlocated = db.MediaFiles.FromSqlRaw("""
@@ -155,10 +159,12 @@ public sealed class MediaRepository(ApplicationDbContext db) : IMediaRepository
             .Select(media => new
             {
                 Media = media,
+                OwnerAvatarSeed = db.Users.Where(user => user.Id == media.OwnerId)
+                    .Select(user => user.AvatarSeed).FirstOrDefault(),
                 OwnerUsername = db.Users.Where(user => user.Id == media.OwnerId)
                     .Select(user => user.Username).FirstOrDefault(),
             }).ToListAsync(cancellationToken);
-        return (page.Select(item => (item.Media, item.OwnerUsername)).ToList(), total);
+        return (page.Select(item => (item.Media, item.OwnerUsername, item.OwnerAvatarSeed)).ToList(), total);
     }
 
     public Task<long> CountMediaAsync(

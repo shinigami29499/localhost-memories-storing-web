@@ -156,6 +156,7 @@ export function AlbumsPage() {
         <AlbumFormDialog
           album={editing}
           onClose={() => setEditing(null)}
+          onDelete={async () => { await albumService.remove(editing.id); await invalidate(); }}
           onSubmit={async (input) => {
             await albumService.update(editing.id, input);
             await invalidate();

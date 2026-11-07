@@ -10,6 +10,7 @@ export interface MediaFile {
   isPreviewOnly?: boolean;
   ownerId?: string;
   ownerUsername?: string | null;
+  ownerAvatarSeed?: string | null;
   location?: PhotoLocation | null;
 }
 

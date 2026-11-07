@@ -5,6 +5,7 @@ import { XIcon } from "../../../components/animate-ui/icons/x";
 import { useLocale } from "../../../context/LocaleContext";
 import { useAnimationStore } from "../../../store/animationStore";
 import { useDialogViewportStyle } from "../../../hooks/useDialogViewportStyle";
+import "../../../pages/place/place.css";
 
 interface Props {
   title: string;

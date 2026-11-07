@@ -774,11 +774,6 @@
     white-space: nowrap;
   }
 
-  .notification-bar__badge {
-    top: 0;
-    right: 0;
-  }
-
   .notification-bar__panel {
     position: fixed;
     top: calc(var(--app-topbar-height) + 8px);

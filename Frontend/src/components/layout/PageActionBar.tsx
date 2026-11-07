@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import type { HTMLAttributes, ReactNode } from "react";
 import { motion } from "motion/react";
 import { useAnimationStore } from "../../store/animationStore";
+import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { ActionBarContext } from "./PageActionBarContext";
 import "../../pages/gallery/gallery.css";
 
@@ -63,9 +64,23 @@ function animateMobileExpand(bar: HTMLElement, previousHeight: number, nextHeigh
     { duration: 200, easing: "ease-out" });
 }
 
+export function cloneMobileSearchFooter(footer: HTMLElement, bar: HTMLElement, bounds: DOMRect | { left: number; top: number; width: number; height: number }, originalFooterBounds = footer.getBoundingClientRect()) {
+  const footerBounds = originalFooterBounds;
+  const copy = footer.cloneNode(false) as HTMLElement;
+  copy.setAttribute("aria-hidden", "true");
+  copy.inert = true;
+  Object.assign(copy.style, { position: "fixed", left: `${footerBounds.left}px`, top: `${footerBounds.top}px`, right: "auto", bottom: "auto", width: `${footerBounds.width}px`, height: `${footerBounds.height}px`, minHeight: "0", margin: "0", boxSizing: "border-box", pointerEvents: "none" });
+  const search = bar.cloneNode(true) as HTMLElement;
+  Object.assign(search.style, { position: "absolute", left: `${bounds.left - footerBounds.left}px`, top: `${bounds.top - footerBounds.top}px`, width: `${bounds.width}px`, height: `${bounds.height}px`, maxWidth: "none", margin: "0" });
+  copy.append(search);
+  footer.parentElement?.append(copy);
+  return copy;
+}
+
 export function PageActionBarProvider({ children }: { children: ReactNode }) {
   const [target, setTarget] = useState<HTMLElement | null>(null);
   const enabled = useAnimationStore((state) => state.enabled);
+  const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
   const [width, setWidth] = useState(0);
 
   useLayoutEffect(() => {
@@ -73,12 +88,21 @@ export function PageActionBarProvider({ children }: { children: ReactNode }) {
     const footer = target.parentElement;
     if (!footer) return;
     let observedBar: HTMLElement | null = null;
+    let observedBarPath = window.location.pathname;
     let measuredWidth = 0;
     let snapshotWidth = 0;
     let snapshot: HTMLElement | null = null;
     let replacedBar: HTMLElement | null = null;
     let pendingMobileExit: { bar: HTMLElement; bounds: typeof snapshotBounds; timer: number } | null = null;
     let snapshotBounds = { left: 0, top: 0, width: 0, height: 0 };
+    let snapshotViewport = { left: 0, top: 0 };
+    let snapshotFooterBounds = footer.getBoundingClientRect();
+    let userExitUntil = 0;
+    let pendingRouteEntry: string | null = null;
+    let userExit: HTMLElement | null = null;
+    let sharedSearchBridge: HTMLElement | null = null;
+    let sharedSearchOld: HTMLElement | null = null;
+    let sharedSearchPending = false;
     const transitions = new MutationObserver(() => {
       if (!footer.hasAttribute("data-location-view-transition")) return;
       if (pendingMobileExit) window.clearTimeout(pendingMobileExit.timer);
@@ -96,13 +120,16 @@ export function PageActionBarProvider({ children }: { children: ReactNode }) {
         if (observedBar) resize?.unobserve(observedBar);
         if (bar) resize?.observe(bar);
         observedBar = bar;
+        if (bar) observedBarPath = window.location.pathname;
       }
       measuredWidth = bar ? bar.getBoundingClientRect().width : 0;
       if (bar && measuredWidth > 0) {
         snapshot = bar.cloneNode(true) as HTMLElement;
         snapshotWidth = measuredWidth;
         const rect = bar.getBoundingClientRect();
+        snapshotViewport = { left: rect.left, top: rect.top };
         const footerRect = footer.getBoundingClientRect();
+        snapshotFooterBounds = footerRect;
         snapshotBounds = { left: rect.left - footerRect.left, top: rect.top - footerRect.top, width: rect.width, height: rect.height };
       } else {
         snapshot = null;
@@ -112,12 +139,99 @@ export function PageActionBarProvider({ children }: { children: ReactNode }) {
     };
     const changes = new MutationObserver((records) => {
       const bar = target.querySelector(":scope > .gallery-selection-bar:not([data-exiting])");
-      if (enabled && !footer.hasAttribute("data-location-view-transition")) {
+      if (enabled && !reducedMotion && !footer.hasAttribute("data-location-view-transition")) {
         const removed = records.flatMap((record) => Array.from(record.removedNodes))
           .find((node): node is HTMLElement => node instanceof HTMLElement && node.classList.contains("gallery-selection-bar") && !node.hasAttribute("data-exiting"));
         const added = records.flatMap((record) => Array.from(record.addedNodes))
-          .find((node): node is HTMLElement => node instanceof HTMLElement && node.classList.contains("gallery-page__actions"));
+          .find((node): node is HTMLElement => node instanceof HTMLElement && node.classList.contains("gallery-selection-bar") && !node.hasAttribute("data-exiting"));
         const nextWidth = bar?.getBoundingClientRect().width ?? 0;
+        const mobile = window.matchMedia("(max-width: 767px)").matches && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        if (pendingRouteEntry && pendingRouteEntry !== window.location.pathname) pendingRouteEntry = null;
+        const searchDestination = window.location.pathname === "/users" || /^\/location\/(saved|history)\/?$/.test(window.location.pathname);
+        if (!searchDestination && sharedSearchPending) {
+          sharedSearchBridge?.remove();
+          sharedSearchBridge = null;
+          sharedSearchPending = false;
+          sharedSearchOld = null;
+        }
+        const previousSearch = removed?.classList.contains("place__action-bar") ? removed
+          : added && observedBar !== added && observedBar?.classList.contains("place__action-bar") ? observedBar : null;
+        const sharedSearchSwap = mobile && searchDestination && (sharedSearchPending
+          || (removed && removed === sharedSearchOld)
+          || (previousSearch && (previousSearch.classList.contains("users__action-bar") || window.location.pathname === "/users")));
+        if (sharedSearchSwap) {
+          const completedOverlap = Boolean(removed && removed === sharedSearchOld);
+          if (completedOverlap) sharedSearchOld = null;
+          if (previousSearch && !removed) sharedSearchOld = previousSearch;
+          if (removed && !added && !completedOverlap && snapshot && snapshotBounds.width > 0) {
+            sharedSearchBridge?.remove();
+            const bridge = snapshot;
+            bridge.dataset.userSearchBridge = "true";
+            bridge.setAttribute("aria-hidden", "true");
+            bridge.inert = true;
+            Object.assign(bridge.style, { position: "fixed", left: `${snapshotViewport.left}px`, top: `${snapshotViewport.top}px`, width: `${snapshotBounds.width}px`, height: `${snapshotBounds.height}px`, maxWidth: "none", margin: "0", pointerEvents: "none", zIndex: "2" });
+            footer.append(bridge);
+            sharedSearchBridge = bridge;
+            sharedSearchPending = true;
+          }
+          if (added?.classList.contains("place__action-bar")) {
+            sharedSearchBridge?.remove();
+            sharedSearchBridge = null;
+            sharedSearchPending = false;
+            userExitUntil = 0;
+          }
+          measure();
+          return;
+        }
+        const routeChanged = Boolean(removed && observedBarPath !== window.location.pathname);
+        const searchLeavingPage = routeChanged && removed?.classList.contains("place__action-bar") && !searchDestination;
+        const verticalToSearch = routeChanged && removed?.classList.contains("gallery-page__actions") && searchDestination;
+        const searchEnteringEmpty = added?.classList.contains("place__action-bar") && !observedBar;
+        const userSwap = mobile && (removed?.classList.contains("users__action-bar") || added?.classList.contains("users__action-bar")
+          || searchLeavingPage || verticalToSearch || searchEnteringEmpty || (added && pendingRouteEntry === window.location.pathname)
+          || (removed && window.location.pathname === "/users") || performance.now() < userExitUntil);
+        if (userSwap) {
+          if (removed && snapshot && snapshotBounds.width > 0) {
+            userExit?.remove();
+            const vertical = removed.classList.contains("gallery-page__actions");
+            const exiting = vertical ? snapshot : cloneMobileSearchFooter(footer, snapshot, { ...snapshotViewport, width: snapshotBounds.width, height: snapshotBounds.height }, snapshotFooterBounds);
+            exiting.dataset.userTransitionExit = "true";
+            exiting.setAttribute("aria-hidden", "true");
+            exiting.inert = true;
+            const mainBounds = footer.parentElement?.getBoundingClientRect();
+            const left = vertical && mainBounds ? mainBounds.right - 12 - snapshotBounds.width : snapshotViewport.left;
+            const top = vertical && mainBounds ? mainBounds.bottom - 12 - snapshotBounds.height : snapshotViewport.top;
+            if (vertical) {
+              Object.assign(exiting.style, { position: "fixed", left: `${left}px`, top: `${top}px`, width: `${snapshotBounds.width}px`, height: `${snapshotBounds.height}px`, maxWidth: "none", margin: "0", pointerEvents: "none", zIndex: "2" });
+              footer.append(exiting);
+            }
+            userExit = exiting;
+            const animation = exiting.animate(vertical
+              ? [{ clipPath: "inset(0 0 0 0)" }, { clipPath: "inset(0 0 0 100%)" }]
+              : [{ transform: "translateY(0)" }, { transform: "translateY(100%)" }],
+            { duration: 200, easing: "ease-in" });
+            userExitUntil = performance.now() + 250;
+            pendingRouteEntry = window.location.pathname;
+            animation.onfinish = () => { exiting.remove(); if (userExit === exiting) userExit = null; };
+          }
+          if (added) {
+            pendingRouteEntry = null;
+            const delay = Math.max(0, userExitUntil - performance.now());
+            const incomingTarget = added.classList.contains("place__action-bar") ? footer : added;
+            const incoming = incomingTarget.animate(added.classList.contains("gallery-page__actions")
+              ? [{ clipPath: "inset(0 0 0 100%)" }, { clipPath: "inset(0 0 0 0)" }]
+              : [{ transform: "translateY(100%)" }, { transform: "translateY(0)" }],
+            { duration: 200, delay, easing: "ease-out", fill: "backwards" });
+            const refreshPosition = () => {
+              if (!added.isConnected) return;
+              if (target.querySelector(":scope > .gallery-selection-bar:not([data-exiting])") === added) measure();
+              if (incoming.playState === "running") requestAnimationFrame(refreshPosition);
+            };
+            requestAnimationFrame(refreshPosition);
+          }
+          measure();
+          return;
+        }
         const mobileGalleryExit = removed?.classList.contains("gallery-page__actions") && window.matchMedia("(max-width: 767px)").matches;
         const completingMobileSwap = Boolean(removed && removed === replacedBar);
         if (completingMobileSwap) replacedBar = null;
@@ -149,7 +263,7 @@ export function PageActionBarProvider({ children }: { children: ReactNode }) {
           footer.querySelector(":scope > [data-collapsing-bar]")?.remove();
           target.querySelector(":scope > [data-exiting]")?.remove();
           const nextHeight = bar?.classList.contains("gallery-page__actions") ? bar.getBoundingClientRect().height : 0;
-          if (removed?.classList.contains("map-navigation__toolbar") && snapshot && !bar && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          if (!routeChanged && removed?.classList.contains("map-navigation__toolbar") && snapshot && !bar && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
             const exitingBar = snapshot;
             const exitingBounds = snapshotBounds;
             const timer = window.setTimeout(() => {
@@ -183,19 +297,23 @@ export function PageActionBarProvider({ children }: { children: ReactNode }) {
           && window.matchMedia("(max-width: 767px)").matches && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
           added.animate([{ clipPath: "inset(0 0 0 100%)" }, { clipPath: "inset(0 0 0 0)" }], { duration: 200, easing: "ease-out" });
         }
+        if (mobile && added?.classList.contains("gallery-page__actions") && !added.classList.contains("map-navigation__toolbar")
+          && !snapshot && added.getBoundingClientRect().height > 0) {
+          added.animate([{ clipPath: "inset(0 0 0 100%)" }, { clipPath: "inset(0 0 0 0)" }], { duration: 200, easing: "ease-out" });
+        }
       }
       measure();
     });
     changes.observe(target, { childList: true });
     measure();
-    return () => { changes.disconnect(); transitions.disconnect(); resize?.disconnect(); if (pendingMobileExit) window.clearTimeout(pendingMobileExit.timer); };
-  }, [target, enabled]);
+    return () => { changes.disconnect(); transitions.disconnect(); resize?.disconnect(); if (pendingMobileExit) window.clearTimeout(pendingMobileExit.timer); userExit?.remove(); sharedSearchBridge?.remove(); };
+  }, [target, enabled, reducedMotion]);
 
   return <ActionBarContext.Provider value={target}>
     {children}
     <footer className="gallery-page__footer page-action-bar">
       <motion.div className="page-action-bar__item" animate={{ width, opacity: width > 0 ? 1 : 0 }}
-        transition={{ duration: enabled ? 0.2 : 0, ease: "easeOut" }}
+        transition={{ duration: enabled && !reducedMotion ? 0.2 : 0, ease: "easeOut" }}
         onAnimationComplete={() => {
           if (target && Math.abs(target.getBoundingClientRect().width - width) < 0.5) {
             target.querySelector(":scope > [data-exiting]")?.remove();

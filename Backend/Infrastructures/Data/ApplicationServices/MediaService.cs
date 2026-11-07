@@ -101,6 +101,7 @@ public partial class MediaService(
             page.Select(item => _mapper.Map(item.Media, favorites.Contains(item.Media.Id)) with
             {
                 OwnerUsername = item.OwnerUsername,
+                OwnerAvatarSeed = item.OwnerAvatarSeed,
             }).ToList());
     }
 
@@ -119,6 +120,7 @@ public partial class MediaService(
             page.Select(item => _mapper.Map(item.Media, favorites.Contains(item.Media.Id)) with
             {
                 OwnerUsername = item.OwnerUsername,
+                OwnerAvatarSeed = item.OwnerAvatarSeed,
             }).ToList());
     }
 
@@ -317,6 +319,7 @@ public partial class MediaService(
             media.Select(item => _mapper.Map(item.Media, favoriteIds.Contains(item.Media.Id)) with
             {
                 OwnerUsername = item.OwnerUsername,
+                OwnerAvatarSeed = item.OwnerAvatarSeed,
             }).ToList());
     }
 

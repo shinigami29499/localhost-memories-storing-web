@@ -217,7 +217,7 @@ export function UsersPage() {
           </Tabs.Root>
         </section>
         </div>
-        <PageActionBar className="place__action-bar">
+        <PageActionBar className="place__action-bar users__action-bar">
           <form className="place__search-bar" role="search" onSubmit={(event) => event.preventDefault()}>
             <input type="search" aria-label={t("Search users")} placeholder={t("Search users")} value={search} maxLength={120} onChange={(event) => setSearch(event.target.value)} />
             {search && <><span className="place__search-divider" aria-hidden="true" /><button type="button" className="place__search-clear" aria-label={t("Clear search")} title={t("Clear search")} onClick={() => setSearch("")}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2" /></svg></button></>}

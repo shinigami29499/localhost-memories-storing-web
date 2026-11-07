@@ -253,7 +253,8 @@ export function TrashPage() {
                             <VirtualGalleryGroup items={group.items} viewport={viewport} mediaKind={filter}
                               includeDeleted selectionMode={selectionMode} selectedItems={selectedIds}
                               onSelect={toggleSelected} onOpen={setPreviewMediaId} favoriteBusy={false}
-                              pinnedId={focusMediaId} />
+                              pinnedId={focusMediaId}
+                    onReachEnd={key === groups[groups.length - 1]?.[0] && query.hasNextPage && !query.isFetching && !query.isFetchNextPageError ? () => { void query.fetchNextPage(); } : undefined} />
                           </section>
                         ))}
                       </div>

@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { lazy, Suspense, startTransition, useCallback, useEffect, useLayoutEffect, useRef, useState, useMemo, type CSSProperties } from "react";
 import { HighlightItem } from "@animate-ui/react/primitives/effects/highlight";
 import { NavigationHighlight } from "../../components/ui";
-import { PageActionBar, usePageActionBarFooter } from "../../components/layout/PageActionBar";
+import { cloneMobileSearchFooter, PageActionBar, usePageActionBarFooter } from "../../components/layout/PageActionBar";
 import {
   Button,
   ConfirmationDialog,
@@ -155,13 +155,15 @@ export function PlacePage() {
     }
     const current = footer.querySelector<HTMLElement>(view === "map" ? ".page-action-bar__item > .map-navigation__toolbar" : ".page-action-bar__item > .place__action-bar");
     const bounds = current?.getBoundingClientRect();
-    const exiting = current?.cloneNode(true) as HTMLElement | undefined;
+    const exiting = current && bounds ? (view === "map" ? current.cloneNode(true) as HTMLElement : cloneMobileSearchFooter(footer, current, bounds)) : undefined;
     if (exiting && bounds) {
       exiting.dataset.locationViewExit = "true";
       exiting.setAttribute("aria-hidden", "true");
       exiting.inert = true;
-      Object.assign(exiting.style, { position: "fixed", left: `${bounds.left}px`, top: `${bounds.top}px`, width: `${bounds.width}px`, height: `${bounds.height}px`, maxWidth: "none", margin: "0", pointerEvents: "none", zIndex: "2" });
-      footer.append(exiting);
+      if (view === "map") {
+        Object.assign(exiting.style, { position: "fixed", left: `${bounds.left}px`, top: `${bounds.top}px`, width: `${bounds.width}px`, height: `${bounds.height}px`, maxWidth: "none", margin: "0", pointerEvents: "none", zIndex: "2" });
+        footer.append(exiting);
+      }
       viewTransition.current.exit = exiting;
     }
     footer.dataset.locationViewTransition = "closing";
@@ -194,7 +196,7 @@ export function PlacePage() {
       const incoming = actionBarFooter.querySelector<HTMLElement>(view === "map" ? ".map-navigation__toolbar" : ".place__action-bar");
       viewTransition.current.animation?.cancel();
       footer.dataset.locationViewTransition = "entering";
-      const animation = incoming?.animate(view === "map"
+      const animation = (view === "map" ? incoming : footer)?.animate(view === "map"
         ? [{ clipPath: "inset(0 0 0 100%)" }, { clipPath: "inset(0 0 0 0)" }]
         : [{ transform: "translateY(100%)" }, { transform: "translateY(0)" }],
       { duration: 200, easing: "ease-out" });
