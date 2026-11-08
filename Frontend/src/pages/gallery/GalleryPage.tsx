@@ -93,8 +93,18 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
   const returnToIndex = useRef(0);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const showingFavorites = view === "favorites";
-  const query = useInfiniteQuery({ ...mediaQueryOptions(20, showingFavorites ? "favorites" : "all", selectedFilter), staleTime: 0 });
+  const [mobile, setMobile] = useState(() => window.innerWidth < 768);
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 767px)");
+    const update = () => setMobile(mediaQuery.matches);
+    update();
+    mediaQuery.addEventListener("change", update);
+    return () => mediaQuery.removeEventListener("change", update);
+  }, []);
+  const pageSize = mobile ? 5 : 20;
+  const query = useInfiniteQuery({ ...mediaQueryOptions(pageSize, showingFavorites ? "favorites" : "all", selectedFilter), staleTime: 0 });
   const viewport = useGalleryWindow(galleryRef, `${view}:${selectedFilter}`);
+  const [firstVisibleRow, setFirstVisibleRow] = useState(0);
 
   const media = useMemo(
     () => (Array.isArray(query.data?.pages) ? query.data.pages : [])
@@ -113,6 +123,15 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
     }
     return [...byDate.entries()].sort(([, a], [, b]) => b.date.getTime() - a.date.getTime());
   }, [media]);
+  useLayoutEffect(() => {
+    if (!mobile || !viewport.height) return;
+    const scrollport = galleryRef.current?.querySelector<HTMLElement>(".gallery-page__content");
+    if (!scrollport) return;
+    const top = scrollport.getBoundingClientRect().top;
+    const sections = Array.from(scrollport.querySelectorAll<HTMLElement>("[data-gallery-row]"));
+    const index = sections.findIndex((section) => section.getBoundingClientRect().bottom > top);
+    if (index >= 0) setFirstVisibleRow(index);
+  }, [mobile, viewport, groups]);
   const previewGroup = groups.find(([key]) => key === previewGroupKey);
   const previewItems = previewGroup?.[1].items ?? [];
   const previewNeedsMore = Boolean(previewGroup && previewGroup[0] === groups[groups.length - 1]?.[0] && query.hasNextPage);
@@ -174,7 +193,7 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
     transitionPending.current = true;
     const destination = showingFavorites ? "pictures" : "favorites";
     try {
-      await queryClient.fetchInfiniteQuery(mediaQueryOptions(20, showingFavorites ? "all" : "favorites", selectedFilter));
+      await queryClient.fetchInfiniteQuery(mediaQueryOptions(pageSize, showingFavorites ? "all" : "favorites", selectedFilter));
     } catch {
       transitionPending.current = false;
       if (transitionActive.current) navigate(showingFavorites ? "/gallery" : "/gallery/favorites");
@@ -275,10 +294,10 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
         observer.disconnect();
         void query.fetchNextPage();
       }
-    }, { rootMargin: "0px 0px 2000px 0px" });
+    }, { rootMargin: mobile ? "0px 0px 300px 0px" : "0px 0px 2000px 0px" });
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [previewMediaId, query.hasNextPage, query.isFetchNextPageError, query.isFetching, query.fetchNextPage]);
+  }, [mobile, previewMediaId, query.hasNextPage, query.isFetchNextPageError, query.isFetching, query.fetchNextPage]);
 
   const toggleFavorite = async (mediaId: string, isFavorited: boolean) => {
     if (favoriteBusy) return;
@@ -484,10 +503,10 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
       {media.length > 0 ? (
         <div className="gallery-groups" aria-busy={query.isFetching}>
           <MediaRetryProvider key={`${view}-${selectedFilter}`} order={groups.flatMap(([, group]) => group.items.map((item) => item.id))}>
-            {groups.map(([key, group]) => {
+            {groups.map(([key, group], index) => {
               const dateLabel = `${group.date.getFullYear()}, ${dateFormatter.format(group.date)}`;
               return (
-              <section key={key} aria-label={dateLabel}>
+              <section key={key} aria-label={dateLabel} data-gallery-row>
                 <div className="gallery-group__header">
                   <h2 className="gallery-group__title">
                     <time dateTime={`${group.date.getFullYear()}-${String(group.date.getMonth() + 1).padStart(2, "0")}-${String(group.date.getDate()).padStart(2, "0")}`}>
@@ -496,6 +515,7 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
                   </h2>
                 </div>
                   <VirtualGalleryGroup items={group.items} viewport={viewport} mediaKind={selectedFilter} pinnedId={focusMediaId}
+                    active={!mobile || (index >= Math.max(0, firstVisibleRow - 2) && index < Math.max(0, firstVisibleRow - 2) + 7)}
                     selectionMode={selectionMode} selectedItems={selectedItems} onSelect={toggleSelected}
                     onFavorite={(mediaId) => void toggleFavorite(mediaId, false)} favoriteBusy={favoriteBusy} onOpen={(id) => { setPreviewGroupKey(key); setPreviewMediaId(id); }}
                     onUnavailable={isAdmin ? checkUnavailable : undefined}

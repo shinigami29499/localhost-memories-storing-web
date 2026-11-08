@@ -3,7 +3,7 @@
 Install Node.js 22 or newer, JDK 21, Android SDK 36, and frontend dependencies once with `npm ci`.
 
 ```powershell
-$env:VITE_API_URL = "https://diane-tongue-mediterranean-transmit.trycloudflare.com"
+$env:VITE_API_URL = "https://trainers-equations-signature-church.trycloudflare.com "
 $env:ANDROID_HOME = "E:\JDK-SDK\Android\SDK"
 $env:JAVA_HOME = "E:\JDK-SDK\Java\jdk-21"
 if (-not (Test-Path (Join-Path $env:JAVA_HOME "bin\javac.exe"))) { throw "JDK 21 is required. Install it or update JAVA_HOME to its installation folder." }

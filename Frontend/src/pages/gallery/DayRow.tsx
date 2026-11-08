@@ -7,9 +7,10 @@ interface Props<T extends { id: string }> {
   pinnedId?: string | null;
   mediaKind?: string;
   onReachEnd?: () => void;
+  active?: boolean;
 }
 
-export function DayRow<T extends { id: string }>({ items, renderItem, fallbackWidth, pinnedId, mediaKind, onReachEnd }: Props<T>) {
+export function DayRow<T extends { id: string }>({ items, renderItem, fallbackWidth, pinnedId, mediaKind, onReachEnd, active = true }: Props<T>) {
   const gridRef = useRef<HTMLDivElement>(null);
   const [focusTarget, setFocusTarget] = useState<string | null>(null);
   const [scrollLeft, setScrollLeft] = useState(0);
@@ -26,14 +27,14 @@ export function DayRow<T extends { id: string }>({ items, renderItem, fallbackWi
   const height = (screenWidth < 768 ? 16 : 32 - tileSize * 0.2 / 3) + tileHeight;
   const hoverInset = Math.max(8, Math.ceil(tileHeight * 0.045));
   const hoverHeight = tileHeight + 2 * hoverInset;
-  const start = Math.max(0, Math.floor(scrollLeft / step) - 3);
-  const end = Math.min(items.length, Math.ceil((scrollLeft + width) / step) + 3);
-  const rendered = items.slice(start, end).map((item, index) => ({ item, position: start + index }));
+  const start = Math.max(0, Math.floor(scrollLeft / step) - (screenWidth < 768 ? 2 : 3));
+  const end = Math.min(items.length, screenWidth < 768 ? start + 7 : Math.ceil((scrollLeft + width) / step) + 3);
+  const rendered = (active ? items.slice(start, end) : []).map((item, index) => ({ item, position: start + index }));
   const focusedId = typeof document === "undefined" ? null : document.activeElement?.getAttribute("data-media-id");
   for (const id of new Set([pinnedId, focusedId, focusTarget])) {
     if (!id) continue;
     const position = items.findIndex((item) => item.id === id);
-    if (position >= 0 && (position < start || position >= end)) rendered.push({ item: items[position], position });
+    if (position >= 0 && (!active || position < start || position >= end)) rendered.push({ item: items[position], position });
   }
   rendered.sort((a, b) => a.position - b.position);
 
@@ -67,6 +68,7 @@ export function DayRow<T extends { id: string }>({ items, renderItem, fallbackWi
   };
 
   const enterGroup = (position: number) => {
+    grid?.scrollIntoView({ block: "nearest" });
     if (grid) grid.scrollLeft = Math.max(0, position * step - rowInset);
     setFocusTarget(items[position].id);
   };
