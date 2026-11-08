@@ -374,7 +374,7 @@ export function MediaPreviewDialog({
           <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
             <button
               type="button"
-              className="viewer-icon-btn media-preview-dialog__action"
+              className="viewer-icon-btn media-preview-dialog__action media-preview-dialog__trash-action"
               aria-label={t("Permanently delete")}
               title={t("Permanently delete")}
               onClick={() => trashActions.onDelete(current.id)}

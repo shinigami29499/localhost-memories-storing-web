@@ -1,5 +1,5 @@
 import { PageActionBar } from "../../components/layout/PageActionBar";
-import { startTransition, useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { AnimateIcon } from "@/components/animate-ui/icons/icon";
@@ -35,6 +35,7 @@ import type { Album } from "../../features/albums/types";
 import "../../features/media/components/media.css";
 import { ApiError } from "../../services/api";
 import { useAuthStore } from "../../store/authStore";
+import { useAnimationStore } from "../../store/animationStore";
 import "../gallery/gallery.css";
 import "./albums.css";
 import { AlbumCaption } from "./AlbumCaption";
@@ -62,6 +63,9 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
   const { t } = useLocale();
   const navigate = useNavigate();
   const me = useAuthStore((s) => s.user);
+  const animationsEnabled = useAnimationStore((state) => state.enabled);
+  const filterRequest = useRef(0);
+  const filterTransition = useRef<{ positions: Map<string, DOMRect>; copies: Map<string, HTMLElement> } | null>(null);
   const [copied, setCopied] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editingCaption, setEditingCaption] = useState(false);
@@ -86,6 +90,75 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
   const media = useInfiniteAlbumMedia(albumId, 20, album.isSuccess && hasMediaFilter, mediaKind);
   const invalidate = useInvalidateAlbums();
   const items = media.data?.pages.flatMap((page) => page.items) ?? [];
+  useEffect(() => () => {
+    filterRequest.current++;
+    filterTransition.current?.copies.forEach((copy) => copy.remove());
+  }, []);
+
+  useLayoutEffect(() => {
+    const transition = filterTransition.current;
+    if (!transition || (hasMediaFilter && media.isPending)) return;
+    filterTransition.current = null;
+    const viewport = contentRef.current?.getBoundingClientRect();
+    if (!media.isError && viewport) {
+      for (const cell of contentRef.current?.querySelectorAll<HTMLElement>("[data-album-media-id]") ?? []) {
+        const rect = cell.getBoundingClientRect();
+        if (rect.right <= viewport.left || rect.left >= viewport.right || rect.bottom <= viewport.top || rect.top >= viewport.bottom) continue;
+        const id = cell.dataset.albumMediaId ?? "";
+        const previous = transition.positions.get(id);
+        if (!previous) {
+          cell.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 280, easing: "ease-out" });
+          continue;
+        }
+        transition.copies.get(id)?.remove();
+        transition.copies.delete(id);
+        const x = previous.left - rect.left;
+        const y = previous.top - rect.top;
+        if (x || y) cell.animate([{ transform: `translate(${x}px, ${y}px)` }, { transform: "translate(0, 0)" }],
+          { duration: 280, easing: "cubic-bezier(.2, .8, .2, 1)" });
+      }
+    }
+    transition.copies.forEach((copy) => {
+      copy.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 280, easing: "ease-out" }).onfinish = () => copy.remove();
+    });
+  }, [showImages, showVideos, hasMediaFilter, media.isPending, media.isError, media.data]);
+
+  const changeFilter = async (images: boolean, videos: boolean) => {
+    const request = ++filterRequest.current;
+    const kind: MediaKindFilter | undefined = images === videos ? undefined : images ? "image" : "video";
+    if (animationsEnabled && !window.matchMedia("(prefers-reduced-motion: reduce)").matches && albumId) {
+      if (images || videos) {
+        try {
+          await queryClient.fetchInfiniteQuery({
+            queryKey: albumKeys.infiniteMedia(albumId, 20, kind), initialPageParam: 0,
+            queryFn: ({ pageParam }) => albumService.media(albumId, pageParam, 20, kind),
+            getNextPageParam: (page) => page.offset + page.items.length < page.total ? page.offset + page.items.length : undefined,
+          });
+        } catch { /* The query displays its error after the filter changes. */ }
+      }
+      if (request !== filterRequest.current) return;
+      filterTransition.current?.copies.forEach((copy) => copy.remove());
+      const positions = new Map<string, DOMRect>();
+      const copies = new Map<string, HTMLElement>();
+      const viewport = contentRef.current?.getBoundingClientRect();
+      for (const cell of contentRef.current?.querySelectorAll<HTMLElement>("[data-album-media-id]") ?? []) {
+        const rect = cell.getBoundingClientRect();
+        if (!viewport || rect.right <= viewport.left || rect.left >= viewport.right || rect.bottom <= viewport.top || rect.top >= viewport.bottom) continue;
+        const id = cell.dataset.albumMediaId ?? "";
+        positions.set(id, rect);
+        const copy = cell.cloneNode(true) as HTMLElement;
+        copy.setAttribute("aria-hidden", "true");
+        copy.inert = true;
+        Object.assign(copy.style, { position: "fixed", left: `${rect.left}px`, top: `${rect.top}px`, width: `${rect.width}px`,
+          height: `${rect.height}px`, margin: "0", pointerEvents: "none", zIndex: "10" });
+        document.body.appendChild(copy);
+        copies.set(id, copy);
+      }
+      filterTransition.current = { positions, copies };
+    }
+    setShowImages(images);
+    setShowVideos(videos);
+  };
   useEffect(() => {
     if (previewMediaId || !returnToMediaId.current) return;
     if (media.isFetching && !items.some((item) => item.id === returnToMediaId.current)) return;
@@ -283,12 +356,12 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
               <div className="album-hero__actions">
                 <Button type="button" variant="secondary" className="album-hero__icon-button album-hero__filter"
                   aria-label={t("Images")} title={t("Images")} aria-pressed={showImages} disabled={bulkFavoriteBusy}
-                  onClick={() => startTransition(() => setShowImages((value) => !value))}>
+                  onClick={() => void changeFilter(!showImages, showVideos)}>
                   <ImageIcon aria-hidden="true" />
                 </Button>
                 <Button type="button" variant="secondary" className="album-hero__icon-button album-hero__filter"
                   aria-label={t("Videos")} title={t("Videos")} aria-pressed={showVideos} disabled={bulkFavoriteBusy}
-                  onClick={() => startTransition(() => setShowVideos((value) => !value))}>
+                  onClick={() => void changeFilter(showImages, !showVideos)}>
                   <VideoIcon aria-hidden="true" />
                 </Button>
                 {data.isPublic ? (
@@ -349,20 +422,21 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
           <div className="gallery-page__fixed-tabs">
             <div className="gallery-page__content gallery-page__media-scroll" ref={contentRef} tabIndex={-1}>
             <div className="gallery-page__tab-panel gallery-page__tab-panel--media">
-              {!hasMediaFilter ? <EmptyState title="Select a media type" hint="Choose images or videos to show media." /> : media.isPending ? <Spinner label={t("Loading media…")} /> : media.isError && items.length === 0 ? (
-                <ErrorState message={t("Could not load media.")} onRetry={() => void media.refetch()} />
-              ) : items.length === 0 ? (
+              {!hasMediaFilter || (!media.isPending && !media.isError && items.length === 0) ? (
                 <EmptyState
-                  title={mediaKind === "video" ? "No videos in this album" : mediaKind === "image" ? "No images in this album" : "No media yet"}
-                  hint={mediaKind === "video"
+                  animateText
+                  title={!hasMediaFilter ? "Select a media type" : mediaKind === "video" ? "No videos in this album" : mediaKind === "image" ? "No images in this album" : "No media yet"}
+                  hint={!hasMediaFilter ? "Choose images or videos to show media." : mediaKind === "video"
                     ? "Videos added to this album will appear here."
                     : mediaKind === "image" ? "Images added to this album will appear here." : "Images and videos added to this album will appear here."}
                 />
+              ) : media.isPending ? <Spinner label={t("Loading media…")} /> : media.isError && items.length === 0 ? (
+                <ErrorState message={t("Could not load media.")} onRetry={() => void media.refetch()} />
               ) : (
-                <MediaRetryProvider key={mediaKind} order={items.map((item) => item.id)}>
+                <MediaRetryProvider order={items.map((item) => item.id)}>
                   <div className="gallery-date-grid album-page__grid" aria-busy={media.isFetching}>
                     {items.map((item) => (
-                      <div className="gallery-window-cell" key={item.id}>
+                      <div className="gallery-window-cell" key={item.id} data-album-media-id={item.id}>
                         <MediaTile media={item} selectionMode={selectionMode} selectionDragEnabled selected={selectedItems.has(item.id)}
                           onSelect={(id) => setSelected(id, !selectedItems.has(id))} onOpen={setPreviewMediaId}
                           onFavorite={(mediaId) => void toggleFavorite(mediaId, false)}

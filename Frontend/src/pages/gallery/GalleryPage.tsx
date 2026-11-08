@@ -1,7 +1,7 @@
 import { PageActionBar } from "../../components/layout/PageActionBar";
 import { PageActionButton } from "../../components/layout/PageActionButton";
-import { Link } from "react-router-dom";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { Bookmark } from "@/components/animate-ui/icons/bookmark";
 import { Heart } from "@/components/animate-ui/icons/heart";
@@ -26,11 +26,22 @@ import { useGalleryWindow } from "../../features/media/hooks/useGalleryWindow";
 import { VirtualGalleryGroup } from "./VirtualGalleryGroup";
 import { resolveFocusMediaId } from "./resolveFocusMediaId";
 import { useAuthStore } from "../../store/authStore";
+import { useAnimationStore } from "../../store/animationStore";
 import { placeKeys } from "../../features/place/hooks/usePlaces";
 import "./gallery.css";
 import "../../features/media/components/media.css";
 
 export type GalleryView = "pictures" | "favorites";
+
+let favoriteTransition: { destination: GalleryView; positions: Map<string, DOMRect>; copies: Map<string, HTMLElement> } | null = null;
+
+function isVisibleCell(cell: HTMLElement): boolean {
+  const rect = cell.getBoundingClientRect();
+  const row = cell.closest<HTMLElement>(".gallery-day-row")?.getBoundingClientRect();
+  const scrollport = cell.closest<HTMLElement>(".gallery-page__content")?.getBoundingClientRect();
+  return [row, scrollport, { left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight }]
+    .every((bounds) => !bounds || (rect.right > bounds.left && rect.left < bounds.right && rect.bottom > bounds.top && rect.top < bounds.bottom));
+}
 
 const viewCopy: Record<GalleryView, { title: string; description: string; emptyTitle: string; emptyHint: string }> = {
   pictures: {
@@ -58,6 +69,10 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
   const { t, language } = useLocale();
   const isAdmin = useAuthStore((state) => state.user?.role?.toLowerCase() === "admin");
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const animationsEnabled = useAnimationStore((state) => state.enabled);
+  const transitionPending = useRef(false);
+  const transitionActive = useRef(true);
   const selectedFilter = initialFilter;
   const [uploading, setUploading] = useState(false);
   const uploadInput = useRef<HTMLInputElement>(null);
@@ -106,6 +121,78 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
   const selectedMedia = [...selectedItems.values()];
   const allSelectedFavorited = selectedMedia.length > 0 && selectedMedia.every((item) => item.isFavorited);
   const favoriteBusy = favoriteBusyId !== null || bulkFavoriteBusy;
+
+  useEffect(() => {
+    transitionActive.current = true;
+    return () => { transitionActive.current = false; };
+  }, []);
+
+  useLayoutEffect(() => {
+    if (query.isPending || !favoriteTransition || favoriteTransition.destination !== view || !viewport.width) return;
+    const { positions, copies } = favoriteTransition;
+    favoriteTransition = null;
+    if (query.isError) {
+      copies.forEach((copy) => copy.remove());
+      return;
+    }
+    for (const cell of galleryRef.current?.querySelectorAll<HTMLElement>("[data-gallery-window-id]") ?? []) {
+      if (!isVisibleCell(cell)) continue;
+      const id = cell.dataset.galleryWindowId ?? "";
+      const previous = positions.get(id);
+      if (!previous) {
+        cell.animate([{ opacity: 0 }, { opacity: 1 }],
+          { duration: 280, easing: "ease-out" });
+        continue;
+      }
+      copies.get(id)?.remove();
+      copies.delete(id);
+      const current = cell.getBoundingClientRect();
+      const x = previous.left - current.left;
+      const y = previous.top - current.top;
+      if (x || y) cell.animate([{ transform: `translate(${x}px, ${y}px)` }, { transform: "translate(0, 0)" }],
+        { duration: 280, easing: "cubic-bezier(.2, .8, .2, 1)" });
+    }
+    copies.forEach((copy) => {
+      copy.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 280, easing: "ease-out" }).onfinish = () => copy.remove();
+    });
+  }, [view, showingFavorites, query.isPending, query.isError, media, viewport.width]);
+
+  const openFavorites = async (event: React.MouseEvent<HTMLAnchorElement>) => {
+    if (!animationsEnabled || window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
+      event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    if (transitionPending.current) return;
+    transitionPending.current = true;
+    const destination = showingFavorites ? "pictures" : "favorites";
+    try {
+      await queryClient.fetchInfiniteQuery(mediaQueryOptions(20, showingFavorites ? "all" : "favorites", selectedFilter));
+    } catch {
+      transitionPending.current = false;
+      if (transitionActive.current) navigate(showingFavorites ? "/gallery" : "/gallery/favorites");
+      return;
+    }
+    if (!transitionActive.current) return;
+    const positions = new Map<string, DOMRect>();
+    const copies = new Map<string, HTMLElement>();
+    favoriteTransition = { destination, positions, copies };
+    for (const cell of galleryRef.current?.querySelectorAll<HTMLElement>("[data-gallery-window-id]") ?? []) {
+      const id = cell.dataset.galleryWindowId ?? "";
+      if (!isVisibleCell(cell)) continue;
+      {
+        const rect = cell.getBoundingClientRect();
+        positions.set(id, rect);
+        const copy = cell.cloneNode(true) as HTMLElement;
+        copy.setAttribute("aria-hidden", "true");
+        copy.inert = true;
+        Object.assign(copy.style, { position: "fixed", left: `${rect.left}px`, top: `${rect.top}px`,
+          width: `${rect.width}px`, height: `${rect.height}px`, margin: "0", pointerEvents: "none", zIndex: "10" });
+        document.body.appendChild(copy);
+        copies.set(id, copy);
+      }
+    }
+    transitionPending.current = false;
+    navigate(showingFavorites ? "/gallery" : "/gallery/favorites");
+  };
 
   const uploadFiles = async (files: File[]) => {
     if (!files.length || uploading) return;
@@ -480,6 +567,7 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
                 key="favorite"
                 className={`gallery-selection-bar__action${showingFavorites ? " gallery-selection-bar__action--favorite-active" : ""}`}
                 to={showingFavorites ? "/gallery" : "/gallery/favorites"}
+                onClick={(event) => void openFavorites(event)}
                 aria-label={t(showingFavorites ? "Gallery" : "Favorites")}
                 title={t(showingFavorites ? "Gallery" : "Favorites")}
               >

@@ -118,6 +118,12 @@
 }
 
 .gallery-page__media-toolbar { margin-bottom: calc(var(--page-section-gap) * 0.8); }
+.gallery-page__media-toolbar .navigation-highlight__indicator::before { inset: 0; }
+.gallery-page__media-toolbar .navigation-highlight > :is(a, button) { font-weight: 400; transition: none; }
+.gallery-page__media-toolbar .navigation-highlight > :is(a, button)[aria-current="page"] { font-size: 1em; font-weight: 700; }
+@media (max-width: 767px) {
+  .gallery-page__media-toolbar .navigation-highlight > :is(a, button) { min-height: 27px; }
+}
 .gallery-page:has(.gallery-page__media-toolbar) .gallery-page__header { margin-bottom: var(--page-section-gap); }
 .gallery-page__selection-actions {
   align-items: center;
