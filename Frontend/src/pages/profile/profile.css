@@ -91,3 +91,7 @@
 .profile-password__panel { overflow: hidden; }
 .profile-password__panel form { padding-top: 20px; }
 @media (prefers-reduced-motion: reduce) { .profile-password__toggle svg { transition: none; } }
+
+@media (max-width: 767px) {
+  .profile-page__card { padding: 0; }
+}

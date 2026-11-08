@@ -214,7 +214,7 @@ textarea, select { min-height: 44px; }
 }
 
 @media (max-width: 767px) {
-  :root { --page-gutter: 16px; --page-padding-top: 16px; --page-padding-bottom: 24px; }
+  :root { --page-gutter: 1vw; --page-padding-top: 1vh; --page-padding-bottom: 1vh; }
   .app-shell,
   .app-shell.app-shell--sidebar-collapsed {
     --app-topbar-height: calc(56px + env(safe-area-inset-top));
@@ -272,7 +272,7 @@ textarea, select { min-height: 44px; }
     font-weight: 700;
   }
   .page-action-bar { bottom: 0; }
-  .page-action-bar:has(.place__action-bar) { border-top: 0; }
+  .page-action-bar:has(.place__search-bar) { background: transparent; border-top: 0; }
   .bottom-navigation__dialog {
     position: fixed;
     inset: auto 0 0;
@@ -353,5 +353,11 @@ textarea, select { min-height: 44px; }
 :root :is(button, [role="button"], .btn, .sidebar__link):hover:not(.sidebar__toggle):not(.mapboxgl-ctrl-group button):not(.navigation-highlight *):not(.map-navigation *):not(.place__location-search *):not(.gallery-selection-bar__action):not(.gallery-selection-bar__cancel):not(:disabled):not([aria-disabled="true"]):not(.place__marker):not(.locations__marker):not(.place__pin):not(.locations__pin):not(.place__home-pin):not(.locations__home-pin):not(.place__map-home-control):not(.locations__map-home-control):not(.place__color-option):not(.star-rating__button):not(.place__cancel-action):not(.dialog-action):not(.media-tile):not(.album-hero__caption-button):not(.album-hero__delete):not(.album-hero__filter[aria-pressed="true"]) {
     background-color: var(--surface-hover);
     color: var(--text);
+  }
+}
+
+@media (max-width: 767px) {
+  :is(.home-page__header h1, .settings-page__section h2, .profile-page h2, .album-page h1) {
+    margin-left: 0.5vw;
   }
 }

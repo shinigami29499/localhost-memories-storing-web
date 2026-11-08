@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { lazy, Suspense, startTransition, useCallback, useEffect, useLayoutEffect, useRef, useState, useMemo, type CSSProperties } from "react";
 import { HighlightItem } from "@animate-ui/react/primitives/effects/highlight";
 import { NavigationHighlight, SwapLabel } from "../../components/ui";
+import { PageHighlightBar } from "../../components/ui/PageHighlightBar";
 import { cloneMobileSearchFooter, PageActionBar, usePageActionBarFooter } from "../../components/layout/PageActionBar";
 import {
   Button,
@@ -210,6 +211,7 @@ export function PlacePage() {
   const mapSettings = useRef<PlaceMapSettings>({ scene: "3d", showMarkers: true, showPhotoMarkers: false });
   const saved = view !== "map";
   const [mapStartReady, setMapStartReady] = useState(!animationsEnabled);
+  const [highlightMotionVersion, setHighlightMotionVersion] = useState(0);
   const [addToolbar, setAddToolbar] = useState<{ visible: boolean; disabled: boolean; add: () => void } | null>(null);
   useEffect(() => {
     if (saved) {
@@ -225,7 +227,7 @@ export function PlacePage() {
     let pause: number | undefined;
     let frame = requestAnimationFrame(() => {
       frame = requestAnimationFrame(() => {
-        const elements = [document.querySelector(".place__view-switch"), actionBarFooter];
+        const elements = [document.querySelector(highlightMotionVersion ? ".place__scroll-inner > .page-highlight" : ".place__view-switch"), actionBarFooter];
         const animations = elements.flatMap((element) => element?.getAnimations({ subtree: true }) ?? [])
           .filter((animation) => animation.effect?.getComputedTiming().iterations !== Infinity);
         void Promise.allSettled(animations.map((animation) => animation.finished)).then(() => {
@@ -234,7 +236,7 @@ export function PlacePage() {
       });
     });
     return () => { cancelled = true; cancelAnimationFrame(frame); window.clearTimeout(pause); };
-  }, [actionBarFooter, animationsEnabled, mapStartReady, saved]);
+  }, [actionBarFooter, animationsEnabled, highlightMotionVersion, mapStartReady, saved]);
   const [placeSearch, setPlaceSearch] = useState("");
   const debouncedSearch = useDebouncedValue(placeSearch);
   const [minimumRating, setMinimumRating] = useState(0);
@@ -638,7 +640,12 @@ export function PlacePage() {
               </div>
             )}
 
-            <PlaceViewSwitch view={view} onChange={requestView} />
+            <PageHighlightBar id="place-navigation" label="location navigation" onToggle={() => {
+              if (!saved && animationsEnabled && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+                setMapStartReady(false);
+                setHighlightMotionVersion((version) => version + 1);
+              }
+            }}><PlaceViewSwitch view={view} onChange={requestView} /></PageHighlightBar>
             {!saved && !homeRelocationDraft && (!addToolbar || addToolbar.visible) && <AddNavigationToolbar onAdd={addToolbar?.add ?? (() => {})} disabled={addToolbar?.disabled ?? true} />}
             <div className="place__view-content" data-push-page-content aria-busy={view === "history" && historyQuery.isPending || undefined}>
             <PushTransition transitionKey={view} />

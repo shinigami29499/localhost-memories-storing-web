@@ -33,6 +33,15 @@
   z-index: 50;
 }
 
+.map-loading-overlay[data-exiting="true"] {
+  animation: map-loading-iris-exit 1000ms ease-in forwards;
+  pointer-events: none;
+}
+
+@keyframes map-loading-iris-exit {
+  from { clip-path: circle(150% at center); }
+  to { clip-path: circle(0 at center); }
+}
 .map-loading-overlay .spinner__wheel {
   color: var(--text-muted);
 }

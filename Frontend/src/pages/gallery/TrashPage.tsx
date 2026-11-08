@@ -47,6 +47,7 @@ export function TrashPage() {
   const queryClient = useQueryClient();
   const filter = undefined;
   const [previewMediaId, setPreviewMediaId] = useState<string | null>(null);
+  const [previewGroupKey, setPreviewGroupKey] = useState<string | null>(null);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [action, setAction] = useState<{ kind: "restore" | "delete"; ids: string[] } | null>(null);
@@ -88,6 +89,15 @@ export function TrashPage() {
     }
     return [...byDate.entries()].sort(([, a], [, b]) => b.date.getTime() - a.date.getTime());
   }, [media]);
+  const previewGroup = groups.find(([key]) => key === previewGroupKey);
+  const previewItems = previewGroup?.[1].items ?? [];
+  const previewNeedsMore = Boolean(previewGroup && previewGroup[0] === groups[groups.length - 1]?.[0] && query.hasNextPage);
+
+  useEffect(() => {
+    if (previewNeedsMore && !query.isFetching && !query.isFetchNextPageError) {
+      void query.fetchNextPage({ cancelRefetch: false });
+    }
+  }, [previewNeedsMore, query.isFetching, query.isFetchNextPageError, query.fetchNextPage]);
   const dateFormatter = useMemo(
     () => new Intl.DateTimeFormat(language, { year: "numeric", month: "long", day: "numeric" }),
     [language],
@@ -252,7 +262,7 @@ export function TrashPage() {
                             </div>
                             <VirtualGalleryGroup items={group.items} viewport={viewport} mediaKind={filter}
                               includeDeleted selectionMode={selectionMode} selectedItems={selectedIds}
-                              onSelect={toggleSelected} onOpen={setPreviewMediaId} favoriteBusy={false}
+                              onSelect={toggleSelected} onOpen={(id) => { setPreviewGroupKey(key); setPreviewMediaId(id); }} favoriteBusy={false}
                               pinnedId={focusMediaId}
                     onReachEnd={key === groups[groups.length - 1]?.[0] && query.hasNextPage && !query.isFetching && !query.isFetchNextPageError ? () => { void query.fetchNextPage(); } : undefined} />
                           </section>
@@ -309,12 +319,8 @@ export function TrashPage() {
       {previewMediaId ? (
         <MediaPreviewDialog
           key={previewMediaId}
-          media={media}
+          media={previewItems}
           initialMediaId={previewMediaId}
-          total={query.data?.pages[0]?.total ?? media.length}
-          loadingMore={query.isFetching}
-          loadMoreError={query.isFetchNextPageError}
-          onLoadMore={query.hasNextPage ? () => { void query.fetchNextPage({ cancelRefetch: false }); } : undefined}
           trashActions={{
             onRestore: (id) => requestAction("restore", [id]),
             onDelete: (id) => requestAction("delete", [id]),

@@ -87,6 +87,7 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
   const [favoriteBusyId, setFavoriteBusyId] = useState<string | null>(null);
   const [bulkFavoriteBusy, setBulkFavoriteBusy] = useState(false);
   const [previewMediaId, setPreviewMediaId] = useState<string | null>(null);
+  const [previewGroupKey, setPreviewGroupKey] = useState<string | null>(null);
   const galleryRef = useRef<HTMLElement>(null);
   const returnToMediaId = useRef<string | null>(null);
   const returnToIndex = useRef(0);
@@ -101,7 +102,6 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
     [query.data],
   );
   const focusMediaId = resolveFocusMediaId(media, returnToMediaId.current, returnToIndex.current);
-  const total = query.data?.pages[0]?.total ?? 0;
   const groups = useMemo(() => {
     const byDate = new Map<string, { date: Date; items: MediaFile[] }>();
     for (const item of media) {
@@ -113,6 +113,15 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
     }
     return [...byDate.entries()].sort(([, a], [, b]) => b.date.getTime() - a.date.getTime());
   }, [media]);
+  const previewGroup = groups.find(([key]) => key === previewGroupKey);
+  const previewItems = previewGroup?.[1].items ?? [];
+  const previewNeedsMore = Boolean(previewGroup && previewGroup[0] === groups[groups.length - 1]?.[0] && query.hasNextPage);
+
+  useEffect(() => {
+    if (previewNeedsMore && !query.isFetching && !query.isFetchNextPageError) {
+      void query.fetchNextPage({ cancelRefetch: false });
+    }
+  }, [previewNeedsMore, query.isFetching, query.isFetchNextPageError, query.fetchNextPage]);
   const dateFormatter = useMemo(
     () => new Intl.DateTimeFormat(language, { month: "short", day: "numeric" }),
     [language],
@@ -488,7 +497,7 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
                 </div>
                   <VirtualGalleryGroup items={group.items} viewport={viewport} mediaKind={selectedFilter} pinnedId={focusMediaId}
                     selectionMode={selectionMode} selectedItems={selectedItems} onSelect={toggleSelected}
-                    onFavorite={(mediaId) => void toggleFavorite(mediaId, false)} favoriteBusy={favoriteBusy} onOpen={setPreviewMediaId}
+                    onFavorite={(mediaId) => void toggleFavorite(mediaId, false)} favoriteBusy={favoriteBusy} onOpen={(id) => { setPreviewGroupKey(key); setPreviewMediaId(id); }}
                     onUnavailable={isAdmin ? checkUnavailable : undefined}
                     onReachEnd={key === groups[groups.length - 1]?.[0] && query.hasNextPage && !query.isFetching && !query.isFetchNextPageError ? () => { void query.fetchNextPage(); } : undefined} />
               </section>
@@ -640,12 +649,8 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
       {previewMediaId ? (
         <MediaPreviewDialog
           key={previewMediaId}
-          media={media}
+          media={previewItems}
           initialMediaId={previewMediaId}
-          total={total}
-          loadingMore={query.isFetching}
-          loadMoreError={query.isFetchNextPageError}
-          onLoadMore={query.hasNextPage ? () => { void query.fetchNextPage({ cancelRefetch: false }); } : undefined}
           favoriteBusy={favoriteBusy}
           onToggleFavorite={(mediaId, isFavorited) => void toggleFavorite(mediaId, isFavorited)}
           onClose={(mediaId) => {

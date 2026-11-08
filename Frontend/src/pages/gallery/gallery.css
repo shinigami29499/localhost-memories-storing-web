@@ -1,4 +1,4 @@
-﻿.app-shell__content:has(.gallery-page, .gallery-layout) {
+.app-shell__content:has(.gallery-page, .gallery-layout) {
   padding-bottom: 0;
   height: 100%;
 }
@@ -240,7 +240,16 @@
 .gallery-groups > section { container-type: inline-size; }
 
 @media (max-width: 767px) {
-  .gallery-day-row { height: calc(16px + (100cqw - 24px) / 3 * 3.95 / 3); }
+  .gallery-groups .gallery-group__header {
+    margin-bottom: 0;
+    margin-left: calc(1.5vw - var(--page-gutter));
+  }
+
+  .gallery-day-row {
+    height: calc(0.5vh + 8px + (100cqw + 2 * var(--page-gutter) - 2vw - 8px) / 3 * 3.95 / 3);
+    margin-inline: calc(-1 * var(--page-gutter));
+    width: calc(100% + 2 * var(--page-gutter));
+  }
 }
 
 .gallery-group__header {
@@ -743,7 +752,7 @@
   }
 
   .gallery-group__header {
-    margin-bottom: 1.6px;
+    margin-bottom: 0;
   }
 
   .gallery-date-grid {
@@ -834,7 +843,10 @@
 .gallery-layout__content { display: flex; flex: 1 1 0; flex-direction: column; min-height: 0; }
 .gallery-layout .gallery-page__fixed-layout { padding-top: 0; }
 .gallery-layout .gallery-page--trash .gallery-page__content { padding-top: var(--shadow-space); }
-@media (max-width: 640px) { .gallery-layout__header { padding: var(--page-padding-top) var(--page-gutter) 0; } }
+@media (max-width: 767px) {
+  .gallery-layout__header { overflow: clip; padding: 0; }
+  .gallery-layout__header .gallery-page__media-toolbar { margin-bottom: 0; }
+}
 
 /* Keep page actions outside page snapshots and loading overlays. */
 .app-shell__main { position: relative; }
@@ -923,3 +935,13 @@
 .page-action-bar__item:has(> .gallery-selection-bar--selection-only:not(:has(.gallery-selection-bar__selection-actions))) > [data-exiting] { position: relative; }
 .page-action-bar__item:has(> [data-exiting]:only-child),
 .page-action-bar__item:has(> .gallery-selection-bar--selection-only:not(:has(.gallery-selection-bar__selection-actions))) { justify-content: center; }
+
+@media (max-width: 767px) {
+  .gallery-layout__header { position: relative; z-index: 30; margin-bottom: -20px; }
+  .gallery-page .gallery-page__content,
+  .gallery-page .gallery-page__content.gallery-page__media-scroll,
+  .gallery-layout .gallery-page--trash .gallery-page__content,
+  .gallery-page:has(.gallery-page__footer) .gallery-page__content {
+    padding-block: 1vh;
+  }
+}

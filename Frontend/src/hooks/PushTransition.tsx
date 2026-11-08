@@ -1,4 +1,4 @@
-﻿import { Component, createRef } from "react";
+import { Component, createRef } from "react";
 import { ease, motionTokens } from "@animate-ui/react/utils/motion";
 import { animate } from "motion/react";
 import { useAnimationStore } from "../store/animationStore";
@@ -59,7 +59,8 @@ class PushSnapshot extends Component<Props> {
     if (!element) return null;
     const data = this.props.matchPageHighlights && element.querySelector(".navigation-highlight-bar")
       ? element.querySelector<HTMLElement>("[data-push-page-content]") : null;
-    const bar = data ? element.querySelector<HTMLElement>(".navigation-highlight-bar") : null;
+    const collapsed = window.matchMedia("(max-width: 767px)").matches && !!element.querySelector('.page-highlight[data-expanded="false"]');
+    const bar = data && !collapsed ? element.querySelector<HTMLElement>(".navigation-highlight-bar") : null;
     return { full: capture(element), data: data ? capture(data) : null, highlight: data ? highlightPosition(element) : null, labels: bar ? [...bar.querySelectorAll<HTMLElement>(".navigation-highlight:not(.navigation-highlight-overlay .navigation-highlight) [data-swap-label]")].map((label) => label.dataset.swapLabel ?? "") : [], bar: bar ? { node: bar.cloneNode(true) as HTMLElement, rect: bar.getBoundingClientRect() } : null };
   }
 
@@ -70,6 +71,10 @@ class PushSnapshot extends Component<Props> {
     if (!page) return;
     if (previous.hasPageHighlight && this.props.hasPageHighlight && snapshot.bar && snapshot.data) {
       this.handoff(page, snapshot);
+      return;
+    }
+    if (previous.hasPageHighlight && this.props.hasPageHighlight && snapshot.data && !snapshot.bar) {
+      this.push(page, snapshot, page.querySelector<HTMLElement>("[data-push-page-content]"));
       return;
     }
     this.push(page, snapshot, null);
@@ -135,7 +140,7 @@ class PushSnapshot extends Component<Props> {
     for (const ancestor of ancestors.reverse()) { parent.append(ancestor); parent = ancestor; }
     parent.append(node);
     const content = this.marker.current?.closest("#main-content");
-    (content?.parentElement ?? element.parentElement)?.append(clip);
+    (data && content ? content : content?.parentElement ?? element.parentElement)?.append(clip);
     [node, ...node.querySelectorAll<HTMLElement>("*")].forEach((copy, index) => {
       copy.scrollTop = scroll[index].top;
       copy.scrollLeft = scroll[index].left;

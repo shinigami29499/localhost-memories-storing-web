@@ -3,6 +3,7 @@ import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { Tabs } from "@base-ui/react/tabs";
 import { HighlightItem } from "@animate-ui/react/primitives/effects/highlight";
 import { NavigationHighlight, SwapLabel } from "../../components/ui";
+import { PageHighlightBar } from "../../components/ui/PageHighlightBar";
 import { startTransition, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -148,6 +149,7 @@ export function UsersPage() {
               }}
             >
               <div className="admin-users__toolbar">
+                <PageHighlightBar id="users-navigation" label="users navigation">
                 <Tabs.List
                   className="navigation-highlight-bar"
                   aria-label={t("Filter users by status")}
@@ -167,6 +169,7 @@ export function UsersPage() {
                   })}
                   </NavigationHighlight>
                 </Tabs.List>
+                </PageHighlightBar>
               </div>
               <div data-push-page-content>
               <PushTransition transitionKey={filter} />

@@ -459,6 +459,10 @@
   margin: 0 auto var(--page-section-gap);
   max-width: var(--page-content-max-width);
 }
+@media (max-width: 767px) {
+  .admin-page--users .admin-users__content { padding-top: 0; }
+  .admin-users__toolbar { margin-inline: calc(-1 * var(--page-gutter)); }
+}
 
 .admin-users__table th {
   padding-bottom: 8px;
@@ -1373,4 +1377,11 @@
 .admin-icon-btn.btn--danger {
   background: var(--trash);
   color: #F4F3EE;
+}
+
+@media (max-width: 767px) {
+  .admin-users__toolbar { position: relative; z-index: 30; margin-bottom: calc(1vh - 20px); }
+  .admin-users .admin-table-wrap { padding: 0; }
+  .admin-users__table tr { padding-inline: 0.5vw; }
+  .admin-users__table th { padding-top: 0; }
 }

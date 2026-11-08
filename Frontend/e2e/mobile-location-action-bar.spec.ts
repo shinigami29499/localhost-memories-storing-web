@@ -125,3 +125,27 @@ test("mobile location map action is anchored like gallery and exits toward the r
   expect(outlines.length).toBeGreaterThanOrEqual(2);
   expect(outlines.every((outline) => outline.width === "2px" && outline.color === "rgb(244, 243, 238)")).toBe(true);
 });
+
+test("mobile map waits for highlight motion, including interrupted motion", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => {
+    localStorage.setItem("shinigacim-auth", JSON.stringify({ state: { user: { id: "u1", username: "viewer", role: "admin", status: "active", createdAt: "" }, accessToken: "test", refreshToken: "test" }, version: 0 }));
+    localStorage.setItem("shinigacim.animations-enabled", "true");
+  });
+  await page.route("**/api/**", (route) => {
+    const path = new URL(route.request().url()).pathname;
+    return route.fulfill({ json: path === "/api/location/home-location" ? null : path.endsWith("/page") || path === "/api/location/travel/map" || path.startsWith("/api/library/gallery") ? { page: 1, offset: 0, limit: 30, total: 0, items: [], hasMore: false } : [] });
+  });
+  await page.route("**/hubs/**", (route) => route.abort());
+  await page.route(/https:\/\/[^/]*mapbox\.com\//, (route) => route.fulfill({ json: route.request().url().includes("/styles/v1/") ? { version: 8, sources: {}, layers: [] } : {} }));
+  await page.goto("/location");
+  const overlay = page.locator(".place__map-panel > .map-loading-overlay");
+  await expect(page.locator(".page-highlight__toggle")).toBeVisible();
+  await expect(overlay).toHaveCount(0);
+  const toggle = page.locator(".page-highlight__toggle");
+  await toggle.click();
+  await expect(overlay).toBeVisible();
+  await toggle.click();
+  await expect(overlay).toBeVisible();
+  await expect(overlay).toHaveCount(0);
+});

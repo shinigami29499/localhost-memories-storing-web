@@ -1,0 +1,17 @@
+.page-highlight__toggle { display: none; }
+.page-highlight .navigation-highlight__indicator::before { inset: 0; }
+.page-highlight .navigation-highlight > :is(a, button) { font-weight: 400; transition: none; }
+.page-highlight .navigation-highlight > :is(a, button):is([aria-current="page"], [aria-pressed="true"], [aria-selected="true"]) { font-size: 1em; font-weight: 700; }
+@media (max-width: 767px) {
+  .page-highlight { position: relative; z-index: 30; overflow: clip; }
+  .page-highlight__navigation { overflow: clip; }
+  .page-highlight__clip { display: flex; flex-direction: column; height: 100%; justify-content: flex-end; }
+  .page-highlight__moving { flex: none; width: 100%; }
+  .page-highlight .navigation-highlight-bar { border-inline: 0; border-radius: 0; border-top: 0; margin-inline: -8px; max-width: none; padding: calc(var(--box-inset) * 0.8) 0 var(--box-inset); width: calc(100% + 16px); }
+  .page-highlight .navigation-highlight > :is(a, button) { min-height: 27px; }
+  .page-highlight[data-animation-enabled="true"] .page-highlight__navigation { transition: height 200ms ease-out; }
+  .page-highlight[data-animation-enabled="true"][data-expanded="false"] .page-highlight__navigation { transition-timing-function: ease-in; }
+  :root .page-highlight button.page-highlight__toggle { position: relative; z-index: 1; align-items: center; background: var(--surface-hover); border: 1px solid var(--border); border-radius: 0 0 var(--radius) var(--radius); border-top: 0; color: var(--text); display: flex; height: 20px; justify-content: center; margin: 0 auto; padding: 0; width: 48px; }
+  .page-highlight[data-expanded="true"] .page-highlight__toggle svg { transform: rotate(180deg); }
+  @media (prefers-reduced-motion: reduce) { .page-highlight[data-animation-enabled="true"] .page-highlight__navigation { transition: none; } }
+}

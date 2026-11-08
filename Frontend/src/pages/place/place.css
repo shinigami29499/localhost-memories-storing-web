@@ -64,6 +64,9 @@
   overflow: visible;
 }
 @media (max-width: 767px) {
+  .page-action-bar .place__search-bar {
+    border: 2.25px solid var(--surface);
+  }
   .app-shell__main {
     z-index: 0;
   }
@@ -273,6 +276,11 @@
 }
 
 .place__view-switch { margin: 0 0 16px; max-width: 100%; }
+@media (max-width: 767px) {
+  .place .place__content { padding-top: 0; }
+  .place__scroll-inner > .page-highlight { flex: none; margin-inline: calc(-1 * var(--page-gutter)); }
+  .place__view-switch { margin-bottom: 0; }
+}
 
 .place__history {
   display: grid;
@@ -587,6 +595,7 @@
 }
 
 .place__map-panel {
+  isolation: isolate;
   background: var(--surface);
   border-radius: var(--radius);
   box-shadow: none;
@@ -1554,3 +1563,8 @@
 }
 
 .place__add-choices { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+
+@media (max-width: 767px) {
+  .place__scroll-inner > .page-highlight { position: relative; z-index: 30; margin-bottom: -20px; }
+  .place__view-content { padding-top: 1vh; }
+}

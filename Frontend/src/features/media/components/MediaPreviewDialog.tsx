@@ -33,7 +33,7 @@ const SaveToAlbumDialog = lazy(() =>
   import("../../albums/components/SaveToAlbumDialog").then((module) => ({ default: module.SaveToAlbumDialog })),
 );
 
-const MAX_DOTS = 10;
+const MAX_DOTS = 20;
 
 async function loadImageAsPng(url: string): Promise<Blob> {
   const response = await fetch(url);
@@ -224,7 +224,7 @@ export function MediaPreviewDialog({
     loop,
     align: "center",
     containScroll: false,
-    scale: 0.8,
+    scale: isMobile ? 1 : 0.8,
     visible: isMobile || slideCount === 1 ? 1 : 3,
     watchDrag: (_api, event) => !(event.target instanceof Element && event.target.closest(".video-player")),
   });

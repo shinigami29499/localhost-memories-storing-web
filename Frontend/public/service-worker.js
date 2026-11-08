@@ -1,8 +1,7 @@
 const CACHE_PREFIX = "shinigacim-shell-";
-const CACHE_NAME = `${CACHE_PREFIX}v4`;
+const CACHE_NAME = `${CACHE_PREFIX}v5`;
 const APP_SHELL = [
   "/manifest.webmanifest",
-  "/pwa-icon.svg",
   "/pwa-icon-180.png",
   "/pwa-icon-192.png",
   "/pwa-icon-512.png",

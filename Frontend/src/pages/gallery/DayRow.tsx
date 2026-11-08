@@ -19,7 +19,8 @@ export function DayRow<T extends { id: string }>({ items, renderItem, fallbackWi
   const columns = screenWidth < 768 ? 3 : screenWidth >= 2400 ? 9 : screenWidth >= 1920 ? 8 : screenWidth >= 1600 ? 7 : 6;
   const gap = screenWidth < 768 ? 4 : 12;
   const width = gridWidth || Math.max(200, (fallbackWidth ?? screenWidth) - 48);
-  const tileSize = Math.max(1, (width - 16 - (columns - 1) * gap) / columns);
+  const rowInset = screenWidth < 768 ? screenWidth * 0.01 : 8;
+  const tileSize = Math.max(1, (width - 2 * rowInset - (columns - 1) * gap) / columns);
   const step = tileSize + gap;
   const tileHeight = tileSize * (screenWidth < 768 ? 3.95 : 3.75) / 3;
   const height = (screenWidth < 768 ? 16 : 32 - tileSize * 0.2 / 3) + tileHeight;
@@ -61,12 +62,12 @@ export function DayRow<T extends { id: string }>({ items, renderItem, fallbackWi
     const next = position + (event.shiftKey ? -1 : 1);
     if (position < 0 || next < 0 || next >= items.length || rendered.some((entry) => entry.position === next)) return;
     event.preventDefault();
-    if (grid) grid.scrollLeft = Math.max(0, next * step - 8);
+    if (grid) grid.scrollLeft = Math.max(0, next * step - rowInset);
     setFocusTarget(items[next].id);
   };
 
   const enterGroup = (position: number) => {
-    if (grid) grid.scrollLeft = Math.max(0, position * step - 8);
+    if (grid) grid.scrollLeft = Math.max(0, position * step - rowInset);
     setFocusTarget(items[position].id);
   };
 
@@ -77,13 +78,13 @@ export function DayRow<T extends { id: string }>({ items, renderItem, fallbackWi
       setScrollLeft(row.scrollLeft);
       if (row.scrollLeft + row.clientWidth >= row.scrollWidth - 200) onReachEnd?.();
     }}>
-    <div aria-hidden="true" style={{ width: 16 + items.length * step - gap, height: 1 }} />
+    <div aria-hidden="true" style={{ width: 2 * rowInset + items.length * step - gap, height: 1 }} />
     {items.length > 0 && rendered.length === 0 && <>
       <span tabIndex={0} aria-label="Enter media group" onFocus={() => enterGroup(0)} />
       <span tabIndex={0} aria-label="Enter media group from end" onFocus={() => enterGroup(items.length - 1)} />
     </>}
     {rendered.map(({ item, position }) => <div key={item.id} className="gallery-window-cell" data-gallery-window-id={item.id} data-row-edge={position === 0 ? "start" : position === items.length - 1 ? "end" : undefined}
-      style={{ width: tileSize, height: tileHeight, top: screenWidth < 768 ? 8 : hoverInset, left: 8 + position * step }}>
+      style={{ width: tileSize, height: tileHeight, top: screenWidth < 768 ? window.innerHeight * 0.005 : hoverInset, left: rowInset + position * step }}>
       {renderItem(item)}
     </div>)}
   </div>;
