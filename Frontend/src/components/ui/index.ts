@@ -1,4 +1,5 @@
 export { Button } from "./Button";
+export { SwapLabel } from "./SwapLabel";
 export { NavigationHighlight } from "./NavigationHighlight";
 export { Input } from "./Input";
 export { PasswordInput } from "./PasswordInput";

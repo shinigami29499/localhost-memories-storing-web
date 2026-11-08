@@ -38,11 +38,27 @@ Write a short design contract in the feature PR or task notes: user goal, screen
 6. **Use the palette with restraint.** Keep the authored colors and semantic tokens in `global.css`; use the strongest brown for leading actions and selected states, lighter surfaces for supporting controls. Distinguish danger with wording, icon, and boundary as well as color. Use `--radius` as the baseline and make nested corners visually coherent. [Brand color](https://www.uidesign.tips/ui-tips/brand-colors), [radius consistency](https://www.uidesign.tips/ui-tips/border-radius-consistency).
 7. **Make long screens discoverable.** On feed or landing-like screens, expose a glimpse of the next section or a clear content cue when more content exists. Do not add decorative scroll prompts to short task screens. [Scroll cue](https://www.uidesign.tips/ui-tips/hero-section-prompt-scroll).
 
+## Page and highlight transitions
+
+Use these rules for new routes and changes to the Gallery, Location, or Users navigation. Page content, the highlight bar, the header, and the action bar have separate transition boundaries.
+
+- Push page content horizontally: incoming content enters from one side while outgoing content leaves on the opposite side. The current push uses a 500 ms in-out transition. Exclude the action bar and its items; `PageActionBar` owns their separate transitions.
+- When both outgoing and incoming pages have highlight bars, keep the bars in place and push only their data sections. This applies in both directions between Gallery, Location, and Users. When either page has no highlight bar, push the whole page content section as usual.
+- A highlight change within a page pushes only the data section. Keep the highlight bar and action bar stationary. Route-backed filters within the same feature are highlight changes, not separate whole-page transitions.
+- Keep a highlight bar visible throughout a page handoff, including while the destination loads. If selected indexes differ, move and resize the indicator from the outgoing selection to the incoming selection with the existing highlight spring. If indexes match, do not add indicator travel. Preserve the destination bar's accessible labels and keyboard behavior.
+- Swap the header title and changed highlight labels with the existing `SwappingText` behavior. Start from outgoing text and animate once to destination text; never show the destination, swap back, and then animate forward. Keep the selected-color text overlay synchronized with the visible letters. Expose the destination text as the accessible name throughout the transition.
+- Capture outgoing content before React changes it. The outgoing copy must show previous data, retain its layout and scroll positions, and stay inert and hidden from assistive technology. Preserve its source styling context without letting destination-specific styles affect it. Do not let headings, day groups, or media tiles jump vertically before or during the push. Remove temporary copies after completion or interruption; rapid navigation must not leave stale overlays.
+- Respect both the interface-motion setting and `prefers-reduced-motion`. When motion is disabled, show the destination without optional push, indicator, or text animation.
+
+The shared page handoff is implemented in `Frontend/src/hooks/PushTransition.tsx`; route grouping and the header title are in `Frontend/src/components/layout/AuthenticatedLayout.tsx`. Pages with a highlight bar mark the content to move with `data-push-page-content`. Highlight rendering and text handoff live in `Frontend/src/components/ui/NavigationHighlight.tsx` and `Frontend/src/components/ui/SwapLabel.tsx`. When adding a feature to this behavior, update the route grouping and highlight classification, mark its data section, and reuse these components instead of adding a separate transition.
+
+For motion changes, use the existing frontend build and browser-driven checks when needed. Focused Playwright coverage is in `Frontend/e2e/push-transition.spec.ts`, `Frontend/e2e/highlight-page-handoff.spec.ts`, `Frontend/e2e/push-content-alignment.spec.ts`, and `Frontend/e2e/mobile-users-action-transition.spec.ts`. Check rendered positions and visible frames, not only keyframes: cover both directions, equal and different highlight indexes, loading, rapid interruptions, reduced motion, and phone and desktop widths. Include multi-day media tiles when checking Gallery alignment.
+
 ## Required states and review
 
 - Design loading, empty, error, populated, pending, disabled, and success states where applicable. Empty states should name the next available action and link to it when useful.
 - Check phone (390px), desktop (1440px), keyboard focus, long translated text, and reduced motion. Verify no horizontal overflow or hidden primary action.
 - Check confirmation copy and focus return, visible input labels, action names, and the result of each click. Use the existing localized `t()` copy and shared toast/error patterns.
-- Review the rendered UI and the source. Follow the frontend overview's build and test rules. Browser tests require explicit user request.
+- Review the rendered UI and the source. Follow the frontend overview's build and test rules. Run browser-driven tests when necessary.
 
 See [the screen audit and improvement plan](frontend-ui-audit-plan.md) for the November 2026 baseline.

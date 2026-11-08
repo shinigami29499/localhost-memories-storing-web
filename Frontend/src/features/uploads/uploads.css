@@ -138,14 +138,14 @@
   padding: 8px 16px;
   border: 0;
   background: var(--danger-wash);
-  color: var(--danger);
+  color: var(--text);
   box-shadow: none;
   font-size: 0.875rem;
 }
 
 .upload-page__selection-button:hover:not(:disabled) {
   background: var(--danger-wash);
-  color: var(--danger);
+  color: var(--text);
   filter: brightness(0.94);
 }
 
@@ -327,8 +327,8 @@
 }
 
 .upload-status--failed {
-  border-color: var(--danger);
-  color: var(--danger);
+  border-color: var(--accent-strong);
+  color: var(--text);
   background: var(--upload-status-failed-fill);
 }
 
@@ -373,7 +373,7 @@
 }
 
 :is(.upload-batch__summary, .upload-item):has(.upload-status--failed) {
-  --upload-progress-color: var(--danger);
+  --upload-progress-color: var(--text);
 }
 
 .upload-progress[data-indeterminate] .upload-progress__indicator {
@@ -529,7 +529,7 @@
 
 .upload-item__select:indeterminate,
 .upload-item__select:checked {
-  border-color: var(--accent-strong);
+  border-color: var(--text);
   background: var(--accent-strong);
 }
 
@@ -635,7 +635,7 @@
 .upload-item__error {
   grid-column: 1 / -1;
   margin: 0;
-  color: var(--danger);
+  color: var(--text);
   font-size: 0.82rem;
   overflow-wrap: anywhere;
 }
@@ -661,7 +661,7 @@
 }
 
 .upload-item__action--delete.btn {
-  color: var(--danger);
+  color: var(--text);
   background: var(--danger-wash);
 }
 

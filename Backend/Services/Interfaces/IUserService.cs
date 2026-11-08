@@ -8,7 +8,7 @@ namespace Services.Interfaces;
 public interface IUserService
 {
     Task<IReadOnlyList<UserResponse>> ListAsync(CancellationToken cancellationToken = default);
-    Task<UserPageResponse> GetPageAsync(int page, int limit, bool pendingOnly,
+    Task<UserPageResponse> GetPageAsync(int page, int limit, bool pendingOnly, bool blockedOnly,
         CancellationToken cancellationToken = default);
     Task<DateTime> HeartbeatAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<UserResponse> GetProfileAsync(Guid userId, CancellationToken cancellationToken = default);

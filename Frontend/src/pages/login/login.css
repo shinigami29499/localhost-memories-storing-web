@@ -79,7 +79,7 @@
 }
 
 .login__badge {
-  color: var(--accent-soft);
+  color: var(--text);
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.18em;
@@ -114,7 +114,7 @@
 }
 
 .login__field-help { color: var(--text-muted); }
-.login__field-error { color: var(--danger); }
+.login__field-error { color: var(--text); }
 
 .login__card input {
   padding: 13px 16px;
@@ -154,7 +154,7 @@
 }
 
 .login__swap:not(.btn) {
-  color: var(--accent-soft);
+  color: var(--text);
   font-weight: 600;
 }
 

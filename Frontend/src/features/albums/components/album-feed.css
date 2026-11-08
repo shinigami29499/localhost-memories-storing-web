@@ -141,7 +141,7 @@
 }
 
 .album-feed-post__delete:hover {
-  color: var(--danger);
+  color: var(--text);
 }
 
 .album-feed-post__delete {

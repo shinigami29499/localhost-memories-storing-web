@@ -33,6 +33,10 @@
   z-index: 50;
 }
 
+.map-loading-overlay .spinner__wheel {
+  color: var(--text-muted);
+}
+
 @keyframes map-marker-bounce {
   0%, 100% { transform: translateY(-4px); }
   25% { transform: translateY(0); }
@@ -88,7 +92,7 @@
 }
 
 :is(.place, .locations) .map-controls .mapboxgl-ctrl-geolocate:not(:disabled):is(:hover, :active, .mapboxgl-ctrl-geolocate-active) {
-  background-color: #6A3F36;
+  background-color: #000;
 }
 
 :is(.place, .locations) .map-controls .mapboxgl-ctrl-geolocate .mapboxgl-ctrl-icon {
@@ -96,7 +100,7 @@
 }
 
 :is(.place, .locations) .map-controls .mapboxgl-ctrl-geolocate:not(:disabled):is(:hover, :focus-visible) {
-  background-color: #6A3F36;
+  background-color: #000;
 }
 
 :is(.place, .locations) .map-controls .mapboxgl-ctrl-geolocate:not(:disabled):is(:hover, :focus-visible)::before {
@@ -422,7 +426,7 @@
   background: var(--surface-hover);
   color: var(--sidebar-bg);
 }
-:is(.place, .locations) .place__location-search-message [role="alert"] { color: var(--danger); }
+:is(.place, .locations) .place__location-search-message [role="alert"] { color: var(--text); }
 
 :is(.place, .locations) :is(.place__map-home-control, .locations__map-home-control) {
   left: 8px;
@@ -456,7 +460,7 @@
 
 :root :is(.place, .locations) .map-controls :is(.place__map-home-control, .locations__map-home-control):is(:hover, :active, [aria-pressed="true"]):not(:disabled) {
   background: #6A3F36;
-  color: #6A3F36;
+  color: #000;
 }
 
 :is(.place, .locations) .map-controls :is(.place__map-home-control, .locations__map-home-control):is(:hover, :active, [aria-pressed="true"]):not(:disabled)::before {
@@ -749,7 +753,7 @@
   border: 2px solid var(--counter-color, #6A3F36);
   border-radius: 999px;
   bottom: -6px;
-  color: var(--counter-color, #6A3F36);
+  color: var(--counter-color, #000);
   display: inline-flex;
   font-size: 0.75rem;
   font-variant-numeric: tabular-nums;
@@ -791,7 +795,7 @@
   border-radius: 10px;
   bottom: calc(100% + 12px);
   box-shadow: none;
-  color: #6A3F36;
+  color: #000;
   left: 50%;
   overflow: visible;
   opacity: 0;
@@ -842,7 +846,7 @@
   }
 }
 
-.map-marker { --marker-color: var(--accent); height: 54px; position: relative; width: 44px; }
+.map-marker { --marker-color: var(--text); height: 54px; position: relative; width: 44px; }
 .map-marker::before { background: color-mix(in srgb, var(--marker-color), black 35%); border-radius: 50%; bottom: -6px; content: ""; height: 9px; left: 12px; pointer-events: none; position: absolute; width: 20px; }
 .home-location-marker.map-marker::before, .map-marker--draft::before { content: none; }
 .home-location-shadow { --marker-color: #333; }

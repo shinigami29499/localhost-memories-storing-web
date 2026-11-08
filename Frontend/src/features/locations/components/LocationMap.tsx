@@ -409,7 +409,7 @@ function PhotoClusterMarker({ cluster, shadowLocation, selected, onSelect, canMo
       data-home-expanded={homeExpanded}
       data-near-home={nearHome}
       data-selected={selectedIndex >= 0}
-      style={{ "--fan-count": fanned.length, "--fan-step": `${step}deg`, "--counter-color": nearHome ? "#000" : "#6A3F36" } as CSSProperties}
+      style={{ "--fan-count": fanned.length, "--fan-step": `${step}deg`, "--counter-color": "#000" } as CSSProperties}
       onPointerEnter={() => { setOpen(true); onActiveChange?.(true); onHomeHoverChange?.(true); }}
       onPointerLeave={(event) => { if (!event.currentTarget.contains(document.activeElement)) { setOpen(false); onActiveChange?.(false); onHomeHoverChange?.(false); } }}
       onFocus={() => { setOpen(true); onActiveChange?.(true); onHomeHoverChange?.(true); }}

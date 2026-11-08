@@ -1,8 +1,10 @@
+import { PushTransition } from "../../hooks/PushTransition";
 import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { Tabs } from "@base-ui/react/tabs";
 import { HighlightItem } from "@animate-ui/react/primitives/effects/highlight";
-import { NavigationHighlight } from "../../components/ui";
+import { NavigationHighlight, SwapLabel } from "../../components/ui";
 import { startTransition, useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { userService } from "../../features/users";
 import { ApiError } from "../../services/api";
@@ -44,11 +46,12 @@ function formatLastActive(value: string | null | undefined, language: "en" | "vi
   return date.toLocaleString(locale, { dateStyle: "short", timeStyle: "short" });
 }
 
-type UserFilter = "all" | "pending_approval";
+type UserFilter = "all" | "pending_approval" | "blocked";
 
 const userFilters: { value: UserFilter; label: string }[] = [
   { value: "all", label: "All users" },
   { value: "pending_approval", label: "Pending" },
+  { value: "blocked", label: "Blocked" },
 ];
 
 export function UsersPage() {
@@ -57,18 +60,23 @@ export function UsersPage() {
   const isAdmin = me?.role?.toLowerCase() === "admin";
   const queryClient = useQueryClient();
   const [action, setAction] = useState<{ type: "approve" | "activate" | "disable" | "delete" | "role"; user: AuthUser } | null>(null);
-  const [filter, setFilter] = useState<UserFilter>("all");
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const filter: UserFilter = pathname.endsWith("/pending") ? "pending_approval" : pathname.endsWith("/blocked") && isAdmin ? "blocked" : "all";
+  useEffect(() => {
+    if (!isAdmin && pathname.endsWith("/blocked")) navigate("/users", { replace: true });
+  }, [isAdmin, pathname, navigate]);
   const [search, setSearch] = useState("");
   const sentinel = useRef<HTMLDivElement>(null);
   const [now, setNow] = useState(() => Date.now());
   const offlineUsers = useUserPresenceStore((state) => state.offlineUsers);
   const users = useInfiniteQuery({
     queryKey: ["users", "page", filter], initialPageParam: 1,
-    queryFn: ({ pageParam, signal }) => userService.page(pageParam, 30, filter === "pending_approval", signal),
+    queryFn: ({ pageParam, signal }) => userService.page(pageParam, 30, filter === "pending_approval", signal, filter === "blocked"),
     getNextPageParam: (lastPage) => lastPage.page * lastPage.limit < lastPage.total ? lastPage.page + 1 : undefined,
     enabled: !search.trim(), refetchInterval: isAdmin ? 60_000 : false,
   });
-  const searchUsers = useQuery({ queryKey: ["users", "search-list"], queryFn: () => userService.list(), enabled: !!search.trim(), refetchInterval: isAdmin ? 60_000 : false });
+  const searchUsers = useQuery({ queryKey: ["users", "search-list", isAdmin], queryFn: () => userService.list(), enabled: !!search.trim(), refetchInterval: isAdmin ? 60_000 : false });
   const activeQuery = search.trim() ? searchUsers : users;
   useEffect(() => {
     const target = sentinel.current;
@@ -120,7 +128,7 @@ export function UsersPage() {
   });
 
   const pagedUsers = search.trim()
-    ? (searchUsers.data ?? []).filter((user) => (filter === "all" || user.status === "pending_approval") && user.username.toLowerCase().includes(search.trim().toLowerCase()))
+    ? (searchUsers.data ?? []).filter((user) => (filter === "blocked" ? user.status === "disabled" : filter === "pending_approval" ? user.status === "pending_approval" : user.status !== "disabled") && user.username.toLowerCase().includes(search.trim().toLowerCase()))
     : users.data?.pages.flatMap((page) => page.items) ?? [];
 
   return (
@@ -132,9 +140,9 @@ export function UsersPage() {
           <Tabs.Root
               value={filter}
               onValueChange={(value) => {
-                if (value === "all" || value === "pending_approval") {
+                if (value === "all" || value === "pending_approval" || value === "blocked") {
                   startTransition(() => {
-                    setFilter(value);
+                    navigate(value === "all" ? "/users" : value === "pending_approval" ? "/users/pending" : "/users/blocked");
                   });
                 }
               }}
@@ -145,14 +153,14 @@ export function UsersPage() {
                   aria-label={t("Filter users by status")}
                 >
                   <NavigationHighlight value={filter}>
-                  {userFilters.map((option) => {
+                  {userFilters.filter((option) => isAdmin || option.value !== "blocked").map((option, index) => {
                     return (
                       <HighlightItem key={option.value} value={option.value} asChild>
                       <Tabs.Tab
                         value={option.value}
                         className="admin-users__tab"
                       >
-                        {t(option.label)}
+                        <SwapLabel text={t(option.label)} index={index} />
                       </Tabs.Tab>
                       </HighlightItem>
                     );
@@ -160,6 +168,8 @@ export function UsersPage() {
                   </NavigationHighlight>
                 </Tabs.List>
               </div>
+              <div data-push-page-content>
+              <PushTransition transitionKey={filter} />
               {activeQuery.isLoading ? <Spinner label={t("Loading users�")} /> : null}
               {activeQuery.isError && !pagedUsers.length ? (
                 <ErrorState message={t("Could not load users.")} onRetry={() => void activeQuery.refetch()} />
@@ -167,10 +177,10 @@ export function UsersPage() {
               <Tabs.Panel key={filter} value={filter}>
                 {!activeQuery.data ? null : pagedUsers.length === 0 ? (
                   <EmptyState
-                    title={search.trim() ? "No matching users" : filter === "pending_approval" ? "No pending users" : "No users yet"}
+                    title={search.trim() ? "No matching users" : filter === "pending_approval" ? "No pending users" : filter === "blocked" ? "No blocked users" : "No users yet"}
                     hint={search.trim() ? "Try a different search." : filter === "pending_approval"
                       ? "Accounts awaiting approval will appear here."
-                      : "User accounts will appear here."}
+                      : filter === "blocked" ? "Blocked accounts will appear here." : "User accounts will appear here."}
                   />
                 ) : (
                   <div className="admin-table-wrap">
@@ -214,6 +224,7 @@ export function UsersPage() {
                 {!search.trim() && users.isFetchNextPageError && <ErrorState message={t("Could not load more users.")} onRetry={() => void users.fetchNextPage()} />}
                 {!search.trim() && users.hasNextPage && <div ref={sentinel}>{users.isFetchingNextPage && <Spinner />}</div>}
               </Tabs.Panel>
+              </div>
           </Tabs.Root>
         </section>
         </div>
@@ -229,16 +240,16 @@ export function UsersPage() {
         <ConfirmationDialog
           confirmLabel={t(action.type === "approve" ? "Approve {username}"
             : action.type === "role" ? "Change role for {username}"
-            : action.type === "activate" ? "Activate {username}"
-            : action.type === "disable" ? "Disable {username}" : "Delete {username}", { username: action.user.username })}
+            : action.type === "activate" ? "Unblock {username}"
+            : action.type === "disable" ? "Block {username}" : "Delete {username}", { username: action.user.username })}
           title={action.type === "approve"
             ? t("Approve {username}?", { username: action.user.username })
             : action.type === "role"
             ? t("Change role for {username}?", { username: action.user.username })
             : action.type === "activate"
-            ? t("Activate {username}?", { username: action.user.username })
+            ? t("Unblock {username}?", { username: action.user.username })
             : action.type === "disable"
-            ? t("Disable {username}?", { username: action.user.username })
+            ? t("Block {username}?", { username: action.user.username })
             : t("Delete {username}?", { username: action.user.username })}
           danger={action.type === "disable" || action.type === "delete"}
           onClose={() => setAction(null)}
@@ -255,9 +266,9 @@ export function UsersPage() {
             : action.type === "role"
             ? t("Change {username} to {role}? They will need to sign in again to receive the new role.", { username: action.user.username, role: t(action.user.role.toLowerCase() === "admin" ? "user" : "admin") })
             : action.type === "activate"
-            ? t("Activate {username} so they can sign in again?", { username: action.user.username })
+            ? t("Unblock {username} so they can sign in again?", { username: action.user.username })
             : action.type === "disable"
-            ? t("Disable {username}? They will no longer be able to sign in or refresh their session.", { username: action.user.username })
+            ? t("Block {username}? They will no longer be able to sign in or refresh their session.", { username: action.user.username })
             : t("Delete {username}? Their account will be disabled and their sessions revoked.", { username: action.user.username })}</p>
         </ConfirmationDialog>
       ) : null}
@@ -293,7 +304,7 @@ function UserRow({
   const { t } = useLocale();
   const isPending = user.status === "pending_approval";
   const presence = user.status === "disabled" ? "disabled" : isPending ? "pending" : isOnline ? "online" : "offline";
-  const presenceLabel = presence === "disabled" ? "Disabled" : presence === "pending" ? "Pending approval" : presence === "online" ? "Online" : "Offline";
+  const presenceLabel = presence === "disabled" ? "Blocked" : presence === "pending" ? "Pending approval" : presence === "online" ? "Online" : "Offline";
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -333,7 +344,7 @@ function UserRow({
         {user.status === "disabled" ? (
           <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
             <button type="button" className="btn btn--primary admin-icon-btn" disabled={isLoading} aria-busy={isActivating || undefined}
-              aria-label={t("Activate {username}", { username: user.username })} title={t("Activate {username}", { username: user.username })} onClick={onActivate}>
+              aria-label={t("Unblock {username}", { username: user.username })} title={t("Unblock {username}", { username: user.username })} onClick={onActivate}>
               {isActivating ? <LoaderCircle animate={false} className="btn__spinner" aria-hidden="true" /> : <Check size={16} aria-hidden="true" />}
             </button>
           </AnimateIcon>
@@ -356,7 +367,7 @@ function UserRow({
         {!isSelf && user.status === "active" ? (
           <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
             <button type="button" className="btn btn--secondary admin-icon-btn" disabled={isLoading} aria-busy={isDisabling || undefined}
-              aria-label={t("Disable {username}", { username: user.username })} title={t("Disable {username}", { username: user.username })} onClick={onDisable}>
+              aria-label={t("Block {username}", { username: user.username })} title={t("Block {username}", { username: user.username })} onClick={onDisable}>
               {isDisabling ? <LoaderCircle animate={false} className="btn__spinner" aria-hidden="true" /> : <Ban size={16} aria-hidden="true" />}
             </button>
           </AnimateIcon>

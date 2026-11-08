@@ -15,14 +15,16 @@ public sealed class UserRepository(ApplicationDbContext db) : IUserRepository
             .ToListAsync(cancellationToken);
 
     public async Task<(IReadOnlyList<User> Items, int Total, int AllCount, int PendingCount)> GetUserPageAsync(
-        int page, int limit, bool pendingOnly, CancellationToken cancellationToken = default)
+        int page, int limit, bool pendingOnly, bool blockedOnly, CancellationToken cancellationToken = default)
     {
         var users = db.Users.AsNoTracking();
         var pendingCount = await users.CountAsync(
             user => user.Status == AccountStatus.PendingApproval, cancellationToken);
-        var allCount = await users.CountAsync(cancellationToken);
-        if (pendingOnly) users = users.Where(user => user.Status == AccountStatus.PendingApproval);
-        var total = pendingOnly ? pendingCount : allCount;
+        var allCount = await users.CountAsync(user => user.Status != AccountStatus.Disabled, cancellationToken);
+        users = blockedOnly ? users.Where(user => user.Status == AccountStatus.Disabled)
+            : pendingOnly ? users.Where(user => user.Status == AccountStatus.PendingApproval)
+            : users.Where(user => user.Status != AccountStatus.Disabled);
+        var total = blockedOnly ? await users.CountAsync(cancellationToken) : pendingOnly ? pendingCount : allCount;
         var items = await users
             .OrderBy(user => user.Status == AccountStatus.PendingApproval ? 0 : 1)
             .ThenByDescending(user => user.CreatedAt)

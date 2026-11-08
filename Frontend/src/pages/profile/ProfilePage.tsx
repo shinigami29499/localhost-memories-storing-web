@@ -4,7 +4,6 @@ import { useAuthStore } from "../../store/authStore";
 import { useLocale } from "../../context/LocaleContext";
 import { UserAvatar } from "../../components/common/UserAvatar";
 import { ErrorState } from "../../components/ui/Status";
-import { ChangePasswordForm } from "../../features/users/components/ChangePasswordForm";
 import { AvatarPicker } from "../../features/users/components/AvatarPicker";
 import { useAlbums } from "../../features/albums/hooks/useAlbums";
 import { mediaService } from "../../features/media/services/mediaService";
@@ -71,7 +70,6 @@ export function ProfilePage() {
           ) : null}
           {profile.isSuccess ? <AvatarPicker key={user.id} user={user} /> : null}
         </section>
-        <ChangePasswordForm key={user.id} />
       </div>
     </main>
   );

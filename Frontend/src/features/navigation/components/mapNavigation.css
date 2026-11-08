@@ -73,11 +73,11 @@
   min-height: 44px;
   padding: 8px;
 }
-.map-navigation__steps summary:hover { background: var(--surface-hover); color: #6A3F36; }
+.map-navigation__steps summary:hover { background: var(--surface-hover); color: #000; }
 .map-navigation .btn--secondary { background: var(--surface); color: var(--text); }
 .map-navigation .btn--secondary:hover:not(:disabled) { background: var(--surface-hover); color: var(--text); }
 .map-navigation .btn--secondary[aria-pressed="true"] { background: var(--accent); color: var(--text-on-accent); }
-.map-navigation .btn:disabled { color: #6A3F36; }
+.map-navigation .btn:disabled { color: #000; }
 .map-navigation__steps ol { margin: 0; padding-left: 24px; }
 .map-navigation__steps li { padding-block: 4px; }
 .map-navigation__steps small { color: var(--text-muted); white-space: nowrap; }

@@ -28,8 +28,8 @@ export const userService = {
     return api("/api/users");
   },
 
-  page(page: number, limit: number, pendingOnly = false, signal?: AbortSignal): Promise<UserPage> {
-    return api(`/api/users/page?page=${page}&limit=${limit}&pendingOnly=${pendingOnly}`, { signal });
+  page(page: number, limit: number, pendingOnly = false, signal?: AbortSignal, blockedOnly = false): Promise<UserPage> {
+    return api(`/api/users/page?page=${page}&limit=${limit}&pendingOnly=${pendingOnly}&blockedOnly=${blockedOnly}`, { signal });
   },
 
   heartbeat(): Promise<{ lastSeenAt: string }> {

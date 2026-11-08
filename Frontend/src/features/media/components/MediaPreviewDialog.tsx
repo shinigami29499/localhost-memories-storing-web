@@ -412,17 +412,6 @@ export function MediaPreviewDialog({
             </CopyButton>
           </AnimateIcon>
         ) : null}
-        <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
-          <button
-            type="button"
-            className="viewer-icon-btn media-preview-dialog__action"
-            aria-label={t("Move to trash")}
-            title={t("Move to trash")}
-            onClick={() => setDeleteMediaId(current.id)}
-          >
-            <Trash2 size={20} aria-hidden="true" />
-          </button>
-        </AnimateIcon>
         <MediaFavoriteButton
           key={current.id}
           isFavorited={current.isFavorited}
@@ -467,6 +456,19 @@ export function MediaPreviewDialog({
                 stroke="currentColor"
                 aria-hidden="true"
               />
+            </button>
+          </AnimateIcon>
+        ) : null}
+        {!trashActions ? (
+          <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
+            <button
+              type="button"
+              className="viewer-icon-btn media-preview-dialog__action media-preview-dialog__trash-action"
+              aria-label={t("Move to trash")}
+              title={t("Move to trash")}
+              onClick={() => setDeleteMediaId(current.id)}
+            >
+              <Trash2 size={20} aria-hidden="true" />
             </button>
           </AnimateIcon>
         ) : null}

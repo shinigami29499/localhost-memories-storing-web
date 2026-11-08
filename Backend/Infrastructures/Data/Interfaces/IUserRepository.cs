@@ -7,7 +7,7 @@ public interface IUserRepository
 {
     Task<IReadOnlyList<User>> ListUsersAsync(CancellationToken cancellationToken = default);
     Task<(IReadOnlyList<User> Items, int Total, int AllCount, int PendingCount)> GetUserPageAsync(
-        int page, int limit, bool pendingOnly, CancellationToken cancellationToken = default);
+        int page, int limit, bool pendingOnly, bool blockedOnly, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<UserMentionCandidateDto>> FindMentionCandidatesAsync(
         string usernamePrefix, int limit, CancellationToken cancellationToken = default);
     Task<SharedHomeLocation> GetSharedHomeLocationAsync(CancellationToken cancellationToken = default);

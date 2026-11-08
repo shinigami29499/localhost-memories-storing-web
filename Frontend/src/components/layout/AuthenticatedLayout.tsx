@@ -1,5 +1,8 @@
-import { Suspense } from "react";
+import { SwappingText } from "@animate-ui/react/primitives/texts/swapping";
+import { useAnimationStore } from "../../store/animationStore";
+import { Suspense, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
+import { PushTransition } from "../../hooks/PushTransition";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { Sidebar } from "./Sidebar";
 import { BottomNavigation } from "./BottomNavigation";
@@ -33,22 +36,30 @@ export function AuthenticatedLayout() {
   const { t } = useLocale();
   const location = useLocation();
   const isMobile = useMediaQuery(MOBILE_QUERY);
+  const motionEnabled = useAnimationStore((state) => state.enabled);
+  const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
+  const showHeading = location.pathname !== "/" && !location.pathname.startsWith("/gallery/album/");
+  const pageKey = /^\/gallery(?:\/favorites|\/trash|\/album)?\/?$/.test(location.pathname) ? "/gallery"
+    : /^\/location(?:\/saved|\/history)?\/?$/.test(location.pathname) ? "/location"
+    : /^\/users(?:\/pending|\/blocked)?\/?$/.test(location.pathname) ? "/users" : location.pathname;
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   return (
-    <div className="app-shell" data-state="expanded">
+    <div className={`app-shell${sidebarCollapsed && !isMobile ? " app-shell--sidebar-collapsed" : ""}`} data-state={sidebarCollapsed && !isMobile ? "collapsed" : "expanded"}>
       <a className="skip-link" href="#main-content">{t("Skip to content")}</a>
-      {!isMobile && <Sidebar />}
+      {!isMobile && <Sidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed((value) => !value)} />}
       <div className="app-shell__main">
         <PresenceRuntime />
         <UploadRuntime />
         <header className="app-topbar">
-          {location.pathname === "/" || location.pathname.startsWith("/gallery/album/")
-            ? <strong className="app-topbar__title">{t(pageTitle(location.pathname))}</strong>
-            : <h1 className="app-topbar__title">{t(pageTitle(location.pathname))}</h1>}
+          <span className="app-topbar__title" role={showHeading ? "heading" : undefined} aria-level={showHeading ? 1 : undefined}>
+            {motionEnabled && !reducedMotion ? <SwappingText text={t(pageTitle(location.pathname))} stagger={0.025} /> : t(pageTitle(location.pathname))}
+          </span>
           <NotificationBell />
         </header>
         <PageActionBarProvider>
           <div id="main-content" tabIndex={-1} className="app-shell__content">
+            <PushTransition transitionKey={pageKey} matchPageHighlights hasPageHighlight={pageKey === "/gallery" || pageKey === "/location" || pageKey === "/users"} />
             <Suspense fallback={<Spinner />}><Outlet /></Suspense>
           </div>
         </PageActionBarProvider>

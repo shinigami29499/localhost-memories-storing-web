@@ -67,7 +67,7 @@
 }
 
 .settings-page__field-copy .settings-page__animation-note {
-  color: var(--danger);
+  color: var(--text);
 }
 
 .settings-page__transition-trigger {

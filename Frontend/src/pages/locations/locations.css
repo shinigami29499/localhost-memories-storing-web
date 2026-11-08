@@ -223,7 +223,7 @@
   width: 100%;
 }
 .locations-camera-dialog__error {
-  color: var(--danger);
+  color: var(--text);
   margin: 12px 0 0;
 }
 .locations__map-home-control {
@@ -292,7 +292,7 @@
 .locations .place__location-search-spinner {
   animation: locations-search-spin 0.8s linear infinite;
   border: 2px solid var(--border-control);
-  border-right-color: var(--accent-strong);
+  border-right-color: var(--text);
   border-radius: 50%;
   height: 18px;
   width: 18px;
@@ -441,7 +441,7 @@
   border: 2px solid var(--counter-color, #6A3F36);
   border-radius: 999px;
   bottom: -6px;
-  color: var(--counter-color, #6A3F36);
+  color: var(--counter-color, #000);
   display: inline-flex;
   font-size: 0.75rem;
   font-variant-numeric: tabular-nums;
@@ -466,7 +466,7 @@
   border-radius: 10px;
   bottom: calc(100% + 12px);
   box-shadow: none;
-  color: #6A3F36;
+  color: #000;
   left: 50%;
   overflow: visible;
   opacity: 0;

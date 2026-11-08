@@ -109,6 +109,8 @@ const router = createBrowserRouter([
           { path: "/location/food", element: <Navigate replace to="/location" /> },
           { path: "/place", element: <Navigate replace to="/location" /> },
           { path: "/users", element: <UsersPage /> },
+          { path: "/users/pending", element: <UsersPage /> },
+          { path: "/users/blocked", element: <UsersPage /> },
           { path: "/admin/users", element: <Navigate replace to="/users" /> },
         ],
       },

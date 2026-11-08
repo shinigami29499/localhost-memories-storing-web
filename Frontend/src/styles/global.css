@@ -15,15 +15,15 @@
   --community-intro-bg: #F8E4BE;
   --border: #C8A796;
   --border-control: #6A3F36;
-  --text: #6A3F36;
-  --text-muted: #6A3F36;
-  --text-strong: #6A3F36;
+  --text: #000;
+  --text-muted: #000;
+  --text-strong: #000;
   --accent: #6A3F36;
   --accent-strong: #6A3F36;
   --accent-soft: #6A3F36;
   --accent-wash: #F8E4BE;
   --gradient: #6A3F36;
-  --gradient-text: #6A3F36;
+  --gradient-text: #000;
   --selection-text: #F4F3EE;
   --text-on-accent: #F4F3EE;
   --heart: #6A3F36;
@@ -102,7 +102,7 @@ html {
 }
 
 a {
-  color: var(--accent-soft);
+  color: var(--text);
 }
 
 button,
@@ -163,7 +163,7 @@ button:focus-visible {
 }
 
 .brand__dot {
-  color: var(--accent-soft);
+  color: var(--text);
 }
 
 .gradient-text {
@@ -381,7 +381,7 @@ button:focus-visible {
 .comments__composer > .btn--primary:disabled {
   border-color: var(--border);
   background: var(--surface-raised);
-  color: var(--accent-soft);
+  color: var(--text);
   opacity: 1;
 }
 
@@ -463,7 +463,7 @@ textarea::placeholder {
   width: 18px;
   height: 18px;
   flex-shrink: 0;
-  color: var(--accent-soft);
+  color: var(--text);
   animation: spin 0.8s linear infinite;
 }
 
@@ -637,7 +637,7 @@ textarea::placeholder {
 }
 
 .post-card__delete:hover:not(:disabled) {
-  color: var(--danger);
+  color: var(--text);
   background: var(--danger-wash);
 }
 
@@ -771,8 +771,8 @@ textarea::placeholder {
 
 .confirmation-dialog a:hover,
 .confirmation-dialog__link:hover {
-  color: var(--accent-soft);
-  text-decoration-color: var(--accent-soft);
+  color: var(--text);
+  text-decoration-color: var(--text);
 }
 
 .confirmation-dialog__link {
@@ -780,7 +780,7 @@ textarea::placeholder {
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--accent-soft);
+  color: var(--text);
   font: inherit;
   text-align: left;
   text-decoration: underline;
@@ -1146,7 +1146,7 @@ textarea::placeholder {
 
 :root .album-photo-picker-viewport .place-picker__header {
   background: #F4F3EE;
-  color: #6A3F36;
+  color: #000;
 }
 
 :root .album-photo-picker-viewport .place-picker__footer,
@@ -1156,7 +1156,7 @@ textarea::placeholder {
 }
 
 :root .album-photo-picker-viewport .place-picker__body {
-  color: #6A3F36;
+  color: #000;
 }
 
 :root .album-photo-picker-viewport .photo-picker__tabs::after {
@@ -1182,7 +1182,7 @@ textarea::placeholder {
 
 :root .place-picker__header {
   background: #F4F3EE;
-  color: #6A3F36;
+  color: #000;
 }
 
 :root .place-picker__footer,
@@ -1192,7 +1192,7 @@ textarea::placeholder {
 }
 
 :root .place-picker__body {
-  color: #6A3F36;
+  color: #000;
 }
 
 :root .photo-picker__tabs::after {
@@ -1359,7 +1359,7 @@ textarea::placeholder {
 }
 
 .post-card__tag--mention {
-  color: var(--accent-strong);
+  color: var(--text);
 }
 
 .post-card__tag--hashtag {
@@ -1899,7 +1899,7 @@ textarea::placeholder {
 
 .reaction-icon--heart {
   flex-shrink: 0;
-  color: var(--heart);
+  color: var(--text);
 }
 
 .reactions {
@@ -1937,7 +1937,7 @@ textarea::placeholder {
 }
 
 .reactions__chip--active {
-  color: var(--danger);
+  color: var(--text);
 }
 
 .reactions__chip:disabled {
@@ -2004,7 +2004,7 @@ textarea::placeholder {
 }
 
 .comments__delete:hover {
-  color: var(--danger);
+  color: var(--text);
 }
 
 .comments__content {
@@ -2057,7 +2057,7 @@ textarea::placeholder {
   flex-shrink: 0;
   border-radius: 50%;
   background: var(--surface-card-raised);
-  color: var(--accent-soft);
+  color: var(--text);
 }
 
 .new-post__heading h3 {
@@ -2180,7 +2180,7 @@ textarea::placeholder {
 }
 
 .new-post__chip-remove:hover {
-  color: var(--danger);
+  color: var(--text);
 }
 
 .new-post__hint {
@@ -2391,7 +2391,7 @@ textarea::placeholder {
   margin: 0 auto 24px;
   border-radius: 50%;
   background: var(--danger-wash);
-  color: var(--danger);
+  color: var(--text);
 }
 
 .error-page__icon span {

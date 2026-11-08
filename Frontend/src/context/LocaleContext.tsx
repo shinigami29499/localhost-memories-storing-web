@@ -726,6 +726,7 @@ const vietnamese: Record<string, string> = {
   users: "người dùng",
   items: "mục",
   "Previous page": "Trang trước",
+  "Avatar pagination": "Phân trang ảnh đại diện",
   Previous: "Trước",
   "Page {page}": "Trang {page}",
   "Next page": "Trang tiếp theo",

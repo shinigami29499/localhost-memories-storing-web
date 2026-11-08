@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Apis.Authorization;
 using Apis.Interfaces;
 using Services.Interfaces;
+using Services.Core;
 using Services.Responses.Auth;
 using Services.Responses.Users;
 using Services.Models.Users;
@@ -44,13 +45,19 @@ public class UsersController(
 
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<UserResponse>>> ListAsync(CancellationToken cancellationToken)
-        => Ok(await _userService.ListAsync(cancellationToken));
+    {
+        var users = await _userService.ListAsync(cancellationToken);
+        return Ok(User.IsInRole(Constants.Roles.Admin) ? users : users.Where(user => user.Status != "disabled").ToList());
+    }
 
     [HttpGet("page")]
     public async Task<ActionResult<UserPageResponse>> GetPageAsync(
         CancellationToken cancellationToken, [FromQuery] int page = 1,
-        [FromQuery] int limit = 20, [FromQuery] bool pendingOnly = false)
-        => Ok(await _userService.GetPageAsync(page, limit, pendingOnly, cancellationToken));
+        [FromQuery] int limit = 20, [FromQuery] bool pendingOnly = false, [FromQuery] bool blockedOnly = false)
+    {
+        if (blockedOnly && !User.IsInRole(Constants.Roles.Admin)) return Forbid();
+        return Ok(await _userService.GetPageAsync(page, limit, pendingOnly, blockedOnly, cancellationToken));
+    }
 
     [HttpGet("me")]
     public async Task<ActionResult<UserResponse>> GetProfileAsync(CancellationToken cancellationToken)

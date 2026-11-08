@@ -150,7 +150,7 @@
 }
 
 .upload-activity__error {
-  color: var(--danger);
+  color: var(--text);
 }
 
 .upload-activity__retry {

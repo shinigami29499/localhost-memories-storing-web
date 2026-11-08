@@ -2,6 +2,7 @@ import { useId, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { UserAvatar } from "../../../components/common/UserAvatar";
 import { Button } from "../../../components/ui/Button";
+import { Pagination } from "../../../components/ui/Pagination";
 import { showToast } from "../../../components/ui/Toast";
 import { useLocale } from "../../../context/LocaleContext";
 import { ApiError } from "../../../services/api";
@@ -75,31 +76,11 @@ export function AvatarPicker({ user }: { user: AuthUser }) {
         </p>
       ) : null}
       <div className="avatar-picker__actions">
-        <Button
-          type="button"
-          variant="secondary"
-          disabled={save.isPending}
-          onClick={() => {
-            setBatch((value) => value + 1);
-            setDraft(null);
-            save.reset();
-          }}
-        >
-          {t("More avatars")}
-        </Button>
+        <div className="avatar-picker__pagination">
+          <Pagination page={batch + 1} pageSize={1} total={100} itemLabel="Avatar" isFetching={save.isPending} onPageChange={(page) => setBatch(page - 1)} />
+        </div>
         <Button type="submit" busy={save.isPending} disabled={selectedSeed === savedSeed}>
           {t("Save avatar")}
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          disabled={save.isPending || selectedSeed === savedSeed}
-          onClick={() => {
-            setDraft(null);
-            save.reset();
-          }}
-        >
-          {t("Cancel")}
         </Button>
       </div>
     </form>

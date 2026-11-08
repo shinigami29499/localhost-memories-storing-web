@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronDown } from "@/components/animate-ui/icons/chevron-down";
 import { UploadActivityHeatmap } from "../../features/uploads/components/UploadActivityHeatmap";
 import { Home } from "@/components/animate-ui/icons/home";
@@ -9,22 +9,18 @@ import { Settings } from "@/components/animate-ui/icons/settings";
 import { Upload } from "@/components/animate-ui/icons/upload";
 import { Users } from "@/components/animate-ui/icons/users";
 import { UserRound } from "@/components/animate-ui/icons/user-round";
+import { PanelLeft } from "@/components/animate-ui/icons/panel-left";
+import { PanelRight } from "@/components/animate-ui/icons/panel-right";
 import { NavLink, useLocation } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
 import { useLogout } from "../../features/auth/hooks/useLogout";
 import { Brand } from "./Brand";
 import { useLocale } from "../../context/LocaleContext";
 import { UserAvatar } from "../common/UserAvatar";
-import { useUnreadUploads } from "../../features/uploads/hooks/useUnreadUploads";
 
-export function Sidebar() {
+export function Sidebar({ collapsed = false, onToggle = () => {} }: { collapsed?: boolean; onToggle?: () => void }) {
   const logout = useLogout();
   const { t } = useLocale();
-  const uploadCounts = useUnreadUploads();
-  const countColumnWidths = (["success", "pending", "failed"] as const)
-    .map((status) => `${Math.max(String(uploadCounts[status]).length, 2) + 1.5}ch`)
-    .join(" ");
-  const countStyle = { gridTemplateColumns: countColumnWidths } satisfies CSSProperties;
   const user = useAuthStore((s) => s.user);
   const location = useLocation();
   const locationsActive = location.pathname === "/location" || location.pathname.startsWith("/location/");
@@ -62,21 +58,21 @@ export function Sidebar() {
   return (
     <>
       <div className="sidebar-gap" aria-hidden="true" />
-      <aside className="sidebar">
+      <aside className={`sidebar${collapsed ? " sidebar--collapsed" : ""}`}>
         <div className="sidebar__inner">
           <div className="sidebar__brand">
-            <Brand />
+            <Brand textOnly />
           </div>
           <nav id="sidebar-navigation" className="sidebar__nav" aria-label={t("Main navigation")}>
               <NavLink
                 to="/"
-                className={`sidebar__link sidebar__home-link${location.pathname === "/" ? " sidebar__link--active" : ""}`}
+                className={`sidebar__link${location.pathname === "/" ? " sidebar__link--active" : ""}`}
                 end
                 data-sidebar="menu-button"
                 aria-label={t("Home")}
                 title={t("Home")}
               >
-                <Home size={18} className="sidebar__home-icon" aria-hidden="true" />
+                <Home size={18} aria-hidden="true" />
                 <span>{t("Home")}</span>
               </NavLink>
               <NavLink to="/gallery" className={`sidebar__link${libraryActive ? " sidebar__link--active" : ""}`}
@@ -90,7 +86,7 @@ export function Sidebar() {
               </NavLink>
               <NavLink
                 to="/users"
-                className={`sidebar__link${location.pathname === "/users" ? " sidebar__link--active" : ""}`}
+                className={`sidebar__link${(location.pathname === "/users" || location.pathname.startsWith("/users/")) ? " sidebar__link--active" : ""}`}
                 data-sidebar="menu-button"
                 aria-label={t("Users")}
                 title={t("Users")}
@@ -100,9 +96,6 @@ export function Sidebar() {
               </NavLink>
               <NavLink to="/uploads" className={`sidebar__link${location.pathname.startsWith("/uploads") ? " sidebar__link--active" : ""}`} data-sidebar="menu-button" aria-label={t("Upload")} title={t("Upload")}>
                 <Upload size={18} aria-hidden="true" /><span>{t("Upload")}</span>
-                {(uploadCounts.success > 0 || uploadCounts.pending > 0 || uploadCounts.failed > 0) && <span className="sidebar__upload-counts" style={countStyle}>
-                  {(["success", "pending", "failed"] as const).map((status) => <span key={status} className={`sidebar__upload-count sidebar__upload-count--${status}`} aria-label={`${t(status === "success" ? "Success" : status === "pending" ? "Pending upload" : "Failed")}: ${uploadCounts[status]}`}>{uploadCounts[status]}</span>)}
-                </span>}
               </NavLink>
             {
               <section className="sidebar__activity" aria-labelledby="sidebar-activity-title">
@@ -197,6 +190,12 @@ export function Sidebar() {
           </div>
         </div>
       </aside>
+      <button type="button" className="sidebar__toggle" onClick={onToggle}
+        aria-label={t(collapsed ? "Expand navigation" : "Collapse navigation")}
+        title={t(collapsed ? "Expand navigation" : "Collapse navigation")}
+        aria-expanded={!collapsed} aria-controls="sidebar-navigation">
+        {collapsed ? <PanelRight size={20} aria-hidden="true" /> : <PanelLeft size={20} aria-hidden="true" />}
+      </button>
     </>
   );
 }

@@ -1,8 +1,9 @@
+import { PushTransition } from "../../hooks/PushTransition";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { lazy, Suspense, startTransition, useCallback, useEffect, useLayoutEffect, useRef, useState, useMemo, type CSSProperties } from "react";
 import { HighlightItem } from "@animate-ui/react/primitives/effects/highlight";
-import { NavigationHighlight } from "../../components/ui";
+import { NavigationHighlight, SwapLabel } from "../../components/ui";
 import { cloneMobileSearchFooter, PageActionBar, usePageActionBarFooter } from "../../components/layout/PageActionBar";
 import {
   Button,
@@ -45,7 +46,6 @@ import {
 } from "../../features/place/components/PlaceEditor";
 import { StarRating } from "../../features/place/components/StarRating";
 import { Star } from "../../components/animate-ui/icons/star";
-import { SlidingNumber } from "@animate-ui/react/primitives/texts/sliding-number";
 import {
   useCheckInPlace,
   useDeletePlace,
@@ -107,11 +107,11 @@ function PlaceViewSwitch({ view, onChange }: { view: PlaceView; onChange: (view:
   return (
     <div className="navigation-highlight-bar place__view-switch" role="group" aria-label={t("Place view")}>
       <NavigationHighlight value={view}>
-        {([ ["map", "Map"], ["saved", "Saved"], ["history", "History"] ] as const).map(([value, label]) => (
+        {([ ["map", "Map"], ["saved", "Saved"], ["history", "History"] ] as const).map(([value, label], index) => (
           <HighlightItem key={value} value={value} asChild>
             <button type="button" aria-pressed={view === value}
               onClick={() => onChange(value)}>
-              {t(label)}
+              <SwapLabel text={t(label)} index={index} />
             </button>
           </HighlightItem>
         ))}
@@ -640,7 +640,8 @@ export function PlacePage() {
 
             <PlaceViewSwitch view={view} onChange={requestView} />
             {!saved && !homeRelocationDraft && (!addToolbar || addToolbar.visible) && <AddNavigationToolbar onAdd={addToolbar?.add ?? (() => {})} disabled={addToolbar?.disabled ?? true} />}
-            <div className="place__view-content" aria-busy={view === "history" && historyQuery.isPending || undefined}>
+            <div className="place__view-content" data-push-page-content aria-busy={view === "history" && historyQuery.isPending || undefined}>
+            <PushTransition transitionKey={view} />
             <>
             {!saved && (
               <>
@@ -833,7 +834,7 @@ export function PlacePage() {
             <input type="search" aria-label={t(view === "history" ? "Search visit history" : "Search saved places")}
               placeholder={t("Search places or users")} value={view === "history" ? historySearch : placeSearch} maxLength={120}
               onChange={(event) => view === "history" ? setHistorySearch(event.target.value) : setPlaceSearch(event.target.value)} />
-            <div className="place__rating-controls">
+            <div className="place__rating-controls" style={{ flexBasis: `${40 + Math.max(0, activeRating - 1) * 8}px` }}>
               {activeRating > 0 && (
                 <button type="button" className="place__rating-filter-clear" aria-label={t("Clear rating filter")}
                   title={t("Clear rating filter")} onClick={() => setActiveRating(0)}>
@@ -842,11 +843,13 @@ export function PlacePage() {
                   </svg>
                 </button>
               )}
-              <button type="button" className="place__rating-filter" aria-label={t("Filter places by average rating")}
+              <button type="button" className="place__rating-filter" aria-label={`${t("Filter places by average rating")}: ${activeRating}`}
                 title={t("Filter places by average rating")} aria-pressed={activeRating > 0}
                 onClick={() => setActiveRating((rating) => rating === 5 ? 0 : rating + 1)}>
-                <SlidingNumber number={activeRating} aria-hidden="true" />
-                <Star size={17} fill="currentColor" aria-hidden="true" />
+                {Array.from({ length: Math.max(1, activeRating) }, (_, index) => (
+                  <Star key={index} className={animationsEnabled ? "place__rating-star--animated" : undefined}
+                    size={20} fill={activeRating > 0 ? "currentColor" : "none"} aria-hidden="true" />
+                ))}
               </button>
             </div>
             {(view === "history" ? historySearch : placeSearch) && (

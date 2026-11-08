@@ -50,7 +50,7 @@
 }
 
 .admin-posts__eyebrow {
-  color: var(--accent-soft);
+  color: var(--text);
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -245,7 +245,7 @@
 }
 
 .admin-posts__field-message--error {
-  color: var(--danger);
+  color: var(--text);
 }
 
 .admin-posts__date-range {
@@ -448,11 +448,11 @@
 }
 
 .admin-users__stat--pending strong {
-  color: var(--danger);
+  color: var(--text);
 }
 
 .admin-users__stat--active strong {
-  color: var(--accent-soft);
+  color: var(--text);
 }
 
 .admin-users__toolbar {
@@ -507,7 +507,7 @@
   background: color-mix(in srgb, var(--accent-soft) 18%, var(--surface-raised));
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  color: var(--accent-soft);
+  color: var(--text);
   display: inline-flex;
   flex: 0 0 32px;
   font-size: 0.75rem;
@@ -578,7 +578,7 @@
 }
 
 .admin__back:hover {
-  color: var(--accent-soft);
+  color: var(--text);
 }
 
 .admin-table-wrap {
@@ -655,12 +655,12 @@
 
 .admin-badge--active {
   background: color-mix(in srgb, var(--accent-soft) 18%, transparent);
-  color: var(--accent-soft);
+  color: var(--text);
 }
 
 .admin-badge--pending_approval {
   background: color-mix(in srgb, var(--danger) 16%, transparent);
-  color: var(--danger);
+  color: var(--text);
 }
 
 .admin-badge--disabled {
@@ -889,7 +889,7 @@
 }
 
 .admin-post__deleted-info {
-  color: var(--danger);
+  color: var(--text);
   font-size: 0.75rem;
   margin: 0;
   min-width: 0;
@@ -1342,7 +1342,7 @@
 }
 .user-presence {
   align-items: center;
-  color: #6A3F36;
+  color: #000;
   display: inline-flex;
   gap: 7px;
   white-space: nowrap;
@@ -1356,7 +1356,7 @@
 }
 
 .user-presence--online {
-  color: #6A3F36;
+  color: #000;
 }
 
 .user-presence--online > span:first-child {

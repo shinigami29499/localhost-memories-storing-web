@@ -24,8 +24,11 @@ textarea, select { min-height: 44px; }
   background: var(--bg);
 }
 
-.app-shell.app-shell--sidebar-collapsed { --sidebar-width: 80px; }
-.app-shell .sidebar-gap { width: var(--sidebar-width); }
+.app-shell.app-shell--sidebar-collapsed { --sidebar-width: 64px; }
+.app-shell .sidebar-gap {
+  width: var(--sidebar-width);
+  transition: width var(--animate-ui-sidebar-duration, 200ms) var(--animate-ui-sidebar-easing, ease-out);
+}
 
 .app-shell .sidebar,
 .app-shell .sidebar--collapsed {
@@ -46,32 +49,32 @@ textarea, select { min-height: 44px; }
   background: var(--navigation-bg);
   box-shadow: none;
   transform: none;
-  transition: none;
+  transition: width var(--animate-ui-sidebar-duration, 200ms) var(--animate-ui-sidebar-easing, ease-out);
 }
 
-:root .sidebar :is(.brand, .brand__dot, .sidebar__link, .sidebar__home-icon, .sidebar__account-trigger, .sidebar__account-name, .sidebar__account-role, .sidebar__activity h2, .upload-activity__retry) {
+:root .sidebar :is(.brand, .brand__dot, .sidebar__link, .sidebar__account-trigger, .sidebar__account-name, .sidebar__account-role, .sidebar__activity h2, .upload-activity__retry) {
   color: #fff;
 }
 
 :root .sidebar :is(.sidebar__link, .sidebar__account-trigger, .upload-activity__retry):hover,
-:root .sidebar .sidebar__account-trigger[aria-expanded="true"] {
+:root .sidebar .sidebar__account-trigger[aria-expanded="true"],
+:root .sidebar__toggle:is(:hover, :focus-visible) {
   background-color: #fff;
-  color: #6A3F36 !important;
+  color: #000 !important;
 }
 
 :root .sidebar .sidebar__link--active,
-:root .sidebar .sidebar__link--active:hover {
+:root .sidebar .sidebar__link--active:hover,
+:root .sidebar--collapsed ~ .sidebar__toggle {
   background-color: #FFFFDA !important;
-  color: #6A3F36 !important;
+  color: #000 !important;
 }
 
-:root .sidebar :is(.sidebar__link:hover, .sidebar__link--active) .sidebar__home-icon,
 :root .sidebar .sidebar__account-trigger:is(:hover, [aria-expanded="true"]) :is(.sidebar__account-name, .sidebar__account-role) {
-  color: #6A3F36;
+  color: #000;
 }
 
 :root .sidebar__toggle { color: #fff; }
-:root .sidebar__toggle:is(:hover, :focus-visible) { background-color: #fff; color: #6A3F36 !important; }
 
 .sidebar__inner,
 .sidebar__nav,
@@ -81,7 +84,32 @@ textarea, select { min-height: 44px; }
   color: var(--text);
 }
 
-.sidebar__brand { padding: 16px 52px 16px 16px; }
+.sidebar .sidebar__brand { justify-content: flex-start; padding: 16px; }
+.sidebar .sidebar__brand .brand { height: 1.44rem; font-size: 1.68rem; line-height: 1; }
+.sidebar--collapsed .sidebar__brand .brand,
+.sidebar--collapsed .sidebar__activity { visibility: hidden; }
+.sidebar--collapsed .sidebar__nav .sidebar__link {
+  padding-inline: 15px;
+}
+.sidebar__footer { padding-inline: 8px; }
+:root .sidebar .sidebar__account-trigger {
+  min-height: 48px;
+  padding: 0;
+  border-radius: 4px;
+  background-color: #FFFFDA;
+  color: #000;
+}
+
+.sidebar .sidebar__account-avatar--trigger.user-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 4px;
+}
+
+:root .sidebar .sidebar__account-trigger :is(.sidebar__account-name, .sidebar__account-role) {
+  color: #000;
+}
+
 .sidebar__nav { gap: 4px; padding: 8px; }
 .sidebar__link,
 .sidebar__account-trigger {
@@ -101,13 +129,11 @@ textarea, select { min-height: 44px; }
 }
 
 .sidebar__link--active {
-  border-left: 3px solid var(--accent);
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .sidebar__link--active::before { content: none; }
 
-:root .sidebar__nav .sidebar__link:is(:hover, .sidebar__link--active) .sidebar__home-icon,
 :root .sidebar__account-trigger:is(:hover, [aria-expanded="true"]) :is(.sidebar__account-name, .sidebar__account-role) {
   color: inherit;
 }
@@ -119,32 +145,16 @@ textarea, select { min-height: 44px; }
   width: 44px;
   height: 44px;
   color: var(--text);
-  transition: none;
+  transition: left var(--animate-ui-sidebar-duration, 200ms) var(--animate-ui-sidebar-easing, ease-out);
   transform: none;
 }
+
+.sidebar--collapsed ~ .sidebar__toggle { left: calc((var(--sidebar-width) - 44px) / 2); }
 
 .sidebar__account-menu {
   border: 1px solid var(--border-control);
   box-shadow: none;
 }
-
-.sidebar__upload-counts,
-.sidebar__upload-count--success,
-.sidebar__upload-count--pending,
-.sidebar__upload-count--failed {
-  background: #FFFFDA;
-  color: #6A3F36;
-}
-
-.sidebar__upload-count--failed { border: 1px solid var(--border-control); }
-
-.sidebar__link--active .sidebar__upload-counts,
-.sidebar__link--active .sidebar__upload-count {
-  background: #6A3F36;
-  color: #fff;
-}
-
-.sidebar__link--active .sidebar__upload-count--failed { border-color: #fff; }
 
 .app-shell__main { min-width: 0; min-height: 0; }
 
@@ -180,9 +190,11 @@ textarea, select { min-height: 44px; }
 .notification-bar__badge {
   min-width: 20px;
   height: 20px;
-  background: var(--accent);
-  color: var(--text-on-accent);
-  border-color: var(--surface);
+  font-size: 0.7rem;
+  border-width: 1px;
+  background: var(--dialog-danger-solid);
+  color: #fff;
+  border-color: var(--dialog-danger-border);
 }
 
 .notification-bar__panel { border-color: var(--border-control); box-shadow: none; }
@@ -198,11 +210,7 @@ textarea, select { min-height: 44px; }
 .bottom-navigation { display: none; }
 
 @media (max-width: 1199px) and (min-width: 768px) {
-  .app-shell { --sidebar-width: 80px; }
-  .app-shell .sidebar { width: var(--sidebar-width); }
-  .app-shell .sidebar-gap { width: var(--sidebar-width); }
   .sidebar__activity { display: none; }
-  .sidebar__toggle { display: none; }
 }
 
 @media (max-width: 767px) {
@@ -254,12 +262,12 @@ textarea, select { min-height: 44px; }
   .bottom-navigation__item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
   .bottom-navigation__item:hover {
     background: #fff;
-    color: #6A3F36;
+    color: #000;
   }
   .bottom-navigation__item[aria-current="page"],
   .bottom-navigation__item[aria-expanded="true"] {
     background: #FFFFDA;
-    color: #6A3F36;
+    color: #000;
     box-shadow: none;
     font-weight: 700;
   }
@@ -300,7 +308,7 @@ textarea, select { min-height: 44px; }
   .bottom-navigation__dialog-header button { width: auto; }
   .bottom-navigation__dialog nav a:hover,
   .bottom-navigation__dialog nav button:not(.dialog-action):hover { background: var(--surface-hover); }
-  :root .bottom-navigation__item[aria-expanded="true"]:hover { background: #FFFFDA; color: #6A3F36; }
+  :root .bottom-navigation__item[aria-expanded="true"]:hover { background: #FFFFDA; color: #000; }
   :root .bottom-navigation__item:focus-visible,
   :root .app-topbar .control-bar > button:focus-visible { outline-color: #fff; }
 }
@@ -342,7 +350,7 @@ textarea, select { min-height: 44px; }
 }
 
 @media (hover: hover) {
-:root :is(button, [role="button"], .btn, .sidebar__link):hover:not(.mapboxgl-ctrl-group button):not(.navigation-highlight *):not(.map-navigation *):not(.place__location-search *):not(.gallery-selection-bar__action):not(.gallery-selection-bar__cancel):not(:disabled):not([aria-disabled="true"]):not(.place__marker):not(.locations__marker):not(.place__pin):not(.locations__pin):not(.place__home-pin):not(.locations__home-pin):not(.place__map-home-control):not(.locations__map-home-control):not(.place__color-option):not(.star-rating__button):not(.place__cancel-action):not(.dialog-action):not(.media-tile):not(.album-hero__caption-button):not(.album-hero__delete):not(.album-hero__filter[aria-pressed="true"]) {
+:root :is(button, [role="button"], .btn, .sidebar__link):hover:not(.sidebar__toggle):not(.mapboxgl-ctrl-group button):not(.navigation-highlight *):not(.map-navigation *):not(.place__location-search *):not(.gallery-selection-bar__action):not(.gallery-selection-bar__cancel):not(:disabled):not([aria-disabled="true"]):not(.place__marker):not(.locations__marker):not(.place__pin):not(.locations__pin):not(.place__home-pin):not(.locations__home-pin):not(.place__map-home-control):not(.locations__map-home-control):not(.place__color-option):not(.star-rating__button):not(.place__cancel-action):not(.dialog-action):not(.media-tile):not(.album-hero__caption-button):not(.album-hero__delete):not(.album-hero__filter[aria-pressed="true"]) {
     background-color: var(--surface-hover);
     color: var(--text);
   }

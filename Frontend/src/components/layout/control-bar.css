@@ -1,6 +1,6 @@
 .control-bar {
   --control-bar-bg: #F4F3EE;
-  --control-bar-fg: #6A3F36;
+  --control-bar-fg: #000;
   --control-bar-hover: #F4F3EE;
   display: flex;
   align-items: center;

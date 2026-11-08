@@ -71,7 +71,7 @@ public class UserService(
         return users.Select(mapper.Map).ToList();
     }
 
-    public async Task<UserPageResponse> GetPageAsync(int page, int limit, bool pendingOnly,
+    public async Task<UserPageResponse> GetPageAsync(int page, int limit, bool pendingOnly, bool blockedOnly,
         CancellationToken cancellationToken = default)
     {
         if (page < 1 || page > 1_000_000 || limit is < 1 or > 100)
@@ -80,7 +80,7 @@ public class UserService(
                 ["page"] = ["Use a page between 1 and 1000000 and a limit between 1 and 100."],
             });
         var (items, total, allCount, pendingCount) = await _repository.GetUserPageAsync(
-            page, limit, pendingOnly, cancellationToken);
+            page, limit, pendingOnly, blockedOnly, cancellationToken);
         return new UserPageResponse(items.Select(mapper.Map).ToList(), page, limit, total, allCount, pendingCount);
     }
 
