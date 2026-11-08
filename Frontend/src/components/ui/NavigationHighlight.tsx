@@ -72,7 +72,7 @@ export function NavigationHighlight({ value, children }: { value: string; childr
   }, [value, children, enabled]);
 
   return (
-    <div className="navigation-highlight-wrapper" ref={wrapperRef}>
+    <div className="navigation-highlight-wrapper" ref={wrapperRef} data-animation-enabled={enabled}>
       <Highlight value={value} controlledItems mode="parent"
         transition={enabled ? motionTokens.spring.handoff : { duration: 0 }}
         containerClassName="navigation-highlight" className="navigation-highlight__indicator">

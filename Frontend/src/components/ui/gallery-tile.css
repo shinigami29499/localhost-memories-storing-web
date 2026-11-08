@@ -34,9 +34,9 @@
 }
 
 .gallery-tile__title, .gallery-tile__author { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.gallery-tile__title { font-size: 1rem; font-weight: 400; line-height: 1.25; }
+.gallery-tile__title { font-size: 0.75rem; font-weight: 400; line-height: 1.25; }
 .gallery-tile__time { font-size: 0.9em; font-weight: 400; }
-.gallery-tile__author { font-size: 0.9rem; line-height: 1.2; }
+.gallery-tile__author { font-size: 0.675rem; line-height: 1.2; }
 
 @media (max-width: 767px) {
   .gallery-tile { aspect-ratio: 3 / 3.95; }
