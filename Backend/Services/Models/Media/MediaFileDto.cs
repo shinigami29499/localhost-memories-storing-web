@@ -3,17 +3,13 @@ namespace Services.Models.Media;
 public sealed record MediaFileDto(
     Guid Id,
     string MediaKind,
-    string MimeType,
     string OriginalFilename,
-    long FileSizeBytes,
     DateTime CreatedAt,
     bool IsFavorited,
     Guid OwnerId = default,
     MediaLocationDto? Location = null,
     string? OwnerUsername = null,
-    bool IsPreviewOnly = false,
-    DateTime? UpdatedAt = null,
-    string? OwnerAvatarSeed = null)
+    bool IsPreviewOnly = false)
 {
     public DateTime? DeletedAt { get; init; }
 }

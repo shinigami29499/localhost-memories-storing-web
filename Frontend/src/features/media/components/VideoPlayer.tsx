@@ -25,10 +25,29 @@ export function VideoPlayer({ src, name, onError }: Props) {
   const [current, setCurrent] = useState(0);
   const [duration, setDuration] = useState(0);
   const [aspect, setAspect] = useState(1);
+  useEffect(() => {
+    const element = video.current;
+    if (!element) return;
+    if (element.getAttribute("src") !== src) element.setAttribute("src", src);
+    const pauseWhenHidden = () => {
+      if (document.hidden) element.pause();
+    };
+    document.addEventListener("visibilitychange", pauseWhenHidden);
+    return () => {
+      document.removeEventListener("visibilitychange", pauseWhenHidden);
+      element.pause();
+      element.removeAttribute("src");
+      element.load();
+    };
+  }, [src]);
   const togglePlay = () => {
     const element = video.current;
     if (!element) return;
-    if (element.paused) void element.play().catch(() => undefined);
+    if (element.paused) void element.play().catch((error: unknown) => {
+      if (video.current !== element) return;
+      console.warn("Media playback failed", error);
+      onError();
+    });
     else element.pause();
   };
   const handleClick = () => {

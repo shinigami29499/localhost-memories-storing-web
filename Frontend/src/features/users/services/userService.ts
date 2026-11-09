@@ -6,8 +6,6 @@ export interface UserPage {
   page: number;
   limit: number;
   total: number;
-  allCount: number;
-  pendingCount: number;
 }
 
 /** Account profiles and user management endpoints under /api/users. */

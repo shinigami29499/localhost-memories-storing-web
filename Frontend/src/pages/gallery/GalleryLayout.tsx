@@ -1,6 +1,8 @@
 import { PushTransition } from "../../hooks/PushTransition";
+import { Suspense } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { PageHighlightBar } from "../../components/ui/PageHighlightBar";
+import { Spinner } from "../../components/ui";
 import { GalleryNavigation } from "./GalleryNavigation";
 import "./gallery.css";
 
@@ -14,7 +16,7 @@ export function GalleryLayout() {
       </div>
       <div className="gallery-layout__content" data-push-page-content>
         <PushTransition transitionKey={active} />
-        <Outlet />
+        <Suspense key={active} fallback={<Spinner page />}><Outlet /></Suspense>
       </div>
     </div>
   );

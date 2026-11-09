@@ -44,12 +44,12 @@ vi.mock("../../albums/hooks/useAlbums", () => ({
 }));
 
 const image: MediaFile = {
-  id: "image", mediaKind: "image", mimeType: "image/png", originalFilename: "photo.png",
-  fileSizeBytes: 100, createdAt: "2026-10-28T12:00:00Z", isFavorited: false,
+  id: "image", mediaKind: "image", originalFilename: "photo.png",
+  createdAt: "2026-10-28T12:00:00Z", isFavorited: false,
 };
 const media: MediaFile[] = [
   image,
-  { ...image, id: "video", mediaKind: "video", mimeType: "video/mp4", originalFilename: "clip.mp4" },
+  { ...image, id: "video", mediaKind: "video", originalFilename: "clip.mp4" },
   { ...image, id: "other-image" },
 ];
 

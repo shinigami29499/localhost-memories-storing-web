@@ -27,7 +27,6 @@ const album: Album = {
   previewIsFavorited: false,
   containsMedia: true,
   createdAt: "2026-11-01T00:00:00Z",
-  updatedAt: null,
 };
 
 vi.mock("../hooks/useAlbums", () => ({

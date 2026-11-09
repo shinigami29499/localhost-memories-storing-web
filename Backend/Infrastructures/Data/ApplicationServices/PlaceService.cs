@@ -82,8 +82,7 @@ public sealed partial class PlaceService(
     {
         var place = mapper.Map(source);
         return new PlaceMapDto(place.Id, place.Name, place.Address, place.Note, place.Latitude,
-            place.Longitude, place.Rating, place.MarkerIcon, place.MarkerColor, place.Owner,
-            place.CreatedAt, place.UpdatedAt);
+            place.Longitude, place.Rating, place.MarkerIcon, place.MarkerColor, place.Owner);
     }
 
     public async Task<PlaceDto> GetPlaceAsync(

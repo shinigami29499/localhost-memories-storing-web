@@ -71,6 +71,12 @@ public class MediaController(
             includeDeleted: false,
             cancellationToken));
 
+    [HttpGet("mine/counts")]
+    public async Task<ActionResult<OwnedMediaCountsResponse>> GetOwnedMediaCountsAsync(
+        CancellationToken cancellationToken)
+        => Ok(await _mediaService.GetOwnedMediaCountsAsync(
+            _currentUser.RequireUserId(), cancellationToken));
+
     [HttpGet("{mediaId:guid}")]
     public async Task<ActionResult<MediaFileDto>> GetMediaByIdAsync(
         Guid mediaId, CancellationToken cancellationToken)

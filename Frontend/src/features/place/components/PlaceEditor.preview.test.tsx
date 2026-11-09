@@ -22,8 +22,8 @@ describe("PlaceEditor preview replacement", () => {
       mediaIds: ["old-cover", "other-gallery"],
     };
     const oldCover: MediaFile = {
-      id: "old-cover", originalFilename: "cover.jpg", mediaKind: "image", mimeType: "image/jpeg",
-      fileSizeBytes: 20, createdAt: "2026-11-01T00:00:00Z", isFavorited: false, isPreviewOnly,
+      id: "old-cover", originalFilename: "cover.jpg", mediaKind: "image",
+      createdAt: "2026-11-01T00:00:00Z", isFavorited: false, isPreviewOnly,
     };
     const selected = { ...oldCover, id: "selected-gallery", isPreviewOnly: false };
     const onChange = vi.fn();

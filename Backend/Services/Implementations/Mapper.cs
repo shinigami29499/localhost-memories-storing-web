@@ -33,15 +33,12 @@ public sealed class Mapper : IMapper
         => new(
             mediaFile.Id,
             mediaFile.MediaKind,
-            mediaFile.MimeType,
             mediaFile.OriginalFilename,
-            mediaFile.FileSizeBytes,
             mediaFile.CreatedAt,
             isFavorited,
             mediaFile.OwnerId,
             MediaLocationMetadata.Read(mediaFile.Metadata),
-            IsPreviewOnly: mediaFile.IsPreviewOnly,
-            UpdatedAt: mediaFile.UpdatedAt);
+            IsPreviewOnly: mediaFile.IsPreviewOnly);
 
     public CollectionDto Map(CollectionSource source) => CollectionMappings.ToDto(source);
 

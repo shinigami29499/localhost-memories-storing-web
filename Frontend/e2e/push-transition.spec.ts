@@ -39,6 +39,16 @@ test("page push captures outgoing page and cleans up after rapid swaps", async (
   await setup(page);
   await page.goto("/users");
   await expect(page.getByText("Active Person").first()).toBeVisible();
+  await page.evaluate(() => {
+    const original = Element.prototype.animate;
+    Element.prototype.animate = function (...args) {
+      if (this.matches(".gallery-layout__content") && Array.isArray(args[0])
+        && args[0].some((frame) => frame.transform === "translateX(100%)")) {
+        this.setAttribute("data-test-push-started", "true");
+      }
+      return original.apply(this, args);
+    };
+  });
   await page.getByRole("link", { name: "Gallery" }).click();
   const exit = page.locator('[data-push-transition="exit"]');
   await expect(exit).toHaveCount(1);
@@ -48,7 +58,7 @@ test("page push captures outgoing page and cleans up after rapid swaps", async (
   const bar = page.locator(".gallery-layout__header .navigation-highlight-bar");
   await expect(bar).toBeVisible();
   expect(await page.locator("#main-content").evaluate((element) => element.getAnimations().length)).toBe(0);
-  expect(await page.locator(".gallery-layout__content").evaluate((element) => element.getAnimations().length)).toBeGreaterThan(0);
+  await expect(page.locator(".gallery-layout__content")).toHaveAttribute("data-test-push-started", "true");
   await page.getByRole("link", { name: "Users", exact: true }).click();
   await expect(exit).toHaveCount(1);
   await expect(exit).toHaveCount(0);

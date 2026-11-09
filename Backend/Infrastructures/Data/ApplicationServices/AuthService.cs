@@ -144,8 +144,8 @@ public class AuthService(
 
         await tx.CommitAsync(cancellationToken);
 
-        var (accessToken, accessTokenExpiresAt) = CreateAccessTokenFor(user);
-        return new AuthResponse(accessToken, rawToken, accessTokenExpiresAt, mapper.Map(user));
+        var (accessToken, _) = CreateAccessTokenFor(user);
+        return new AuthResponse(accessToken, rawToken, mapper.Map(user));
     }
 
     public async Task LogoutAsync(Guid userId, string rawRefreshToken, CancellationToken cancellationToken = default)
@@ -185,8 +185,8 @@ public class AuthService(
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        var (accessToken, expiresAt) = CreateAccessTokenFor(user);
-        return new AuthResponse(accessToken, rawToken, expiresAt, mapper.Map(user));
+        var (accessToken, _) = CreateAccessTokenFor(user);
+        return new AuthResponse(accessToken, rawToken, mapper.Map(user));
     }
 
     private (string, DateTime) CreateAccessTokenFor(User user) => _tokenService.CreateAccessToken(user);

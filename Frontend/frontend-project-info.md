@@ -34,6 +34,9 @@ Protected pages share `AuthenticatedLayout`; only Trash has an admin route guard
 Every protected page except Home is lazy-loaded, and `AuthenticatedLayout` renders the
 shared `Suspense` fallback for them.
 
+On phones, Home keeps its album feed edge-to-edge but uses standard page padding
+for the no-albums empty state, matching other empty library screens.
+
 | Route | Page source | Feature entry points |
 | --- | --- | --- |
 | `/` | `src/pages/home/HomePage.tsx` | `features/albums/components/AlbumFeedPost.tsx`, `features/albums/hooks/useAlbums.ts` |
@@ -77,6 +80,11 @@ files remain selected for a later trash action. Existing files still use the nor
 preview retry flow. Availability failures show an error, never a deletion prompt.
 Non-admin behavior remains retry-only.
 
+Gallery day rows use the document layout viewport width rather than `window.innerWidth`
+to select responsive geometry. Mobile overflow can expand `innerWidth` without changing
+CSS breakpoints. Tile dimensions must remain correct while preview requests are pending
+or fail, including when returning to cached gallery data.
+
 Deletion always requires a separate confirmation before a write. Album deletion,
 gallery trash moves, permanent trash deletion, upload record deletion, place
 deletion, photo location removal, home location removal, and check-in removal use
@@ -114,6 +122,42 @@ Posts, comments, reactions, and persisted server notifications are no longer act
 client features.
 The backend exposes `/hubs/notifications` and emits `UploadsChanged`, but the current
 client has no SignalR subscription. The upload runtime refreshes local query state.
+
+## Gallery rendering and media lifecycle
+
+- Mobile tile titles use `0.75rem` and authors use `0.675rem`, matching desktop
+  text sizes without shrinking with the three-column tile width.
+- Gallery and Favorites preserve their dated horizontal rows. `DayRow` recycles
+  physical cells by slot while keeping logical media IDs for selection and actions.
+  `MediaTile` resets retry and gesture state when a recycled cell receives new media.
+  Focused tiles and preview return targets remain mounted.
+- A row-level Intersection Observer mounts media only within one viewport of the
+  vertical scrollport. Empty rows retain their existing height and keyboard entry
+  points. Horizontal windows retain a small overscan buffer. Album rows keep their
+  existing item-keyed behavior.
+- `GalleryLoadingProvider` captures horizontal and vertical scroll activity without
+  adding a DOM wrapper. Newly visible gallery previews wait for 140 ms of quiet;
+  already requested previews remain visible. Fixed tile geometry and a theme-token
+  gradient reserve space before images arrive. The gallery never downloads original
+  images or creates video players; full-resolution media remains in the viewer.
+- Gallery pagination prefetches within 2.5 viewport lengths of the loaded end.
+  The vertical sentinel also checks the last row's horizontal distance, preventing
+  a single long date group from draining every page. Next-page requests are
+  single-flight, and errors retain the explicit retry action. List and Favorites
+  requests consume TanStack Query's cancellation signal.
+- Only the active viewer slide mounts a video player. Players pause when the document
+  is hidden and detach their source on unmount. Playback failures use the existing
+  viewer error handling rather than being silently ignored.
+- Loaded metadata and lightweight date shells remain retained to preserve backward
+  scrolling, selection, and preview navigation. This is not a bounded-history cache.
+  Page eviction requires a separate bidirectional paging and anchor-restoration design;
+  the existing API uses offsets, not snapshot cursors.
+
+`e2e/gallery-recycling.spec.ts` uses intercepted APIs, not a running backend. With
+1,000 records across 100 dates at a 900 px viewport height, three round trips retained
+56 mounted tiles at 390 px width and 60 at 1280 px width. These are development-browser
+resource-count checks, not FPS or heap-leak certification. Profile release builds on
+target 60/120 Hz devices and compare post-GC heaps before claiming either guarantee.
 
 ## Key behavior
 
@@ -169,6 +213,16 @@ client has no SignalR subscription. The upload runtime refreshes local query sta
   media creation
   time descending, not favorite time. Gallery pages load more as the user
   scrolls and support bulk saving selected media to an album.
+  Switching between Gallery and Favorites navigates immediately, without awaiting
+  an API response. Uncached destinations show their loading state; cached
+  destinations retain tile transitions while refreshing in the background.
+  Authenticated routes and gallery sections also show their loading state
+  immediately while lazy page modules load, instead of retaining the previous
+  page. Tabs within Locations and Users keep their shared page state.
+  Album media filters update immediately and fetch uncached results afterward;
+  cached results retain tile transitions during background refresh.
+  Initial page and route-module loaders are centered horizontally and vertically
+  within the page area. Pagination, dialog, and map loaders retain their local layout.
   A top-edge progress bar in Gallery and Favorites tracks scrolling
   through the currently loaded gallery content and respects reduced-motion settings.
   Gallery-wide Grid and Timeline view modes are available for each gallery;

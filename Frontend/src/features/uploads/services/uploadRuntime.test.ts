@@ -25,7 +25,7 @@ function item(id: string): UploadItem {
   return {
     id, uploadBatchId: "batch", originalFilename: `${id}.png`, contentType: "image/png",
     fileSizeBytes: 10, status: "Pending", progressPercent: 0, errorDetails: null,
-    retryCount: 0, startedAt: null, completedAt: null,
+    retryCount: 0, completedAt: null,
   };
 }
 
@@ -33,11 +33,10 @@ function batch(items: UploadItem[], complete = false): UploadBatch {
   return {
     id: "batch",
     status: complete ? "Completed" : "Pending", username: null, canManage: true,
-    createdAt: "2026-10-28T00:00:00Z", startedAt: null,
+    createdAt: "2026-10-28T00:00:00Z",
     completedAt: complete ? "2026-10-28T00:01:00Z" : null,
     totalFiles: items.length, successfulFiles: complete ? items.length : 0,
-    failedFiles: 0, pendingFiles: complete ? 0 : items.length,
-    uploadingFiles: 0, cancelledFiles: 0, progressPercent: complete ? 100 : 0, items,
+    failedFiles: 0, cancelledFiles: 0, items,
   };
 }
 

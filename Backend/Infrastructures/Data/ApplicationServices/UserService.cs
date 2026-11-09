@@ -79,9 +79,9 @@ public class UserService(
             {
                 ["page"] = ["Use a page between 1 and 1000000 and a limit between 1 and 100."],
             });
-        var (items, total, allCount, pendingCount) = await _repository.GetUserPageAsync(
+        var (items, total, _, _) = await _repository.GetUserPageAsync(
             page, limit, pendingOnly, blockedOnly, cancellationToken);
-        return new UserPageResponse(items.Select(mapper.Map).ToList(), page, limit, total, allCount, pendingCount);
+        return new UserPageResponse(items.Select(mapper.Map).ToList(), page, limit, total);
     }
 
     public async Task<DateTime> HeartbeatAsync(Guid userId, CancellationToken cancellationToken = default)

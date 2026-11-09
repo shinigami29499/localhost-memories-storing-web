@@ -10,5 +10,4 @@ public sealed record UploadItemDto(
     int ProgressPercent,
     string? ErrorDetails,
     int RetryCount,
-    DateTime? StartedAt,
     DateTime? CompletedAt);

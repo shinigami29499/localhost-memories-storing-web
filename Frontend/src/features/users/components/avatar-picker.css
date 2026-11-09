@@ -73,15 +73,15 @@
 }
 
 .avatar-picker__actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
   margin-top: 16px;
 }
 
 .avatar-picker__pagination {
+  width: 100%;
+  min-width: 0;
   max-width: 100%;
 }
 
@@ -103,7 +103,7 @@
 }
 
 .avatar-picker__actions > button {
-  margin-left: auto;
+  justify-self: end;
 }
 
 .avatar-picker__error {

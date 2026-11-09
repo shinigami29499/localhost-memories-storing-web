@@ -1,17 +1,13 @@
 export interface MediaFile {
   id: string;
   mediaKind: "image" | "video";
-  mimeType: string;
   originalFilename: string;
-  fileSizeBytes: number;
   createdAt: string;
   deletedAt?: string | null;
-  updatedAt?: string | null;
   isFavorited: boolean;
   isPreviewOnly?: boolean;
   ownerId?: string;
   ownerUsername?: string | null;
-  ownerAvatarSeed?: string | null;
   location?: PhotoLocation | null;
 }
 
@@ -28,9 +24,13 @@ export interface PickedLocation extends PhotoLocation {
 
 export interface PagedMedia {
   offset: number;
-  limit: number;
   total: number;
   items: MediaFile[];
+}
+
+export interface OwnedMediaCounts {
+  images: number;
+  videos: number;
 }
 
 export type MediaKindFilter = MediaFile["mediaKind"];

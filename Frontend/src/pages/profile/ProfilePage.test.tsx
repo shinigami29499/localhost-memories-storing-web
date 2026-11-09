@@ -53,7 +53,6 @@ describe("ProfilePage avatars", () => {
       user: { ...user, avatarSeed: null },
       accessToken: "access",
       refreshToken: "refresh",
-      accessTokenExpiresAtUtc: "2026-11-01T00:00:00Z",
     });
     vi.mocked(userService.profile).mockResolvedValue(user);
     client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });

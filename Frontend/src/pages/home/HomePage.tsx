@@ -24,7 +24,7 @@ export function HomePage() {
               <p>{t(isAdmin ? "Browse all albums, including private albums." : "Browse albums you own and albums shared publicly.")}</p>
             </header>
 
-            {albumsQuery.isPending ? <Spinner label={t("Loading albums…")} /> : albumsQuery.isError && albums.length === 0 ? (
+            {albumsQuery.isPending ? <Spinner page label={t("Loading albums…")} /> : albumsQuery.isError && albums.length === 0 ? (
               <ErrorState
                 message={t("Could not load albums.")}
                 onRetry={() => void albumsQuery.refetch()}

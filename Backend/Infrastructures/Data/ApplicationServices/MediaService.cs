@@ -68,9 +68,8 @@ public partial class MediaService(
     public async Task<MediaFileDto?> GetMediaForNotificationAsync(Guid mediaId, CancellationToken cancellationToken = default)
     {
         var media = await _repository.FindMediaIncludingDeletedAsync(mediaId, cancellationToken);
-        return media is null ? null : new MediaFileDto(media.Id, media.MediaKind, media.MimeType,
-            media.OriginalFilename, media.FileSizeBytes, media.CreatedAt, false, media.OwnerId,
-            UpdatedAt: media.UpdatedAt);
+        return media is null ? null : new MediaFileDto(media.Id, media.MediaKind,
+            media.OriginalFilename, media.CreatedAt, false, media.OwnerId);
     }
 
     public async Task<MediaFileDto> GetMediaAsync(Guid mediaId, Guid viewerId,
@@ -98,11 +97,10 @@ public partial class MediaService(
         var (page, total) = await _repository.GetLocatedMediaPageAsync(offset, limit, bounds, cancellationToken);
         var favorites = (await _repository.GetFavoritedMediaIdsAsync(
             viewerId, page.Select(item => item.Media.Id).ToArray(), cancellationToken)).ToHashSet();
-        return new PagedMediaResponse<MediaFileDto>(offset, limit, total,
+        return new PagedMediaResponse<MediaFileDto>(offset, total,
             page.Select(item => _mapper.Map(item.Media, favorites.Contains(item.Media.Id)) with
             {
                 OwnerUsername = item.OwnerUsername,
-                OwnerAvatarSeed = item.OwnerAvatarSeed,
             }).ToList());
     }
 
@@ -117,11 +115,10 @@ public partial class MediaService(
         var (page, total) = await _repository.GetUnlocatedMediaPageAsync(offset, limit, cancellationToken);
         var favorites = (await _repository.GetFavoritedMediaIdsAsync(
             viewerId, page.Select(item => item.Media.Id).ToArray(), cancellationToken)).ToHashSet();
-        return new PagedMediaResponse<MediaFileDto>(offset, limit, total,
+        return new PagedMediaResponse<MediaFileDto>(offset, total,
             page.Select(item => _mapper.Map(item.Media, favorites.Contains(item.Media.Id)) with
             {
                 OwnerUsername = item.OwnerUsername,
-                OwnerAvatarSeed = item.OwnerAvatarSeed,
             }).ToList());
     }
 
@@ -330,14 +327,19 @@ public partial class MediaService(
             viewerId, media.Select(item => item.Media.Id).ToArray(), cancellationToken)).ToHashSet();
         return new PagedMediaResponse<MediaFileDto>(
             offset,
-            limit,
             total,
             media.Select(item => _mapper.Map(item.Media, favoriteIds.Contains(item.Media.Id)) with
             {
                 OwnerUsername = item.OwnerUsername,
-                OwnerAvatarSeed = item.OwnerAvatarSeed,
                 DeletedAt = item.Media.DeletedAt,
             }).ToList());
+    }
+
+    public async Task<OwnedMediaCountsResponse> GetOwnedMediaCountsAsync(
+        Guid ownerId, CancellationToken cancellationToken = default)
+    {
+        var (images, videos) = await _repository.GetOwnedMediaCountsAsync(ownerId, cancellationToken);
+        return new OwnedMediaCountsResponse(images, videos);
     }
 
     public async Task<MediaChangesResponse> GetMediaChangesAsync(

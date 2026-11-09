@@ -27,10 +27,10 @@ describe("location photo loading", () => {
   it("loads one page and resolves a deep link directly until more is requested", async () => {
     vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
     vi.mocked(mediaService.list).mockImplementation(async (offset = 0, limit = 100) => ({
-      items: photos.slice(offset, offset + limit), offset, limit, total: photos.length,
+      items: photos.slice(offset, offset + limit), offset, total: photos.length,
     }));
     vi.mocked(locationService.mapPage).mockImplementation(async (offset) => ({
-      items: photos.slice(offset, offset + 100), offset, limit: 100, total: photos.length,
+      items: photos.slice(offset, offset + 100), offset, total: photos.length,
     }));
     vi.mocked(mediaService.get).mockResolvedValue(photos[100]);
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });

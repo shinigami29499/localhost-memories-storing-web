@@ -98,7 +98,7 @@ public sealed class MediaRepository(ApplicationDbContext db) : IMediaRepository
             .ExecuteDeleteAsync(cancellationToken);
     }
 
-    public async Task<IReadOnlyList<(MediaFile Media, string? OwnerUsername, string? OwnerAvatarSeed)>> GetMediaPageAsync(
+    public async Task<IReadOnlyList<(MediaFile Media, string? OwnerUsername)>> GetMediaPageAsync(
         int offset,
         int limit,
         string? mediaKind,
@@ -117,18 +117,16 @@ public sealed class MediaRepository(ApplicationDbContext db) : IMediaRepository
             .Select(media => new
             {
                 Media = media,
-                OwnerAvatarSeed = db.Users.Where(user => user.Id == media.OwnerId)
-                    .Select(user => user.AvatarSeed).FirstOrDefault(),
                 OwnerUsername = db.Users
                     .Where(user => user.Id == media.OwnerId)
                     .Select(user => user.Username)
                     .FirstOrDefault(),
             })
             .ToListAsync(cancellationToken);
-        return page.Select(item => (item.Media, item.OwnerUsername, item.OwnerAvatarSeed)).ToList();
+        return page.Select(item => (item.Media, item.OwnerUsername)).ToList();
     }
 
-    public async Task<(IReadOnlyList<(MediaFile Media, string? OwnerUsername, string? OwnerAvatarSeed)> Items, long Total)> GetLocatedMediaPageAsync(
+    public async Task<(IReadOnlyList<(MediaFile Media, string? OwnerUsername)> Items, long Total)> GetLocatedMediaPageAsync(
         int offset, int limit, PlaceMapBounds bounds, CancellationToken cancellationToken = default)
     {
         // CASE avoids casting malformed or missing legacy location metadata.
@@ -152,15 +150,13 @@ public sealed class MediaRepository(ApplicationDbContext db) : IMediaRepository
             .Select(media => new
             {
                 Media = media,
-                OwnerAvatarSeed = db.Users.Where(user => user.Id == media.OwnerId)
-                    .Select(user => user.AvatarSeed).FirstOrDefault(),
                 OwnerUsername = db.Users.Where(user => user.Id == media.OwnerId)
                     .Select(user => user.Username).FirstOrDefault(),
             }).ToListAsync(cancellationToken);
-        return (page.Select(item => (item.Media, item.OwnerUsername, item.OwnerAvatarSeed)).ToList(), total);
+        return (page.Select(item => (item.Media, item.OwnerUsername)).ToList(), total);
     }
 
-    public async Task<(IReadOnlyList<(MediaFile Media, string? OwnerUsername, string? OwnerAvatarSeed)> Items, long Total)> GetUnlocatedMediaPageAsync(
+    public async Task<(IReadOnlyList<(MediaFile Media, string? OwnerUsername)> Items, long Total)> GetUnlocatedMediaPageAsync(
         int offset, int limit, CancellationToken cancellationToken = default)
     {
         var unlocated = db.MediaFiles.FromSqlRaw("""
@@ -173,12 +169,10 @@ public sealed class MediaRepository(ApplicationDbContext db) : IMediaRepository
             .Select(media => new
             {
                 Media = media,
-                OwnerAvatarSeed = db.Users.Where(user => user.Id == media.OwnerId)
-                    .Select(user => user.AvatarSeed).FirstOrDefault(),
                 OwnerUsername = db.Users.Where(user => user.Id == media.OwnerId)
                     .Select(user => user.Username).FirstOrDefault(),
             }).ToListAsync(cancellationToken);
-        return (page.Select(item => (item.Media, item.OwnerUsername, item.OwnerAvatarSeed)).ToList(), total);
+        return (page.Select(item => (item.Media, item.OwnerUsername)).ToList(), total);
     }
 
     public Task<long> CountMediaAsync(
@@ -187,6 +181,19 @@ public sealed class MediaRepository(ApplicationDbContext db) : IMediaRepository
         bool includeDeleted,
         CancellationToken cancellationToken = default)
         => BuildMediaQuery(mediaKind, favoriteUserId, includeDeleted).LongCountAsync(cancellationToken);
+
+    public async Task<(long Images, long Videos)> GetOwnedMediaCountsAsync(
+        Guid ownerId, CancellationToken cancellationToken = default)
+    {
+        var counts = await BuildMediaQuery(mediaKind: null, favoriteUserId: null, includeDeleted: false)
+            .Where(media => media.OwnerId == ownerId)
+            .GroupBy(media => media.MediaKind)
+            .Select(group => new { MediaKind = group.Key, Count = group.LongCount() })
+            .ToListAsync(cancellationToken);
+        return (
+            counts.FirstOrDefault(item => item.MediaKind == "image")?.Count ?? 0,
+            counts.FirstOrDefault(item => item.MediaKind == "video")?.Count ?? 0);
+    }
 
     public Task<bool> MediaExistsAsync(Guid mediaId, CancellationToken cancellationToken = default)
         => db.MediaFiles.AnyAsync(media => media.Id == mediaId && !media.IsPreviewOnly, cancellationToken);

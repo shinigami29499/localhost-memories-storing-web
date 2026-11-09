@@ -52,9 +52,7 @@ vi.mock("@animate-ui/react/primitives/carousel", () => ({
 const trashedMedia: MediaFile = {
   id: "trashed-id",
   mediaKind: "image",
-  mimeType: "image/png",
   originalFilename: "deleted.png",
-  fileSizeBytes: 120,
   createdAt: "2026-10-28T00:00:00Z",
   isFavorited: false,
 };
@@ -78,13 +76,19 @@ describe("TrashPage", () => {
       removeEventListener: vi.fn(),
     })));
     vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
-    vi.stubGlobal("IntersectionObserver", class { observe() {} unobserve() {} disconnect() {} });
+    vi.stubGlobal("IntersectionObserver", class {
+      constructor(private callback: (entries: { isIntersecting: boolean }[]) => void) {}
+      observe(element: Element) {
+        if (element.matches(".gallery-day-row")) this.callback([{ isIntersecting: true }]);
+      }
+      unobserve() {}
+      disconnect() {}
+    });
     Object.defineProperty(HTMLDialogElement.prototype, "showModal", { configurable: true, value: vi.fn(function (this: HTMLDialogElement) { this.open = true; }) });
     Object.defineProperty(HTMLDialogElement.prototype, "close", { configurable: true, value: vi.fn(function (this: HTMLDialogElement) { this.open = false; }) });
     Object.defineProperty(Element.prototype, "scrollIntoView", { configurable: true, value: vi.fn() });
     vi.mocked(mediaService.deleted).mockResolvedValue({
       offset: 0,
-      limit: 20,
       total: 1,
       items: [trashedMedia],
     });
@@ -150,7 +154,7 @@ describe("TrashPage", () => {
       unobserve() {}
       disconnect() {}
     });
-    vi.mocked(mediaService.deleted).mockResolvedValueOnce({ offset: 0, limit: 20, total: 2, items: [trashedMedia] })
+    vi.mocked(mediaService.deleted).mockResolvedValueOnce({ offset: 0, total: 2, items: [trashedMedia] })
       .mockRejectedValueOnce(new TypeError("Failed to fetch"));
     await renderPage();
     await act(async () => intersect());
@@ -186,17 +190,14 @@ describe("TrashPage", () => {
   it("filters trash by media kind and shows images by default", async () => {
     vi.mocked(mediaService.deleted).mockResolvedValueOnce({
       offset: 0,
-      limit: 20,
       total: 1,
       items: [trashedMedia],
     }).mockResolvedValueOnce({
       offset: 0,
-      limit: 20,
       total: 1,
-      items: [{ ...trashedMedia, mediaKind: "video", mimeType: "video/mp4", originalFilename: "deleted.mp4" }],
+      items: [{ ...trashedMedia, mediaKind: "video", originalFilename: "deleted.mp4" }],
     }).mockResolvedValueOnce({
       offset: 0,
-      limit: 20,
       total: 1,
       items: [trashedMedia],
     });
@@ -224,7 +225,7 @@ describe("TrashPage", () => {
 
   it("permanently deletes only the currently viewed item after confirmation", async () => {
     vi.mocked(mediaService.deleted).mockResolvedValue({
-      offset: 0, limit: 20, total: 2,
+      offset: 0, total: 2,
       items: [trashedMedia, { ...trashedMedia, id: "second", originalFilename: "second.png" }],
     });
     await renderPage();
@@ -238,7 +239,7 @@ describe("TrashPage", () => {
 
   it.each(["Restore", "Permanently delete"])("applies bulk %s and exits selection", async (label) => {
     vi.mocked(mediaService.deleted).mockResolvedValue({
-      offset: 0, limit: 20, total: 2,
+      offset: 0, total: 2,
       items: [trashedMedia, { ...trashedMedia, id: "second", originalFilename: "second.png" }],
     });
     await renderPage();
@@ -265,7 +266,7 @@ describe("TrashPage", () => {
 
   it("keeps failed items for retry without repeating successful requests", async () => {
     vi.mocked(mediaService.deleted).mockResolvedValue({
-      offset: 0, limit: 20, total: 2,
+      offset: 0, total: 2,
       items: [trashedMedia, { ...trashedMedia, id: "second", originalFilename: "second.png" }],
     });
     vi.mocked(mediaService.restore)

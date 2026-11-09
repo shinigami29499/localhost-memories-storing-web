@@ -5,13 +5,26 @@ import { SwappingText } from "@animate-ui/react/primitives/texts/swapping";
 import { useAnimationStore } from "../../store/animationStore";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 
-export function Spinner({ label = "Loading…" }: { label?: string }) {
+export function Spinner({ label = "Loading…", page = false }: { label?: string; page?: boolean }) {
   const { t } = useLocale();
   return (
-    <div className="spinner" role="status" aria-live="polite">
+    <div className={`spinner${page ? " spinner--page" : ""}`} role="status" aria-live="polite">
       <LoaderCircle className="spinner__wheel" aria-hidden="true" />
       <span>{t(label)}</span>
     </div>
+  );
+}
+
+function WrappingSwappingText({ text }: { text: string }) {
+  return (
+    <>
+      <span aria-hidden="true">
+        {text.split(/(\s+)/).map((part, index) => part.trim()
+          ? <SwappingText key={index} text={part} stagger={0.025} />
+          : part)}
+      </span>
+      <span className="sr-only">{text}</span>
+    </>
   );
 }
 
@@ -22,8 +35,8 @@ export function EmptyState({ title, hint, action, animateText = false }: { title
   const swap = animateText && enabled && !reduced;
   return (
     <div className="empty-state">
-      <p className="empty-state__title">{swap ? <><span aria-hidden="true"><SwappingText text={t(title)} stagger={0.025} /></span><span className="sr-only">{t(title)}</span></> : t(title)}</p>
-      {hint ? <p className="empty-state__hint">{swap ? <><span aria-hidden="true"><SwappingText text={t(hint)} stagger={0.025} /></span><span className="sr-only">{t(hint)}</span></> : t(hint)}</p> : null}
+      <p className="empty-state__title">{swap ? <WrappingSwappingText text={t(title)} /> : t(title)}</p>
+      {hint ? <p className="empty-state__hint">{swap ? <WrappingSwappingText text={t(hint)} /> : t(hint)}</p> : null}
       {action ? <div className="empty-state__action">{action}</div> : null}
     </div>
   );

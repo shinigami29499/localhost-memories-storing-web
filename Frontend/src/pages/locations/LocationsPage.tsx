@@ -284,7 +284,7 @@ export function LocationsPage() {
                 ))}</ul>
               </div>
             )}
-          {query.isLoading ? <Spinner /> : query.isError && !media.length ? (
+          {query.isLoading ? <Spinner page /> : query.isError && !media.length ? (
             <ErrorState message="Could not load photos." onRetry={() => void query.refetch()} />
           ) : (
             <>

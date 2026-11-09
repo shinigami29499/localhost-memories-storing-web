@@ -56,6 +56,7 @@ Keep the existing use-case/service pattern unless a change benefits from a diffe
 - Use C# primary constructors for dependency assignment; do not add empty constructors.
 - Keep use-case ports owned by the application layer when application workflows depend on them; place those interfaces in `Services/Interfaces/`. Interfaces that define an infrastructure project's own API belong in that infrastructure project's `Interfaces/` folder.
 - Use the existing `IMapper` abstraction and definitions in `Services/Mappings` for entity/DTO/request/response mapping.
+- For app-local endpoints, keep JSON response DTOs limited to fields the frontend reads; update frontend response types with each contract change.
 - Preserve the current short project and namespace naming; keep the solution filename `ShinigaCim.sln`.
 - Keep comments limited to necessary facts or non-obvious constraints.
 

@@ -7,8 +7,8 @@ export interface GalleryViewport {
   width: number;
 }
 
-/** One passive scroll listener for the gallery, independent of the media count. */
-export function useGalleryWindow(containerRef: RefObject<HTMLElement | null>, dependency: string): GalleryViewport {
+/** Recycled galleries observe row visibility directly and need only resize updates. */
+export function useGalleryWindow(containerRef: RefObject<HTMLElement | null>, dependency: string, trackScroll = true): GalleryViewport {
   const [viewport, setViewport] = useState<GalleryViewport>({ top: 0, height: 0, width: 0 });
 
   useEffect(() => {
@@ -25,7 +25,7 @@ export function useGalleryWindow(containerRef: RefObject<HTMLElement | null>, de
       });
     };
     update();
-    scrollport.addEventListener("scroll", update, { passive: true });
+    if (trackScroll) scrollport.addEventListener("scroll", update, { passive: true });
     const resize = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(update);
     resize?.observe(scrollport);
     return () => {
@@ -33,7 +33,7 @@ export function useGalleryWindow(containerRef: RefObject<HTMLElement | null>, de
       scrollport.removeEventListener("scroll", update);
       resize?.disconnect();
     };
-  }, [containerRef, dependency]);
+  }, [containerRef, dependency, trackScroll]);
 
   return viewport;
 }

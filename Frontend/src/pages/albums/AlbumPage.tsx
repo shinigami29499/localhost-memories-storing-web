@@ -64,7 +64,6 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
   const navigate = useNavigate();
   const me = useAuthStore((s) => s.user);
   const animationsEnabled = useAnimationStore((state) => state.enabled);
-  const filterRequest = useRef(0);
   const filterTransition = useRef<{ positions: Map<string, DOMRect>; copies: Map<string, HTMLElement> } | null>(null);
   const [copied, setCopied] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -91,7 +90,6 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
   const invalidate = useInvalidateAlbums();
   const items = media.data?.pages.flatMap((page) => page.items) ?? [];
   useEffect(() => () => {
-    filterRequest.current++;
     filterTransition.current?.copies.forEach((copy) => copy.remove());
   }, []);
 
@@ -123,21 +121,12 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
     });
   }, [showImages, showVideos, hasMediaFilter, media.isPending, media.isError, media.data]);
 
-  const changeFilter = async (images: boolean, videos: boolean) => {
-    const request = ++filterRequest.current;
+  const changeFilter = (images: boolean, videos: boolean) => {
     const kind: MediaKindFilter | undefined = images === videos ? undefined : images ? "image" : "video";
-    if (animationsEnabled && !window.matchMedia("(prefers-reduced-motion: reduce)").matches && albumId) {
-      if (images || videos) {
-        try {
-          await queryClient.fetchInfiniteQuery({
-            queryKey: albumKeys.infiniteMedia(albumId, 20, kind), initialPageParam: 0,
-            queryFn: ({ pageParam }) => albumService.media(albumId, pageParam, 20, kind),
-            getNextPageParam: (page) => page.offset + page.items.length < page.total ? page.offset + page.items.length : undefined,
-          });
-        } catch { /* The query displays its error after the filter changes. */ }
-      }
-      if (request !== filterRequest.current) return;
-      filterTransition.current?.copies.forEach((copy) => copy.remove());
+    filterTransition.current?.copies.forEach((copy) => copy.remove());
+    filterTransition.current = null;
+    if (animationsEnabled && !window.matchMedia("(prefers-reduced-motion: reduce)").matches && albumId
+      && (!(images || videos) || queryClient.getQueryData(albumKeys.infiniteMedia(albumId, 20, kind)))) {
       const positions = new Map<string, DOMRect>();
       const copies = new Map<string, HTMLElement>();
       const viewport = contentRef.current?.getBoundingClientRect();
@@ -307,7 +296,7 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
   };
 
   if (album.isPending) {
-    return <main className="gallery-page album-page"><Spinner label={t("Loading album…")} /></main>;
+    return <main className="gallery-page album-page"><Spinner page label={t("Loading album…")} /></main>;
   }
 
   if (album.isError) {
@@ -430,7 +419,7 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
                     ? "Videos added to this album will appear here."
                     : mediaKind === "image" ? "Images added to this album will appear here." : "Images and videos added to this album will appear here."}
                 />
-              ) : media.isPending ? <Spinner label={t("Loading media…")} /> : media.isError && items.length === 0 ? (
+              ) : media.isPending ? <Spinner page label={t("Loading media…")} /> : media.isError && items.length === 0 ? (
                 <ErrorState message={t("Could not load media.")} onRetry={() => void media.refetch()} />
               ) : (
                 <MediaRetryProvider order={items.map((item) => item.id)}>

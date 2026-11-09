@@ -41,7 +41,7 @@ describe("shared presence runtime", () => {
     useAuthStore.setState({ accessToken: "first", user: me });
     const client = new QueryClient();
     const key = ["users", "page", "all", 1, 10];
-    client.setQueryData(key, { items: [other], page: 1, limit: 10, total: 1, allCount: 1, pendingCount: 0 });
+    client.setQueryData(key, { items: [other], page: 1, limit: 10, total: 1 });
     const container = document.createElement("div");
     document.body.append(container);
     const root = createRoot(container);

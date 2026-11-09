@@ -13,6 +13,5 @@ export interface AuthUser {
 export interface AuthSession {
   accessToken: string;
   refreshToken: string;
-  accessTokenExpiresAtUtc: string;
   user: AuthUser;
 }

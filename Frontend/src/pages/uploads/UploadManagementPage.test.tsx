@@ -51,15 +51,11 @@ const emptyBatch: UploadBatch = {
   username: null,
   canManage: true,
   createdAt: "2026-10-28T00:00:00Z",
-  startedAt: null,
   completedAt: null,
   totalFiles: 0,
   successfulFiles: 0,
   failedFiles: 0,
-  pendingFiles: 0,
-  uploadingFiles: 0,
   cancelledFiles: 0,
-  progressPercent: 0,
   items: [],
 };
 
@@ -79,8 +75,8 @@ describe("UploadManagementPage", () => {
     vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
     vi.stubGlobal("IntersectionObserver", class { observe() {} unobserve() {} disconnect() {} });
     window.localStorage.clear();
-    vi.mocked(uploadService.list).mockResolvedValue({ offset: 0, limit: 10, totalItems: 0, items: [] });
-    vi.mocked(uploadService.listAll).mockResolvedValue({ offset: 0, limit: 10, totalItems: 0, items: [] });
+    vi.mocked(uploadService.list).mockResolvedValue({ totalItems: 0, items: [] });
+    vi.mocked(uploadService.listAll).mockResolvedValue({ totalItems: 0, items: [] });
     vi.mocked(uploadService.submit).mockResolvedValue(emptyBatch);
     useAuthStore.setState({
       accessToken: "test-token",
@@ -202,7 +198,7 @@ describe("UploadManagementPage", () => {
 
   it("resets pagination when the date changes and when the date selection is cleared", async () => {
     vi.mocked(uploadService.list).mockImplementation(async (offset = 0, limit = 10) => ({
-      offset, limit, totalItems: 25, items: [emptyBatch],
+      totalItems: 25, items: [emptyBatch],
     }));
     await act(async () => root.render(
       <QueryClientProvider client={client}>
@@ -246,7 +242,7 @@ describe("UploadManagementPage", () => {
   it("does not show unfiltered rows while a new date is loading", async () => {
     vi.mocked(uploadService.list).mockImplementation((_offset, _limit, date) => date
       ? new Promise(() => {})
-      : Promise.resolve({ offset: 0, limit: 10, totalItems: 1, items: [emptyBatch] }));
+      : Promise.resolve({ totalItems: 1, items: [emptyBatch] }));
     await act(async () => root.render(
       <QueryClientProvider client={client}>
         <LocaleProvider>

@@ -1,5 +1,5 @@
 import { Image as ImageIcon } from "@/components/animate-ui/icons/image";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useInView } from "motion/react";
 import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { Clapperboard } from "@/components/animate-ui/icons/clapperboard";
@@ -13,6 +13,7 @@ import { mediaPreviewUrl } from "../../../utils/media";
 import type { MediaFile } from "../types";
 import { useMediaRetry } from "./MediaRetryProvider";
 import { GalleryTileContent } from "../../../components/ui/GalleryTileContent";
+import { useGalleryLoadingAllowed } from "./GalleryLoadingProvider";
 
 interface Props {
   media: MediaFile;
@@ -30,13 +31,19 @@ interface Props {
   onUnavailable?: (mediaId: string) => Promise<boolean>;
 }
 
-export function MediaTile({
+export const MediaTile = memo(function MediaTile({
   media, selectionMode, selectionEnabled = true, selectionDragEnabled = false, selected, favoriteDisabled, includeDeleted = false, preload = false, onSelect, onOpen, onFavorite, onUnavailable,
 }: Props) {
   const { t } = useLocale();
   const [authorPrefix, authorSuffix] = t("by {username}").split("{username}");
   const tileRef = useRef<HTMLButtonElement>(null);
   const inView = useInView(tileRef, { margin: "200px 0px" });
+  const loadingAllowed = useGalleryLoadingAllowed();
+  const [requestedId, setRequestedId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!inView && !preload) setRequestedId(null);
+    else if (loadingAllowed) setRequestedId(media.id);
+  }, [inView, preload, loadingAllowed, media.id]);
   const city = media.location?.city;
   const time = new Date(media.createdAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
   const title = city
@@ -85,6 +92,7 @@ export function MediaTile({
   const origin = useRef<{ x: number; y: number } | null>(null);
   const suppressClick = useRef(false);
   const latest = useRef({ onSelect });
+  const currentMediaId = useRef<string | null>(media.id);
   latest.current = { onSelect };
 
   const clearHold = () => {
@@ -101,6 +109,21 @@ export function MediaTile({
     clearHold();
   }, [isSelecting]);
 
+  useLayoutEffect(() => {
+    currentMediaId.current = media.id;
+    failedRef.current = false;
+    pendingRetry.current?.();
+    pendingRetry.current = null;
+    availabilityPending.current = false;
+    suppressClick.current = false;
+    clearHold();
+    setFailed(false);
+    setRetrying(false);
+    setCheckingAvailability(false);
+    setAttempt(0);
+    return () => { currentMediaId.current = null; };
+  }, [media.id]);
+
   const favorite = () => {
     if (failedRef.current || pendingRetry.current) return;
     if (!includeDeleted && !isSelecting && !favoriteDisabled && !media.isFavorited) onFavorite?.(media.id);
@@ -111,14 +134,17 @@ export function MediaTile({
     availabilityPending.current = true;
     setCheckingAvailability(true);
     try {
-      if (await onUnavailable(media.id)) return;
+      const handled = await onUnavailable(media.id);
+      if (currentMediaId.current !== media.id || handled) return;
       if (retryGroup) await retryGroup.retryAll(media.id);
       else await retryPreview();
     } catch (error) {
       showToast.error(t("Could not check media availability."), error instanceof Error ? error.message : undefined);
     } finally {
-      availabilityPending.current = false;
-      setCheckingAvailability(false);
+      if (currentMediaId.current === media.id) {
+        availabilityPending.current = false;
+        setCheckingAvailability(false);
+      }
     }
   };
   const failedActionLabel = onUnavailable ? "Check unavailable media: {filename}" : "Retry all failed media, starting with {filename}";
@@ -204,8 +230,8 @@ export function MediaTile({
         </span>
       ) : null}
       <GalleryTileContent preview={<><span className="media-tile__motion">
-        {failed || (!inView && !retrying && !preload) ? null : (
-          <img key={attempt} className="media-tile__preview" src={previewUrl} onLoad={() => finishPreview(false)} onError={() => finishPreview(true)} alt="" loading={retrying || preload ? "eager" : "lazy"} decoding="async" draggable={false} />
+        {failed || (requestedId !== media.id && !(retrying && currentMediaId.current === media.id)) || (!inView && !retrying && !preload) ? null : (
+          <img key={`${media.id}:${attempt}`} className="media-tile__preview" src={previewUrl} onLoad={() => finishPreview(false)} onError={() => finishPreview(true)} alt="" loading={retrying || preload ? "eager" : "lazy"} decoding="async" draggable={false} />
         )}
       </span><span className="gallery-tile__badge media-tile__type" role="img" aria-label={t(media.mediaKind === "video" ? "Video" : "Image")}>
         {media.mediaKind === "video" ? <Clapperboard size={16} /> : <ImageIcon size={16} />}
@@ -224,4 +250,4 @@ export function MediaTile({
       </button>
     </AnimateIcon>
   );
-}
+});

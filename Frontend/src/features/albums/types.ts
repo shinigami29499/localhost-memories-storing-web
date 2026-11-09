@@ -13,11 +13,9 @@ export interface Album {
   /** Custom preview when set, otherwise the first image in the album. */
   previewMediaId: string | null;
   previewIsFavorited: boolean;
-  previewIsPreviewOnly?: boolean;
   customPreviewMediaId: string | null;
   containsMedia: boolean;
   createdAt: string;
-  updatedAt: string | null;
 }
 
 export interface CreateAlbumInput {

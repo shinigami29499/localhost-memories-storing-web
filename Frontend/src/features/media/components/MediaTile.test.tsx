@@ -4,6 +4,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MediaTile } from "./MediaTile";
 import { MediaRetryProvider } from "./MediaRetryProvider";
+import { GalleryLoadingProvider } from "./GalleryLoadingProvider";
 import type { MediaFile } from "../types";
 
 vi.mock("motion/react", async (importOriginal) => ({
@@ -16,8 +17,8 @@ vi.mock("../../../utils/media", () => ({
 }));
 
 const image: MediaFile = {
-  id: "image", mediaKind: "image", mimeType: "image/png", originalFilename: "photo.png",
-  fileSizeBytes: 100, createdAt: "2026-10-28T12:00:00Z", isFavorited: false,
+  id: "image", mediaKind: "image", originalFilename: "photo.png",
+  createdAt: "2026-10-28T12:00:00Z", isFavorited: false,
 };
 
 describe("MediaTile", () => {
@@ -70,6 +71,36 @@ describe("MediaTile", () => {
     Object.defineProperty(event, "isPrimary", { value: true });
     act(() => button.dispatchEvent(event));
   }
+
+  it("resets failed preview and retry state when a cell receives another item", () => {
+    const button = render();
+    act(() => button.querySelector("img")!.dispatchEvent(new Event("error")));
+    expect(button.querySelector("img")).toBeNull();
+    render({ media: { ...image, id: "replacement", originalFilename: "replacement.png" } });
+    expect(container.querySelector("button")).toBe(button);
+    expect(button.getAttribute("aria-label")).toBe("Open replacement.png");
+    expect(button.querySelector("img")?.getAttribute("src")).toContain("/media/replacement?");
+    expect(button.querySelector(".media-tile__retry")).toBeNull();
+  });
+
+  it("defers a newly recycled image until scrolling stops", () => {
+    const containerRef = { current: container };
+    const renderInGallery = (id: string) => act(() => root.render(
+      <GalleryLoadingProvider containerRef={containerRef}>
+        <MediaTile media={{ ...image, id }} selectionMode={false} selected={false}
+          onSelect={onSelect} onOpen={onOpen} />
+      </GalleryLoadingProvider>,
+    ));
+    renderInGallery("first");
+    expect(container.querySelector("img")?.getAttribute("src")).toContain("/media/first?");
+    act(() => container.querySelector("button")!.dispatchEvent(new Event("scroll")));
+    renderInGallery("second");
+    expect(container.querySelector("img")).toBeNull();
+    act(() => vi.advanceTimersByTime(139));
+    expect(container.querySelector("img")).toBeNull();
+    act(() => vi.advanceTimersByTime(1));
+    expect(container.querySelector("img")?.getAttribute("src")).toContain("/media/second?");
+  });
 
   it("shows only the image, without captions or icons", () => {
     const button = render();

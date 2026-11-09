@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { MediaFile } from "../../features/media/types";
 import { VirtualGalleryGroup } from "./VirtualGalleryGroup";
 
@@ -19,10 +19,24 @@ describe("VirtualGalleryGroup", () => {
     items, selectionMode: false, selectedItems: new Map<string, MediaFile>(),
     onSelect: vi.fn(), onFavorite: vi.fn(), favoriteBusy: false, onOpen: vi.fn(),
   };
+  let visibility: IntersectionObserverCallback;
+  const disconnect = vi.fn();
+
+  beforeEach(() => {
+    vi.stubGlobal("IntersectionObserver", class {
+      constructor(callback: IntersectionObserverCallback) { visibility = callback; }
+      observe() {
+        visibility([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver);
+      }
+      disconnect = disconnect;
+    });
+  });
 
   afterEach(async () => {
     if (root) await act(async () => root.unmount());
     container?.remove();
+    vi.unstubAllGlobals();
+    disconnect.mockClear();
   });
 
   it("bounds mounted tiles and retains a pinned viewer target", async () => {
@@ -60,11 +74,50 @@ describe("VirtualGalleryGroup", () => {
     document.body.append(container);
     root = createRoot(container);
     await act(async () => root.render(<div className="gallery-page__content">
-      <VirtualGalleryGroup {...props} viewport={{ top: 1000000, height: 800, width: 1200 }} />
+      <VirtualGalleryGroup {...props} viewport={{ top: 1000000, height: 800, width: 1200 }} active={false} />
     </div>));
     expect(container.querySelectorAll("[data-media-id]")).toHaveLength(0);
     const entry = container.querySelector<HTMLElement>('[aria-label="Enter media group"]')!;
     await act(async () => entry.focus());
     expect((document.activeElement as HTMLElement).dataset.mediaId).toBe("media-0");
+  });
+
+  it("reuses physical cells and buttons after a large horizontal scroll", async () => {
+    container = document.createElement("div");
+    document.body.append(container);
+    root = createRoot(container);
+    await act(async () => root.render(<VirtualGalleryGroup {...props} viewport={{ top: 0, height: 800, width: 1200 }} />));
+    const row = container.querySelector<HTMLElement>(".gallery-day-row")!;
+    await act(async () => {
+      row.scrollLeft = 1000;
+      row.dispatchEvent(new Event("scroll"));
+      await new Promise((resolve) => setTimeout(resolve, 40));
+    });
+    const cells = new Set(container.querySelectorAll("[data-gallery-window-id]"));
+    const buttons = new Set(container.querySelectorAll("button"));
+    await act(async () => {
+      row.scrollLeft = 4000;
+      row.dispatchEvent(new Event("scroll"));
+      await new Promise((resolve) => setTimeout(resolve, 40));
+    });
+    const currentCells = [...container.querySelectorAll("[data-gallery-window-id]")];
+    expect(currentCells.length).toBeLessThan(20);
+    expect(currentCells.every((cell) => cells.has(cell))).toBe(true);
+    expect([...container.querySelectorAll("button")].every((button) => buttons.has(button))).toBe(true);
+    expect(container.querySelector('[data-media-id="media-0"]')).toBeNull();
+  });
+
+  it("unmounts offscreen media on desktop while keeping keyboard entry points", async () => {
+    container = document.createElement("div");
+    document.body.append(container);
+    root = createRoot(container);
+    await act(async () => root.render(<VirtualGalleryGroup {...props} viewport={{ top: 0, height: 800, width: 1200 }} />));
+    await act(async () => visibility(
+      [{ isIntersecting: false } as IntersectionObserverEntry], {} as IntersectionObserver,
+    ));
+    expect(container.querySelectorAll("[data-media-id]")).toHaveLength(0);
+    expect(container.querySelector('[aria-label="Enter media group"]')).not.toBeNull();
+    await act(async () => root.render(null));
+    expect(disconnect).toHaveBeenCalled();
   });
 });

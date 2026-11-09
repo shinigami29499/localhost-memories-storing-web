@@ -767,7 +767,7 @@ export function PlacePage() {
                     message={t("Could not load visit history.")}
                     onRetry={() => void historyQuery.refetch()}
                   />
-                ) : historyQuery.isPending ? <Spinner /> : historyVisits.length ? (
+                ) : historyQuery.isPending ? <Spinner page /> : historyVisits.length ? (
                   <PlaceVisitHistory
                     visits={historyVisits}
                     onShowOnMap={(visit) => { setSelectedId(visit.placeId); setDetailsOpen(false); requestView("map"); }}
@@ -782,7 +782,7 @@ export function PlacePage() {
                 {!historySearch.trim() && !historyMinimumRating && visitHistory.isFetchNextPageError && <ErrorState message={t("Could not load more visits.")} onRetry={() => void visitHistory.fetchNextPage()} />}
                 {!historySearch.trim() && !historyMinimumRating && visitHistory.hasNextPage && <div ref={historySentinel}>{visitHistory.isFetchingNextPage && <Spinner />}</div>}
               </div>
-            ) : query.isLoading ? <Spinner /> : query.isError && !places.length ? (
+            ) : query.isLoading ? <Spinner page /> : query.isError && !places.length ? (
               <ErrorState message="Could not load places." onRetry={() => void query.refetch()} />
             ) : (
               <>

@@ -60,7 +60,7 @@ export function AuthenticatedLayout() {
         <PageActionBarProvider>
           <div id="main-content" tabIndex={-1} className="app-shell__content">
             <PushTransition transitionKey={pageKey} matchPageHighlights hasPageHighlight={pageKey === "/gallery" || pageKey === "/location" || pageKey === "/users"} />
-            <Suspense fallback={<Spinner />}><Outlet /></Suspense>
+            <Suspense key={pageKey} fallback={<Spinner page />}><Outlet /></Suspense>
           </div>
         </PageActionBarProvider>
       </div>

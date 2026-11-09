@@ -37,7 +37,6 @@ const ownAlbum: Album = {
   customPreviewMediaId: null,
   containsMedia: false,
   createdAt: "2026-10-28T00:00:00Z",
-  updatedAt: null,
 };
 
 const publicAlbum: Album = {
@@ -97,8 +96,8 @@ describe("HomePage", () => {
     vi.mocked(albumService.media).mockImplementation(async (id, offset = 0, limit = 5) => ({
       offset, limit, total: 6,
       items: Array.from({ length: Math.min(limit, 6 - offset) }, (_, index) => ({
-        id: `${id}-image-${offset + index}`, mediaKind: "image" as const, mimeType: "image/jpeg",
-        originalFilename: "image.jpg", fileSizeBytes: 1, createdAt: "", isFavorited: false,
+        id: `${id}-image-${offset + index}`, mediaKind: "image" as const,
+        originalFilename: "image.jpg", createdAt: "", isFavorited: false,
       })),
     }));
     vi.mocked(mediaService.favorite).mockResolvedValue(undefined);

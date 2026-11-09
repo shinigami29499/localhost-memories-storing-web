@@ -22,8 +22,8 @@ vi.mock("../../uploads/services/uploadService", () => ({
 }));
 
 const galleryImage: MediaFile = {
-  id: "gallery-image", originalFilename: "gallery.jpg", mediaKind: "image", mimeType: "image/jpeg",
-  fileSizeBytes: 20, createdAt: "2026-11-01T00:00:00Z", isFavorited: false, isPreviewOnly: false,
+  id: "gallery-image", originalFilename: "gallery.jpg", mediaKind: "image",
+  createdAt: "2026-11-01T00:00:00Z", isFavorited: false, isPreviewOnly: false,
 };
 const previewImage: MediaFile = { ...galleryImage, id: "preview-image", originalFilename: "cover.jpg", isPreviewOnly: true };
 const newPreview: MediaFile = { ...previewImage, id: "new-preview", originalFilename: "new.jpg" };
@@ -48,8 +48,8 @@ describe("PhotoPicker", () => {
     root = createRoot(container);
     mounted = true;
     client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
-    vi.mocked(mediaService.list).mockResolvedValue({ offset: 0, limit: 48, total: 1, items: [galleryImage] });
-    vi.mocked(previewService.list).mockResolvedValue({ offset: 0, limit: 48, total: 1, items: [previewImage] });
+    vi.mocked(mediaService.list).mockResolvedValue({ offset: 0, total: 1, items: [galleryImage] });
+    vi.mocked(previewService.list).mockResolvedValue({ offset: 0, total: 1, items: [previewImage] });
     vi.mocked(previewService.upload).mockResolvedValue(newPreview);
     vi.mocked(previewService.releaseDraft).mockResolvedValue();
     useAnimationStore.setState({ enabled: true });
@@ -92,7 +92,7 @@ describe("PhotoPicker", () => {
 
   it("starts on Preview and selects the current preview even when absent from its first page", async () => {
     vi.mocked(previewService.getImage).mockResolvedValue(previewImage);
-    vi.mocked(previewService.list).mockResolvedValue({ offset: 0, limit: 48, total: 0, items: [] });
+    vi.mocked(previewService.list).mockResolvedValue({ offset: 0, total: 0, items: [] });
     await render(previewImage.id);
     await vi.waitFor(() => expect(tab("Preview").getAttribute("aria-selected")).toBe("true"));
     expect(document.querySelector('[aria-label="cover.jpg"]')?.getAttribute("aria-pressed")).toBe("true");
@@ -114,7 +114,7 @@ describe("PhotoPicker", () => {
 
   it("keeps gallery images in place when selecting one", async () => {
     const secondImage = { ...galleryImage, id: "second-image", originalFilename: "second.jpg" };
-    vi.mocked(mediaService.list).mockResolvedValue({ offset: 0, limit: 48, total: 2, items: [galleryImage, secondImage] });
+    vi.mocked(mediaService.list).mockResolvedValue({ offset: 0, total: 2, items: [galleryImage, secondImage] });
     await render(null);
     await click(document.querySelector<HTMLButtonElement>('[aria-label="second.jpg"]')!);
     const images = [...document.querySelectorAll<HTMLButtonElement>('.place-picker__grid button[aria-pressed]')];
@@ -199,9 +199,8 @@ describe("PhotoPicker", () => {
   it("keeps Gallery uploads on the tracked upload workflow", async () => {
     const completed: UploadBatch = {
       id: "gallery-batch", status: "Completed", username: "viewer", canManage: true,
-      createdAt: galleryImage.createdAt, startedAt: null, completedAt: galleryImage.createdAt,
-      totalFiles: 1, successfulFiles: 1, failedFiles: 0, pendingFiles: 0,
-      uploadingFiles: 0, cancelledFiles: 0, progressPercent: 100, items: [],
+      createdAt: galleryImage.createdAt, completedAt: galleryImage.createdAt,
+      totalFiles: 1, successfulFiles: 1, failedFiles: 0, cancelledFiles: 0, items: [],
     };
     vi.mocked(uploadService.submit).mockResolvedValue(completed);
     vi.mocked(uploadService.get).mockResolvedValue(completed);

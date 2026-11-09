@@ -35,7 +35,7 @@ public sealed class PreviewService(
             });
         var total = await repository.CountAsync(viewerId, cancellationToken);
         var items = await repository.ListAsync(viewerId, offset, limit, cancellationToken);
-        return new(offset, limit, total, items.Select(media => mapper.Map(media, false)).ToList());
+        return new(offset, total, items.Select(media => mapper.Map(media, false)).ToList());
     }
 
     public async Task<MediaFileDto> UploadAsync(

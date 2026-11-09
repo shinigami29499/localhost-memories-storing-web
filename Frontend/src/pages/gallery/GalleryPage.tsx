@@ -15,6 +15,7 @@ import { ConfirmationDialog, EmptyState, ErrorState, Spinner } from "../../compo
 import { showToast } from "../../components/ui/Toast";
 import { useLocale } from "../../context/LocaleContext";
 import { MediaRetryProvider } from "../../features/media/components/MediaRetryProvider";
+import { GalleryLoadingProvider } from "../../features/media/components/GalleryLoadingProvider";
 import { MediaPreviewDialog } from "../../features/media/components/MediaPreviewDialog";
 import { useMediaSelectionDrag } from "../../features/media/hooks/useMediaSelectionDrag";
 import { mediaService } from "../../features/media/services/mediaService";
@@ -71,8 +72,6 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const animationsEnabled = useAnimationStore((state) => state.enabled);
-  const transitionPending = useRef(false);
-  const transitionActive = useRef(true);
   const selectedFilter = initialFilter;
   const [uploading, setUploading] = useState(false);
   const uploadInput = useRef<HTMLInputElement>(null);
@@ -103,8 +102,7 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
   }, []);
   const pageSize = mobile ? 5 : 20;
   const query = useInfiniteQuery({ ...mediaQueryOptions(pageSize, showingFavorites ? "favorites" : "all", selectedFilter), staleTime: 0 });
-  const viewport = useGalleryWindow(galleryRef, `${view}:${selectedFilter}`);
-  const [firstVisibleRow, setFirstVisibleRow] = useState(0);
+  const viewport = useGalleryWindow(galleryRef, `${view}:${selectedFilter}`, false);
 
   const media = useMemo(
     () => (Array.isArray(query.data?.pages) ? query.data.pages : [])
@@ -123,15 +121,6 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
     }
     return [...byDate.entries()].sort(([, a], [, b]) => b.date.getTime() - a.date.getTime());
   }, [media]);
-  useLayoutEffect(() => {
-    if (!mobile || !viewport.height) return;
-    const scrollport = galleryRef.current?.querySelector<HTMLElement>(".gallery-page__content");
-    if (!scrollport) return;
-    const top = scrollport.getBoundingClientRect().top;
-    const sections = Array.from(scrollport.querySelectorAll<HTMLElement>("[data-gallery-row]"));
-    const index = sections.findIndex((section) => section.getBoundingClientRect().bottom > top);
-    if (index >= 0) setFirstVisibleRow(index);
-  }, [mobile, viewport, groups]);
   const previewGroup = groups.find(([key]) => key === previewGroupKey);
   const previewItems = previewGroup?.[1].items ?? [];
   const previewNeedsMore = Boolean(previewGroup && previewGroup[0] === groups[groups.length - 1]?.[0] && query.hasNextPage);
@@ -149,11 +138,6 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
   const selectedMedia = [...selectedItems.values()];
   const allSelectedFavorited = selectedMedia.length > 0 && selectedMedia.every((item) => item.isFavorited);
   const favoriteBusy = favoriteBusyId !== null || bulkFavoriteBusy;
-
-  useEffect(() => {
-    transitionActive.current = true;
-    return () => { transitionActive.current = false; };
-  }, []);
 
   useLayoutEffect(() => {
     if (query.isPending || !favoriteTransition || favoriteTransition.destination !== view || !viewport.width) return;
@@ -185,21 +169,16 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
     });
   }, [view, showingFavorites, query.isPending, query.isError, media, viewport.width]);
 
-  const openFavorites = async (event: React.MouseEvent<HTMLAnchorElement>) => {
+  const openFavorites = (event: React.MouseEvent<HTMLAnchorElement>) => {
     if (!animationsEnabled || window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
       event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     event.preventDefault();
-    if (transitionPending.current) return;
-    transitionPending.current = true;
     const destination = showingFavorites ? "pictures" : "favorites";
-    try {
-      await queryClient.fetchInfiniteQuery(mediaQueryOptions(pageSize, showingFavorites ? "all" : "favorites", selectedFilter));
-    } catch {
-      transitionPending.current = false;
-      if (transitionActive.current) navigate(showingFavorites ? "/gallery" : "/gallery/favorites");
+    const destinationQuery = mediaQueryOptions(pageSize, showingFavorites ? "all" : "favorites", selectedFilter);
+    if (!queryClient.getQueryData(destinationQuery.queryKey)) {
+      navigate(showingFavorites ? "/gallery" : "/gallery/favorites");
       return;
     }
-    if (!transitionActive.current) return;
     const positions = new Map<string, DOMRect>();
     const copies = new Map<string, HTMLElement>();
     favoriteTransition = { destination, positions, copies };
@@ -218,7 +197,6 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
         copies.set(id, copy);
       }
     }
-    transitionPending.current = false;
     navigate(showingFavorites ? "/gallery" : "/gallery/favorites");
   };
 
@@ -291,13 +269,19 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
 
     const observer = new IntersectionObserver((entries) => {
       if (entries.some((entry) => entry.isIntersecting)) {
+        const rows = galleryRef.current?.querySelectorAll<HTMLElement>(".gallery-day-row");
+        const lastRow = rows?.[rows.length - 1];
+        if (lastRow && lastRow.scrollWidth - lastRow.scrollLeft - lastRow.clientWidth > lastRow.clientWidth * 2.5) return;
         observer.disconnect();
-        void query.fetchNextPage();
+        void query.fetchNextPage({ cancelRefetch: false });
       }
-    }, { rootMargin: mobile ? "0px 0px 300px 0px" : "0px 0px 2000px 0px" });
+    }, {
+      root: galleryRef.current?.querySelector(".gallery-page__content"),
+      rootMargin: `0px 0px ${viewport.height * 2.5}px 0px`,
+    });
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [mobile, previewMediaId, query.hasNextPage, query.isFetchNextPageError, query.isFetching, query.fetchNextPage]);
+  }, [viewport.height, previewMediaId, query.hasNextPage, query.isFetchNextPageError, query.isFetching, query.fetchNextPage]);
 
   const toggleFavorite = async (mediaId: string, isFavorited: boolean) => {
     if (favoriteBusy) return;
@@ -473,7 +457,7 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
 
   const galleryContent = (
     <>
-      {query.isPending ? <Spinner label={t("Loading media…")} /> : null}
+      {query.isPending ? <Spinner page label={t("Loading media…")} /> : null}
       {query.isError && media.length === 0 ? (
         <ErrorState message={t("Could not load media.")} onRetry={() => void query.refetch()} />
       ) : null}
@@ -503,7 +487,7 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
       {media.length > 0 ? (
         <div className="gallery-groups" aria-busy={query.isFetching}>
           <MediaRetryProvider key={`${view}-${selectedFilter}`} order={groups.flatMap(([, group]) => group.items.map((item) => item.id))}>
-            {groups.map(([key, group], index) => {
+            {groups.map(([key, group]) => {
               const dateLabel = `${group.date.getFullYear()}, ${dateFormatter.format(group.date)}`;
               return (
               <section key={key} aria-label={dateLabel} data-gallery-row>
@@ -515,11 +499,10 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
                   </h2>
                 </div>
                   <VirtualGalleryGroup items={group.items} viewport={viewport} mediaKind={selectedFilter} pinnedId={focusMediaId}
-                    active={!mobile || (index >= Math.max(0, firstVisibleRow - 2) && index < Math.max(0, firstVisibleRow - 2) + 7)}
                     selectionMode={selectionMode} selectedItems={selectedItems} onSelect={toggleSelected}
                     onFavorite={(mediaId) => void toggleFavorite(mediaId, false)} favoriteBusy={favoriteBusy} onOpen={(id) => { setPreviewGroupKey(key); setPreviewMediaId(id); }}
                     onUnavailable={isAdmin ? checkUnavailable : undefined}
-                    onReachEnd={key === groups[groups.length - 1]?.[0] && query.hasNextPage && !query.isFetching && !query.isFetchNextPageError ? () => { void query.fetchNextPage(); } : undefined} />
+                    onReachEnd={key === groups[groups.length - 1]?.[0] && query.hasNextPage && !query.isFetching && !query.isFetchNextPageError ? () => { void query.fetchNextPage({ cancelRefetch: false }); } : undefined} />
               </section>
               );
             })}
@@ -553,13 +536,15 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
         if (!selectionMode || (event.target instanceof Element && event.target.closest("[data-media-id], .gallery-selection-bar"))) return;
         cancelSelection();
       }}>
-      <div className="gallery-page__fixed-layout">
-        <div className="gallery-page__fixed-tabs">
-          <div className="gallery-page__content gallery-page__media-scroll">
-            <div className="gallery-page__tab-panel gallery-page__tab-panel--media">{galleryContent}</div>
+      <GalleryLoadingProvider containerRef={galleryRef}>
+        <div className="gallery-page__fixed-layout">
+          <div className="gallery-page__fixed-tabs">
+            <div className="gallery-page__content gallery-page__media-scroll">
+              <div className="gallery-page__tab-panel gallery-page__tab-panel--media">{galleryContent}</div>
+            </div>
           </div>
         </div>
-      </div>
+      </GalleryLoadingProvider>
 
           <PageActionBar className="gallery-page__actions" role="group" aria-label={t("{count} selected", { count: selectedItems.size })} aria-busy={bulkFavoriteBusy}>
             <span className="gallery-selection-bar__status" role="status">{t("{count} selected", { count: selectedItems.size })}</span>

@@ -169,7 +169,7 @@ public sealed class CollectionService(
             collectionId, offset, limit, request.MediaKind, cancellationToken);
         var total = await repository.CountCollectionMediaAsync(collectionId, request.MediaKind, cancellationToken);
         if (mediaIds.Count == 0)
-            return new PagedMediaResponse<MediaFileDto>(offset, limit, total, []);
+            return new PagedMediaResponse<MediaFileDto>(offset, total, []);
 
         var mediaById = (await repository.GetMediaFilesAsync(mediaIds, cancellationToken))
             .ToDictionary(media => media.Id);
@@ -180,7 +180,7 @@ public sealed class CollectionService(
             .Select(mediaId => mapper.Map(mediaById[mediaId], favoritedIds.Contains(mediaId)))
             .ToList();
 
-        return new PagedMediaResponse<MediaFileDto>(offset, limit, total, items);
+        return new PagedMediaResponse<MediaFileDto>(offset, total, items);
     }
 
     public async Task<CollectionDto> CreateCollectionAsync(

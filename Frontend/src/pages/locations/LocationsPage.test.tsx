@@ -119,8 +119,8 @@ vi.mock("../../features/locations/services/homeLocationService", () => ({
 }));
 
 const photo = (id: string, location: MediaFile["location"], ownerId = "owner"): MediaFile => ({
-  id, ownerId, location, originalFilename: `${id}.jpg`, mimeType: "image/jpeg",
-  mediaKind: "image", fileSizeBytes: 1200, createdAt: "2026-10-30T00:00:00Z", isFavorited: false,
+  id, ownerId, location, originalFilename: `${id}.jpg`,
+  mediaKind: "image", createdAt: "2026-10-30T00:00:00Z", isFavorited: false,
 });
 let photos: MediaFile[];
 
@@ -163,11 +163,11 @@ describe("Locations", () => {
       return item;
     });
     vi.mocked(locationService.mapPage).mockImplementation(async (offset) => ({
-      offset, limit: 100, total: photos.length, items: photos.slice(offset, offset + 100),
+      offset, total: photos.length, items: photos.slice(offset, offset + 100),
     }));
     vi.mocked(locationService.unlocatedPage).mockImplementation(async (offset) => {
       const unlocated = photos.filter((item) => !item.location);
-      return { offset, limit: 50, total: unlocated.length, items: unlocated.slice(offset, offset + 50) };
+      return { offset, total: unlocated.length, items: unlocated.slice(offset, offset + 50) };
     });
     vi.mocked(locationService.set).mockImplementation(async (id, location) => {
       photos = photos.map((item) => item.id === id ? { ...item, location } : item);

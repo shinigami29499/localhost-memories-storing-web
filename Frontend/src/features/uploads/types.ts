@@ -11,7 +11,6 @@ export interface UploadItem {
   progressPercent: number;
   errorDetails: string | null;
   retryCount: number;
-  startedAt: string | null;
   completedAt: string | null;
 }
 
@@ -21,22 +20,16 @@ export interface UploadBatch {
   username: string | null;
   canManage: boolean;
   createdAt: string;
-  startedAt: string | null;
   completedAt: string | null;
   viewedAt?: string | null;
   totalFiles: number;
   successfulFiles: number;
   failedFiles: number;
-  pendingFiles: number;
-  uploadingFiles: number;
   cancelledFiles: number;
-  progressPercent: number;
   items: UploadItem[];
 }
 
 export interface PagedUploadBatches {
-  offset: number;
-  limit: number;
   totalItems: number;
   items: UploadBatch[];
 }

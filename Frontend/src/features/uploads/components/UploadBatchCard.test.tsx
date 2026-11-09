@@ -19,7 +19,6 @@ const items: UploadItem[] = [
     progressPercent: 70,
     errorDetails: "Network error",
     retryCount: 1,
-    startedAt: "2026-10-28T00:00:00Z",
     completedAt: "2026-10-28T00:01:00Z",
   },
   {
@@ -32,7 +31,6 @@ const items: UploadItem[] = [
     progressPercent: 45,
     errorDetails: null,
     retryCount: 0,
-    startedAt: "2026-10-28T00:00:00Z",
     completedAt: null,
   },
   {
@@ -45,7 +43,6 @@ const items: UploadItem[] = [
     progressPercent: 0,
     errorDetails: null,
     retryCount: 0,
-    startedAt: null,
     completedAt: null,
   },
   {
@@ -58,7 +55,6 @@ const items: UploadItem[] = [
     progressPercent: 100,
     errorDetails: null,
     retryCount: 0,
-    startedAt: "2026-10-28T00:00:00Z",
     completedAt: "2026-10-28T00:01:00Z",
   },
 ];
@@ -69,15 +65,11 @@ const batch: UploadBatch = {
   username: null,
   canManage: true,
   createdAt: "2026-10-28T00:00:00Z",
-  startedAt: "2026-10-28T00:00:00Z",
   completedAt: null,
   totalFiles: items.length,
   successfulFiles: 1,
   failedFiles: 1,
-  pendingFiles: 1,
-  uploadingFiles: 1,
   cancelledFiles: 0,
-  progressPercent: 45,
   items,
 };
 

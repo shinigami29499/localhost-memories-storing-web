@@ -42,9 +42,8 @@
   .gallery-tile { aspect-ratio: 3 / 3.95; }
   .gallery-tile__info { top: calc(100% * 3 / 3.95); padding: 0 5%; }
   .gallery-tile__title, .gallery-tile__author { flex-shrink: 0; }
-  .gallery-tile__title { font-size: clamp(0.625rem, 5.5cqw, 0.75rem); line-height: 1.2; }
-  .gallery-tile__author { font-size: clamp(0.5625rem, 4.95cqw, 0.675rem); }
+  .gallery-tile__title { font-size: 0.75rem; line-height: 1.2; }
+  .gallery-tile__author { font-size: 0.675rem; }
   .gallery-tile__badge { font-size: clamp(0.625rem, 5.5cqw, 0.75rem); line-height: 1.2; transform: scale(0.8); transform-origin: bottom right; }
 }
-
 

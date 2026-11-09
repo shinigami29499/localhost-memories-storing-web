@@ -26,15 +26,11 @@ const batch: UploadBatch = {
   username: null,
   canManage: true,
   createdAt: completedAt,
-  startedAt: completedAt,
   completedAt,
   totalFiles: 1,
   successfulFiles: 1,
   failedFiles: 0,
-  pendingFiles: 0,
-  uploadingFiles: 0,
   cancelledFiles: 0,
-  progressPercent: 100,
   items: [{
     id: "file",
     uploadBatchId: "batch",
@@ -45,7 +41,6 @@ const batch: UploadBatch = {
     progressPercent: 100,
     errorDetails: null,
     retryCount: 0,
-    startedAt: completedAt,
     completedAt,
   }],
 };
@@ -68,14 +63,10 @@ describe("UploadActivityHeatmap", () => {
       removeEventListener: (_event: string, listener: () => void) => mediaListeners.delete(listener),
     })));
     vi.mocked(uploadService.list).mockResolvedValue({
-      offset: 0,
-      limit: 100,
       totalItems: 1,
       items: [batch],
     });
     vi.mocked(uploadService.listAll).mockResolvedValue({
-      offset: 0,
-      limit: 100,
       totalItems: 1,
       items: [batch],
     });

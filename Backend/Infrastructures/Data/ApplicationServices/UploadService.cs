@@ -125,8 +125,6 @@ public sealed class UploadService(
         var total = await _repository.CountBatchesAsync(
             actorId, isAdmin, cancellationToken, createdFrom?.UtcDateTime, createdBefore?.UtcDateTime);
         return new PagedUploadBatchesResponse(
-            offset,
-            limit,
             total,
             batches.Select(batch => MapBatch(batch, actorId, isAdmin)).ToList());
     }
@@ -511,16 +509,6 @@ public sealed class UploadService(
     private static UploadBatchDto MapBatch(UploadBatch batch, Guid actorId, bool includeUsername)
     {
         var files = batch.Items.OrderBy(item => item.CreatedAt).ToList();
-        var totalBytes = files.Sum(item => item.FileSizeBytes);
-        var completedBytes = files.Sum(item =>
-            item.Status == UploadItemStatus.Success
-                ? item.FileSizeBytes
-                : item.FileSizeBytes * item.ProgressPercent / 100);
-        var progress = totalBytes == 0
-            ? 0
-            : files.All(item => item.Status == UploadItemStatus.Success)
-                ? 100
-                : (int)(completedBytes * 100 / totalBytes);
 
         return new UploadBatchDto(
             batch.Id,
@@ -528,15 +516,11 @@ public sealed class UploadService(
             includeUsername ? batch.Owner.Username : null,
             batch.OwnerId == actorId,
             batch.CreatedAt,
-            batch.StartedAt,
             batch.CompletedAt,
             files.Count,
             files.Count(item => item.Status == UploadItemStatus.Success),
             files.Count(item => item.Status == UploadItemStatus.Failed),
-            files.Count(item => item.Status == UploadItemStatus.Pending),
-            files.Count(item => item.Status == UploadItemStatus.Uploading),
             files.Count(item => item.Status == UploadItemStatus.Cancelled),
-            progress,
             files.Select(MapItem).ToList(),
             batch.ViewedAt);
     }
@@ -552,7 +536,6 @@ public sealed class UploadService(
             item.ProgressPercent,
             item.ErrorDetails,
             item.RetryCount,
-            item.StartedAt,
             item.CompletedAt);
 
     private static ValidationException InvalidRequest(string message, string field, string detail)

@@ -173,7 +173,7 @@ export function UsersPage() {
               </div>
               <div data-push-page-content>
               <PushTransition transitionKey={filter} />
-              {activeQuery.isLoading ? <Spinner label={t("Loading users�")} /> : null}
+              {activeQuery.isLoading ? <Spinner page label={t("Loading users�")} /> : null}
               {activeQuery.isError && !pagedUsers.length ? (
                 <ErrorState message={t("Could not load users.")} onRetry={() => void activeQuery.refetch()} />
               ) : null}

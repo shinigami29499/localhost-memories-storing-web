@@ -29,8 +29,6 @@ describe("placeService", () => {
       markerIcon: "â˜•",
       markerColor: "#7048e8",
       owner: { id: "user-1", username: "user" },
-      createdAt: "2026-01-01T00:00:00Z",
-      updatedAt: null,
       mediaIds: [],
     };
     vi.mocked(api).mockResolvedValue([place]);

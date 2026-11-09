@@ -1,5 +1,3 @@
-using Services.Models.Users;
-
 namespace Services.Models.Place;
 
 public sealed record PlaceDto(
@@ -12,7 +10,5 @@ public sealed record PlaceDto(
     double Rating,
     string MarkerIcon,
     string MarkerColor,
-    UserSummaryDto Owner,
-    DateTime CreatedAt,
-    DateTime? UpdatedAt,
+    PlaceOwnerDto Owner,
     IReadOnlyList<Guid> MediaIds);

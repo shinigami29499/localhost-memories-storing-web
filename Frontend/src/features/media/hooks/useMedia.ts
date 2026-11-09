@@ -11,10 +11,10 @@ export function mediaQueryOptions(
     queryKey: ["media", source, mediaKind ?? "all", limit],
     initialPageParam: 0,
     enabled,
-    queryFn: async ({ pageParam }): Promise<PagedMedia> => (
+    queryFn: async ({ pageParam, signal }): Promise<PagedMedia> => (
       source === "favorites"
-        ? mediaService.favorites(pageParam, limit, mediaKind)
-        : mediaService.list(pageParam, limit, mediaKind)
+        ? mediaService.favorites(pageParam, limit, mediaKind, signal)
+        : mediaService.list(pageParam, limit, mediaKind, signal)
     ),
     getNextPageParam: (lastPage) => {
       const nextOffset = lastPage.offset + lastPage.items.length;

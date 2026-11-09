@@ -274,7 +274,7 @@ export function UploadManagementPage() {
           </div>
         </div>
 
-        {query.isPending ? <Spinner label="Loading uploads…" /> : query.isError && !query.data ? (
+        {query.isPending ? <Spinner page label="Loading uploads…" /> : query.isError && !query.data ? (
           <ErrorState message="Could not load uploads." onRetry={() => void query.refetch()} />
         ) : batches.length === 0 ? (
           <EmptyState

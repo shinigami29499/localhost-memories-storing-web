@@ -35,6 +35,7 @@
   height: 100%;
   overflow: hidden;
   pointer-events: none;
+  background: linear-gradient(120deg, var(--surface), var(--surface-raised), var(--surface));
 }
 
 .media-tile__type {

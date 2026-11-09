@@ -459,6 +459,16 @@ textarea::placeholder {
   padding: 24px 0;
 }
 
+.spinner.spinner--page {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max-content;
+  max-width: 100%;
+  margin: 0;
+  transform: translate(-50%, -50%);
+}
+
 .spinner__wheel {
   width: 18px;
   height: 18px;
@@ -895,6 +905,7 @@ textarea::placeholder {
   height: 18px;
   margin: 2px 0 0;
   flex-shrink: 0;
+  accent-color: var(--accent-strong);
 }
 
 .album-form__toggle span {

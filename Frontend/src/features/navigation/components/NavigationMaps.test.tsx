@@ -64,11 +64,11 @@ vi.mock("../../locations/components/LocationSearch", () => ({ LocationSearch: ()
 const coordinate = { latitude: 0, longitude: 0.01 };
 const photo: MediaFile = {
   id: "travel", location: coordinate, originalFilename: "Holiday.jpg", mediaKind: "image",
-  fileSizeBytes: 1, mimeType: "image/jpeg", isFavorited: false, createdAt: "",
+  isFavorited: false, createdAt: "",
 };
 const place: Place = {
   id: "place", ...coordinate, name: "Lunch", address: "", note: "", rating: 0,
-  markerColor: "#1769d2", markerIcon: "", mediaIds: [], createdAt: "", updatedAt: null,
+  markerColor: "#1769d2", markerIcon: "", mediaIds: [],
   owner: { id: "owner", username: "owner" },
 };
 

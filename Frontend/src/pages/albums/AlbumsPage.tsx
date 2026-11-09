@@ -80,7 +80,7 @@ export function AlbumsPage() {
     <main className="gallery-page album-page" aria-label={t("Album")} {...selectionDragHandlers}
       onClickCapture={(event) => {
         selectionDragHandlers.onClickCapture(event);
-        if (event.defaultPrevented) return;
+        if (event.defaultPrevented || deleting) return;
         if (selectionMode && !(event.target instanceof Element && event.target.closest("[data-media-id], .gallery-selection-bar"))) {
           cancelSelection();
         }
@@ -89,7 +89,7 @@ export function AlbumsPage() {
           <div className="gallery-page__content gallery-page__media-scroll">
           <div className="gallery-page__tab-panel--media">
           <div className="gallery-page__content-body">
-          {albumsQuery.isPending ? <Spinner label={t("Loading albums…")} /> : albumsQuery.isError && items.length === 0 ? (
+          {albumsQuery.isPending ? <Spinner page label={t("Loading albums…")} /> : albumsQuery.isError && items.length === 0 ? (
             <ErrorState message={t("Could not load albums.")} onRetry={() => void albumsQuery.refetch()} />
           ) : items.length === 0 ? (
             <EmptyState

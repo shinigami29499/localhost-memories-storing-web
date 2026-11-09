@@ -5,7 +5,6 @@ import type { AuthSession } from "../features/auth/types";
 const session: AuthSession = {
   accessToken: "at-1",
   refreshToken: "rt-1",
-  accessTokenExpiresAtUtc: "2025-01-01T00:00:00Z",
   user: { id: "u-1", username: "alice", role: "User", status: "active", createdAt: "2025-01-01T00:00:00Z" },
 };
 

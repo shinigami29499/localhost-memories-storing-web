@@ -1,7 +1,6 @@
 export interface PlaceOwner {
   id: string;
   username: string;
-  avatarSeed?: string | null;
 }
 
 export interface Place {
@@ -15,8 +14,6 @@ export interface Place {
   markerIcon: string;
   markerColor: string;
   owner: PlaceOwner;
-  createdAt: string;
-  updatedAt: string | null;
   /** Gallery or shared-preview image ids in display order; the first is the cover. */
   mediaIds: string[];
 }

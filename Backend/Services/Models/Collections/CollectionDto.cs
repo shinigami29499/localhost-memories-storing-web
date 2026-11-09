@@ -12,9 +12,7 @@ public record CollectionDto(
     Guid? PreviewMediaId,
     Guid? CustomPreviewMediaId,
     bool ContainsMedia,
-    DateTime CreatedAt,
-    DateTime? UpdatedAt)
+    DateTime CreatedAt)
 {
     public bool PreviewIsFavorited { get; init; }
-    public bool PreviewIsPreviewOnly { get; init; }
 }

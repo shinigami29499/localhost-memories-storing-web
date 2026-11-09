@@ -20,8 +20,11 @@ export function ProfilePage() {
   });
 
   const albums = useAlbums("mine", Boolean(user));
-  const images = useQuery({ queryKey: ["profile-count", user?.id, "image"], queryFn: () => mediaService.list(0, 1, "image"), enabled: Boolean(user) });
-  const videos = useQuery({ queryKey: ["profile-count", user?.id, "video"], queryFn: () => mediaService.list(0, 1, "video"), enabled: Boolean(user) });
+  const mediaCounts = useQuery({
+    queryKey: ["profile-count", user?.id],
+    queryFn: ({ signal }) => mediaService.ownedCounts(signal),
+    enabled: Boolean(user),
+  });
 
   useEffect(() => {
     if (profile.data) useAuthStore.getState().updateUser(profile.data);
@@ -53,8 +56,8 @@ export function ProfilePage() {
           <dl className="profile-page__stats">
             {[
               { label: "Albums", count: albums.data?.length, icon: "album" },
-              { label: "Videos", count: videos.data?.total, icon: "video" },
-              { label: "Images", count: images.data?.total, icon: "image" },
+              { label: "Videos", count: mediaCounts.data?.videos, icon: "video" },
+              { label: "Images", count: mediaCounts.data?.images, icon: "image" },
             ].map(({ label, count, icon }) => (
               <div key={label}>
                 <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -64,7 +67,7 @@ export function ProfilePage() {
               </div>
             ))}
           </dl>
-          {(albums.isError || images.isError || videos.isError) && <p role="status" className="profile-page__stats-error">{t("Could not load counts.")}</p>}
+          {(albums.isError || mediaCounts.isError) && <p role="status" className="profile-page__stats-error">{t("Could not load counts.")}</p>}
           {profile.isError ? (
             <ErrorState message={t("Could not load your profile.")} onRetry={() => void profile.refetch()} />
           ) : null}

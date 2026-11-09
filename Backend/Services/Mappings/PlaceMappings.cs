@@ -1,6 +1,4 @@
 using Services.Models.Place;
-using Services.Models.Users;
-
 namespace Services.Mappings;
 
 internal static class PlaceMappings
@@ -15,9 +13,7 @@ internal static class PlaceMappings
         source.AverageRating,
         source.Place.MarkerIcon,
         source.Place.MarkerColor,
-        new UserSummaryDto(source.Owner.Id, source.Owner.Username, source.Owner.AvatarSeed),
-        source.Place.CreatedAt,
-        source.Place.UpdatedAt,
+        new PlaceOwnerDto(source.Owner.Id, source.Owner.Username),
         source.MediaIds);
 
     internal static PlaceVisitDto ToDto(PlaceVisitSource source) => new(

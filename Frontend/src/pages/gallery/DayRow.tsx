@@ -1,4 +1,14 @@
-import { useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type KeyboardEvent, type ReactNode } from "react";
+
+function subscribeToViewport(onChange: () => void) {
+  window.addEventListener("resize", onChange);
+  return () => window.removeEventListener("resize", onChange);
+}
+
+function getViewportSize() {
+  const viewport = document.documentElement;
+  return `${viewport.clientWidth}:${viewport.clientHeight}`;
+}
 
 interface Props<T extends { id: string }> {
   items: T[];
@@ -8,18 +18,23 @@ interface Props<T extends { id: string }> {
   mediaKind?: string;
   onReachEnd?: () => void;
   active?: boolean;
+  recycle?: boolean;
 }
 
-export function DayRow<T extends { id: string }>({ items, renderItem, fallbackWidth, pinnedId, mediaKind, onReachEnd, active = true }: Props<T>) {
+export function DayRow<T extends { id: string }>({ items, renderItem, fallbackWidth, pinnedId, mediaKind, onReachEnd, active, recycle = false }: Props<T>) {
   const gridRef = useRef<HTMLDivElement>(null);
   const [focusTarget, setFocusTarget] = useState<string | null>(null);
   const [scrollLeft, setScrollLeft] = useState(0);
   const [gridWidth, setGridWidth] = useState(0);
+  const [nearViewport, setNearViewport] = useState(false);
+  const committedSlots = useRef(new Map<string, number>());
+  const frame = useRef<number | null>(null);
   const grid = gridRef.current;
-  const screenWidth = typeof window === "undefined" ? 1200 : window.innerWidth;
+  const viewportSize = useSyncExternalStore(subscribeToViewport, getViewportSize, () => "1200:800");
+  const [screenWidth, screenHeight] = viewportSize.split(":").map(Number);
   const columns = screenWidth < 768 ? 3 : screenWidth >= 2400 ? 9 : screenWidth >= 1920 ? 8 : screenWidth >= 1600 ? 7 : 6;
   const gap = screenWidth < 768 ? 4 : 12;
-  const width = gridWidth || Math.max(200, (fallbackWidth ?? screenWidth) - 48);
+  const width = gridWidth || Math.max(200, (fallbackWidth || screenWidth) - (screenWidth < 768 ? 0 : 48));
   const rowInset = screenWidth < 768 ? screenWidth * 0.01 : 8;
   const tileSize = Math.max(1, (width - 2 * rowInset - (columns - 1) * gap) / columns);
   const step = tileSize + gap;
@@ -29,21 +44,65 @@ export function DayRow<T extends { id: string }>({ items, renderItem, fallbackWi
   const hoverHeight = tileHeight + 2 * hoverInset;
   const start = Math.max(0, Math.floor(scrollLeft / step) - (screenWidth < 768 ? 2 : 3));
   const end = Math.min(items.length, screenWidth < 768 ? start + 7 : Math.ceil((scrollLeft + width) / step) + 3);
-  const rendered = (active ? items.slice(start, end) : []).map((item, index) => ({ item, position: start + index }));
+  const rowActive = active ?? (!recycle || nearViewport);
+  const rendered = (rowActive ? items.slice(start, end) : []).map((item, index) => ({ item, position: start + index }));
   const focusedId = typeof document === "undefined" ? null : document.activeElement?.getAttribute("data-media-id");
   for (const id of new Set([pinnedId, focusedId, focusTarget])) {
     if (!id) continue;
     const position = items.findIndex((item) => item.id === id);
-    if (position >= 0 && (!active || position < start || position >= end)) rendered.push({ item: items[position], position });
+    if (position >= 0 && (!rowActive || position < start || position >= end)) rendered.push({ item: items[position], position });
   }
   rendered.sort((a, b) => a.position - b.position);
+  const slots = new Map<string, number>();
+  const occupied = new Set<number>();
+  for (const { item } of rendered) {
+    const slot = committedSlots.current.get(item.id);
+    if (slot !== undefined) {
+      slots.set(item.id, slot);
+      occupied.add(slot);
+    }
+  }
+  let freeSlot = 0;
+  for (const { item } of rendered) {
+    if (slots.has(item.id)) continue;
+    while (occupied.has(freeSlot)) freeSlot += 1;
+    slots.set(item.id, freeSlot);
+    occupied.add(freeSlot);
+  }
+  useLayoutEffect(() => { committedSlots.current = slots; });
+
+  useEffect(() => {
+    const element = gridRef.current;
+    if (!element || !recycle || active !== undefined) return;
+    const root = element.closest<HTMLElement>(".gallery-page__content");
+    let observer: IntersectionObserver | undefined;
+    const observe = () => {
+      observer?.disconnect();
+      observer = new IntersectionObserver(([entry]) => {
+        if (entry) setNearViewport(entry.isIntersecting);
+      }, { root, rootMargin: `${root?.clientHeight ?? window.innerHeight}px 0px` });
+      observer.observe(element);
+    };
+    observe();
+    const resize = new ResizeObserver(observe);
+    if (root) resize.observe(root);
+    return () => {
+      observer?.disconnect();
+      resize.disconnect();
+    };
+  }, [recycle, active]);
+
+  useEffect(() => () => {
+    if (frame.current !== null) cancelAnimationFrame(frame.current);
+  }, []);
 
   useLayoutEffect(() => {
     const element = gridRef.current;
     if (!element) return;
-    const update = () => setGridWidth(element.clientWidth);
-    update();
-    const observer = new ResizeObserver(update);
+    setGridWidth(element.clientWidth);
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry) setGridWidth(entry.contentRect.width);
+    });
     observer.observe(element);
     return () => observer.disconnect();
   }, []);
@@ -77,16 +136,20 @@ export function DayRow<T extends { id: string }>({ items, renderItem, fallbackWi
     style={screenWidth < 768 ? undefined : { height: hoverHeight, marginTop: 8 - hoverInset, marginBottom: height - hoverHeight - (8 - hoverInset) }} onKeyDownCapture={handleKeyDown}
     onScroll={(event) => {
       const row = event.currentTarget;
-      setScrollLeft(row.scrollLeft);
-      if (row.scrollLeft + row.clientWidth >= row.scrollWidth - 200) onReachEnd?.();
+      if (frame.current !== null) return;
+      frame.current = requestAnimationFrame(() => {
+        frame.current = null;
+        setScrollLeft(row.scrollLeft);
+        if (row.scrollWidth - row.scrollLeft - row.clientWidth <= row.clientWidth * 2.5) onReachEnd?.();
+      });
     }}>
     <div aria-hidden="true" style={{ width: 2 * rowInset + items.length * step - gap, height: 1 }} />
     {items.length > 0 && rendered.length === 0 && <>
       <span tabIndex={0} aria-label="Enter media group" onFocus={() => enterGroup(0)} />
       <span tabIndex={0} aria-label="Enter media group from end" onFocus={() => enterGroup(items.length - 1)} />
     </>}
-    {rendered.map(({ item, position }) => <div key={item.id} className="gallery-window-cell" data-gallery-window-id={item.id} data-row-edge={position === 0 ? "start" : position === items.length - 1 ? "end" : undefined}
-      style={{ width: tileSize, height: tileHeight, top: screenWidth < 768 ? window.innerHeight * 0.005 : hoverInset, left: rowInset + position * step }}>
+    {rendered.map(({ item, position }) => <div key={recycle ? slots.get(item.id) : item.id} className="gallery-window-cell" data-gallery-window-id={item.id} data-row-edge={position === 0 ? "start" : position === items.length - 1 ? "end" : undefined}
+      style={{ width: tileSize, height: tileHeight, top: screenWidth < 768 ? screenHeight * 0.005 : hoverInset, left: rowInset + position * step }}>
       {renderItem(item)}
     </div>)}
   </div>;

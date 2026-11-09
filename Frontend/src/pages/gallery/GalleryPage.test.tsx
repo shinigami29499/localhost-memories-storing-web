@@ -56,14 +56,12 @@ vi.mock("../../components/ui/ConfirmationDialog", () => ({
 const image: MediaFile = {
   id: "image-id",
   mediaKind: "image",
-  mimeType: "image/png",
   originalFilename: "photo.png",
-  fileSizeBytes: 100,
   createdAt: "2026-10-28T00:00:00Z",
   isFavorited: false,
 };
-const video: MediaFile = { ...image, id: "video-id", mediaKind: "video", mimeType: "video/mp4", originalFilename: "clip.mp4" };
-const page = (items: MediaFile[]): PagedMedia => ({ offset: 0, limit: 20, total: items.length, items });
+const video: MediaFile = { ...image, id: "video-id", mediaKind: "video", originalFilename: "clip.mp4" };
+const page = (items: MediaFile[]): PagedMedia => ({ offset: 0, total: items.length, items });
 
 describe("GalleryPage", () => {
   let container: HTMLDivElement;
@@ -80,7 +78,14 @@ describe("GalleryPage", () => {
       removeEventListener: vi.fn(),
     })));
     vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
-    vi.stubGlobal("IntersectionObserver", class { observe() {} unobserve() {} disconnect() {} });
+    vi.stubGlobal("IntersectionObserver", class {
+      constructor(private callback: (entries: { isIntersecting: boolean }[]) => void) {}
+      observe(element: Element) {
+        if (element.matches(".gallery-day-row")) this.callback([{ isIntersecting: true }]);
+      }
+      unobserve() {}
+      disconnect() {}
+    });
     vi.mocked(albumService.list).mockResolvedValue([]);
     vi.mocked(mediaService.list).mockResolvedValue(page([image]));
     vi.mocked(mediaService.favorites).mockImplementation(async (_offset, _limit, kind) =>
@@ -204,7 +209,7 @@ describe("GalleryPage", () => {
     expect(container.querySelectorAll(".error-state")).toHaveLength(1);
     expect(Array.from(container.querySelectorAll("button")).filter((button) => button.textContent === "Try again")).toHaveLength(1);
 
-    vi.mocked(mediaService.list).mockResolvedValueOnce({ offset: 1, limit: 20, total: 2, items: [{ ...image, id: "second" }] });
+    vi.mocked(mediaService.list).mockResolvedValueOnce({ offset: 1, total: 2, items: [{ ...image, id: "second" }] });
     await act(async () => container.querySelector<HTMLButtonElement>(".error-state button")!.click());
     await vi.waitFor(() => expect(container.querySelectorAll(".media-tile")).toHaveLength(2));
     expect(container.querySelector(".error-state")).toBeNull();
@@ -473,7 +478,7 @@ describe("GalleryPage", () => {
       id: "album", name: "Saved", caption: "", isPublic: false,
       owner: { id: "viewer", username: "viewer" }, mediaCount: 1,
       previewMediaId: null, previewIsFavorited: false, customPreviewMediaId: null, containsMedia: true,
-      createdAt: "", updatedAt: null,
+      createdAt: "",
     }]);
     await renderPage();
     await vi.waitFor(() => expect(container.querySelector(".media-tile")).not.toBeNull());

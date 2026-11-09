@@ -26,8 +26,8 @@ it("loads a preview only for an active visible photo and caps each marker group"
   document.body.append(container);
   const root = createRoot(container);
   const media: MediaFile[] = Array.from({ length: 25 }, (_, id) => ({
-    id: String(id), mediaKind: "image", mimeType: "image/jpeg", originalFilename: `Photo ${id}`,
-    fileSizeBytes: 1, createdAt: "", isFavorited: false, location: { latitude: 50, longitude: 50 },
+    id: String(id), mediaKind: "image", originalFilename: `Photo ${id}`,
+    createdAt: "", isFavorited: false, location: { latitude: 50, longitude: 50 },
   }));
   media.push({ ...media[0], id: "outside", location: { latitude: 200, longitude: 200 } });
   await act(async () => root.render(<LocaleProvider><PhotoMarkers media={media} selected={undefined} ready

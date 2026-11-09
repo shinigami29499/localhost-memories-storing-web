@@ -29,7 +29,7 @@ describe("user directory paging", () => {
     vi.mocked(userService.page).mockImplementation(async (page, limit, pendingOnly) => {
       const filtered = users.filter((user) => !pendingOnly || user.status === "pending_approval");
       return { items: filtered.slice((page - 1) * limit, page * limit), page, limit,
-        total: filtered.length, allCount: users.length, pendingCount: 3 };
+        total: filtered.length };
     });
     const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
     const container = document.createElement("div");

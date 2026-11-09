@@ -36,6 +36,8 @@ public interface IMediaService
     Task<PagedMediaResponse<MediaFileDto>> GetMediaPageAsync(
         Guid viewerId, int offset, int limit, string? mediaKind, bool favoritesOnly, bool includeDeleted,
         CancellationToken cancellationToken = default);
+    Task<OwnedMediaCountsResponse> GetOwnedMediaCountsAsync(
+        Guid ownerId, CancellationToken cancellationToken = default);
     Task<MediaChangesResponse> GetMediaChangesAsync(
         Guid viewerId, bool isAdmin, DateTime? since, CancellationToken cancellationToken = default);
     Task SetMediaFavoriteAsync(

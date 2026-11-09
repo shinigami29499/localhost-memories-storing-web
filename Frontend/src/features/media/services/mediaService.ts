@@ -1,5 +1,5 @@
 import { api } from "../../../services/api";
-import type { MediaFile, MediaKindFilter, PagedMedia } from "../types";
+import type { MediaFile, MediaKindFilter, OwnedMediaCounts, PagedMedia } from "../types";
 
 function mediaQuery(offset: number, limit: number, mediaKind?: MediaKindFilter): string {
   const params = new URLSearchParams({ offset: String(offset), limit: String(limit) });
@@ -8,8 +8,12 @@ function mediaQuery(offset: number, limit: number, mediaKind?: MediaKindFilter):
 }
 
 export const mediaService = {
-  list(offset = 0, limit = 20, mediaKind?: MediaKindFilter): Promise<PagedMedia> {
-    return api(`/api/library/gallery?${mediaQuery(offset, limit, mediaKind)}`);
+  list(offset = 0, limit = 20, mediaKind?: MediaKindFilter, signal?: AbortSignal): Promise<PagedMedia> {
+    return api(`/api/library/gallery?${mediaQuery(offset, limit, mediaKind)}`, { signal });
+  },
+
+  ownedCounts(signal?: AbortSignal): Promise<OwnedMediaCounts> {
+    return api("/api/library/gallery/mine/counts", { signal });
   },
 
   get(mediaId: string): Promise<MediaFile> {
@@ -20,8 +24,8 @@ export const mediaService = {
     return api(`/api/library/gallery/${encodeURIComponent(mediaId)}/availability`, { cache: "no-store" });
   },
 
-  favorites(offset = 0, limit = 20, mediaKind?: MediaKindFilter): Promise<PagedMedia> {
-    return api(`/api/library/gallery/favorites?${mediaQuery(offset, limit, mediaKind)}`);
+  favorites(offset = 0, limit = 20, mediaKind?: MediaKindFilter, signal?: AbortSignal): Promise<PagedMedia> {
+    return api(`/api/library/gallery/favorites?${mediaQuery(offset, limit, mediaKind)}`, { signal });
   },
 
   deleted(offset = 0, limit = 20, mediaKind?: MediaKindFilter): Promise<PagedMedia> {

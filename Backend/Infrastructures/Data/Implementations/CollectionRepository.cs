@@ -186,7 +186,5 @@ public sealed class CollectionRepository(ApplicationDbContext db) : ICollectionR
                 .Select(item => (Guid?)item.MediaFileId)
                 .FirstOrDefault(),
             mediaId != null && collection.MediaItems.Any(item =>
-                item.MediaFileId == mediaId && item.MediaFile.DeletedAt == null),
-            collection.PreviewMediaFile != null && collection.PreviewMediaFile.IsPreviewOnly
-                && collection.PreviewMediaFile.DeletedAt == null));
+                item.MediaFileId == mediaId && item.MediaFile.DeletedAt == null)));
 }

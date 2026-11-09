@@ -232,6 +232,10 @@
   min-height: 100%;
 }
 
+.gallery-page__content-body:has(> .spinner--page) {
+  position: static;
+}
+
 .gallery-groups {
   display: flex;
   flex-direction: column;

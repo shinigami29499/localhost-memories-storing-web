@@ -155,4 +155,8 @@
     scroll-padding-block: 0;
     scroll-snap-type: y mandatory;
   }
+
+  .home-page__content:has(.empty-state) {
+    padding: var(--page-padding-top) var(--page-gutter) var(--page-padding-bottom);
+  }
 }
