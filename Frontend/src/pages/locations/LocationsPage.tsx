@@ -8,7 +8,6 @@ import { useAuthStore } from "../../store/authStore";
 import { ApiError } from "../../services/api";
 import { mediaPreviewUrl } from "../../utils/media";
 import { useHomeLocation } from "../../features/locations/hooks/useHomeLocation";
-import { HomeLocationPhotoConfirmation } from "../../features/locations/components/HomeLocationPhotoConfirmation";
 import { useLocations } from "../../features/locations/hooks/useLocations";
 import { useMapBounds } from "../../features/locations/hooks/useMapBounds";
 import { locationService } from "../../features/locations/services/locationService";
@@ -32,6 +31,17 @@ export function LocationsPage() {
   const { bounds: mapBounds, update: handleMapBounds } = useMapBounds();
   const user = useAuthStore((state) => state.user);
   const home = useHomeLocation(user?.id);
+  const appliedHome = useRef<string | null>(null);
+  useEffect(() => {
+    const location = home.query.data;
+    if (!user?.id || !location) return;
+    const key = `${user.id}:${location.latitude}:${location.longitude}`;
+    if (appliedHome.current === key) return;
+    appliedHome.current = key;
+    home.applyToPhotos.mutate(location, {
+      onError: () => showToast.error(t("Could not assign Home to photos without a location.")),
+    });
+  }, [user?.id, home.query.data, home.applyToPhotos.mutate, t]);
   const [selection, setSelection] = useState<{ id: string; draft: PickedLocation | null; editing: boolean } | null>(null);
   const [showUnlocated, setShowUnlocated] = useState(false);
   const unlocated = useInfiniteQuery({
@@ -439,11 +449,6 @@ export function LocationsPage() {
         </ConfirmationDialog>
       )}
 
-      <HomeLocationPhotoConfirmation
-        location={home.photosHomeLocation}
-        onConfirm={(location) => home.applyToPhotos.mutateAsync(location)}
-        onClose={home.dismissPhotosConfirmation}
-      />
       <input ref={uploadInput} type="file" accept="image/*" multiple hidden onChange={(event) => {
         const files = Array.from(event.currentTarget.files ?? []);
         event.currentTarget.value = "";

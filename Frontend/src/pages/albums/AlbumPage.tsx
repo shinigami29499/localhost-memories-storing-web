@@ -310,7 +310,6 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
             ) : (
               <ErrorState message={t("Could not load this album.")} onRetry={() => void album.refetch()} />
             )}
-            <Link to="/gallery/album" className="btn btn--secondary album-page__back">{t("Back to Albums")}</Link>
           </div>
         </div>
       </main>

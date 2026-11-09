@@ -485,7 +485,7 @@ export function PhotoMarkers({ media, selected, ready, onSelect, canMove, onMove
           latitude={nearHome && homeLocation ? homeLocation.latitude : cluster.latitude}
           longitude={nearHome && homeLocation ? homeLocation.longitude : cluster.longitude}
           anchor="bottom"
-          style={{ zIndex: 100000 + baseDepth + (selectedHere ? 2000000 : activeClusterId === cluster.id ? 1000000 : 0) }}
+          style={{ zIndex: 100000 + baseDepth + (nearHome ? -1 : selectedHere ? 2000000 : activeClusterId === cluster.id ? 1000000 : 0) }}
           onClick={(event) => event.originalEvent.stopPropagation()}
         >
           <PhotoClusterMarker cluster={cluster} shadowLocation={nearHome && homeLocation ? homeLocation : cluster}

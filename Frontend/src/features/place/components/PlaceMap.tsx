@@ -564,7 +564,7 @@ function PlaceMarkers({ places, selectedId, ready, onSelect, canChange, onMove, 
           latitude={nearHome && homeLocation ? homeLocation.latitude : group.location.latitude}
           longitude={nearHome && homeLocation ? homeLocation.longitude : group.location.longitude}
           anchor="bottom"
-          style={{ zIndex: 100000 + baseDepth + (selectedHere ? 2000000 : activeGroupId === groupId ? 1000000 : 0) }}
+          style={{ zIndex: 100000 + baseDepth + (nearHome ? -1 : selectedHere ? 2000000 : activeGroupId === groupId ? 1000000 : 0) }}
           onClick={(event) => event.originalEvent.stopPropagation()}
         >
           <PlaceClusterMarker group={group} shadowLocation={nearHome && homeLocation ? homeLocation : group.location} selectedId={selectedId} onSelect={onSelect}

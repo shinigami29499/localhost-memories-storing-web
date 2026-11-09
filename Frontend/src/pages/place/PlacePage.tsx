@@ -32,7 +32,6 @@ import { locationService } from "../../features/locations/services/locationServi
 import { locateUploadedBatch } from "../../features/locations/services/locateUploadedBatch";
 import { LocationEditor } from "../../features/locations/components/LocationEditor";
 import { useAnimationStore } from "../../store/animationStore";
-import { HomeLocationPhotoConfirmation } from "../../features/locations/components/HomeLocationPhotoConfirmation";
 import { MapLoadingOverlay } from "../../features/locations/components/MapLoadingOverlay";
 import "../../features/locations/components/mapControls.css";
 import type { PlaceMapSettings } from "../../features/place/components/PlaceMap";
@@ -1099,11 +1098,6 @@ export function PlacePage() {
                 <p>{t("The home marker will be removed. You can set it again later.")}</p>
               </ConfirmationDialog>
             )}
-            <HomeLocationPhotoConfirmation
-              location={home.photosHomeLocation}
-              onConfirm={(location) => home.applyToPhotos.mutateAsync(location)}
-              onClose={home.dismissPhotosConfirmation}
-            />
           </div>
         </div>
     </main>

@@ -233,6 +233,7 @@ const vietnamese: Record<string, string> = {
   "Cancel keeps Home saved and leaves existing media unchanged. New media without coordinates will use Home.": "Hủy sẽ giữ vị trí nhà đã lưu và không thay đổi nội dung hiện có. Nội dung mới không có tọa độ sẽ dùng vị trí nhà.",
   "Use Home for photos without a location?": "Dùng vị trí nhà cho ảnh chưa có vị trí?",
   "Home assigned to photos without a location.": "Đã gán vị trí nhà cho ảnh chưa có vị trí.",
+  "Could not assign Home to photos without a location.": "Không thể gán vị trí nhà cho ảnh chưa có vị trí.",
   "Assign your saved Home location to your existing photos without a location? Photos with coordinates stay unchanged.": "Gán vị trí nhà đã lưu cho các ảnh hiện có của bạn chưa có vị trí? Ảnh đã có tọa độ sẽ không thay đổi.",
   "Cancel keeps Home saved and leaves existing photos unchanged. New photos without GPS will use Home.": "Hủy sẽ giữ vị trí nhà đã lưu và không thay đổi ảnh hiện có. Ảnh mới không có GPS sẽ dùng vị trí nhà.",
   "Home location removed.": "Đã xóa vị trí nhà.",
