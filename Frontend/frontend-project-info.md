@@ -168,6 +168,14 @@ target 60/120 Hz devices and compare post-GC heaps before claiming either guaran
   Touch controls expand on tap, and both maps retain Mapbox Standard/street styles.
   Photo and place markers within 46 screen pixels form groups at the first marker's
   coordinate. Activate a place group's count to spiderfy its markers, then select one.
+- On mobile (up to 767 px), Gallery, Favorites, Albums, Trash, album detail, and map
+  action bars share sizing and offsets in `PageActionBar`. Map actions remain outside Mapbox.
+  Their buttons match the map controls: 44 px squares with 18 px icons up to 640 px,
+  and 54 px squares with 20 px icons from 641 to 767 px. Bars use a 2 px surface
+  border with no inner padding or gaps. Their right and bottom offsets combine the
+  page gutters with the map controls' 8 px inset, aligning all vertical action bars.
+  Exit copies use the same CSS offsets even when an empty Trash page temporarily
+  hides the footer, so the collapsing bar stays on-screen until its animation ends.
 - Opening a home-marker confirmation ends the active gesture on both maps.
   Cancel and successful confirmation discard pending drag callbacks and release clicks;
   another action requires a fresh press or explicit keyboard activation.

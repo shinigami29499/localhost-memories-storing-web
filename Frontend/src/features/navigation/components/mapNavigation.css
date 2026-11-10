@@ -126,13 +126,8 @@
     border: 2px solid #F4F3EE;
     display: flex;
     flex-direction: column-reverse;
+    gap: 0;
+    padding: 0;
     width: max-content;
   }
-  .page-action-bar .map-navigation__toolbar > .gallery-selection-bar__action {
-    min-width: 30px;
-    min-height: 30px;
-    width: 30px;
-    padding: 0;
-  }
 }
-

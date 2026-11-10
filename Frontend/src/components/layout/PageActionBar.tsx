@@ -43,11 +43,11 @@ function animateMobileExit(footer: HTMLElement, bar: HTMLElement, bounds: { left
   wrapper.setAttribute("aria-hidden", "true");
   wrapper.inert = true;
   Object.assign(wrapper.style, {
-    position: "absolute", right: "12px",
-    bottom: `${footer.clientHeight - bounds.top - bounds.height}px`,
+    position: "absolute", right: "calc(var(--page-gutter) + 8px)",
+    bottom: "calc(var(--page-padding-bottom) + 8px)",
     width: `${bounds.width}px`, height: `${bounds.height}px`,
     display: "flex", alignItems: "flex-end", justifyContent: "flex-end", overflow: "hidden", pointerEvents: "none", zIndex: "2",
-    boxSizing: "border-box", border: "2.25px solid var(--surface)", borderRadius: "var(--control-radius)", background: "var(--accent)",
+    boxSizing: "border-box", border: "2px solid var(--surface)", borderRadius: "var(--control-radius)", background: "var(--accent)",
   });
   const exiting = bar.cloneNode(true) as HTMLElement;
   Object.assign(exiting.style, { flex: "none", width: "100%", maxWidth: "none", border: "0", borderRadius: "0" });

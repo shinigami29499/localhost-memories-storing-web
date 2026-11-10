@@ -89,19 +89,6 @@
   padding: 0;
 }
 
-.avatar-picker__pagination .pagination-btn,
-.avatar-picker__pagination .pagination-page {
-  border-radius: var(--radius);
-  background-clip: padding-box;
-}
-
-.avatar-picker__pagination .pagination-page--active {
-  position: relative;
-  z-index: 1;
-  background: var(--surface-hover);
-  box-shadow: inset 0 0 0 1px var(--border-card);
-}
-
 .avatar-picker__actions > button {
   justify-self: end;
 }

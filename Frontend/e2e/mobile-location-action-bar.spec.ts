@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-test("mobile location map action is anchored like gallery and exits toward the right", async ({ page }) => {
+test("mobile location map action aligns with map controls and exits toward the right", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.addInitScript(() => {
     localStorage.setItem("shinigacim-auth", JSON.stringify({ state: {
@@ -25,12 +25,16 @@ test("mobile location map action is anchored like gallery and exits toward the r
   await expect(action.getByRole("button", { name: "Add" })).toBeVisible();
   await expect(action).toHaveCSS("border-top-width", "2px");
   await expect(action).toHaveCSS("border-top-color", "rgb(244, 243, 238)");
-  await expect.poll(async () => Math.round((await action.boundingBox())!.x + (await action.boundingBox())!.width)).toBe(378);
+  const map = (await page.locator(".place__map").boundingBox())!;
+  const rightEdge = Math.round(map.x + map.width - 8);
+  await expect.poll(async () => Math.round((await action.boundingBox())!.x + (await action.boundingBox())!.width)).toBe(rightEdge);
   const box = (await action.boundingBox())!;
-  expect(Math.round(box.width)).toBe(42);
-  expect(Math.round(box.height)).toBe(42);
-  const main = (await page.locator(".app-shell__main").boundingBox())!;
-  expect(Math.round(main.y + main.height - box.y - box.height)).toBe(12);
+  expect(Math.round(box.width)).toBe(44);
+  expect(Math.round(box.height)).toBe(44);
+  const geolocation = (await page.locator(".mapboxgl-ctrl-group:has(.mapboxgl-ctrl-geolocate)").boundingBox())!;
+  expect(box.y + box.height).toBeCloseTo(geolocation.y + geolocation.height, 0);
+  await expect.poll(() => page.evaluate(() => document.getAnimations().filter((animation) =>
+    animation.playState === "running" && animation.effect?.getTiming().iterations !== Infinity).length)).toBe(0);
   await page.evaluate(() => {
     (window as Window & { exitFrames: Keyframe[][]; enterFrames: Keyframe[][] }).exitFrames = [];
     (window as Window & { enterFrames: Keyframe[][] }).enterFrames = [];
@@ -88,7 +92,7 @@ test("mobile location map action is anchored like gallery and exits toward the r
   await expect(page.getByRole("searchbox", { name: "Search saved places" })).toBeVisible();
   await tabs.getByRole("button", { name: "Map", exact: true }).click();
   await expect(action.getByRole("button", { name: "Add" })).toBeVisible();
-  await expect.poll(async () => Math.round((await action.boundingBox())!.x + (await action.boundingBox())!.width)).toBe(378);
+  await expect.poll(async () => Math.round((await action.boundingBox())!.x + (await action.boundingBox())!.width)).toBe(rightEdge);
   await expect.poll(() => page.evaluate(() => (window as Window & { enterFrames: Keyframe[][] }).enterFrames.some((frames) => frames[0]?.clipPath === "inset(0 0 0 100%)"))).toBe(true);
   const viewFrames = await page.evaluate(() => (window as Window & { viewFrames: { kind: string; time: number; frames: Keyframe[] }[] }).viewFrames);
   const mapExit = viewFrames.find((item) => item.kind === "map" && item.frames.at(-1)?.clipPath === "inset(0 0 0 100%)")!;
@@ -111,22 +115,24 @@ test("mobile location map action is anchored like gallery and exits toward the r
   expect(footerSamples.every(Boolean)).toBe(true);
   const marker = page.locator(".place__pin").first();
   await expect(marker).toHaveCount(1);
+  await expect.poll(() => page.evaluate(() => document.getAnimations().filter((animation) =>
+    animation.playState === "running" && animation.effect?.getTiming().iterations !== Infinity).length)).toBe(0);
   await page.evaluate(() => { (window as Window & { enterFrames: Keyframe[][]; exitFrames: Keyframe[][] }).enterFrames = []; (window as Window & { exitFrames: Keyframe[][] }).exitFrames = []; });
   await marker.dispatchEvent("click");
   const selected = page.locator(".page-action-bar__item > .map-navigation__toolbar:not(.map-navigation__toolbar--add)");
   await expect(selected.getByRole("button", { name: "Navigate" })).toBeVisible();
-  await expect.poll(async () => Math.round((await selected.boundingBox())!.height)).toBe(102);
-  await expect.poll(() => page.evaluate(() => (window as Window & { enterFrames: Keyframe[][] }).enterFrames.some((frames) => frames[0]?.height === "42px" && frames.at(-1)?.height === "102px"))).toBe(true);
+  await expect.poll(async () => Math.round((await selected.boundingBox())!.height)).toBe(124);
+  await expect.poll(() => page.evaluate(() => (window as Window & { enterFrames: Keyframe[][] }).enterFrames.map((frames) => [frames[0]?.height, frames.at(-1)?.height]))).toContainEqual(["44px", "124px"]);
   await expect(selected.getByRole("button", { name: "Navigate" }).locator("svg")).toBeVisible();
   await selected.getByRole("button", { name: "Cancel" }).click();
   await expect(action.getByRole("button", { name: "Add" })).toBeVisible();
-  await expect.poll(() => page.evaluate(() => (window as Window & { exitFrames: Keyframe[][] }).exitFrames.some((frames) => frames[0]?.height === "102px" && frames.at(-1)?.height === "42px"))).toBe(true);
+  await expect.poll(() => page.evaluate(() => (window as Window & { exitFrames: Keyframe[][] }).exitFrames.some((frames) => frames[0]?.height === "124px" && frames.at(-1)?.height === "44px"))).toBe(true);
   const outlines = await page.evaluate(() => (window as Window & { outlineSamples: { width: string; color: string }[] }).outlineSamples);
   expect(outlines.length).toBeGreaterThanOrEqual(2);
   expect(outlines.every((outline) => outline.width === "2px" && outline.color === "rgb(244, 243, 238)")).toBe(true);
 });
 
-test("mobile map waits for highlight motion, including interrupted motion", async ({ page }) => {
+test("mobile map waits for highlight motion and matches action sizing to map controls", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.addInitScript(() => {
     localStorage.setItem("shinigacim-auth", JSON.stringify({ state: { user: { id: "u1", username: "viewer", role: "admin", status: "active", createdAt: "" }, accessToken: "test", refreshToken: "test" }, version: 0 }));
@@ -148,4 +154,30 @@ test("mobile map waits for highlight motion, including interrupted motion", asyn
   await toggle.click();
   await expect(overlay).toBeVisible();
   await expect(overlay).toHaveCount(0);
+  const action = page.locator(".page-action-bar__item > .map-navigation__toolbar--add");
+  for (const [width, height] of [[320, 844], [390, 844], [390, 700], [640, 844], [641, 844], [767, 1024]]) {
+    await page.setViewportSize({ width, height });
+    await expect(overlay).toHaveCount(0);
+    const controlBox = (await page.locator(".place__map-home-control").boundingBox())!;
+    await expect.poll(async () => {
+      const bounds = (await action.boundingBox())!;
+      return { width: bounds.width, height: bounds.height };
+    }).toEqual({ width: controlBox.width, height: controlBox.height });
+    const mapBox = (await page.locator(".place__map").boundingBox())!;
+    const geolocationBox = (await page.locator(".mapboxgl-ctrl-group:has(.mapboxgl-ctrl-geolocate)").boundingBox())!;
+    await expect.poll(async () => {
+      const bounds = (await action.boundingBox())!;
+      return {
+        right: Math.round(bounds.x + bounds.width),
+        bottom: Math.round(bounds.y + bounds.height),
+      };
+    }).toEqual({
+      right: Math.round(mapBox.x + mapBox.width - 8),
+      bottom: Math.round(geolocationBox.y + geolocationBox.height),
+    });
+    await expect(action).toHaveCSS("padding", "0px");
+    await expect(action).toHaveCSS("border-top-width", "2px");
+    await expect(action.getByRole("button", { name: "Add" }).locator("svg")).toHaveCSS("width", width <= 640 ? "18px" : "20px");
+    expect(await action.evaluate((element) => element.closest(".mapboxgl-map, .map-controls"))).toBeNull();
+  }
 });
