@@ -56,7 +56,7 @@ toastManager[' subscribe']((event) => {
 });
 
 function normalizeToastMessage(message: string) {
-  return message.trim().replace(/[.!?…]+$/u, '').trim().toLocaleLowerCase();
+  return message.trim().replace(/[.!?...]+$/u, '').trim().toLocaleLowerCase();
 }
 
 function addToast(type: 'success' | 'error' | 'info' | 'warning' | 'delete', title: string, details?: string | ToastOptions) {

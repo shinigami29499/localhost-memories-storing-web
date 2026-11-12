@@ -169,12 +169,12 @@ for (const width of [390, 1280]) {
     try {
       await page.goto("/gallery/album/example");
       await expect(page.getByRole("heading", { name: "Example album." })).toBeVisible();
-      await expect(page.getByText("Loading media…", { exact: true })).toBeHidden();
+      await expect(page.getByText("Loading media...", { exact: true })).toBeHidden();
       await page.getByRole("button", { name: "Videos", exact: true }).click();
       await expect.poll(() => filteredRequests).toBe(1);
       await expect(page.getByRole("button", { name: "Videos", exact: true })).toHaveAttribute("aria-pressed", "false");
       await expect(page.getByRole("button", { name: "Images", exact: true })).toHaveAttribute("aria-pressed", "true");
-      await expect(page.getByText("Loading media…", { exact: true })).toBeVisible();
+      await expect(page.getByText("Loading media...", { exact: true })).toBeVisible();
       await expectCenteredLoader(page);
     } finally {
       releaseResponses();

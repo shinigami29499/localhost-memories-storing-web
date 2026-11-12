@@ -125,7 +125,7 @@ export function SaveToAlbumDialog({ mediaIds, onClose, portalContainer }: Props)
             <AlertDialog.Title className="confirmation-dialog__title">{t("Save to album")}</AlertDialog.Title>
             <div className="album-dialog__body">
                 <AlbumSearchInput value={search} onChange={setSearch} />
-                {isPending ? <Spinner label={t("Loading albums…")} /> : loadError ? (
+                {isPending ? <Spinner label={t("Loading albums...")} /> : loadError ? (
                   <ErrorState
                     message={t("Could not load albums.")}
                     onRetry={() => {
@@ -178,7 +178,7 @@ export function SaveToAlbumDialog({ mediaIds, onClose, portalContainer }: Props)
                 {albumsQuery.hasNextPage ? (
                   <Button type="button" className="dialog-action dialog-action--normal" disabled={blocked || albumsQuery.isFetchingNextPage}
                     onClick={() => void albumsQuery.fetchNextPage()}>
-                    {t(albumsQuery.isFetchingNextPage ? "Loading albums…" : "Load more")}
+                    {t(albumsQuery.isFetchingNextPage ? "Loading albums..." : "Load more")}
                   </Button>
                 ) : null}
                 <form className="album-dialog__create" onSubmit={(event) => void create(event)}>

@@ -191,7 +191,7 @@ export function UsersPage() {
               </div>
               <div data-push-page-content>
               <PushTransition transitionKey={filter} />
-              {activeQuery.isLoading ? <Spinner page label={t("Loading users�")} /> : null}
+              {activeQuery.isLoading ? <Spinner page label={t("Loading users...")} /> : null}
               {activeQuery.isError && !pagedUsers.length ? (
                 <ErrorState message={t("Could not load users.")} onRetry={() => void activeQuery.refetch()} />
               ) : null}
@@ -321,23 +321,13 @@ function UserRow({
   const isPending = user.status === "pending_approval";
   const presence = user.status === "disabled" ? "disabled" : isPending ? "pending" : isOnline ? "online" : "offline";
   const presenceLabel = presence === "disabled" ? "Blocked" : presence === "pending" ? "Pending approval" : presence === "online" ? "Online" : "Offline";
-  const [expanded, setExpanded] = useState(false);
-
   return (
-    <tr className={expanded ? "admin-users__row--expanded" : undefined} onClick={(event) => {
-      if (window.matchMedia("(max-width: 640px)").matches && !(event.target as HTMLElement).closest("button")) {
-        setExpanded((value) => !value);
-      }
-    }}>
+    <tr>
       <td data-label={t("Member")}>
-        <div className="admin-users__identity admin-users__identity--desktop">
+        <div className="admin-users__identity">
           <UserAvatar user={user} className="admin-users__avatar" />
           <span className="admin-users__username">{user.username}</span>
         </div>
-        <button type="button" className="admin-users__identity admin-users__expand" aria-expanded={expanded} onClick={() => setExpanded((value) => !value)}>
-          <UserAvatar user={user} className="admin-users__avatar" />
-          <span className="admin-users__username">{user.username}</span>
-        </button>
       </td>
       <td data-label={t("Role")}>
         <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
@@ -392,7 +382,7 @@ function UserRow({
           <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
             <button
               type="button"
-              className="btn btn--danger admin-icon-btn"
+              className="btn btn--danger-solid admin-icon-btn"
               disabled={isLoading || isSelf}
               aria-busy={isDeleting || undefined}
               aria-label={t("Delete {username}", { username: user.username })}

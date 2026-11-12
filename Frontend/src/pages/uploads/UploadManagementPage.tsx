@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
-import { Pagination, DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS } from "../../components/ui/Pagination";
+import { DEFAULT_PAGE_SIZE } from "../../components/ui/Pagination";
 import { EmptyState, ErrorState, Spinner } from "../../components/ui/Status";
 import { Button, DatePicker, showToast } from "../../components/ui";
 import { AnimateIcon } from "../../components/animate-ui/icons/icon";
@@ -12,56 +12,49 @@ import { UploadIcon } from "../../components/animate-ui/icons/upload";
 import { XIcon } from "../../components/animate-ui/icons/x";
 import { useAuthStore } from "../../store/authStore";
 import { useLocale } from "../../context/LocaleContext";
-import { useMediaQuery } from "../../hooks/useMediaQuery";
-import { stopUploadLocally, requestUploadRetry, setUploadPaused } from "../../features/uploads/services/uploadRuntime";
+import { stopUploadLocally, setUploadPaused } from "../../features/uploads/services/uploadRuntime";
 import { uploadService } from "../../features/uploads/services/uploadService";
-import { removeUploadFile, saveUploadFile } from "../../features/uploads/services/uploadFileStore";
+import { removeUploadFile } from "../../features/uploads/services/uploadFileStore";
 import { UploadBatchCard } from "../../features/uploads/components/UploadBatchCard";
 import type { UploadBatch, UploadItem } from "../../features/uploads/types";
 import "../../features/uploads/uploads.css";
 
 export function UploadManagementPage() {
   const { t } = useLocale();
-  const isMobile = useMediaQuery("(max-width: 767px)");
   const unread = useUnreadUploads();
   const queryClient = useQueryClient();
   const user = useAuthStore((state) => state.user);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
-  const [offset, setOffset] = useState(0);
   const [searchParams, setSearchParams] = useSearchParams();
   const dateParam = searchParams.get("date") ?? "";
   const selectedDate = /^\d{4}-\d{2}-\d{2}$/.test(dateParam) && !Number.isNaN(new Date(`${dateParam}T00:00:00`).getTime()) ? dateParam : "";
-  const [limit, setLimit] = useState<number>(() => {
-    const stored = Number(window.localStorage.getItem("uploads.limit"));
-    return PAGE_SIZE_OPTIONS.some((size) => size === stored) ? stored : DEFAULT_PAGE_SIZE;
-  });
-  const page = Math.floor(offset / limit) + 1;
   const [busyItemIds, setBusyItemIds] = useState<Set<string>>(() => new Set());
   const busyTimeouts = useRef(new Map<string, number>());
-  const retryTargets = useRef<{ batch: UploadBatch; item: UploadItem }[]>([]);
-  const retryInput = useRef<HTMLInputElement>(null);
   const uploadInput = useRef<HTMLInputElement>(null);
-  const query = useQuery({
-    queryKey: ["uploads", offset, limit, selectedDate, user?.id],
-    queryFn: () => uploadService.list(offset, limit, selectedDate || undefined),
-    placeholderData: (previousData, previousQuery) =>
-      previousQuery?.queryKey[3] === selectedDate && previousQuery?.queryKey[4] === user?.id
-        ? previousData
+  const sentinel = useRef<HTMLDivElement>(null);
+  const query = useInfiniteQuery({
+    queryKey: ["uploads", "page", selectedDate, user?.id, user?.role],
+    initialPageParam: 0,
+    queryFn: ({ pageParam }) => {
+      const list = user?.role === "admin" ? uploadService.listAll : uploadService.list;
+      return list(pageParam, DEFAULT_PAGE_SIZE, selectedDate || undefined);
+    },
+    getNextPageParam: (lastPage, _pages, lastOffset) =>
+      lastPage.items.length > 0 && lastOffset + lastPage.items.length < lastPage.totalItems
+        ? lastOffset + DEFAULT_PAGE_SIZE
         : undefined,
   });
 
   useEffect(() => {
-    if (!query.data || query.isPlaceholderData) return;
-    const lastOffset = Math.max(0, Math.ceil(query.data.totalItems / limit) - 1) * limit;
-    if (offset > lastOffset) setOffset(lastOffset);
-  }, [limit, offset, query.data, query.isPlaceholderData]);
-
-  const handlePageSizeChange = (pageSize: number) => {
-    setLimit(pageSize);
-    setOffset(0);
-    window.localStorage.setItem("uploads.limit", String(pageSize));
-  };
+    const target = sentinel.current;
+    if (!target || !query.hasNextPage || query.isFetchingNextPage || query.isFetchNextPageError) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) void query.fetchNextPage();
+    }, { root: target.closest(".upload-page__content"), rootMargin: "200px" });
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [selectedDate, query.hasNextPage, query.isFetchingNextPage, query.isFetchNextPageError, query.fetchNextPage]);
 
   const clearSelection = () => {
     setSelectedFiles([]);
@@ -86,7 +79,7 @@ export function UploadManagementPage() {
   };
 
   useEffect(() => {
-    const items = query.data?.items.flatMap((batch) => batch.items) ?? [];
+    const items = query.data?.pages.flatMap((page) => page.items.flatMap((batch) => batch.items)) ?? [];
     setBusyItemIds((current) => {
       const next = new Set(current);
       for (const id of current) {
@@ -118,46 +111,6 @@ export function UploadManagementPage() {
     busyTimeouts.current.set(itemId, timeout);
   };
 
-  const retryItems = (batch: UploadBatch, items: UploadItem[]) => {
-    const missing: { batch: UploadBatch; item: UploadItem }[] = [];
-    for (const item of items) {
-      if (busyItemIds.has(item.id)) continue;
-      if (item.errorDetails?.includes("no longer available")) {
-        missing.push({ batch, item });
-      } else {
-        markBusy(item.id);
-        requestUploadRetry(batch.id, item.id);
-      }
-    }
-    if (missing.length > 0) {
-      retryTargets.current = missing;
-      if (missing.length > 1) showToast.warning(t("Select the original files to retry the remaining uploads."));
-      retryInput.current?.click();
-    }
-  };
-
-  const replaceMissingFiles = async (files: File[]) => {
-    const targets = retryTargets.current;
-    retryTargets.current = [];
-    if (!files.length) return;
-    let unmatched = false;
-    for (const target of targets) {
-      const file = files.find((candidate) => candidate.name === target.item.originalFilename && candidate.size === target.item.fileSizeBytes);
-      if (!file) {
-        unmatched = true;
-        continue;
-      }
-      try {
-        await saveUploadFile(target.item.id, file);
-        markBusy(target.item.id);
-        requestUploadRetry(target.batch.id, target.item.id);
-      } catch (error) {
-        showToast.error(t("Could not save this file for retry."), error instanceof Error ? error.message : undefined);
-      }
-    }
-    if (unmatched) showToast.error(t("Choose the same file name and size to retry."));
-  };
-
   const removeRecord = async (batch: UploadBatch, item?: UploadItem, selected?: UploadItem[]) => {
     const targets = selected ?? (item ? [item] : batch.items);
     for (const target of targets) markBusy(target.id);
@@ -185,7 +138,7 @@ export function UploadManagementPage() {
 
 
   const data = query.data;
-  const batches = data?.items ?? [];
+  const batches = data?.pages.flatMap((page) => page.items) ?? [];
 
   useEffect(() => () => {
     void unread.syncSeenStatus();
@@ -194,18 +147,6 @@ export function UploadManagementPage() {
   return (
     <main className="upload-page" aria-label={t("Upload")}>
       <div className="upload-page__content">
-        <input
-          ref={retryInput}
-          hidden
-          type="file"
-          multiple
-          aria-label={t("Select replacement file")}
-          onChange={(event) => {
-            void replaceMissingFiles(Array.from(event.currentTarget.files ?? []));
-            event.currentTarget.value = "";
-          }}
-        />
-
         <div className="upload-page__toolbar">
           <input
             ref={uploadInput}
@@ -237,7 +178,7 @@ export function UploadManagementPage() {
               onClick={() => void submitFiles()}
             >
               {submitting ? null : <UploadIcon size={18} aria-hidden="true" />}
-              <span className="upload-page__button-label">{submitting ? t("Starting upload…") : t("Upload media")}</span>
+              <span className="upload-page__button-label">{submitting ? t("Starting upload...") : t("Upload media")}</span>
             </Button>
             {selectedFiles.length > 0 ? (
               <Button
@@ -270,13 +211,12 @@ export function UploadManagementPage() {
                   else next.delete("date");
                   return next;
                 });
-                setOffset(0);
               }}
             />
           </div>
         </div>
 
-        {query.isPending ? <Spinner page label="Loading uploads…" /> : query.isError && !query.data ? (
+        {query.isPending ? <Spinner page label="Loading uploads..." /> : query.isError && !query.data ? (
           <ErrorState message="Could not load uploads." onRetry={() => void query.refetch()} />
         ) : batches.length === 0 ? (
           <EmptyState
@@ -286,38 +226,30 @@ export function UploadManagementPage() {
               : "Choose files above and upload them to create your first batch."}
           />
         ) : (
-          <div className="upload-list" aria-live="polite">
-            {batches.map((batch, index) => (
-              <UploadBatchCard
-                key={batch.id}
-                batch={batch}
-                displayId={offset + index + 1}
-                showUsername
-                avatarUser={user ?? undefined}
-                busyItemIds={busyItemIds}
-                onRetry={(batch, item) => retryItems(batch, [item])}
-                onDelete={(batch, item) => removeRecord(batch, item)}
-                onDeleteMany={(batch, items) => removeRecord(batch, undefined, items)}
-                onPause={(batch, item, paused) => void togglePause(batch, item, paused)}
-                onRetryAll={(batch) => retryItems(batch, batch.items.filter((item) => item.status === "Failed"))}
-              />
-            ))}
-          </div>
+          <>
+            <div className="upload-list" aria-live="polite">
+              {batches.map((batch, index) => (
+                <UploadBatchCard
+                  key={batch.id}
+                  batch={batch}
+                  displayId={index + 1}
+                  showUsername
+                  avatarUser={user ?? undefined}
+                  busyItemIds={busyItemIds}
+                  onDelete={(batch, item) => removeRecord(batch, item)}
+                  onDeleteMany={(batch, items) => removeRecord(batch, undefined, items)}
+                  onPause={(batch, item, paused) => void togglePause(batch, item, paused)}
+                />
+              ))}
+            </div>
+            {query.isFetchNextPageError ? (
+              <ErrorState message="Could not load more uploads." onRetry={() => void query.fetchNextPage()} />
+            ) : query.hasNextPage ? (
+              <div ref={sentinel}>{query.isFetchingNextPage ? <Spinner /> : null}</div>
+            ) : null}
+          </>
         )}
       </div>
-      {data && data.totalItems > 0 ? (
-          <Pagination
-            inActionBar={isMobile}
-            revealBeforeTransitionEndMs={200}
-            page={page}
-            pageSize={limit}
-            total={data.totalItems}
-            itemLabel="upload batches"
-            isFetching={query.isPlaceholderData}
-            onPageChange={(nextPage) => setOffset((nextPage - 1) * limit)}
-            onPageSizeChange={handlePageSizeChange}
-          />
-      ) : null}
     </main>
   );
 }

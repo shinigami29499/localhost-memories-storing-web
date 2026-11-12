@@ -10,7 +10,7 @@ code changes.
   RDS, self-hosted).
 - Change `ConnectionStrings:Default` (host, port, database, user, password, `SSL Mode=Requires`).
 - Prefer environment variables over appsettings for credentials:
-  `ConnectionStrings__Default="Host=…;Username=…;Password=…"`.
+  `ConnectionStrings__Default="Host=...;Username=...;Password=..."`.
 - Migration state ships in the repository; on deploy either let `Seed:AutoMigrate=true`
   apply pending migrations at startup, or run
   `dotnet ef database update --project Backend\Infrastructures\Infrastructures.csproj --startup-project Backend\Apis\Apis.csproj`.

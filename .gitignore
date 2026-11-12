@@ -17,6 +17,7 @@ dist/
 .vite/
 playwright-report/
 test-results/
+.playwright-mcp/
 
 # Android signing credentials
 Frontend/android/**/*.jks

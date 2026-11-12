@@ -207,7 +207,7 @@ export function PhotoPicker({
                 }}>
                 {!initialized ? initialImage.isError ? (
                   <ErrorState message={t("Could not load media.")} onRetry={() => void initialImage.refetch()} />
-                ) : <Spinner label={t("Loading images…")} /> : (
+                ) : <Spinner label={t("Loading images...")} /> : (
                   <>
                     <input ref={inputRef} type="file" accept="image/*" hidden onChange={(event) => {
                       void upload(event.currentTarget.files?.[0]);
@@ -217,7 +217,7 @@ export function PhotoPicker({
                       <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
                         <button type="button" className="place-picker__item place-picker__upload"
                           disabled={busy || full} onClick={() => inputRef.current?.click()}>
-                          {busy ? <Spinner label={t("Uploading…")} /> : <><UploadLift size={28} aria-hidden="true" />{t("Upload")}</>}
+                          {busy ? <Spinner label={t("Uploading...")} /> : <><UploadLift size={28} aria-hidden="true" />{t("Upload")}</>}
                         </button>
                       </AnimateIcon>
                       {images.map((image) => (
@@ -231,7 +231,7 @@ export function PhotoPicker({
                         </button>
                       ))}
                     </div>
-                    {query.isPending || query.isFetchingNextPage ? <Spinner label={t("Loading images…")} /> : null}
+                    {query.isPending || query.isFetchingNextPage ? <Spinner label={t("Loading images...")} /> : null}
                     {query.isError && !query.isFetchNextPageError ? (
                       <ErrorState message={t("Could not load media.")} onRetry={() => void query.refetch()} />
                     ) : null}

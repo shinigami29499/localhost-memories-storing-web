@@ -48,7 +48,7 @@ for (const width of [390, 1280]) {
         await page.locator(".page-action-bar").getByRole("link", { name: fromFavorites ? "Gallery" : "Favorites", exact: true }).click();
         await expect.poll(() => destinationRequests).toBe(1);
         await expect(page).toHaveURL(new RegExp(`${destination}$`));
-        await expect(page.getByText("Loading media…", { exact: true })).toBeVisible();
+        await expect(page.getByText("Loading media...", { exact: true })).toBeVisible();
         await expect(page.getByText(fromFavorites ? "No favorites yet" : "No media yet", { exact: true })).toBeHidden();
         releaseResponse();
         await expect(page.getByText(fromFavorites ? "No media yet" : "No favorites yet", { exact: true })).toBeVisible();
@@ -57,7 +57,7 @@ for (const width of [390, 1280]) {
         await expect.poll(() => refreshRequests).toBe(1);
         await expect(page).toHaveURL(new RegExp(`${source}$`));
         await expect(page.getByText(fromFavorites ? "No favorites yet" : "No media yet", { exact: true })).toBeVisible();
-        await expect(page.getByText("Loading media…", { exact: true })).toBeHidden();
+        await expect(page.getByText("Loading media...", { exact: true })).toBeHidden();
       } finally {
         releaseResponse();
         releaseRefresh();

@@ -20,7 +20,7 @@ const service = vi.hoisted(() => ({
 vi.mock("../services/placeService", () => ({ placeService: service }));
 vi.mock("../../../components/ui", async () => ({
   ConfirmationDialog: (await import("../../../components/ui/ConfirmationDialog")).ConfirmationDialog,
-  Spinner: () => <div role="status">Loading…</div>,
+  Spinner: () => <div role="status">Loading...</div>,
   ErrorState: ({ message, onRetry }: { message: string; onRetry: () => void }) => (
     <div role="alert">
       {message}

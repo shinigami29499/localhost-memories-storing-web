@@ -123,7 +123,7 @@ export function BulkSaveToAlbumDialog({ mediaIds, onSaved, onClose }: Props) {
             </AlertDialog.Title>
             <div className="album-dialog__body" aria-busy={busy}>
               <AlbumSearchInput value={search} onChange={setSearch} />
-              {isPending ? <Spinner label={t("Loading albums…")} /> : loadError ? (
+              {isPending ? <Spinner label={t("Loading albums...")} /> : loadError ? (
                 <ErrorState
                   message={t("Could not load albums.")}
                   onRetry={() => {
@@ -175,7 +175,7 @@ export function BulkSaveToAlbumDialog({ mediaIds, onSaved, onClose }: Props) {
               {albumsQuery.hasNextPage ? (
                 <Button type="button" className="dialog-action dialog-action--normal" disabled={blocked || albumsQuery.isFetchingNextPage}
                   onClick={() => void albumsQuery.fetchNextPage()}>
-                  {t(albumsQuery.isFetchingNextPage ? "Loading albums…" : "Load more")}
+                  {t(albumsQuery.isFetchingNextPage ? "Loading albums..." : "Load more")}
                 </Button>
               ) : null}
               <form className="album-dialog__create" onSubmit={(event) => void create(event)}>

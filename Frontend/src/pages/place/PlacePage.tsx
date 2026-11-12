@@ -806,7 +806,7 @@ export function PlacePage() {
                     <Button type="button" variant="secondary"
                       disabled={mapPlacesQuery.isFetchingNextPage || mapPlacesQuery.isPlaceholderData}
                       onClick={() => void mapPlacesQuery.fetchNextPage()}>
-                      {t(mapPlacesQuery.isFetchingNextPage ? "Loading places…" : "Load more places")}
+                      {t(mapPlacesQuery.isFetchingNextPage ? "Loading places..." : "Load more places")}
                     </Button>
                   </div>
                 ) : null}
@@ -822,7 +822,7 @@ export function PlacePage() {
                     })}</span>
                     <Button type="button" variant="secondary" disabled={photosQuery.isFetchingNextPage || photosQuery.isPlaceholderData}
                       onClick={() => void photosQuery.fetchNextPage()}>
-                      {t(photosQuery.isFetchingNextPage ? "Loading photos…" : "Load more photos")}
+                      {t(photosQuery.isFetchingNextPage ? "Loading photos..." : "Load more photos")}
                     </Button>
                   </div>
                 ) : null}
@@ -905,7 +905,7 @@ export function PlacePage() {
                 {!hasLocationFilters && savedPlaces.hasNextPage ? (
                   <Button type="button" variant="secondary" disabled={savedPlaces.isFetchingNextPage}
                     onClick={() => void savedPlaces.fetchNextPage()}>
-                    {t(savedPlaces.isFetchingNextPage ? "Loading places…" : "Load more places")}
+                    {t(savedPlaces.isFetchingNextPage ? "Loading places..." : "Load more places")}
                   </Button>
                 ) : null}
               </>

@@ -49,6 +49,16 @@ builder.Services.AddOptions<MediaStorageOptions>()
     .Validate(o => o.MaxFileMegabytes > 0, "MaxFileMegabytes must be positive.")
     .ValidateOnStart();
 
+builder.Services.AddOptions<CityLookupOptions>()
+    .Bind(builder.Configuration.GetSection(CityLookupOptions.SectionName))
+    .Validate(o => Uri.TryCreate(o.BaseUrl, UriKind.Absolute, out var uri)
+        && uri.Scheme is "http" or "https"
+        && string.IsNullOrEmpty(uri.Query) && string.IsNullOrEmpty(uri.Fragment),
+        "CityLookup:BaseUrl must be an absolute HTTP(S) URL without a query or fragment.")
+    .Validate(o => o.TimeoutSeconds is >= 1 and <= 60,
+        "CityLookup:TimeoutSeconds must be between 1 and 60.")
+    .ValidateOnStart();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("Frontend", policy => policy

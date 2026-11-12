@@ -12,7 +12,6 @@ public class UploadItem : AuditableEntity
     public UploadItemStatus Status { get; set; } = UploadItemStatus.Pending;
     public int ProgressPercent { get; set; }
     public string? ErrorDetails { get; set; }
-    public int RetryCount { get; set; }
     public DateTime? StartedAt { get; set; }
     public DateTime? CompletedAt { get; set; }
     public string? StoredFilename { get; set; }

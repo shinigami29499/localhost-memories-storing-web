@@ -70,7 +70,7 @@ Show it a link, a video or a GIF: it measures the motion (what moves, how far, h
 
 ### Review [#review]
 
-It reviews the motion you already have from facts, not guesses: `npx @animate-ui/cli audit` lists what moves in your project, what each property costs the browser and the patterns worth a look (`transition: all`, ease-in entrances, long durations, hover scales, missing reduced-motion paths…). The skill then judges each fact against how often the element is used and what it's for, ranks what to fix first and says which facts are fine.
+It reviews the motion you already have from facts, not guesses: `npx @animate-ui/cli audit` lists what moves in your project, what each property costs the browser and the patterns worth a look (`transition: all`, ease-in entrances, long durations, hover scales, missing reduced-motion paths...). The skill then judges each fact against how often the element is used and what it's for, ranks what to fix first and says which facts are fine.
 
 ### Motion Rules [#motion-rules]
 

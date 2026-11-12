@@ -89,7 +89,7 @@ export function AlbumsPage() {
           <div className="gallery-page__content gallery-page__media-scroll">
           <div className="gallery-page__tab-panel--media">
           <div className="gallery-page__content-body">
-          {albumsQuery.isPending ? <Spinner page label={t("Loading albums…")} /> : albumsQuery.isError && items.length === 0 ? (
+          {albumsQuery.isPending ? <Spinner page label={t("Loading albums...")} /> : albumsQuery.isError && items.length === 0 ? (
             <ErrorState message={t("Could not load albums.")} onRetry={() => void albumsQuery.refetch()} />
           ) : items.length === 0 ? (
             <EmptyState
@@ -128,7 +128,7 @@ export function AlbumsPage() {
           {albumsQuery.isFetchNextPageError ? (
             <ErrorState message={t("Could not load more albums.")} onRetry={() => void albumsQuery.fetchNextPage()} />
           ) : null}
-          {albumsQuery.isFetchingNextPage ? <Spinner label={t("Loading albums…")} /> : null}
+          {albumsQuery.isFetchingNextPage ? <Spinner label={t("Loading albums...")} /> : null}
           <div ref={sentinelRef} aria-hidden="true" />
           </div>
           </div>

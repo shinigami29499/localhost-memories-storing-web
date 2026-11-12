@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { showToast } from "../../../components/ui";
 import { getUploadFile, removeUploadFile } from "./uploadFileStore";
 import { uploadService } from "./uploadService";
-import { registerUploadCompletionAction, requestUploadRetry, setUploadPaused, startUploadRuntime, wakeUploadRuntime } from "./uploadRuntime";
+import { registerUploadCompletionAction, setUploadPaused, startUploadRuntime, wakeUploadRuntime } from "./uploadRuntime";
 import type { UploadBatch, UploadItem } from "../types";
 import { useUploadNotificationStore } from "../../notifications/uploadNotificationStore";
 
@@ -25,7 +25,7 @@ function item(id: string): UploadItem {
   return {
     id, uploadBatchId: "batch", originalFilename: `${id}.png`, contentType: "image/png",
     fileSizeBytes: 10, status: "Pending", progressPercent: 0, errorDetails: null,
-    retryCount: 0, completedAt: null,
+    completedAt: null,
   };
 }
 
@@ -109,7 +109,7 @@ describe("media upload runtime", () => {
 
     wakeUploadRuntime();
     await vi.advanceTimersByTimeAsync(0);
-    expect(uploadService.start).toHaveBeenCalledExactlyOnceWith("batch", "new-file");
+    expect(uploadService.start).toHaveBeenCalledExactlyOnceWith("batch", "new-file", expect.any(AbortSignal));
     expect(uploadService.upload).toHaveBeenCalledOnce();
     const activeCalls = vi.mocked(uploadService.active).mock.calls.length;
     const queueCalls = vi.mocked(uploadService.queue).mock.calls.length;
@@ -133,18 +133,6 @@ describe("media upload runtime", () => {
     expect(uploadService.active).toHaveBeenCalledTimes(2);
   });
 
-  it("wakes for a local retry even without a SignalR event", async () => {
-    stop = startUploadRuntime("idle-retry-user", (key) => key, vi.fn());
-    await vi.advanceTimersByTimeAsync(0);
-    vi.mocked(uploadService.upload).mockResolvedValue({ ...item("retry-file"), status: "Success" });
-    vi.mocked(uploadService.get).mockResolvedValue(batch([], true));
-
-    requestUploadRetry("batch", "retry-file");
-    await vi.advanceTimersByTimeAsync(0);
-    expect(uploadService.start).toHaveBeenCalledExactlyOnceWith("batch", "retry-file");
-    expect(uploadService.upload).toHaveBeenCalledOnce();
-  });
-
   it("starts pending file uploads when the browser supports Web Locks", async () => {
     const { request } = installBrowserLocks();
     const pending = item("locked-file");
@@ -161,7 +149,7 @@ describe("media upload runtime", () => {
       expect.any(Function),
     );
     expect(uploadService.recover).toHaveBeenCalledOnce();
-    expect(uploadService.start).toHaveBeenCalledExactlyOnceWith("batch", "locked-file");
+    expect(uploadService.start).toHaveBeenCalledExactlyOnceWith("batch", "locked-file", expect.any(AbortSignal));
     expect(uploadService.upload).toHaveBeenCalledOnce();
   });
 
@@ -220,17 +208,6 @@ describe("media upload runtime", () => {
     expect(showToast.success).toHaveBeenCalledOnce();
   });
 
-  it("retries only the selected failed file without uploading successful files again", async () => {
-    vi.mocked(uploadService.upload).mockResolvedValue({ ...item("failed-file"), status: "Success" });
-    vi.mocked(uploadService.get).mockResolvedValue(batch([], true));
-    requestUploadRetry("batch", "failed-file");
-    stop = startUploadRuntime("retry-user", (key) => key, vi.fn());
-    await vi.advanceTimersByTimeAsync(0);
-
-    expect(uploadService.start).toHaveBeenCalledExactlyOnceWith("batch", "failed-file");
-    expect(uploadService.upload).toHaveBeenCalledOnce();
-  });
-
   it.each([
     ["/library/gallery/trash", "/"],
     ["/", "/sync/upload"],
@@ -271,17 +248,17 @@ describe("media upload runtime", () => {
   });
 
   it("reports a failed batch instead of announcing a successful upload", async () => {
-    const failed = { ...item("failed-file"), status: "Failed" as const };
+    const pending = item("failed-file");
     const completion = vi.fn(async () => undefined);
     registerUploadCompletionAction("batch", completion);
     vi.mocked(uploadService.get).mockResolvedValue({
-      ...batch([item("success-file"), failed], true),
+      ...batch([item("success-file"), pending], true),
       status: "Failed",
       successfulFiles: 1,
       failedFiles: 1,
     });
     vi.mocked(uploadService.upload).mockRejectedValue(new Error("Connection failed"));
-    requestUploadRetry("batch", "failed-file");
+    vi.mocked(uploadService.queue).mockResolvedValueOnce([pending]);
     stop = startUploadRuntime("partial-failure-user", (key) => key, vi.fn());
     await vi.advanceTimersByTimeAsync(0);
 
@@ -291,16 +268,17 @@ describe("media upload runtime", () => {
     );
     expect(completion).toHaveBeenCalledOnce();
     expect(uploadService.upload).toHaveBeenCalledOnce();
+    expect(uploadService.fail).toHaveBeenCalledOnce();
   });
 
-  it("records missing file failure after starting its retry", async () => {
+  it("records missing file failure after starting its upload", async () => {
     vi.mocked(getUploadFile).mockResolvedValue(undefined);
     vi.mocked(uploadService.get).mockResolvedValue(batch([], true));
-    requestUploadRetry("batch", "missing-file");
+    vi.mocked(uploadService.queue).mockResolvedValueOnce([item("missing-file")]);
     stop = startUploadRuntime("missing-file-user", (key) => key, vi.fn());
     await vi.advanceTimersByTimeAsync(0);
 
-    expect(uploadService.start).toHaveBeenCalledExactlyOnceWith("batch", "missing-file");
+    expect(uploadService.start).toHaveBeenCalledExactlyOnceWith("batch", "missing-file", expect.any(AbortSignal));
     expect(uploadService.fail).toHaveBeenCalledWith(
       "batch", "missing-file", expect.stringContaining("no longer available"),
     );

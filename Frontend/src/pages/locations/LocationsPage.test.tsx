@@ -93,7 +93,7 @@ vi.mock("../../components/ui", () => ({
   Input: ({ value = "", onChange, ...props }: Omit<InputHTMLAttributes<HTMLInputElement>, "onChange"> & {
     onChange?: (value: string) => void;
   }) => <input {...props} value={value} onChange={(event) => onChange?.(event.target.value)} />,
-  Spinner: ({ label = "Loading…" }: { label?: string }) => <p role="status">{label}</p>,
+  Spinner: ({ label = "Loading..." }: { label?: string }) => <p role="status">{label}</p>,
   EmptyState: ({ title, hint }: { title: string; hint?: string }) => <p>{title} {hint}</p>,
   ErrorState: ({ message, onRetry }: { message: string; onRetry?: () => void }) => (
     <div role="alert">{message}{onRetry && <button onClick={onRetry}>Try again</button>}</div>
@@ -620,7 +620,7 @@ describe("Locations", () => {
   it("keeps the map visible while it loads", async () => {
     maps.status = "LOADING";
     await render();
-    expect(container.textContent).toContain("Loading map…");
+    expect(container.textContent).toContain("Loading map...");
     expect(maps.viewport.fitBounds).not.toHaveBeenCalled();
   });
 

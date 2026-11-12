@@ -64,6 +64,22 @@ no availability guarantee. Heavy usage requires a self-hosted service.
 Search results come from OpenStreetMap, not Google's place catalogue.
 Map display still requires the existing Mapbox token; Mapbox geocoding is not used.
 
+Backend city enrichment also uses Photon. It keeps successful lookups in memory
+and sends at most one lookup at a time. A timeout, HTTP failure, or invalid JSON
+pauses uncached lookups for 30 seconds and logs a warning; cached cities remain
+available. Missing cities do not prevent uploads, place saves, or gallery reads.
+Caller cancellation still propagates, and gallery enrichment retains its
+6-second total deadline.
+
+The default per-request timeout is 5 seconds. Override
+`CityLookup__TimeoutSeconds` (1-60) through ASP.NET configuration if needed;
+this does not extend the gallery deadline. If the public service is unreachable,
+increasing the timeout does not restore connectivity. Configure
+`CityLookup__BaseUrl` with a reachable, trusted Photon instance, for example
+`http://localhost:2322/` for a separately installed local instance, then restart
+the backend. The backend sends lookup coordinates to that instance, not photos
+or authentication tokens. This setting does not change browser location search.
+
 ### Travel and food navigation
 
 Select a located travel photo or saved food place, then choose **Navigate**.

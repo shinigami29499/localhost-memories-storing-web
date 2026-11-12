@@ -378,7 +378,7 @@ export function LocationsPage() {
                   })}</p>
                   <Button type="button" variant="secondary" disabled={query.isFetchingNextPage || query.isPlaceholderData}
                     onClick={() => void query.fetchNextPage()}>
-                    {query.isFetchingNextPage ? t("Loading photos…") : t("Load more photos")}
+                    {query.isFetchingNextPage ? t("Loading photos...") : t("Load more photos")}
                   </Button>
                 </div>
               )}
@@ -386,7 +386,7 @@ export function LocationsPage() {
           )}
               <details className="locations__unlocated" onToggle={(event) => setShowUnlocated(event.currentTarget.open)}>
                 <summary>{t("Photos without a location")}</summary>
-                {unlocated.isPending && showUnlocated ? <Spinner label={t("Loading photos…")} /> : null}
+                {unlocated.isPending && showUnlocated ? <Spinner label={t("Loading photos...")} /> : null}
                 {unlocated.isError && !unlocated.data ? (
                   <ErrorState message={t("Could not load photos.")} onRetry={() => void unlocated.refetch()} />
                 ) : unlocated.data ? (
@@ -411,7 +411,7 @@ export function LocationsPage() {
                     ) : unlocated.hasNextPage ? (
                       <Button type="button" variant="secondary" disabled={unlocated.isFetchingNextPage}
                         onClick={() => void unlocated.fetchNextPage()}>
-                        {t(unlocated.isFetchingNextPage ? "Loading photos…" : "Load more photos")}
+                        {t(unlocated.isFetchingNextPage ? "Loading photos..." : "Load more photos")}
                       </Button>
                     ) : null}
                   </>

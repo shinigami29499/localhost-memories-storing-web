@@ -24,5 +24,5 @@ export function MapLoadingOverlay({ ready, className, closeDelay = 0 }: { ready:
   if (ready && (finished || (exiting && (!animationsEnabled || reducedMotion)))) return null;
   return <div className={className} data-exiting={exiting || undefined} onAnimationEnd={(event) => {
     if (event.target === event.currentTarget && exiting) setFinished(true);
-  }}><Spinner label="Loading map…" /></div>;
+  }}><Spinner label="Loading map..." /></div>;
 }

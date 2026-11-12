@@ -45,7 +45,7 @@ export function ActivityHeatmap({ weeks, days, activity, isPending, isError, onR
         </span>}
       </div>
       {isPending ? (
-        <p className="upload-activity__status" role="status">{t("Loading upload activity…")}</p>
+        <p className="upload-activity__status" role="status">{t("Loading upload activity...")}</p>
       ) : (
         <>
           <div className="upload-activity__grid" role="group" aria-label={summary}>

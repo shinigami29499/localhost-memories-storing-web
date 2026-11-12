@@ -7,12 +7,6 @@ import { getUploadFile, removeUploadFile } from "./uploadFileStore";
 import { uploadService } from "./uploadService";
 import type { UploadBatch, UploadItem } from "../types";
 
-interface RetryRequest {
-  batchId: string;
-  itemId: string;
-}
-
-const retryRequests = new Map<string, RetryRequest>();
 const activeRequests = new Map<string, AbortController>();
 const notifiedBatches = new Set<string>();
 const wakeRunners = new Set<() => void>();
@@ -31,22 +25,16 @@ export function wakeUploadRuntime(): void {
   for (const wake of wakeRunners) wake();
 }
 
-export function requestUploadRetry(batchId: string, itemId: string): void {
-  retryRequests.set(itemId, { batchId, itemId });
-  wakeUploadRuntime();
-}
-
 export async function setUploadPaused(batchId: string, itemId: string | undefined, paused: boolean): Promise<void> {
   const batch = await uploadService.setPaused(batchId, itemId, paused);
   if (paused) for (const item of batch.items) {
-    if ((!itemId || item.id === itemId) && item.status === "Paused") { activeRequests.get(item.id)?.abort(); retryRequests.delete(item.id); }
+    if ((!itemId || item.id === itemId) && item.status === "Paused") activeRequests.get(item.id)?.abort();
   }
   wakeUploadRuntime();
 }
 
 export function stopUploadLocally(itemId: string): void {
   activeRequests.get(itemId)?.abort();
-  retryRequests.delete(itemId);
   wakeUploadRuntime();
 }
 
@@ -159,15 +147,6 @@ export function startUploadRuntime(
         for (const batch of activeBatches) observedBatches.add(batch.id);
         hasLoadedActive = true;
 
-        const retry = retryRequests.values().next().value as RetryRequest | undefined;
-        if (retry) {
-          retryRequests.delete(retry.itemId);
-          observedBatches.add(retry.batchId);
-          const processed = await processItem(retry.batchId, retry.itemId, controller.signal);
-          if (!processed) await wait(1500, observedVersion);
-          continue;
-        }
-
         const pending = await uploadService.queue();
         const next = pending[0];
         if (next) {
@@ -224,7 +203,6 @@ export function startUploadRuntime(
     for (const active of activeRequests.values()) active.abort();
     activeRequests.clear();
     batchStartAttempts.clear();
-    retryRequests.clear();
     wake?.();
     wakeRunners.delete(handleChange);
   };
@@ -272,7 +250,7 @@ export function startUploadRuntime(
         await uploadService.fail(
           batchId,
           itemId,
-          "The file is no longer available on this device. Select it again before retrying.",
+          "The file is no longer available on this device.",
         );
         return true;
       }

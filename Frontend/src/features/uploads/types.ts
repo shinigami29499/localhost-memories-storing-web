@@ -10,7 +10,6 @@ export interface UploadItem {
   status: UploadItemStatus;
   progressPercent: number;
   errorDetails: string | null;
-  retryCount: number;
   completedAt: string | null;
 }
 

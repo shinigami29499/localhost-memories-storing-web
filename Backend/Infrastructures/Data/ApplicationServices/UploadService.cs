@@ -179,7 +179,7 @@ public sealed class UploadService(
         {
             item.Status = UploadItemStatus.Failed;
             item.ProgressPercent = 0;
-            item.ErrorDetails = "Upload was interrupted. Retry this file to continue.";
+            item.ErrorDetails = "Upload was interrupted.";
             item.CompletedAt = utcNow;
             item.Revision++;
             RefreshBatchStatus(item.Batch, utcNow);
@@ -201,21 +201,18 @@ public sealed class UploadService(
         await using var transaction = await _unitOfWork.BeginTransactionAsync(cancellationToken);
         await _repository.LockBatchAsync(ownerId, batchId, cancellationToken);
         var item = await FindOwnedItemAsync(ownerId, batchId, itemId, cancellationToken);
-        if (item.Status is not (UploadItemStatus.Pending or UploadItemStatus.Failed))
-            throw new ConflictException("Only pending or failed uploads can start.");
+        if (item.Status != UploadItemStatus.Pending)
+            throw new ConflictException("Only pending uploads can start.");
         if (item.Batch.Items.Any(other =>
                 other.Id != item.Id && other.Status == UploadItemStatus.Uploading))
             throw new ConflictException("Another file in this batch is already uploading.");
 
-        var isRetry = item.Status == UploadItemStatus.Failed;
         item.Status = UploadItemStatus.Uploading;
         item.ProgressPercent = 0;
         item.ErrorDetails = null;
         item.StartedAt = DateTime.UtcNow;
         item.CompletedAt = null;
         item.Revision++;
-        if (isRetry)
-            item.RetryCount++;
         item.Batch.Status = UploadBatchStatus.Uploading;
         item.Batch.StartedAt ??= item.StartedAt;
         item.Batch.CompletedAt = null;
@@ -288,7 +285,7 @@ public sealed class UploadService(
             var error = exception switch
             {
                 InvalidMediaFileException => exception.Message,
-                OperationCanceledException => "Upload was interrupted. Retry this file to continue.",
+                OperationCanceledException => "Upload was interrupted.",
                 _ => "Upload failed because the server could not store this file.",
             };
             try
@@ -535,7 +532,6 @@ public sealed class UploadService(
             item.Status.ToString(),
             item.ProgressPercent,
             item.ErrorDetails,
-            item.RetryCount,
             item.CompletedAt);
 
     private static ValidationException InvalidRequest(string message, string field, string detail)

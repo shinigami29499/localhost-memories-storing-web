@@ -41,6 +41,7 @@ export function PlaceVisitHistory({ visits, showPlaceDetails = true, showVisitor
 
   const canRemove = (visit: PlaceVisit, time: number) =>
     isAdmin || time - new Date(visit.visitedAt).getTime() <= 24 * 60 * 60 * 1000;
+  const showColumnHeadings = showPlaceDetails && showVisitor && showVisitorName;
 
   const requestRemove = (visit: PlaceVisit) => {
     const time = Date.now();
@@ -71,48 +72,87 @@ export function PlaceVisitHistory({ visits, showPlaceDetails = true, showVisitor
 
   return (
     <>
-    <ol className={`place__history${showVisitor ? " place__history--visitor" : ""}${showVisitorName ? " place__history--visitor-name" : ""}${showPlaceDetails && showVisitor ? " place__history--place-visitor" : ""}`}>
+    <div className={showColumnHeadings ? "place__history-table" : undefined}
+      role={showColumnHeadings ? "table" : undefined}
+      aria-label={showColumnHeadings ? t("Visit history") : undefined}>
+    {showColumnHeadings && (
+      <div className="place__history-column-headings" role="row">
+        <span role="columnheader">{t("Place")}</span>
+        <span role="columnheader">{t("Member")}</span>
+        <span role="columnheader">{t("Rating")}</span>
+        <span role="columnheader">{t("Visited")}</span>
+      </div>
+    )}
+    <ol className={`place__history${showVisitor ? " place__history--visitor" : ""}${showVisitorName ? " place__history--visitor-name" : ""}${showPlaceDetails && showVisitor ? " place__history--place-visitor" : ""}`}
+      role={showColumnHeadings ? "rowgroup" : undefined}>
       {visits.map((visit) => (
-        <li className="place__history-item" key={visit.id}>
+        <li className="place__history-item" key={visit.id} role={showColumnHeadings ? "row" : undefined}>
           <button
             type="button"
             className="place__history-select"
             aria-label={t("View check-in details for {place}", { place: visit.placeName })}
             onClick={() => { setConfirmingRemoval(false); setEditNote(visit.note); setEditRating(visit.rating); setSelectedVisit(visit); }}
           />
-          {showPlaceDetails && (
+          {showColumnHeadings ? (
             <>
-              <span className="place__chip place__history-icon" style={{ "--marker-color": visit.markerColor } as CSSProperties} aria-hidden="true">{visit.markerIcon}</span>
-              <div className="place__history-details">
-                <strong>{visit.placeName}</strong>
-                {visit.placeAddress && <small>{visit.placeAddress}</small>}
+              <div className="place__history-place" role="cell">
+                <span className="place__chip place__history-icon" style={{ "--marker-color": visit.markerColor } as CSSProperties} aria-hidden="true">{visit.markerIcon}</span>
+                <div className="place__history-details">
+                  <strong>{visit.placeName}</strong>
+                  {visit.placeAddress && <small>{visit.placeAddress}</small>}
+                </div>
               </div>
+              <div className="place__history-member" role="cell">
+                <span className="place__history-visitor-name" title={visit.username}>{visit.username}</span>
+              </div>
+              <span className="place__history-rating" role="cell"><StarRating value={visit.rating} size="sm" /></span>
+              <time className="place__history-visited" role="cell" dateTime={visit.visitedAt}>
+                <span className="place__history-date" data-column="date">
+                  {new Date(visit.visitedAt).toLocaleDateString(language, { month: "short", day: "2-digit", year: "numeric" })}
+                </span>
+                <span data-column="time">
+                  {new Date(visit.visitedAt).toLocaleTimeString(language, { hour: "2-digit", minute: "2-digit", hourCycle: "h23" })}
+                </span>
+              </time>
+            </>
+          ) : (
+            <>
+              {showPlaceDetails && (
+                <>
+                  <span className="place__chip place__history-icon" style={{ "--marker-color": visit.markerColor } as CSSProperties} aria-hidden="true">{visit.markerIcon}</span>
+                  <div className="place__history-details">
+                    <strong>{visit.placeName}</strong>
+                    {visit.placeAddress && <small>{visit.placeAddress}</small>}
+                  </div>
+                </>
+              )}
+              {showVisitor && (
+                showVisitorName ? (
+                  <>
+                    <UserAvatar user={{ id: visit.userId, username: visit.username, avatarSeed: visit.avatarSeed }} className="place__history-visitor-avatar" />
+                    <span className="place__history-visitor-name" title={visit.username}>{visit.username}</span>
+                  </>
+                ) : (
+                  <div className="place__history-visitor" title={visit.username}>
+                    <UserAvatar user={{ id: visit.userId, username: visit.username, avatarSeed: visit.avatarSeed }} className="place__history-visitor-avatar" />
+                  </div>
+                )
+              )}
+              {showVisitorName && <StarRating value={visit.rating} size="sm" />}
+              <time dateTime={visit.visitedAt}>
+                <span className="place__history-date" data-column="date">
+                  {new Date(visit.visitedAt).toLocaleDateString(language, { month: "short", day: "2-digit", year: "numeric" })}
+                </span>
+                <span data-column="time">
+                  {new Date(visit.visitedAt).toLocaleTimeString(language, { hour: "2-digit", minute: "2-digit", hourCycle: "h23" })}
+                </span>
+              </time>
             </>
           )}
-          {showVisitor && (
-            showVisitorName ? (
-              <>
-                <UserAvatar user={{ id: visit.userId, username: visit.username, avatarSeed: visit.avatarSeed }} className="place__history-visitor-avatar" />
-                <span className="place__history-visitor-name" title={visit.username}>{visit.username}</span>
-              </>
-            ) : (
-              <div className="place__history-visitor" title={visit.username}>
-              <UserAvatar user={{ id: visit.userId, username: visit.username, avatarSeed: visit.avatarSeed }} className="place__history-visitor-avatar" />
-              </div>
-            )
-          )}
-          {showVisitorName && <StarRating value={visit.rating} size="sm" />}
-          <time dateTime={visit.visitedAt}>
-            <span className="place__history-date" data-column="date">
-              {new Date(visit.visitedAt).toLocaleDateString(language, { month: "short", day: "2-digit", year: "numeric" })}
-            </span>
-            <span data-column="time">
-              {new Date(visit.visitedAt).toLocaleTimeString(language, { hour: "2-digit", minute: "2-digit", hourCycle: "h23" })}
-            </span>
-          </time>
         </li>
       ))}
     </ol>
+    </div>
     {selectedVisit && (
       <PlaceDialog
         className="place__dialog--visit"

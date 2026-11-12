@@ -8,6 +8,8 @@ export { ToastProvider, Toaster, toastManager, showToast } from "./Toast";
 export { ConfirmationDialog } from "./ConfirmationDialog";
 export { CustomDialog, useCustomDialog } from "./CustomDialog";
 export { DatePicker } from "./DatePicker";
+export { SelectField } from "./SelectField";
+export { Popover, PopoverContent } from "./Popover";
 export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "./Tooltip";
 
 export { HeaderFilters } from "./HeaderFilters";

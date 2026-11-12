@@ -296,7 +296,7 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
   };
 
   if (album.isPending) {
-    return <main className="gallery-page album-page"><Spinner page label={t("Loading album…")} /></main>;
+    return <main className="gallery-page album-page"><Spinner page label={t("Loading album...")} /></main>;
   }
 
   if (album.isError) {
@@ -396,7 +396,7 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
                     <Button
                       type="button"
                       variant="ghost"
-                      className="album-hero__icon-button album-hero__delete"
+                      className="album-hero__icon-button album-hero__delete btn--danger-solid"
                       aria-label={t("Delete")}
                       title={t("Delete")}
                       onClick={() => setDeleting(true)}
@@ -418,7 +418,7 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
                     ? "Videos added to this album will appear here."
                     : mediaKind === "image" ? "Images added to this album will appear here." : "Images and videos added to this album will appear here."}
                 />
-              ) : media.isPending ? <Spinner page label={t("Loading media…")} /> : media.isError && items.length === 0 ? (
+              ) : media.isPending ? <Spinner page label={t("Loading media...")} /> : media.isError && items.length === 0 ? (
                 <ErrorState message={t("Could not load media.")} onRetry={() => void media.refetch()} />
               ) : (
                 <MediaRetryProvider order={items.map((item) => item.id)}>
@@ -437,7 +437,7 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
               {hasMediaFilter && media.isFetchNextPageError ? (
                 <ErrorState message={t("Could not load more media.")} onRetry={() => void media.fetchNextPage()} />
               ) : hasMediaFilter && media.isFetchingNextPage ? (
-                <Spinner label={t("Loading more media…")} />
+                <Spinner label={t("Loading more media...")} />
               ) : null}
               {hasMediaFilter && media.hasNextPage && !media.isFetchNextPageError ? (
                 <div ref={sentinelRef} className="album-page__sentinel" aria-hidden="true" />

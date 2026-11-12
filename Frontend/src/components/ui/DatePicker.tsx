@@ -15,6 +15,8 @@ type DatePickerProps = {
   placeholder?: string;
   className?: string;
   compactOnMobile?: boolean;
+  min?: string;
+  max?: string;
 };
 
 const DAYS_PER_WEEK = 7;
@@ -48,7 +50,7 @@ function isSameDay(a: Date | null, b: Date | null) {
   return !!a && !!b && toIsoDate(a) === toIsoDate(b);
 }
 
-export function DatePicker({ value, onChange, label, placeholder, className, compactOnMobile = false }: DatePickerProps) {
+export function DatePicker({ value, onChange, label, placeholder, className, compactOnMobile = false, min, max }: DatePickerProps) {
   const { t, language } = useLocale();
   const locale = language === "vi" ? "vi-VN" : "en-US";
   const weekStart = language === "vi" ? 1 : 0;
@@ -58,6 +60,11 @@ export function DatePicker({ value, onChange, label, placeholder, className, com
   const gridRef = useRef<HTMLDivElement>(null);
   const initialFocusRef = useRef<HTMLButtonElement>(null);
   const today = new Date();
+  const isDisabled = (iso: string) => !!((min && iso < min) || (max && iso > max));
+  const clampDate = (date: Date) => {
+    const iso = toIsoDate(date);
+    return (min && iso < min ? parseIsoDate(min) : max && iso > max ? parseIsoDate(max) : date) ?? date;
+  };
 
   const monthLabel = useMemo(
     () => new Intl.DateTimeFormat(locale, { month: "long", year: "numeric" }).format(focusedDate),
@@ -88,6 +95,7 @@ export function DatePicker({ value, onChange, label, placeholder, className, com
   }, [focusedDate, weekStart]);
 
   const moveFocus = (next: Date) => {
+    next = clampDate(next);
     setFocusedDate(next);
     requestAnimationFrame(() => {
       gridRef.current?.querySelector<HTMLButtonElement>(`[data-date="${toIsoDate(next)}"]`)?.focus();
@@ -121,7 +129,7 @@ export function DatePicker({ value, onChange, label, placeholder, className, com
     <Popover.Root
       open={open}
       onOpenChange={(nextOpen) => {
-        if (nextOpen) setFocusedDate(selected ?? new Date());
+        if (nextOpen) setFocusedDate(clampDate(selected ?? new Date()));
         setOpen(nextOpen);
       }}
     >
@@ -184,6 +192,7 @@ export function DatePicker({ value, onChange, label, placeholder, className, com
                     ref={isFocused ? initialFocusRef : undefined}
                     type="button"
                     data-date={iso}
+                    disabled={isDisabled(iso)}
                     tabIndex={isFocused ? 0 : -1}
                     className={[
                       "date-picker__day",
@@ -207,7 +216,7 @@ export function DatePicker({ value, onChange, label, placeholder, className, com
               <button type="button" className="date-picker__text-button" disabled={!selected} onClick={() => commit("")}>
                 {t("Clear")}
               </button>
-              <button type="button" className="date-picker__text-button" onClick={() => commit(toIsoDate(new Date()))}>
+              <button type="button" className="date-picker__text-button" disabled={isDisabled(toIsoDate(today))} onClick={() => commit(toIsoDate(new Date()))}>
                 {t("Today")}
               </button>
             </div>

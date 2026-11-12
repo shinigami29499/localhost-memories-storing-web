@@ -87,6 +87,7 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
   const [bulkFavoriteBusy, setBulkFavoriteBusy] = useState(false);
   const [previewMediaId, setPreviewMediaId] = useState<string | null>(null);
   const [previewGroupKey, setPreviewGroupKey] = useState<string | null>(null);
+  const [hasMoreBelow, setHasMoreBelow] = useState(false);
   const galleryRef = useRef<HTMLElement>(null);
   const returnToMediaId = useRef<string | null>(null);
   const returnToIndex = useRef(0);
@@ -121,6 +122,25 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
     }
     return [...byDate.entries()].sort(([, a], [, b]) => b.date.getTime() - a.date.getTime());
   }, [media]);
+
+  useEffect(() => {
+    const scrollport = galleryRef.current?.querySelector<HTMLElement>(".gallery-page__content");
+    if (!scrollport) return;
+    const updateScrollCue = () => {
+      setHasMoreBelow(scrollport.scrollHeight - scrollport.scrollTop - scrollport.clientHeight > 1);
+    };
+    updateScrollCue();
+    scrollport.addEventListener("scroll", updateScrollCue, { passive: true });
+    const observer = new ResizeObserver(updateScrollCue);
+    observer.observe(scrollport);
+    const content = scrollport.firstElementChild;
+    if (content) observer.observe(content);
+    return () => {
+      scrollport.removeEventListener("scroll", updateScrollCue);
+      observer.disconnect();
+    };
+  }, [groups.length, media.length, query.isPending]);
+
   const previewGroup = groups.find(([key]) => key === previewGroupKey);
   const previewItems = previewGroup?.[1].items ?? [];
   const previewNeedsMore = Boolean(previewGroup && previewGroup[0] === groups[groups.length - 1]?.[0] && query.hasNextPage);
@@ -269,9 +289,6 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
 
     const observer = new IntersectionObserver((entries) => {
       if (entries.some((entry) => entry.isIntersecting)) {
-        const rows = galleryRef.current?.querySelectorAll<HTMLElement>(".gallery-day-row");
-        const lastRow = rows?.[rows.length - 1];
-        if (lastRow && lastRow.scrollWidth - lastRow.scrollLeft - lastRow.clientWidth > lastRow.clientWidth * 2.5) return;
         observer.disconnect();
         void query.fetchNextPage({ cancelRefetch: false });
       }
@@ -457,7 +474,7 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
 
   const galleryContent = (
     <>
-      {query.isPending ? <Spinner page label={t("Loading media…")} /> : null}
+      {query.isPending ? <Spinner page label={t("Loading media...")} /> : null}
       {query.isError && media.length === 0 ? (
         <ErrorState message={t("Could not load media.")} onRetry={() => void query.refetch()} />
       ) : null}
@@ -513,7 +530,7 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
       {query.isFetchNextPageError && media.length > 0 && !previewMediaId ? (
         <ErrorState message={t("Could not load more media.")} onRetry={() => void query.fetchNextPage()} />
       ) : null}
-      {query.isFetchingNextPage ? <Spinner label={t("Loading more media…")} /> : null}
+      {query.isFetchingNextPage ? <Spinner label={t("Loading more media...")} /> : null}
       <div ref={sentinelRef} aria-hidden="true" />
       {query.isError && !query.isFetchNextPageError && media.length > 0 ? (
         <ErrorState message={t("Could not refresh media.")} onRetry={() => void query.refetch()} />
@@ -543,6 +560,7 @@ export function GalleryPage({ view = "pictures", initialFilter }: { view?: Galle
               <div className="gallery-page__tab-panel gallery-page__tab-panel--media">{galleryContent}</div>
             </div>
           </div>
+          <div className="gallery-page__scroll-cue gallery-page__scroll-cue--down" aria-hidden="true" data-visible={hasMoreBelow || undefined} />
         </div>
       </GalleryLoadingProvider>
 

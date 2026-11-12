@@ -13,7 +13,8 @@ body {
 .btn { min-height: 44px; box-shadow: none; transition: none; }
 .btn--secondary { background: var(--surface); }
 .btn--primary:hover:not(:disabled) { filter: none; text-decoration: underline; }
-.btn:disabled { opacity: 1; color: var(--text); background: var(--surface-hover); border-color: var(--border-control); }
+.btn:disabled:not(.dialog-actions:has(> .dialog-action[aria-busy="true"]) > .dialog-action) { opacity: 1; color: var(--text); background: var(--surface-hover); border-color: var(--border-control); }
+.dialog-actions:has(> .dialog-action[aria-busy="true"]) > .dialog-action:disabled { opacity: 1; }
 input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]),
 textarea, select { min-height: 44px; }
 
@@ -387,7 +388,7 @@ textarea, select { min-height: 44px; }
   border-radius: var(--radius);
 }
 
-:root .gallery-selection-bar :is(button, [role="button"], .btn),
+:root :is(.gallery-selection-bar, .header-filters__range-box) :is(button, [role="button"], .btn),
 :root :is(.control-bar, .navigation-highlight, .password-input) > :is(button, [role="button"], .btn) {
   border-radius: var(--radius-inner);
 }
@@ -397,7 +398,7 @@ textarea, select { min-height: 44px; }
 }
 
 @media (hover: hover) {
-:root :is(button, [role="button"], .btn, .sidebar__link):hover:not(.sidebar__toggle):not(.mapboxgl-ctrl-group button):not(.navigation-highlight *):not(.map-navigation *):not(.place__location-search *):not(.gallery-selection-bar__action):not(.gallery-selection-bar__cancel):not(:disabled):not([aria-disabled="true"]):not(.place__marker):not(.locations__marker):not(.place__pin):not(.locations__pin):not(.place__home-pin):not(.locations__home-pin):not(.place__map-home-control):not(.locations__map-home-control):not(.place__color-option):not(.star-rating__button):not(.place__cancel-action):not(.dialog-action):not(.media-tile):not(.album-hero__caption-button):not(.album-hero__delete):not(.album-hero__filter[aria-pressed="true"]) {
+:root :is(button, [role="button"], .btn, .sidebar__link):hover:not(.toast-link):not(.sidebar__toggle):not(.mapboxgl-ctrl-group button):not(.navigation-highlight *):not(.map-navigation *):not(.place__location-search *):not(.gallery-selection-bar__action):not(.gallery-selection-bar__cancel):not(:disabled):not([aria-disabled="true"]):not(.place__marker):not(.locations__marker):not(.place__pin):not(.locations__pin):not(.place__home-pin):not(.locations__home-pin):not(.place__map-home-control):not(.locations__map-home-control):not(.place__color-option):not(.star-rating__button):not(.place__cancel-action):not(.dialog-action):not(.media-tile):not(.album-hero__caption-button):not(.album-hero__delete):not(.btn--danger-solid):not(.album-hero__filter[aria-pressed="true"]) {
     background-color: var(--surface-hover);
     color: var(--text);
   }

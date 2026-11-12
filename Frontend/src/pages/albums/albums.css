@@ -438,18 +438,6 @@
   outline-offset: 4px;
 }
 
-.btn.album-hero__delete {
-  background: var(--dialog-danger-solid);
-  border: 1px solid var(--dialog-danger-solid);
-  box-shadow: none;
-  color: #fff;
-}
-
-:root .btn.album-hero__delete:hover:not(:disabled) {
-  background: var(--dialog-danger-solid);
-  color: #fff;
-}
-
 .album-item {
   min-width: 0;
   position: relative;

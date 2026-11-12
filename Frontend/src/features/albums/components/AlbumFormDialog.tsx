@@ -98,7 +98,7 @@ export function AlbumFormDialog({ album, onSubmit, onClose, onDelete }: Props) {
               </Button>
               <small className="album-form__hint">
                 {previewMediaId ? selectedImage.isError ? t("Could not load media.")
-                  : selectedImage.data?.originalFilename ?? t("Loading images…") : t("Default (first image)")}
+                  : selectedImage.data?.originalFilename ?? t("Loading images...") : t("Default (first image)")}
               </small>
             </div>
           ) : null}

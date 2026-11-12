@@ -40,7 +40,6 @@ const batch: UploadBatch = {
     status: "Success",
     progressPercent: 100,
     errorDetails: null,
-    retryCount: 0,
     completedAt,
   }],
 };

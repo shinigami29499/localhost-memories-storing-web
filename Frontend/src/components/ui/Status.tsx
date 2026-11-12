@@ -5,7 +5,7 @@ import { SwappingText } from "@animate-ui/react/primitives/texts/swapping";
 import { useAnimationStore } from "../../store/animationStore";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 
-export function Spinner({ label = "Loading…", page = false }: { label?: string; page?: boolean }) {
+export function Spinner({ label = "Loading...", page = false }: { label?: string; page?: boolean }) {
   const { t } = useLocale();
   return (
     <div className={`spinner${page ? " spinner--page" : ""}`} role="status" aria-live="polite">

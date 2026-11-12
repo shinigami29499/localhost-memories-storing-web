@@ -517,7 +517,7 @@ export function MediaPreviewDialog({
                 <div className="media-preview-dialog__stage" aria-busy={loadingMore}>
                   {loadMoreError ? (
                     <ErrorState message={t("Could not load more media.")} onRetry={onLoadMore} />
-                  ) : <Spinner label={t("Loading more media…")} />}
+                  ) : <Spinner label={t("Loading more media...")} />}
                 </div>
               </div>
             ) : null}

@@ -82,7 +82,7 @@ test("PWA revisit renders cached gallery without downloading gallery pages again
 
   await page.reload();
   await expect(page.getByRole("button", { name: "Open gallery-test-1.png" })).toBeVisible();
-  await expect(page.getByText("Loading media…")).toBeHidden();
+  await expect(page.getByText("Loading media...")).toBeHidden();
   await expect.poll(() => changeChecks).toBeGreaterThan(0);
   expect(galleryRequests).toBe(1);
 });

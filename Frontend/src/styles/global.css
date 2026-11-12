@@ -369,6 +369,22 @@ button:focus-visible {
   color: var(--text-on-danger);
 }
 
+.btn--danger-solid {
+  background: var(--dialog-danger-solid);
+  border-color: var(--dialog-danger-solid);
+  color: #fff;
+}
+
+.btn--danger-solid:hover:not(:disabled) {
+  background: var(--dialog-danger-solid);
+  border-color: var(--dialog-danger-solid);
+  color: #fff;
+}
+
+.btn--danger-solid:focus-visible {
+  --focus-icon-inner: #fff;
+}
+
 .btn--danger [data-trash-icon] {
   color: inherit;
 }
@@ -807,6 +823,20 @@ textarea::placeholder {
   background: var(--bg);
 }
 
+/* Shared dialog header and content. */
+.place__dialog-header { align-items: center; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; flex: 0 0 auto; gap: 8px; min-height: 80px; padding: 12px; }
+.place__dialog-icon { flex: 0 0 56px; height: 56px; width: 56px; }
+.place__dialog-icon .place__chip { border-radius: calc(var(--radius) / 2); font-size: 2rem; height: 56px; width: 56px; }
+.place__dialog-heading { flex: 1; min-width: 0; }
+.place__dialog-actions { align-items: center; display: flex; flex: 0 0 auto; gap: 4px; margin-left: auto; }
+.place__dialog-subtitle { color: var(--text-muted); font-size: 0.75rem; line-height: 1.25; margin: 2px 0 0; overflow-wrap: anywhere; }
+.place__dialog-title { color: var(--text-strong); flex: 1; font-size: 1.125rem; font-weight: 600; line-height: 1.2; margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.place__dialog-close { align-items: center; background: transparent; border: 0; border-radius: 8px; color: var(--text-muted); cursor: pointer; display: inline-flex; flex: 0 0 40px; height: 40px; justify-content: center; width: 40px; }
+.place__dialog-close:hover { background: var(--surface-hover); color: var(--text-strong); }
+.place__dialog-close:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 3px; }
+.place__dialog-close:disabled { cursor: not-allowed; opacity: 0.6; }
+.place__dialog-body { min-height: 0; overflow-y: auto; padding: 12px; }
+
 /* Shared dialog actions: danger, final danger confirmation, and normal. */
 .dialog-actions {
   display: grid;
@@ -821,6 +851,12 @@ textarea::placeholder {
 .dialog-actions__note { color: var(--text); font-size: 0.8125rem; line-height: 1.5; margin: 0; }
 
 .dialog-action:hover:not(:disabled) { filter: none; text-decoration: underline; }
+.dialog-action--secondary,
+.dialog-action--secondary:hover:not(:disabled) {
+  background: var(--surface);
+  border: 1px solid var(--border-control);
+  color: var(--text-strong);
+}
 .dialog-action--danger,
 .dialog-action--danger:hover:not(:disabled) {
   background: var(--dialog-danger-wash);

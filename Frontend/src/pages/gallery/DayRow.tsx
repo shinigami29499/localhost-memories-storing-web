@@ -1,5 +1,13 @@
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type KeyboardEvent, type ReactNode } from "react";
 
+function getScrollEdges(element: HTMLElement) {
+  const maxScroll = element.scrollWidth - element.clientWidth;
+  return {
+    start: element.scrollLeft > 1,
+    end: maxScroll - element.scrollLeft > 1,
+  };
+}
+
 function subscribeToViewport(onChange: () => void) {
   window.addEventListener("resize", onChange);
   return () => window.removeEventListener("resize", onChange);
@@ -25,6 +33,7 @@ export function DayRow<T extends { id: string }>({ items, renderItem, fallbackWi
   const gridRef = useRef<HTMLDivElement>(null);
   const [focusTarget, setFocusTarget] = useState<string | null>(null);
   const [scrollLeft, setScrollLeft] = useState(0);
+  const [scrollEdges, setScrollEdges] = useState({ start: false, end: false });
   const [gridWidth, setGridWidth] = useState(0);
   const [nearViewport, setNearViewport] = useState(false);
   const committedSlots = useRef(new Map<string, number>());
@@ -100,12 +109,21 @@ export function DayRow<T extends { id: string }>({ items, renderItem, fallbackWi
     const element = gridRef.current;
     if (!element) return;
     setGridWidth(element.clientWidth);
+    setScrollEdges(getScrollEdges(element));
     const observer = new ResizeObserver(([entry]) => {
-      if (entry) setGridWidth(entry.contentRect.width);
+      if (entry) {
+        setGridWidth(entry.contentRect.width);
+        setScrollEdges(getScrollEdges(element));
+      }
     });
     observer.observe(element);
     return () => observer.disconnect();
   }, []);
+
+  useLayoutEffect(() => {
+    const element = gridRef.current;
+    if (element) setScrollEdges(getScrollEdges(element));
+  }, [items.length]);
 
   useLayoutEffect(() => {
     if (!focusTarget) return;
@@ -132,25 +150,28 @@ export function DayRow<T extends { id: string }>({ items, renderItem, fallbackWi
     setFocusTarget(items[position].id);
   };
 
-  return <div ref={gridRef} className="gallery-date-grid gallery-date-grid--virtual gallery-day-row" data-media-kind={mediaKind}
-    style={screenWidth < 768 ? undefined : { height: hoverHeight, marginTop: 8 - hoverInset, marginBottom: height - hoverHeight - (8 - hoverInset) }} onKeyDownCapture={handleKeyDown}
-    onScroll={(event) => {
-      const row = event.currentTarget;
-      if (frame.current !== null) return;
-      frame.current = requestAnimationFrame(() => {
-        frame.current = null;
-        setScrollLeft(row.scrollLeft);
-        if (row.scrollWidth - row.scrollLeft - row.clientWidth <= row.clientWidth * 2.5) onReachEnd?.();
-      });
-    }}>
-    <div aria-hidden="true" style={{ width: 2 * rowInset + items.length * step - gap, height: 1 }} />
-    {items.length > 0 && rendered.length === 0 && <>
-      <span tabIndex={0} aria-label="Enter media group" onFocus={() => enterGroup(0)} />
-      <span tabIndex={0} aria-label="Enter media group from end" onFocus={() => enterGroup(items.length - 1)} />
-    </>}
-    {rendered.map(({ item, position }) => <div key={recycle ? slots.get(item.id) : item.id} className="gallery-window-cell" data-gallery-window-id={item.id} data-row-edge={position === 0 ? "start" : position === items.length - 1 ? "end" : undefined}
-      style={{ width: tileSize, height: tileHeight, top: screenWidth < 768 ? screenHeight * 0.005 : hoverInset, left: rowInset + position * step }}>
-      {renderItem(item)}
-    </div>)}
+  return <div className="gallery-day-row-shell" data-scroll-start={scrollEdges.start || undefined} data-scroll-end={scrollEdges.end || undefined}>
+    <div ref={gridRef} className="gallery-date-grid gallery-date-grid--virtual gallery-day-row" data-media-kind={mediaKind}
+      style={screenWidth < 768 ? undefined : { height: hoverHeight, marginTop: 8 - hoverInset, marginBottom: height - hoverHeight - (8 - hoverInset) }} onKeyDownCapture={handleKeyDown}
+      onScroll={(event) => {
+        const row = event.currentTarget;
+        if (frame.current !== null) return;
+        frame.current = requestAnimationFrame(() => {
+          frame.current = null;
+          setScrollLeft(row.scrollLeft);
+          setScrollEdges(getScrollEdges(row));
+          if (row.scrollWidth - row.scrollLeft - row.clientWidth <= row.clientWidth * 2.5) onReachEnd?.();
+        });
+      }}>
+      <div aria-hidden="true" style={{ width: 2 * rowInset + items.length * step - gap, height: 1 }} />
+      {items.length > 0 && rendered.length === 0 && <>
+        <span tabIndex={0} aria-label="Enter media group" onFocus={() => enterGroup(0)} />
+        <span tabIndex={0} aria-label="Enter media group from end" onFocus={() => enterGroup(items.length - 1)} />
+      </>}
+      {rendered.map(({ item, position }) => <div key={recycle ? slots.get(item.id) : item.id} className="gallery-window-cell" data-gallery-window-id={item.id} data-row-edge={position === 0 ? "start" : position === items.length - 1 ? "end" : undefined}
+        style={{ width: tileSize, height: tileHeight, top: screenWidth < 768 ? screenHeight * 0.005 : hoverInset, left: rowInset + position * step }}>
+        {renderItem(item)}
+      </div>)}
+    </div>
   </div>;
 }

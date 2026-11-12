@@ -374,7 +374,7 @@ def validate_inline_codes(orig, comp, result):
         for span in sorted(spans):
             flat = span.replace("\n", "\\n")
             if len(flat) > MAX_REPORTED_SPAN:
-                flat = flat[:MAX_REPORTED_SPAN] + "…"
+                flat = flat[:MAX_REPORTED_SPAN] + "..."
             out.append(repr(flat))
         return "{" + ", ".join(out) + "}"
 

@@ -237,7 +237,7 @@ export function TrashPage() {
           <div className="gallery-page__inner">
             <div className="gallery-page__tab-panel gallery-page__tab-panel--media">
                 <div className="gallery-page__content-body">
-                  {query.isLoading ? <Spinner page label={t("Loading media…")} /> : null}
+                  {query.isLoading ? <Spinner page label={t("Loading media...")} /> : null}
                   {query.isError && media.length === 0 ? (
                     <ErrorState message={t("Could not load media.")} onRetry={() => void query.refetch()} />
                   ) : null}
@@ -273,7 +273,7 @@ export function TrashPage() {
                   {query.isFetchNextPageError && media.length > 0 && !previewMediaId ? (
                     <ErrorState message={t("Could not load more media.")} onRetry={() => void query.fetchNextPage()} />
                   ) : null}
-                  {query.isFetchingNextPage ? <Spinner label={t("Loading more media…")} /> : null}
+                  {query.isFetchingNextPage ? <Spinner label={t("Loading more media...")} /> : null}
                   {query.isError && !query.isFetchNextPageError && media.length > 0 ? (
                     <ErrorState message={t("Could not refresh media.")} onRetry={() => void query.refetch()} />
                   ) : null}

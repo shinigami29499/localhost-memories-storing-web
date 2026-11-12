@@ -1,7 +1,10 @@
-﻿import { Popover } from "@base-ui/react/popover";
+﻿import { Popover, PopoverContent } from "./Popover";
 import { useState } from "react";
+import { XIcon } from "../animate-ui/icons/x";
 import { useLocale } from "../../context/LocaleContext";
 import { Button } from "./Button";
+import { DatePicker } from "./DatePicker";
+import { SelectField } from "./SelectField";
 import "./header-filters.css";
 
 type Option = { value: string; label: string };
@@ -41,34 +44,37 @@ export function HeaderFilters({ selects, date }: Props) {
   };
   return <Popover.Root open={open} onOpenChange={handleOpenChange}>
     <Popover.Trigger className="header-filters__trigger">{t("Filters")}{active ? " •" : ""}</Popover.Trigger>
-    <Popover.Portal>
-      <Popover.Positioner className="header-filters__positioner" side="bottom" align="end" sideOffset={8}>
-        <Popover.Popup className="header-filters__popup" aria-label={t("Filters")}>
-          {selects.map((select, index) => <label key={select.label} className="header-filters__field">
-            <span>{t(select.label)}</span>
-            <select value={draftSelects[index] ?? ""} onChange={(event) => {
-              const next = event.target.value;
-              setDraftSelects((values) => values.map((value, itemIndex) => itemIndex === index ? next : value));
-            }}>
-              <option value="">{t("All")}</option>
-              {select.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-            </select>
-          </label>)}
-          {date && <fieldset className="header-filters__range">
-            <legend>{t(date.label)}</legend>
-            <div className="header-filters__range-box">
-              <label><span>{t("From")}</span><input type="date" aria-label={t("From")} value={draftFrom} max={draftTo || undefined} onChange={(event) => setDraftFrom(event.target.value)} /></label>
-              <span aria-hidden="true">–</span>
-              <label><span>{t("To")}</span><input type="date" aria-label={t("To")} value={draftTo} min={draftFrom || undefined} onChange={(event) => setDraftTo(event.target.value)} /></label>
-            </div>
-          </fieldset>}
-          <div className="dialog-actions header-filters__actions">
-            <Button type="button" variant="danger" className="dialog-action dialog-action--danger" onClick={clear}>{t("Clear filters")}</Button>
-            <Button type="button" className="dialog-action dialog-action--normal" onClick={apply}>{t("Apply filters")}</Button>
+    <PopoverContent className="header-filters__popup" side="bottom" align="end" sideOffset={8}>
+      <header className="header-filters__header">
+        <Popover.Title className="header-filters__title">{t("Filters")}</Popover.Title>
+        <Popover.Close className="header-filters__close" aria-label={t("Close")} title={t("Close")}>
+          <XIcon size={20} aria-hidden="true" />
+        </Popover.Close>
+      </header>
+      <div className="header-filters__content">
+        {selects.map((select, index) => <SelectField
+          key={select.label}
+          label={t(select.label)}
+          value={draftSelects[index] ?? ""}
+          options={[{ value: "", label: t("All") }, ...select.options]}
+          onChange={(next) => {
+            setDraftSelects((values) => values.map((value, itemIndex) => itemIndex === index ? next : value));
+          }}
+        />)}
+        {date && <fieldset className="header-filters__range">
+          <legend>{t(date.label)}</legend>
+          <div className="header-filters__range-box">
+            <div className="header-filters__date"><span>{t("From")}</span><DatePicker label={t("From")} value={draftFrom} max={draftTo || undefined} onChange={setDraftFrom} /></div>
+            <span aria-hidden="true">–</span>
+            <div className="header-filters__date"><span>{t("To")}</span><DatePicker label={t("To")} value={draftTo} min={draftFrom || undefined} onChange={setDraftTo} /></div>
           </div>
-        </Popover.Popup>
-      </Popover.Positioner>
-    </Popover.Portal>
+        </fieldset>}
+        <div className="dialog-actions header-filters__actions">
+          <Button type="button" variant="danger" className="dialog-action dialog-action--danger" onClick={clear}>{t("Clear filters")}</Button>
+          <Button type="button" className="dialog-action dialog-action--normal" onClick={apply}>{t("Apply filters")}</Button>
+        </div>
+      </div>
+    </PopoverContent>
   </Popover.Root>;
 }
 

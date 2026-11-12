@@ -57,7 +57,7 @@ export function LocationSearch({ disabled = false, onFocus, onSelect }: Props) {
         {showResults && <>
           {showMessage && <div id={`${id}-hint`} className="place__location-search-message">
             {query.trim().length < 3 && <p role="status">{t("Enter 3 characters to begin.")}</p>}
-            {searching && <p role="status">{t("Searching locations…")}</p>}
+            {searching && <p role="status">{t("Searching locations...")}</p>}
             {error && <>
               <p role="alert">{t(error.message === "Location search returned an invalid response. Try again later."
                 ? error.message : "Could not search locations. Check your connection and try again.")}</p>

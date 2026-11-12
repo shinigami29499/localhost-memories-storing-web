@@ -907,10 +907,6 @@ namespace Infrastructures.Data.Migrations
                         .HasColumnType("character varying(500)")
                         .HasColumnName("relative_path");
 
-                    b.Property<int>("RetryCount")
-                        .HasColumnType("integer")
-                        .HasColumnName("retry_count");
-
                     b.Property<int>("Revision")
                         .IsConcurrencyToken()
                         .HasColumnType("integer")

@@ -78,7 +78,7 @@ export function Pagination({
           pageNumber === "ellipsis" ? (
             <li key={`ellipsis-${index}`} data-slot="pagination-item">
               <span data-slot="pagination-ellipsis" className="pagination-ellipsis" aria-hidden="true">
-                …
+                ...
               </span>
             </li>
           ) : (

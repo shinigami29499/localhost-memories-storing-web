@@ -9,5 +9,4 @@ public sealed record UploadItemDto(
     string Status,
     int ProgressPercent,
     string? ErrorDetails,
-    int RetryCount,
     DateTime? CompletedAt);
