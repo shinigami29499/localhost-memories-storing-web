@@ -11,7 +11,7 @@
   .page-highlight .navigation-highlight > :is(a, button) { min-height: 27px; }
   .page-highlight[data-animation-enabled="true"] .page-highlight__navigation { transition: height 200ms ease-out; }
   .page-highlight[data-animation-enabled="true"][data-expanded="false"] .page-highlight__navigation { transition-timing-function: ease-in; }
-  :root .page-highlight button.page-highlight__toggle { position: relative; z-index: 1; align-items: center; background: var(--surface-hover); border: 1px solid var(--border); border-radius: 0 0 var(--radius) var(--radius); border-top: 0; color: var(--text); display: flex; height: 20px; justify-content: center; margin: 0 auto; padding: 0; width: 48px; }
+  :root .page-highlight button.page-highlight__toggle { position: relative; z-index: 1; align-items: center; background: var(--surface-hover); border: 1px solid var(--border); border-radius: 0 0 4px 4px; border-top: 0; color: var(--text); display: flex; height: 20px; justify-content: center; margin: 0 auto; padding: 0; width: 48px; }
   .page-highlight[data-expanded="true"] .page-highlight__toggle svg { transform: rotate(180deg); }
   @media (prefers-reduced-motion: reduce) { .page-highlight[data-animation-enabled="true"] .page-highlight__navigation { transition: none; } }
 }

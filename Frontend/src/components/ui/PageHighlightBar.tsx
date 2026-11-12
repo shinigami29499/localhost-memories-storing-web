@@ -23,17 +23,17 @@ export function PageHighlightBar({ children, id, label, onToggle }: { children: 
   }, []);
   return (
     <div className="page-highlight" data-expanded={expanded} data-animation-enabled={animationsEnabled}>
-      <div className="page-highlight__navigation" style={isMobile && (!expanded || height) ? { height: expanded ? height : 20 } : undefined}>
+      <div className="page-highlight__navigation" style={isMobile && (!expanded || height) ? { height: expanded ? height : 0 } : undefined}>
         <div className="page-highlight__clip">
           <div className="page-highlight__moving" ref={movingRef}>
             <div id={id} inert={isMobile && !expanded}>{children}</div>
-            <button className="page-highlight__toggle" type="button" aria-controls={id} aria-expanded={expanded}
-              aria-label={`${t(expanded ? "Hide" : "Show")} ${t(label)}`} onClick={() => { onToggle?.(); toggle(); }}>
-              <ChevronDown size={16} animate={false} aria-hidden="true" />
-            </button>
           </div>
         </div>
       </div>
+      <button className="page-highlight__toggle" type="button" aria-controls={id} aria-expanded={expanded}
+        aria-label={`${t(expanded ? "Hide" : "Show")} ${t(label)}`} onClick={() => { onToggle?.(); toggle(); }}>
+        <ChevronDown size={16} animate={false} aria-hidden="true" />
+      </button>
     </div>
   );
 }

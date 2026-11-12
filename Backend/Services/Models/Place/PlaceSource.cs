@@ -7,4 +7,5 @@ public sealed record PlaceSource(
     Domains.Entities.Place Place,
     User Owner,
     IReadOnlyList<Guid> MediaIds,
-    double AverageRating);
+    double AverageRating,
+    DateTime? LastCheckInAt);

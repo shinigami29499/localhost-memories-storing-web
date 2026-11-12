@@ -12,4 +12,5 @@ public sealed record PlaceVisitSource(
     string Username,
     string? AvatarSeed,
     string Note,
-    int Rating);
+    int Rating,
+    string? PlaceCity = null);

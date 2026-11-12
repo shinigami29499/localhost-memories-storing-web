@@ -12,6 +12,7 @@ import { UploadIcon } from "../../components/animate-ui/icons/upload";
 import { XIcon } from "../../components/animate-ui/icons/x";
 import { useAuthStore } from "../../store/authStore";
 import { useLocale } from "../../context/LocaleContext";
+import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { stopUploadLocally, requestUploadRetry, setUploadPaused } from "../../features/uploads/services/uploadRuntime";
 import { uploadService } from "../../features/uploads/services/uploadService";
 import { removeUploadFile, saveUploadFile } from "../../features/uploads/services/uploadFileStore";
@@ -21,6 +22,7 @@ import "../../features/uploads/uploads.css";
 
 export function UploadManagementPage() {
   const { t } = useLocale();
+  const isMobile = useMediaQuery("(max-width: 767px)");
   const unread = useUnreadUploads();
   const queryClient = useQueryClient();
   const user = useAuthStore((state) => state.user);
@@ -305,7 +307,7 @@ export function UploadManagementPage() {
       </div>
       {data && data.totalItems > 0 ? (
           <Pagination
-            inActionBar
+            inActionBar={isMobile}
             revealBeforeTransitionEndMs={200}
             page={page}
             pageSize={limit}

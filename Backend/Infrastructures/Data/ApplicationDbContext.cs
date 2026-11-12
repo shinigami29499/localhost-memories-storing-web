@@ -224,6 +224,7 @@ public class ApplicationDbContext(
             entity.ToTable("locations");
             entity.Property(place => place.Name).HasMaxLength(120).IsRequired();
             entity.Property(place => place.Address).HasMaxLength(300).IsRequired().HasDefaultValue("");
+            entity.Property(place => place.City).HasMaxLength(200);
             entity.Property(place => place.Note).HasMaxLength(2000).IsRequired().HasDefaultValue("");
             entity.Property(place => place.MarkerIcon).HasMaxLength(16).IsRequired().HasDefaultValue("");
             entity.Property(place => place.MarkerColor).HasMaxLength(9).IsRequired().HasDefaultValue("");

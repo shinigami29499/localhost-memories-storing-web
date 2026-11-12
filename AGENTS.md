@@ -29,6 +29,20 @@ For full-stack work, load both overviews. Do not load skills for an unaffected s
 
 See [CLAUDE.md](CLAUDE.md) for repository architecture and common commands.
 
+## Orchestration
+
+Use the main agent for coordination and final decisions. Delegate adaptively to `planner`, `coder`, and `reviewer` agents when the runtime exposes subagents.
+
+- **Trivial changes**: work directly when delegation costs more than it helps.
+- **Simple bug fixes**: delegate to `coder` when useful.
+- **Normal features**: run `planner` → `coder` → `reviewer`. Pass the planner's concise findings to the coder. Let the coder run focused verification before review.
+- **Complex architecture or security work**: use the full sequence with stronger planning and review. Escalate only the agent handling the difficult part. Never claim escalation unless it happened.
+- If the reviewer finds issues, return actionable findings to the coder, then ask the reviewer to check the corrections.
+
+Preserve dependencies within each workflow. Start independent workflows concurrently only when the work is separable and the likely benefit exceeds agent and token overhead. Never let two coders edit the same files at once. Use isolated worktrees where supported and useful; coordinate shared dependencies before integration. Respect the runtime's concurrency limit.
+
+Keep subagent context task-specific. Reuse findings and project guidance; avoid repeat exploration, broad tests without cause, redundant reviews, and nested agents without need. Prefer targeted checks first. Correctness takes priority for critical operations. Summarize changed files, verification, and remaining risks to the user.
+
 ## Permissions
 
 | Operation         | Policy  |

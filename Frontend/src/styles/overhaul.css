@@ -205,7 +205,28 @@ textarea, select { min-height: 44px; }
   background: #FFFFDA;
   border-top: 1px solid var(--border);
 }
-.gallery-page .gallery-page__content { padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
+.gallery-page .gallery-page__content { padding-bottom: var(--page-padding-bottom); }
+
+.app-topbar__actions {
+  display: flex;
+  flex: 1;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+@media (min-width: 768px) {
+  .gallery-page__footer.page-action-bar {
+    background: transparent;
+    border: 0;
+    height: 0;
+    left: auto;
+    min-height: 0;
+    padding: 0;
+    position: absolute;
+    right: 0;
+    width: 0;
+  }
+}
 
 .bottom-navigation { display: none; }
 
@@ -287,6 +308,32 @@ textarea, select { min-height: 44px; }
     color: var(--text);
   }
   .bottom-navigation__dialog::backdrop { background: var(--accent); }
+  @media (prefers-reduced-motion: no-preference) {
+    .bottom-navigation__dialog[data-animation-enabled="true"] {
+      opacity: 0;
+      filter: blur(8px);
+      transition: opacity 150ms ease-in, filter 150ms ease-in, display 150ms allow-discrete, overlay 150ms allow-discrete;
+    }
+    .bottom-navigation__dialog[data-animation-enabled="true"][open] {
+      opacity: 1;
+      filter: blur(0);
+      transition-duration: 300ms;
+      transition-timing-function: ease-out;
+    }
+    .bottom-navigation__dialog[data-animation-enabled="true"]::backdrop {
+      opacity: 0;
+      transition: opacity 150ms ease-in, display 150ms allow-discrete, overlay 150ms allow-discrete;
+    }
+    .bottom-navigation__dialog[data-animation-enabled="true"][open]::backdrop {
+      opacity: 1;
+      transition-duration: 300ms;
+      transition-timing-function: ease-out;
+    }
+    @starting-style {
+      .bottom-navigation__dialog[data-animation-enabled="true"][open] { opacity: 0; filter: blur(8px); }
+      .bottom-navigation__dialog[data-animation-enabled="true"][open]::backdrop { opacity: 0; }
+    }
+  }
   .bottom-navigation__dialog-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; }
   .bottom-navigation__dialog nav { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
   .bottom-navigation__dialog-header button:not(.dialog-action),
@@ -360,4 +407,8 @@ textarea, select { min-height: 44px; }
   :is(.home-page__header h1, .settings-page__section h2, .profile-page h2, .album-page h1) {
     margin-left: 0.5vw;
   }
+}
+
+@media (min-width: 768px) {
+  .app-topbar .notification-bar.control-bar { border: 0; box-sizing: border-box; height: 44px; }
 }

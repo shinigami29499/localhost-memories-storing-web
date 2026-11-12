@@ -101,7 +101,7 @@
 }
 
 :is(.place, .locations) .map-controls .mapboxgl-ctrl-geolocate:not(:disabled):is(:hover, :active, .mapboxgl-ctrl-geolocate-active) {
-  background-color: #000;
+  background-color: var(--accent);
 }
 
 :is(.place, .locations) .map-controls .mapboxgl-ctrl-geolocate .mapboxgl-ctrl-icon {
@@ -109,7 +109,7 @@
 }
 
 :is(.place, .locations) .map-controls .mapboxgl-ctrl-geolocate:not(:disabled):is(:hover, :focus-visible) {
-  background-color: #000;
+  background-color: var(--accent);
 }
 
 :is(.place, .locations) .map-controls .mapboxgl-ctrl-geolocate:not(:disabled):is(:hover, :focus-visible)::before {

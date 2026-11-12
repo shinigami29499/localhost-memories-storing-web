@@ -11,4 +11,6 @@ public sealed record PlaceDto(
     string MarkerIcon,
     string MarkerColor,
     PlaceOwnerDto Owner,
-    IReadOnlyList<Guid> MediaIds);
+    IReadOnlyList<Guid> MediaIds,
+    DateTime? LastCheckInAt,
+    string? City = null);

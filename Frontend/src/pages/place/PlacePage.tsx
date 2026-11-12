@@ -1,5 +1,6 @@
 import { PushTransition } from "../../hooks/PushTransition";
 import { useLocation, useNavigate } from "react-router-dom";
+import { createPortal } from "react-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { lazy, Suspense, startTransition, useCallback, useEffect, useLayoutEffect, useRef, useState, useMemo, type CSSProperties } from "react";
 import { HighlightItem } from "@animate-ui/react/primitives/effects/highlight";
@@ -26,6 +27,9 @@ import { useHomeLocation } from "../../features/locations/hooks/useHomeLocation"
 import { useLocations } from "../../features/locations/hooks/useLocations";
 import { useMapBounds } from "../../features/locations/hooks/useMapBounds";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
+import { useMediaQuery } from "../../hooks/useMediaQuery";
+import { HeaderFilters, inDateRange } from "../../components/ui/HeaderFilters";
+import { cityFromAddress } from "../../features/place/cityFromAddress";
 import { uploadService } from "../../features/uploads/services/uploadService";
 import { registerUploadCompletionAction } from "../../features/uploads/services/uploadRuntime";
 import { locationService } from "../../features/locations/services/locationService";
@@ -53,6 +57,7 @@ import {
   useInfinitePlaceVisitHistory,
   usePlaceVisitHistory,
   useInfinitePlaces,
+  usePlaces,
   useInfiniteMapPlaces,
   usePlace,
   usePlaceVisits,
@@ -124,6 +129,7 @@ export function PlacePage() {
   const { t } = useLocale();
   const queryClient = useQueryClient();
   const location = useLocation();
+  const isMobile = useMediaQuery("(max-width: 767px)");
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const isAdmin = user?.role?.toLowerCase() === "admin";
@@ -236,6 +242,23 @@ export function PlacePage() {
     });
     return () => { cancelled = true; cancelAnimationFrame(frame); window.clearTimeout(pause); };
   }, [actionBarFooter, animationsEnabled, highlightMotionVersion, mapStartReady, saved]);
+  const [savedCity, setSavedCity] = useState("");
+  const [savedOwner, setSavedOwner] = useState("");
+  const [savedDateFrom, setSavedDateFrom] = useState("");
+  const [savedDateTo, setSavedDateTo] = useState("");
+  const [historyCity, setHistoryCity] = useState("");
+  const [historyOwner, setHistoryOwner] = useState("");
+  const [historyDateFrom, setHistoryDateFrom] = useState("");
+  const [historyDateTo, setHistoryDateTo] = useState("");
+  const city = view === "history" ? historyCity : savedCity;
+  const setCity = view === "history" ? setHistoryCity : setSavedCity;
+  const owner = view === "history" ? historyOwner : savedOwner;
+  const setOwner = view === "history" ? setHistoryOwner : setSavedOwner;
+  const dateFrom = view === "history" ? historyDateFrom : savedDateFrom;
+  const setDateFrom = view === "history" ? setHistoryDateFrom : setSavedDateFrom;
+  const dateTo = view === "history" ? historyDateTo : savedDateTo;
+  const setDateTo = view === "history" ? setHistoryDateTo : setSavedDateTo;
+  const hasLocationFilters = saved && !isMobile && (!!city || !!owner || !!dateFrom || !!dateTo);
   const [placeSearch, setPlaceSearch] = useState("");
   const debouncedSearch = useDebouncedValue(placeSearch);
   const [minimumRating, setMinimumRating] = useState(0);
@@ -251,9 +274,10 @@ export function PlacePage() {
   const uploadInFlight = useRef(false);
   const uploadLocation = useRef<{ latitude: number; longitude: number } | null>(null);
   const uploadInput = useRef<HTMLInputElement>(null);
-  const savedPlaces = useInfinitePlaces(view === "saved", debouncedSearch, minimumRating);
+  const savedPlaces = useInfinitePlaces(view === "saved" && !hasLocationFilters, debouncedSearch, minimumRating);
+  const allPlaces = usePlaces(view === "saved" && !isMobile);
   const mapPlacesQuery = useInfiniteMapPlaces(!saved, mapBounds);
-  const query = saved ? savedPlaces : mapPlacesQuery;
+  const query = saved ? (hasLocationFilters ? allPlaces : savedPlaces) : mapPlacesQuery;
   const save = useSavePlace();
   const remove = useDeletePlace();
   const checkInMutation = useCheckInPlace();
@@ -263,21 +287,21 @@ export function PlacePage() {
   const [selectedId, setSelectedId] = useState<string | null>(() => !saved ? (location.state as { focusPlaceId?: string } | null)?.focusPlaceId ?? null : null);
   const selectedPlaceQuery = usePlace(selectedId, !saved);
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const visitHistory = useInfinitePlaceVisitHistory(view === "history" && !historySearch.trim() && !historyMinimumRating);
-  const searchHistory = usePlaceVisitHistory(view === "history" && (!!historySearch.trim() || historyMinimumRating > 0));
-  const historyQuery = historySearch.trim() || historyMinimumRating ? searchHistory : visitHistory;
-  const historyVisits = historySearch.trim() || historyMinimumRating
-    ? (searchHistory.data ?? []).filter((visit) => visit.rating >= historyMinimumRating && [visit.placeName, visit.placeAddress, visit.username].some((value) => value.toLowerCase().includes(historySearch.trim().toLowerCase())))
+  const visitHistory = useInfinitePlaceVisitHistory(view === "history" && !historySearch.trim() && !historyMinimumRating && !hasLocationFilters);
+  const searchHistory = usePlaceVisitHistory(view === "history" && (!isMobile || !!historySearch.trim() || historyMinimumRating > 0));
+  const historyQuery = historySearch.trim() || historyMinimumRating || hasLocationFilters ? searchHistory : visitHistory;
+  const historyVisits = historySearch.trim() || historyMinimumRating || hasLocationFilters
+    ? (searchHistory.data ?? []).filter((visit) => visit.rating >= historyMinimumRating && [visit.placeName, visit.placeAddress, visit.username].some((value) => value.toLowerCase().includes(historySearch.trim().toLowerCase())) && (!hasLocationFilters || ((!city || ((visit.placeCity || cityFromAddress(visit.placeAddress)) || "__unknown") === city) && (!owner || visit.userId === owner) && inDateRange(visit.visitedAt, dateFrom, dateTo))))
     : visitHistory.data?.pages.flatMap((page) => page.items) ?? [];
   useEffect(() => {
     const target = historySentinel.current;
-    if (!target || !visitHistory.hasNextPage || visitHistory.isFetchingNextPage || visitHistory.isFetchNextPageError || historySearch.trim() || historyMinimumRating) return;
+    if (!target || !visitHistory.hasNextPage || visitHistory.isFetchingNextPage || visitHistory.isFetchNextPageError || historySearch.trim() || historyMinimumRating || hasLocationFilters) return;
     const observer = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting) void visitHistory.fetchNextPage();
     }, { root: target.closest(".place__view-content"), rootMargin: "200px" });
     observer.observe(target);
     return () => observer.disconnect();
-  }, [view, historySearch, historyMinimumRating, visitHistory.hasNextPage, visitHistory.isFetchingNextPage, visitHistory.isFetchNextPageError, visitHistory.fetchNextPage]);
+  }, [view, historySearch, historyMinimumRating, hasLocationFilters, visitHistory.hasNextPage, visitHistory.isFetchingNextPage, visitHistory.isFetchNextPageError, visitHistory.fetchNextPage]);
   const [formError, setFormError] = useState<string | null>(null);
   const [placeToDelete, setPlaceToDelete] = useState<Place | null>(null);
   const [confirmingDetailDeleteId, setConfirmingDetailDeleteId] = useState<string | null>(null);
@@ -363,9 +387,12 @@ export function PlacePage() {
     }
   };
   const places = useMemo(() => saved
-    ? savedPlaces.data?.pages.flatMap((page) => page.items) ?? []
-    : mapPlacesQuery.data?.pages.flatMap((page) => page.items) ?? [], [saved, savedPlaces.data, mapPlacesQuery.data]);
-  const filteredPlaces = places;
+    ? hasLocationFilters ? allPlaces.data ?? [] : savedPlaces.data?.pages.flatMap((page) => page.items) ?? []
+    : mapPlacesQuery.data?.pages.flatMap((page) => page.items) ?? [], [saved, hasLocationFilters, allPlaces.data, savedPlaces.data, mapPlacesQuery.data]);
+  const filteredPlaces = hasLocationFilters ? places.filter((place) => (!city || ((place.city || cityFromAddress(place.address)) || "__unknown") === city) && (!owner || place.owner.id === owner) && inDateRange(place.lastCheckInAt ?? "", dateFrom, dateTo) && place.rating >= minimumRating && [place.name, place.address, place.owner.username].some((value) => value.toLowerCase().includes(placeSearch.trim().toLowerCase()))) : places;
+  const filterItems = view === "history" ? (searchHistory.data ?? []).map((visit) => ({ city: visit.placeCity || cityFromAddress(visit.placeAddress), id: visit.userId, username: visit.username })) : (allPlaces.data ?? []).map((place) => ({ city: place.city || cityFromAddress(place.address), id: place.owner.id, username: place.owner.username }));
+  const cityOptions = [...new Set(filterItems.map((item) => item.city || "__unknown"))].sort().map((value) => ({ value, label: value === "__unknown" ? t("Unknown city") : value }));
+  const ownerOptions = [...new Map(filterItems.map((item) => [item.id, { value: item.id, label: item.username }])).values()].sort((a, b) => a.label.localeCompare(b.label));
   const homePicking = manualHomePick;
   const selected = saved ? places.find((place) => place.id === selectedId) : selectedPlaceQuery.data;
   const selectedVisits = usePlaceVisits(detailsOpen ? selected?.id ?? "" : "");
@@ -618,6 +645,49 @@ export function PlacePage() {
   };
 
 
+  const headerActions = document.getElementById("page-header-actions");
+  const searchForm = (
+          <form className={`place__search-bar${isMobile ? "" : " place__search-bar--header"}${activeRating > 0 ? " place__search-bar--rating-filtered" : ""}`} role="search" onSubmit={(event) => event.preventDefault()}>
+            <input type="search" aria-label={t(view === "history" ? "Search visit history" : "Search saved places")}
+              placeholder={t("Search places or users")} value={view === "history" ? historySearch : placeSearch} maxLength={120}
+              onChange={(event) => view === "history" ? setHistorySearch(event.target.value) : setPlaceSearch(event.target.value)} />
+            <div className="place__rating-controls" style={{ flexBasis: `${40 + Math.max(0, activeRating - 1) * 8}px` }}>
+              {activeRating > 0 && (
+                <button type="button" className="place__rating-filter-clear" aria-label={t("Clear rating filter")}
+                  title={t("Clear rating filter")} onClick={() => setActiveRating(0)}>
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
+                  </svg>
+                </button>
+              )}
+              <button type="button" className="place__rating-filter" aria-label={`${t("Filter places by average rating")}: ${activeRating}`}
+                title={t("Filter places by average rating")} aria-pressed={activeRating > 0}
+                onClick={() => setActiveRating((rating) => rating === 5 ? 0 : rating + 1)}>
+                {Array.from({ length: Math.max(1, activeRating) }, (_, index) => (
+                  <Star key={index} className={animationsEnabled ? "place__rating-star--animated" : undefined}
+                    size={20} fill={activeRating > 0 ? "currentColor" : "none"} aria-hidden="true" />
+                ))}
+              </button>
+            </div>
+            {(view === "history" ? historySearch : placeSearch) && (
+              <>
+                <span className="place__search-divider" aria-hidden="true" />
+                <button type="button" className="place__search-clear" aria-label={t("Clear search")}
+                  title={t("Clear search")} onClick={() => view === "history" ? setHistorySearch("") : setPlaceSearch("")}>
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
+                  </svg>
+                </button>
+              </>
+            )}
+            <AnimateIcon animateOnHover animateOnTap={false} completeOnStop asChild>
+              <span className="place__search-icon" aria-hidden="true">
+                <Search size={22} />
+              </span>
+            </AnimateIcon>
+          </form>
+  );
+
   return (
     <main className={`place${saved ? " place--saved" : ""}`}>
         <div className="place__content">
@@ -776,21 +846,21 @@ export function PlacePage() {
                     removingVisitId={removeVisitMutation.isPending ? removeVisitMutation.variables : null}
                   />
                 ) : (
-                  <EmptyState title={historySearch || historyMinimumRating ? "No matching places" : "No visits yet"} hint={historySearch || historyMinimumRating ? "Try a different search to find a visit." : "Your visit history will appear here after a check-in."} />
+                  <EmptyState title={historySearch || historyMinimumRating || hasLocationFilters ? "No matching places" : "No visits yet"} hint={historySearch || historyMinimumRating || hasLocationFilters ? "Try a different search to find a visit." : "Your visit history will appear here after a check-in."} />
                 )}
-                {!historySearch.trim() && !historyMinimumRating && visitHistory.isFetchNextPageError && <ErrorState message={t("Could not load more visits.")} onRetry={() => void visitHistory.fetchNextPage()} />}
-                {!historySearch.trim() && !historyMinimumRating && visitHistory.hasNextPage && <div ref={historySentinel}>{visitHistory.isFetchingNextPage && <Spinner />}</div>}
+                {!historySearch.trim() && !historyMinimumRating && !hasLocationFilters && visitHistory.isFetchNextPageError && <ErrorState message={t("Could not load more visits.")} onRetry={() => void visitHistory.fetchNextPage()} />}
+                {!historySearch.trim() && !historyMinimumRating && !hasLocationFilters && visitHistory.hasNextPage && <div ref={historySentinel}>{visitHistory.isFetchingNextPage && <Spinner />}</div>}
               </div>
             ) : query.isLoading ? <Spinner page /> : query.isError && !places.length ? (
               <ErrorState message="Could not load places." onRetry={() => void query.refetch()} />
             ) : (
               <>
-                {!places.length ? (
-                  <EmptyState title={placeSearch || minimumRating ? "No matching places" : "No saved places yet"}
-                    hint={placeSearch || minimumRating
+                {!filteredPlaces.length ? (
+                  <EmptyState title={placeSearch || minimumRating || hasLocationFilters ? "No matching places" : "No saved places yet"}
+                    hint={placeSearch || minimumRating || hasLocationFilters
                       ? "Try a different search to find a saved place."
                       : "Saved places will appear here."}
-                    action={!placeSearch && !minimumRating ? <Button type="button" variant="secondary" onClick={() => requestView("map")}>{t("Open map")}</Button> : undefined} />
+                    action={!placeSearch && !minimumRating && !hasLocationFilters ? <Button type="button" variant="secondary" onClick={() => requestView("map")}>{t("Open map")}</Button> : undefined} />
                 ) : (
                   <>
                     <ul className="place__list">
@@ -811,10 +881,16 @@ export function PlacePage() {
                               {place.markerIcon}
                             </span>
                             <span className="place__card-body">
-                              <strong>{place.name}</strong>
-                              {place.address && <small>{place.address}</small>}
-                              <StarRating value={place.rating} size="sm" />
-                              <small className="place__card-owner">{place.owner.username}</small>
+                              <strong className="place__card-name">{place.name}</strong>
+                              {isMobile ? <>
+                                {place.address && <small>{place.address}</small>}
+                                <StarRating value={place.rating} size="sm" />
+                                <small className="place__card-owner">{place.owner.username}</small>
+                              </> : <>
+                                <small className="place__card-city">{t("at {city}", { city: "{city}" }).split("{city}").map((part, index) => index === 0 ? part : <span key={index}><strong>{place.city || cityFromAddress(place.address) || t("Unknown city")}</strong>{part}</span>)}</small>
+                                <small className="place__card-owner">{t("by {user}", { user: "{user}" }).split("{user}").map((part, index) => index === 0 ? part : <span key={index}><strong>{place.owner.username}</strong>{part}</span>)}</small>
+                                <StarRating value={place.rating} size="sm" />
+                              </>}
                             </span>
                           </button>
                         </li>
@@ -822,11 +898,11 @@ export function PlacePage() {
                     </ul>
                   </>
                 )}
-                {savedPlaces.isFetchNextPageError ? (
+                {!hasLocationFilters && savedPlaces.isFetchNextPageError ? (
                   <ErrorState message={t("Could not load more places.")}
                     onRetry={() => void savedPlaces.fetchNextPage()} />
                 ) : null}
-                {savedPlaces.hasNextPage ? (
+                {!hasLocationFilters && savedPlaces.hasNextPage ? (
                   <Button type="button" variant="secondary" disabled={savedPlaces.isFetchingNextPage}
                     onClick={() => void savedPlaces.fetchNextPage()}>
                     {t(savedPlaces.isFetchingNextPage ? "Loading places…" : "Load more places")}
@@ -835,47 +911,8 @@ export function PlacePage() {
               </>
             )
             )}
-        {saved && <PageActionBar className="place__action-bar">
-          <form className={`place__search-bar${activeRating > 0 ? " place__search-bar--rating-filtered" : ""}`} role="search" onSubmit={(event) => event.preventDefault()}>
-            <input type="search" aria-label={t(view === "history" ? "Search visit history" : "Search saved places")}
-              placeholder={t("Search places or users")} value={view === "history" ? historySearch : placeSearch} maxLength={120}
-              onChange={(event) => view === "history" ? setHistorySearch(event.target.value) : setPlaceSearch(event.target.value)} />
-            <div className="place__rating-controls" style={{ flexBasis: `${40 + Math.max(0, activeRating - 1) * 8}px` }}>
-              {activeRating > 0 && (
-                <button type="button" className="place__rating-filter-clear" aria-label={t("Clear rating filter")}
-                  title={t("Clear rating filter")} onClick={() => setActiveRating(0)}>
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
-                  </svg>
-                </button>
-              )}
-              <button type="button" className="place__rating-filter" aria-label={`${t("Filter places by average rating")}: ${activeRating}`}
-                title={t("Filter places by average rating")} aria-pressed={activeRating > 0}
-                onClick={() => setActiveRating((rating) => rating === 5 ? 0 : rating + 1)}>
-                {Array.from({ length: Math.max(1, activeRating) }, (_, index) => (
-                  <Star key={index} className={animationsEnabled ? "place__rating-star--animated" : undefined}
-                    size={20} fill={activeRating > 0 ? "currentColor" : "none"} aria-hidden="true" />
-                ))}
-              </button>
-            </div>
-            {(view === "history" ? historySearch : placeSearch) && (
-              <>
-                <span className="place__search-divider" aria-hidden="true" />
-                <button type="button" className="place__search-clear" aria-label={t("Clear search")}
-                  title={t("Clear search")} onClick={() => view === "history" ? setHistorySearch("") : setPlaceSearch("")}>
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
-                  </svg>
-                </button>
-              </>
-            )}
-            <AnimateIcon animateOnHover animateOnTap={false} completeOnStop asChild>
-              <span className="place__search-icon" aria-hidden="true">
-                <Search size={22} />
-              </span>
-            </AnimateIcon>
-          </form>
-        </PageActionBar>}
+        {saved && (isMobile ? <PageActionBar className="place__action-bar">{searchForm}</PageActionBar>
+          : headerActions ? createPortal(<div className="header-search-controls">{searchForm}<HeaderFilters selects={[{ label: "City", value: city, onChange: setCity, options: cityOptions }, { label: "User", value: owner, onChange: setOwner, options: ownerOptions }]} date={{ label: view === "history" ? "Visited" : "Last check-in", from: dateFrom, to: dateTo, setFrom: setDateFrom, setTo: setDateTo }} /></div>, headerActions) : searchForm)}
             </>
             </div>
 

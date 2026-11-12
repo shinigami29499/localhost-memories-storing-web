@@ -7,6 +7,8 @@ export interface Place {
   id: string;
   name: string;
   address: string;
+  city?: string | null;
+  lastCheckInAt?: string | null;
   note: string;
   rating: number;
   latitude: number;
@@ -23,6 +25,7 @@ export interface PlaceVisit {
   placeId: string;
   placeName: string;
   placeAddress: string;
+  placeCity?: string | null;
   markerIcon: string;
   markerColor: string;
   visitedAt: string;

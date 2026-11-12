@@ -20,6 +20,16 @@
   scroll-padding-block: 24px;
 }
 
+@media (min-width: 768px) {
+  .upload-page__content { padding-bottom: var(--page-padding-bottom); }
+  .upload-page > .pagination {
+    align-self: center;
+    flex: none;
+    margin: 0 0 12px;
+    max-width: calc(100% - 2 * var(--page-gutter));
+  }
+}
+
 .upload-page__header,
 .upload-list,
 .upload-page .empty-state {

@@ -38,13 +38,14 @@ function animateExit(footer: HTMLElement, bar: HTMLElement, bounds: { left: numb
 }
 
 function animateMobileExit(footer: HTMLElement, bar: HTMLElement, bounds: { left: number; top: number; width: number; height: number }, nextHeight: number) {
+  const mobile = window.matchMedia("(max-width: 767px)").matches;
   const wrapper = document.createElement("div");
   wrapper.dataset.collapsingBar = "true";
   wrapper.setAttribute("aria-hidden", "true");
   wrapper.inert = true;
   Object.assign(wrapper.style, {
-    position: "absolute", right: "calc(var(--page-gutter) + 8px)",
-    bottom: "calc(var(--page-padding-bottom) + 8px)",
+    position: "absolute", right: mobile ? "calc(var(--page-gutter) + 8px)" : "12px",
+    bottom: mobile ? "calc(var(--page-padding-bottom) + 8px)" : "12px",
     width: `${bounds.width}px`, height: `${bounds.height}px`,
     display: "flex", alignItems: "flex-end", justifyContent: "flex-end", overflow: "hidden", pointerEvents: "none", zIndex: "2",
     boxSizing: "border-box", border: "2px solid var(--surface)", borderRadius: "var(--control-radius)", background: "var(--accent)",
@@ -115,7 +116,9 @@ export function PageActionBarProvider({ children }: { children: ReactNode }) {
     resize?.observe(footer);
     const measure = () => {
       const bar = target.querySelector<HTMLElement>(":scope > .gallery-selection-bar:not([data-exiting])");
-      target.style.setProperty("--page-action-bar-max-width", `${Math.max(0, footer.clientWidth - 32)}px`);
+      const availableWidth = window.matchMedia("(max-width: 767px)").matches
+        ? footer.clientWidth : footer.parentElement?.clientWidth ?? footer.clientWidth;
+      target.style.setProperty("--page-action-bar-max-width", `${Math.max(0, availableWidth - 32)}px`);
       if (bar !== observedBar) {
         if (observedBar) resize?.unobserve(observedBar);
         if (bar) resize?.observe(bar);
@@ -232,12 +235,12 @@ export function PageActionBarProvider({ children }: { children: ReactNode }) {
           measure();
           return;
         }
-        const mobileGalleryExit = removed?.classList.contains("gallery-page__actions") && window.matchMedia("(max-width: 767px)").matches;
+        const mobileGalleryExit = removed?.classList.contains("gallery-page__actions");
         const completingMobileSwap = Boolean(removed && removed === replacedBar);
         if (completingMobileSwap) replacedBar = null;
         if (nextWidth > 0 && !completingMobileSwap) footer.querySelector(":scope > [data-collapsing-bar]")?.remove();
         const mobileOverlap = added?.classList.contains("map-navigation__toolbar") && observedBar?.classList.contains("map-navigation__toolbar")
-          && observedBar !== added && !removed && snapshot && window.matchMedia("(max-width: 767px)").matches
+          && observedBar !== added && !removed && snapshot
           && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
         const pendingReplacement = added?.classList.contains("map-navigation__toolbar") && pendingMobileExit;
         if (pendingReplacement && added) {
@@ -294,10 +297,10 @@ export function PageActionBarProvider({ children }: { children: ReactNode }) {
           target.querySelector(":scope > [data-exiting]")?.remove();
         }
         if (!pendingReplacement && !mobileOverlap && added?.classList.contains("map-navigation__toolbar") && !removed?.classList.contains("gallery-page__actions")
-          && window.matchMedia("(max-width: 767px)").matches && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
           added.animate([{ clipPath: "inset(0 0 0 100%)" }, { clipPath: "inset(0 0 0 0)" }], { duration: 200, easing: "ease-out" });
         }
-        if (mobile && added?.classList.contains("gallery-page__actions") && !added.classList.contains("map-navigation__toolbar")
+        if (added?.classList.contains("gallery-page__actions") && !added.classList.contains("map-navigation__toolbar")
           && !snapshot && added.getBoundingClientRect().height > 0) {
           added.animate([{ clipPath: "inset(0 0 0 100%)" }, { clipPath: "inset(0 0 0 0)" }], { duration: 200, easing: "ease-out" });
         }

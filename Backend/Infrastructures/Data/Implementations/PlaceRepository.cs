@@ -42,7 +42,7 @@ public sealed class PlaceRepository(ApplicationDbContext db) : IPlaceRepository
         => await WithAverageRating(db.Places.AsNoTracking()
             .OrderByDescending(place => place.CreatedAt)
             .ThenByDescending(place => place.Id)
-            .Select(place => new PlaceSource(place, place.Owner, Array.Empty<Guid>(), 0)), cancellationToken);
+            .Select(place => new PlaceSource(place, place.Owner, Array.Empty<Guid>(), 0, null)), cancellationToken);
 
     public async Task<(IReadOnlyList<PlaceSource> Items, int Total)> GetMapPlacesPageAsync(
         int page, int limit, PlaceMapBounds bounds, CancellationToken cancellationToken = default)
@@ -55,7 +55,7 @@ public sealed class PlaceRepository(ApplicationDbContext db) : IPlaceRepository
         var total = await places.CountAsync(cancellationToken);
         var items = await WithAverageRating(places.OrderByDescending(place => place.CreatedAt)
             .ThenByDescending(place => place.Id).Skip((page - 1) * limit).Take(limit)
-            .Select(place => new PlaceSource(place, place.Owner, Array.Empty<Guid>(), 0)), cancellationToken);
+            .Select(place => new PlaceSource(place, place.Owner, Array.Empty<Guid>(), 0, null)), cancellationToken);
         return (items, total);
     }
 
@@ -89,7 +89,8 @@ public sealed class PlaceRepository(ApplicationDbContext db) : IPlaceRepository
                 user.Username,
                 user.AvatarSeed,
                 visit.Note,
-                visit.Rating))
+                visit.Rating,
+                place.City))
             .ToListAsync(cancellationToken);
     }
 
@@ -116,7 +117,8 @@ public sealed class PlaceRepository(ApplicationDbContext db) : IPlaceRepository
                 user.Username,
                 user.AvatarSeed,
                 visit.Note,
-                visit.Rating))
+                visit.Rating,
+                place.City))
             .ToListAsync(cancellationToken);
     }
 
@@ -134,7 +136,7 @@ public sealed class PlaceRepository(ApplicationDbContext db) : IPlaceRepository
             orderby visit.CreatedAt descending, visit.Id descending
             select new PlaceVisitSource(visit.Id, visit.PlaceId, place.Name, place.Address,
                 place.MarkerIcon, place.MarkerColor, visit.CreatedAt, user.Id, user.Username,
-                user.AvatarSeed, visit.Note, visit.Rating))
+                user.AvatarSeed, visit.Note, visit.Rating, place.City))
             .Skip((page - 1) * limit).Take(limit).ToListAsync(cancellationToken);
         return (items, total);
     }
@@ -162,7 +164,8 @@ public sealed class PlaceRepository(ApplicationDbContext db) : IPlaceRepository
                 user.Username,
                 user.AvatarSeed,
                 visit.Note,
-                visit.Rating))
+                visit.Rating,
+                place.City))
             .ToListAsync(cancellationToken);
     }
 
@@ -181,15 +184,21 @@ public sealed class PlaceRepository(ApplicationDbContext db) : IPlaceRepository
     {
         var results = await source.ToListAsync(cancellationToken);
         var ids = results.Select(item => item.Place.Id).ToArray();
-        var averages = await db.PlaceVisits.AsNoTracking()
-            .Where(visit => ids.Contains(visit.PlaceId) && visit.Rating > 0)
+        var visitStats = await db.PlaceVisits.AsNoTracking()
+            .Where(visit => ids.Contains(visit.PlaceId))
             .GroupBy(visit => visit.PlaceId)
-            .Select(group => new { PlaceId = group.Key, Rating = group.Average(visit => visit.Rating) })
-            .ToDictionaryAsync(item => item.PlaceId, item => item.Rating, cancellationToken);
+            .Select(group => new
+            {
+                PlaceId = group.Key,
+                Rating = group.Average(visit => visit.Rating > 0 ? (double?)visit.Rating : null),
+                LastCheckInAt = group.Max(visit => visit.CreatedAt),
+            })
+            .ToDictionaryAsync(item => item.PlaceId, cancellationToken);
         return results.Select(result => result with
         {
             AverageRating = Math.Round(
-                averages.GetValueOrDefault(result.Place.Id), 1, MidpointRounding.AwayFromZero),
+                visitStats.GetValueOrDefault(result.Place.Id)?.Rating ?? 0, 1, MidpointRounding.AwayFromZero),
+            LastCheckInAt = visitStats.GetValueOrDefault(result.Place.Id)?.LastCheckInAt,
         }).ToList();
     }
 
@@ -221,5 +230,6 @@ public sealed class PlaceRepository(ApplicationDbContext db) : IPlaceRepository
                 .ThenBy(item => item.CreatedAt)
                 .Select(item => item.MediaFileId)
                 .ToList(),
-            0));
+            0,
+            null));
 }

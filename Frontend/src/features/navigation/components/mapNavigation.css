@@ -131,3 +131,22 @@
     width: max-content;
   }
 }
+
+@media (min-width: 768px) {
+  .page-action-bar .map-navigation__toolbar {
+    border: 2px solid var(--surface);
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 0;
+    padding: 0;
+    width: max-content;
+  }
+
+  .page-action-bar .map-navigation__toolbar > .gallery-selection-bar__action {
+    height: 50px;
+    min-height: 50px;
+    min-width: 50px;
+    padding: 0;
+    width: 50px;
+  }
+}

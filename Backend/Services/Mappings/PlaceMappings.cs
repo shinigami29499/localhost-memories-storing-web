@@ -14,7 +14,9 @@ internal static class PlaceMappings
         source.Place.MarkerIcon,
         source.Place.MarkerColor,
         new PlaceOwnerDto(source.Owner.Id, source.Owner.Username),
-        source.MediaIds);
+        source.MediaIds,
+        source.LastCheckInAt,
+        source.Place.City);
 
     internal static PlaceVisitDto ToDto(PlaceVisitSource source) => new(
         source.Id,
@@ -28,5 +30,6 @@ internal static class PlaceMappings
         source.Username,
         source.AvatarSeed,
         source.Note,
-        source.Rating);
+        source.Rating,
+        source.PlaceCity);
 }

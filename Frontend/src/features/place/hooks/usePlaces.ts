@@ -116,7 +116,7 @@ export function useCheckInPlace() {
     mutationKey: ["place-place-check-in"],
     mutationFn: (placeId: string) => placeService.checkIn(placeId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: placeKeys.visitHistory() });
+      queryClient.invalidateQueries({ queryKey: placeKeys.all });
     },
   });
 }
@@ -126,7 +126,7 @@ export function useDeletePlaceVisit() {
   return useMutation({
     mutationKey: ["place-place-visit-delete"],
     mutationFn: (visitId: string) => placeService.removeVisit(visitId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: placeKeys.visitHistory() }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: placeKeys.all }),
   });
 }
 

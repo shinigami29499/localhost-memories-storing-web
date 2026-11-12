@@ -60,7 +60,7 @@ class PushSnapshot extends Component<Props> {
     const data = this.props.matchPageHighlights && element.querySelector(".navigation-highlight-bar")
       ? element.querySelector<HTMLElement>("[data-push-page-content]") : null;
     const collapsed = window.matchMedia("(max-width: 767px)").matches && !!element.querySelector('.page-highlight[data-expanded="false"]');
-    const bar = data && !collapsed ? element.querySelector<HTMLElement>(".navigation-highlight-bar") : null;
+    const bar = data && !collapsed ? element.querySelector<HTMLElement>(".page-highlight") : null;
     return { full: capture(element), data: data ? capture(data) : null, highlight: data ? highlightPosition(element) : null, labels: bar ? [...bar.querySelectorAll<HTMLElement>(".navigation-highlight:not(.navigation-highlight-overlay .navigation-highlight) [data-swap-label]")].map((label) => label.dataset.swapLabel ?? "") : [], bar: bar ? { node: bar.cloneNode(true) as HTMLElement, rect: bar.getBoundingClientRect() } : null };
   }
 

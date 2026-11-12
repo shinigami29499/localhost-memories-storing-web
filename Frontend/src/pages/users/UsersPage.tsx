@@ -6,6 +6,7 @@ import { NavigationHighlight, SwapLabel } from "../../components/ui";
 import { PageHighlightBar } from "../../components/ui/PageHighlightBar";
 import { startTransition, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { createPortal } from "react-dom";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { userService } from "../../features/users";
 import { ApiError } from "../../services/api";
@@ -28,6 +29,8 @@ import "./users.css";
 import { useLocale } from "../../context/LocaleContext";
 import { UserAvatar } from "../../components/common/UserAvatar";
 import { useUserPresenceStore } from "../../features/users/store/userPresenceStore";
+import { useMediaQuery } from "../../hooks/useMediaQuery";
+import { HeaderFilters, inDateRange } from "../../components/ui/HeaderFilters";
 
 const ONLINE_WINDOW_MS = 300_000;
 
@@ -57,6 +60,7 @@ const userFilters: { value: UserFilter; label: string }[] = [
 
 export function UsersPage() {
   const { language, t } = useLocale();
+  const isMobile = useMediaQuery("(max-width: 767px)");
   const me = useAuthStore((s) => s.user);
   const isAdmin = me?.role?.toLowerCase() === "admin";
   const queryClient = useQueryClient();
@@ -68,6 +72,11 @@ export function UsersPage() {
     if (!isAdmin && pathname.endsWith("/blocked")) navigate("/users", { replace: true });
   }, [isAdmin, pathname, navigate]);
   const [search, setSearch] = useState("");
+  const [role, setRole] = useState("");
+  const [joinedFrom, setJoinedFrom] = useState("");
+  const [joinedTo, setJoinedTo] = useState("");
+  const hasFilters = !isMobile && (!!role || !!joinedFrom || !!joinedTo);
+  const useList = !!search.trim() || hasFilters;
   const sentinel = useRef<HTMLDivElement>(null);
   const [now, setNow] = useState(() => Date.now());
   const offlineUsers = useUserPresenceStore((state) => state.offlineUsers);
@@ -75,17 +84,17 @@ export function UsersPage() {
     queryKey: ["users", "page", filter], initialPageParam: 1,
     queryFn: ({ pageParam, signal }) => userService.page(pageParam, 30, filter === "pending_approval", signal, filter === "blocked"),
     getNextPageParam: (lastPage) => lastPage.page * lastPage.limit < lastPage.total ? lastPage.page + 1 : undefined,
-    enabled: !search.trim(), refetchInterval: isAdmin ? 60_000 : false,
+    enabled: !useList, refetchInterval: isAdmin ? 60_000 : false,
   });
-  const searchUsers = useQuery({ queryKey: ["users", "search-list", isAdmin], queryFn: () => userService.list(), enabled: !!search.trim(), refetchInterval: isAdmin ? 60_000 : false });
-  const activeQuery = search.trim() ? searchUsers : users;
+  const searchUsers = useQuery({ queryKey: ["users", "search-list", isAdmin], queryFn: () => userService.list(), enabled: useList, refetchInterval: isAdmin ? 60_000 : false });
+  const activeQuery = useList ? searchUsers : users;
   useEffect(() => {
     const target = sentinel.current;
-    if (!target || search.trim() || !users.hasNextPage || users.isFetchingNextPage || users.isFetchNextPageError) return;
+    if (!target || useList || !users.hasNextPage || users.isFetchingNextPage || users.isFetchNextPageError) return;
     const observer = new IntersectionObserver(([entry]) => { if (entry.isIntersecting) void users.fetchNextPage(); }, { root: target.closest(".admin-users__content"), rootMargin: "200px" });
     observer.observe(target);
     return () => observer.disconnect();
-  }, [filter, search, users.hasNextPage, users.isFetchingNextPage, users.isFetchNextPageError, users.fetchNextPage]);
+  }, [filter, useList, users.hasNextPage, users.isFetchingNextPage, users.isFetchNextPageError, users.fetchNextPage]);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -128,9 +137,18 @@ export function UsersPage() {
     onSuccess: refreshUsers,
   });
 
-  const pagedUsers = search.trim()
-    ? (searchUsers.data ?? []).filter((user) => (filter === "blocked" ? user.status === "disabled" : filter === "pending_approval" ? user.status === "pending_approval" : user.status !== "disabled") && user.username.toLowerCase().includes(search.trim().toLowerCase()))
+  const pagedUsers = useList
+    ? (searchUsers.data ?? []).filter((user) => (filter === "blocked" ? user.status === "disabled" : filter === "pending_approval" ? user.status === "pending_approval" : user.status !== "disabled") && user.username.toLowerCase().includes(search.trim().toLowerCase()) && (!hasFilters || ((!role || user.role.toLowerCase() === role) && inDateRange(user.createdAt, joinedFrom, joinedTo))))
     : users.data?.pages.flatMap((page) => page.items) ?? [];
+
+  const headerActions = document.getElementById("page-header-actions");
+  const searchForm = (
+    <form className={`place__search-bar${isMobile ? "" : " place__search-bar--header"}`} role="search" onSubmit={(event) => event.preventDefault()}>
+      <input type="search" aria-label={t("Search users")} placeholder={t("Search users")} value={search} maxLength={120} onChange={(event) => setSearch(event.target.value)} />
+      {search && <><span className="place__search-divider" aria-hidden="true" /><button type="button" className="place__search-clear" aria-label={t("Clear search")} title={t("Clear search")} onClick={() => setSearch("")}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2" /></svg></button></>}
+      <AnimateIcon animateOnHover animateOnTap={false} completeOnStop asChild><span className="place__search-icon" aria-hidden="true"><Search size={22} /></span></AnimateIcon>
+    </form>
+  );
 
   return (
     <>
@@ -180,8 +198,8 @@ export function UsersPage() {
               <Tabs.Panel key={filter} value={filter}>
                 {!activeQuery.data ? null : pagedUsers.length === 0 ? (
                   <EmptyState
-                    title={search.trim() ? "No matching users" : filter === "pending_approval" ? "No pending users" : filter === "blocked" ? "No blocked users" : "No users yet"}
-                    hint={search.trim() ? "Try a different search." : filter === "pending_approval"
+                    title={useList ? "No matching users" : filter === "pending_approval" ? "No pending users" : filter === "blocked" ? "No blocked users" : "No users yet"}
+                    hint={useList ? "Try a different search." : filter === "pending_approval"
                       ? "Accounts awaiting approval will appear here."
                       : filter === "blocked" ? "Blocked accounts will appear here." : "User accounts will appear here."}
                   />
@@ -224,20 +242,15 @@ export function UsersPage() {
                     </table>
                   </div>
                 )}
-                {!search.trim() && users.isFetchNextPageError && <ErrorState message={t("Could not load more users.")} onRetry={() => void users.fetchNextPage()} />}
-                {!search.trim() && users.hasNextPage && <div ref={sentinel}>{users.isFetchingNextPage && <Spinner />}</div>}
+                {!useList && users.isFetchNextPageError && <ErrorState message={t("Could not load more users.")} onRetry={() => void users.fetchNextPage()} />}
+                {!useList && users.hasNextPage && <div ref={sentinel}>{users.isFetchingNextPage && <Spinner />}</div>}
               </Tabs.Panel>
               </div>
           </Tabs.Root>
         </section>
         </div>
-        <PageActionBar className="place__action-bar users__action-bar">
-          <form className="place__search-bar" role="search" onSubmit={(event) => event.preventDefault()}>
-            <input type="search" aria-label={t("Search users")} placeholder={t("Search users")} value={search} maxLength={120} onChange={(event) => setSearch(event.target.value)} />
-            {search && <><span className="place__search-divider" aria-hidden="true" /><button type="button" className="place__search-clear" aria-label={t("Clear search")} title={t("Clear search")} onClick={() => setSearch("")}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2" /></svg></button></>}
-            <AnimateIcon animateOnHover animateOnTap={false} completeOnStop asChild><span className="place__search-icon" aria-hidden="true"><Search size={22} /></span></AnimateIcon>
-          </form>
-        </PageActionBar>
+        {isMobile ? <PageActionBar className="place__action-bar users__action-bar">{searchForm}</PageActionBar>
+          : headerActions ? createPortal(<div className="header-search-controls">{searchForm}<HeaderFilters selects={[{ label: "Role", value: role, onChange: setRole, options: [{ value: "admin", label: t("admin") }, { value: "user", label: t("user") }] }]} date={{ label: "Joined", from: joinedFrom, to: joinedTo, setFrom: setJoinedFrom, setTo: setJoinedTo }} /></div>, headerActions) : searchForm}
       </main>
       {action && isAdmin ? (
         <ConfirmationDialog

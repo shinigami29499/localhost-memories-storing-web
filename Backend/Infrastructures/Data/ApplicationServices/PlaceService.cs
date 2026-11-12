@@ -3,6 +3,7 @@ using Domains.Entities;
 using Infrastructures.Data.Interfaces;
 using Services.Exceptions;
 using Services.Interfaces;
+using Services.Models.Media;
 using Services.Models.Place;
 using Services.Requests.Place;
 using Services.Responses.Place;
@@ -13,7 +14,8 @@ public sealed partial class PlaceService(
     IPlaceRepository repository,
     IUnitOfWork unitOfWork,
     IMapper mapper,
-    IPreviewLifecycle previews) : IPlaceService
+    IPreviewLifecycle previews,
+    CityLookup cityLookup) : IPlaceService
 {
     private const int MaxNameLength = 120;
     private const int MaxAddressLength = 300;
@@ -164,6 +166,7 @@ public sealed partial class PlaceService(
         Guid ownerId, SavePlaceRequest request, CancellationToken cancellationToken = default)
     {
         var values = Validate(request);
+        var city = await cityLookup.FindAsync(new MediaLocationDto(values.Latitude, values.Longitude), cancellationToken);
         await using var transaction = await unitOfWork.BeginTransactionAsync(cancellationToken);
         await previews.LockAsync(cancellationToken);
         var mediaIds = await ValidateMediaIdsAsync(request.MediaIds, ownerId, cancellationToken) ?? [];
@@ -171,6 +174,7 @@ public sealed partial class PlaceService(
         {
             Name = values.Name,
             Address = values.Address,
+            City = city,
             Note = values.Note,
             Latitude = values.Latitude,
             Longitude = values.Longitude,
@@ -194,6 +198,14 @@ public sealed partial class PlaceService(
         CancellationToken cancellationToken = default)
     {
         var values = Validate(request);
+        var current = (await repository.GetPlaceSourceAsync(placeId, cancellationToken))?.Place
+            ?? throw new NotFoundException($"Place '{placeId}' was not found.");
+        if (!isAdmin && current.OwnerId != actorId)
+            throw new ForbiddenException("Only the owner or an administrator can change this place.");
+        var coordinatesChanged = current.Latitude != values.Latitude || current.Longitude != values.Longitude;
+        var city = coordinatesChanged
+            ? await cityLookup.FindAsync(new MediaLocationDto(values.Latitude, values.Longitude), cancellationToken)
+            : current.City;
         List<Guid> removedIds = [];
         await using (var transaction = await unitOfWork.BeginTransactionAsync(cancellationToken))
         {
@@ -202,6 +214,8 @@ public sealed partial class PlaceService(
             var mediaIds = await ValidateMediaIdsAsync(request.MediaIds, actorId, cancellationToken);
             place.Name = values.Name;
             place.Address = values.Address;
+            if (place.Latitude != values.Latitude || place.Longitude != values.Longitude)
+                place.City = city;
             place.Note = values.Note;
             place.Latitude = values.Latitude;
             place.Longitude = values.Longitude;

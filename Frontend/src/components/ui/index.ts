@@ -9,3 +9,5 @@ export { ConfirmationDialog } from "./ConfirmationDialog";
 export { CustomDialog, useCustomDialog } from "./CustomDialog";
 export { DatePicker } from "./DatePicker";
 export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "./Tooltip";
+
+export { HeaderFilters } from "./HeaderFilters";

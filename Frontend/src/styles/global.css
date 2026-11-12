@@ -42,7 +42,7 @@
   --focus-ring: #6A3F36;
   --shadow-popover: none;
   --overlay-backdrop: #6A3F36;
-  --radius: 4px;
+  --radius: 0px;
   --radius-inner: calc(var(--radius) / 2);
   --box-inset: 4px;
   --sidebar-width: 240px;

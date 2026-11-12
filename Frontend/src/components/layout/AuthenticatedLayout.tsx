@@ -55,6 +55,7 @@ export function AuthenticatedLayout() {
           <span className="app-topbar__title" role={showHeading ? "heading" : undefined} aria-level={showHeading ? 1 : undefined}>
             {motionEnabled && !reducedMotion ? <SwappingText text={t(pageTitle(location.pathname))} stagger={0.025} /> : t(pageTitle(location.pathname))}
           </span>
+          <div id="page-header-actions" className="app-topbar__actions" />
           <NotificationBell />
         </header>
         <PageActionBarProvider>

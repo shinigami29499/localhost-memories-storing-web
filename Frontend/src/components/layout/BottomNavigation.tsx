@@ -11,11 +11,13 @@ import { LogOut } from "../animate-ui/icons/log-out";
 import { useLocale } from "../../context/LocaleContext";
 import { Button } from "../ui/Button";
 import { useLogout } from "../../features/auth/hooks/useLogout";
+import { useAnimationStore } from "../../store/animationStore";
 
 export function BottomNavigation() {
   const { t } = useLocale();
   const location = useLocation();
   const logout = useLogout();
+  const animationsEnabled = useAnimationStore((state) => state.enabled);
   const [moreOpen, setMoreOpen] = useState(false);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const moreRef = useRef<HTMLButtonElement>(null);
@@ -51,7 +53,7 @@ export function BottomNavigation() {
         <Ellipsis size={22} aria-hidden="true" /><span>{t("More")}</span>
       </button>
     </nav>
-    <dialog ref={dialogRef} className="bottom-navigation__dialog" aria-label={t("More")}
+    <dialog ref={dialogRef} className="bottom-navigation__dialog" data-animation-enabled={animationsEnabled} aria-label={t("More")}
       onClose={() => { setMoreOpen(false); moreRef.current?.focus(); }}>
       <div className="bottom-navigation__dialog-header">
         <strong>{t("More")}</strong>

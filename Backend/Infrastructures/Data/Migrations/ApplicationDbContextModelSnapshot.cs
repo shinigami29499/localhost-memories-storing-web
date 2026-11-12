@@ -454,6 +454,11 @@ namespace Infrastructures.Data.Migrations
                         .HasDefaultValue("")
                         .HasColumnName("address");
 
+                    b.Property<string>("City")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("city");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");

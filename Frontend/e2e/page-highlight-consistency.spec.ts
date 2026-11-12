@@ -1,5 +1,31 @@
 import { expect, test } from "@playwright/test";
 
+test("mobile transition keeps the chevron and selected text size while a page loads", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => {
+    localStorage.setItem("shinigacim-auth", JSON.stringify({ state: {
+      user: { id: "u1", username: "viewer", role: "admin", status: "active", createdAt: "2026-01-01" }, accessToken: "test", refreshToken: "test",
+    }, version: 0 }));
+    localStorage.setItem("shinigacim.animations-enabled", "true");
+  });
+  await page.route("**/api/**", (route) => route.fulfill({ json: { page: 1, offset: 0, limit: 30, total: 0, items: [], hasMore: false } }));
+  await page.route("**/hubs/**", (route) => route.abort());
+  let release!: () => void;
+  const loading = new Promise<void>((resolve) => { release = resolve; });
+  await page.route("**/src/pages/users/UsersPage.tsx*", async (route) => { await loading; await route.continue(); });
+  await page.goto("/gallery");
+  const original = page.locator(".page-highlight .navigation-highlight > [aria-current=page]").first();
+  const fontSize = await original.evaluate((element) => getComputedStyle(element).fontSize);
+  await page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Users", exact: true }).click();
+  const bridge = page.locator("[data-highlight-bridge]");
+  await expect(bridge).toBeVisible();
+  await expect(bridge.locator(".page-highlight__toggle")).toBeVisible();
+  await expect(bridge.locator(".navigation-highlight > [aria-current=page]").first()).toHaveCSS("font-size", fontSize);
+  release();
+  await expect(bridge).toHaveCount(0);
+  await expect(page.locator(".page-highlight__toggle")).toBeVisible();
+});
+
 for (const width of [390, 1280]) {
   test(`page highlights match Gallery at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 844 });
@@ -63,7 +89,7 @@ test("mobile highlight collapse persists across page transitions", async ({ page
     await expect(page).toHaveURL(new RegExp(`${path}$`));
     const highlight = page.locator(".page-highlight").filter({ has: page.locator(".page-highlight__toggle") }).last();
     await expect(highlight.locator(".page-highlight__toggle")).toHaveAttribute("aria-expanded", "false");
-    await expect(highlight.locator(".page-highlight__navigation")).toHaveCSS("height", "20px");
+    await expect(highlight.locator(".page-highlight__navigation")).toHaveCSS("height", "0px");
     await expect(page.locator("[data-highlight-bridge]")).toHaveCount(0);
   }
   await page.locator(".page-highlight__toggle").click();

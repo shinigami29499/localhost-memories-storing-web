@@ -29,6 +29,7 @@ test("mobile gallery highlight meets the topbar and screen edges", async ({ page
   expect(rects.selected.right).toBe(195);
   await page.getByRole("link", { name: "Album", exact: true }).click();
   await expect(page.getByRole("link", { name: "Album", exact: true })).toHaveAttribute("aria-current", "page");
+  await expect(page.getByRole("button", { name: "Hide gallery navigation" })).toBeInViewport();
   const album = await page.getByRole("link", { name: "Album", exact: true }).boundingBox();
   expect(album!.x + album!.width).toBeGreaterThan(390);
   const toggle = page.getByRole("button", { name: "Hide gallery navigation" });
