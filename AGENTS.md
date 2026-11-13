@@ -29,19 +29,17 @@ For full-stack work, load both overviews. Do not load skills for an unaffected s
 
 See [CLAUDE.md](CLAUDE.md) for repository architecture and common commands.
 
-## Orchestration
+## Project subagents
 
-Use the main agent for coordination and final decisions. Delegate adaptively to `planner`, `coder`, and `reviewer` agents when the runtime exposes subagents.
+Project subagents follow the Codex-native TOML format used by [VoltAgent's awesome-codex-subagents](https://github.com/VoltAgent/awesome-codex-subagents). Keep project profiles in `.codex/agents/`; these take precedence over global profiles. Refresh the Codex session after changing profiles.
 
-- **Trivial changes**: work directly when delegation costs more than it helps.
-- **Simple bug fixes**: delegate to `coder` when useful.
-- **Normal features**: run `planner` → `coder` → `reviewer`. Pass the planner's concise findings to the coder. Let the coder run focused verification before review.
-- **Complex architecture or security work**: use the full sequence with stronger planning and review. Escalate only the agent handling the difficult part. Never claim escalation unless it happened.
-- If the reviewer finds issues, return actionable findings to the coder, then ask the reviewer to check the corrections.
+- Use `code-mapper` for read-only path and ownership tracing before uncertain changes.
+- Use `backend-developer` or `frontend-developer` for scoped implementation in the matching stack.
+- Use `reviewer` for read-only, evidence-based review after implementation.
+- Keep agent tasks scoped. Never assign overlapping edits to multiple agents. Main agent owns coordination and final decisions.
+- Consult each profile's instructions. Repository restrictions, validation rules, and stack skills in this file still apply to every agent.
 
-Preserve dependencies within each workflow. Start independent workflows concurrently only when the work is separable and the likely benefit exceeds agent and token overhead. Never let two coders edit the same files at once. Use isolated worktrees where supported and useful; coordinate shared dependencies before integration. Respect the runtime's concurrency limit.
-
-Keep subagent context task-specific. Reuse findings and project guidance; avoid repeat exploration, broad tests without cause, redundant reviews, and nested agents without need. Prefer targeted checks first. Correctness takes priority for critical operations. Summarize changed files, verification, and remaining risks to the user.
+Profiles are maintained from VoltAgent's collection. Review upstream before adding or updating profiles: [awesome-codex-subagents](https://github.com/VoltAgent/awesome-codex-subagents).
 
 ## Permissions
 
@@ -54,3 +52,17 @@ Keep subagent context task-specific. Reuse findings and project guidance; avoid 
 | Shell commands         | Ask for confirmation |
 | Destructive operations | Always confirm       |
 -->
+
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+When the user types `/graphify`, use the installed graphify skill or instructions before doing anything else.
+
+Rules:
+- When graphify-out/graph.json exists, run `graphify query "<question>"` before your first grep, search or source-file read for a codebase question, and put this rule in every subagent prompt that explores code. Read raw files only for lines the graph or an earlier read already located. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- Dirty graphify-out/ files are expected after hooks or incremental updates; dirty graph files are not a reason to skip graphify. Only skip graphify if the task is about stale or incorrect graph output, or the user explicitly says not to use it.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
+- A committed graphify-out/graph.json is rewritten whole on every build, so a large diff to it in a pull request is expected. Do not flag it as churn or suggest skipping the graph rebuild or its hooks.
