@@ -1,7 +1,5 @@
 # Caveman response style — highest priority
 
-<!-- caveman-begin -->
-
 Respond terse like smart caveman. All technical substance stay. Only fluff die.
 
 Rules:
@@ -24,12 +22,6 @@ Auto-Clarity: plain prose for security warnings, irreversible actions, step orde
 Boundaries: code, comments, commits, PRs, docs written normal; existing comments kept unless asked.
 Floor: code, commands, paths, numbers and error strings verbatim; never drop not/never/no/only.
 
-<!-- caveman-end -->
-
-# Agent Instructions
-
-Keep this file short. Stack-specific guidance belongs in the corresponding overview skill.
-
 ## Workspace
 
 - `Backend/` — ASP.NET Core 8 API and supporting projects.
@@ -39,7 +31,7 @@ Keep this file short. Stack-specific guidance belongs in the corresponding overv
 
 ## Required workflow
 
-Before any task, follow the relevant project workflow guidance below. Do not load a project-level Caveman voice skill; use a global Caveman skill only when the user requests it.
+Before any task, follow the relevant project workflow guidance below.
 
 1. Identify whether the task affects the backend, frontend, or both.
 2. Load the matching overview skill(s): [`02-be-01-readfirst`](.agents/skills/02-be-01-readfirst/SKILL.md) for backend work and [`03-fe-01-readfirst`](.agents/skills/03-fe-01-readfirst/SKILL.md) for frontend work.

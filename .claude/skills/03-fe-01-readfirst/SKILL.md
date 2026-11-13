@@ -52,6 +52,7 @@ This is a guide, not a requirement to create every directory. Prefer colocating 
 - Prefix custom hooks with `use`.
 - Prefer named exports for components and hooks.
 - When reusing or referring to an existing component, compare the original and final implementations. If they are equivalent, use one shared component and remove the unused duplicate after updating its references.
+- For new features, reuse shared UI components from `src/components/ui`. If a reusable primitive does not exist, add it there and export it from the UI barrel before using it in feature components. Keep feature-specific components inside their feature.
 - Components must not call `fetch` directly; use services.
 - Use TanStack Query for remote/server state and Zustand for shared client state.
 - Use familiar, labeled icons. Keep navigation and common controls static; use motion only where it clarifies state.
@@ -120,7 +121,7 @@ Load the skill matching the frontend task. For UI color decisions, also load `03
 
 | Task                                   | Skill                          |
 | -------------------------------------- | ------------------------------ |
-| UI color palettes and theming           | `03-fe-07-ui-color-system`    |
+| UI color palettes and theming          | `03-fe-07-ui-color-system`     |
 | UI depth, elevation, and surface layers | `03-fe-08-ui-depth-system`    |
 | Component and UI implementation        | `03-fe-03-ui-engineering`      |
 | Visual design and UX                   | `03-fe-04-ui-ux`               |

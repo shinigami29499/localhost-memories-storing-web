@@ -3,7 +3,6 @@ import { Capacitor } from "@capacitor/core";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
 import "./styles/global.css";
-import "./styles/overhaul.css";
 
 if (import.meta.env.PROD && !Capacitor.isNativePlatform() && "serviceWorker" in navigator) {
   navigator.serviceWorker.register("/service-worker.js").catch((error: unknown) => {

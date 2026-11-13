@@ -211,7 +211,6 @@
 .gallery-date-grid .media-tile {
   touch-action: pan-x pan-y pinch-zoom;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
 }
 
 @media (hover: hover) and (pointer: fine) {
