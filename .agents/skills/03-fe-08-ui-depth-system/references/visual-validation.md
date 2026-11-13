@@ -1,0 +1,7 @@
+# Visual validation
+
+- Inspect the actual UI at relevant viewport sizes in light and dark themes. Check page, sections, cards, controls, selected items, overlays, recessed regions, and progress. Verify that surface separation and lighting communicate intended hierarchy, including where shadows are less visible in dark mode.
+- Compare default, hover, active, selected, focus, and disabled states where applicable. Selected tabs and radios need a non-color cue; disabled controls must actually be disabled and distinguishable from recessed content. Check keyboard focus, touch operation, hover-independent functionality, and reduced motion.
+- Measure actual rendered contrast, including gradients and composited transparency: normal text at least 4.5:1, large text 3:1, and necessary UI boundaries and state indicators 3:1 against adjacent colors. Check focus indicators separately; retain borders when needed for legibility or separation.
+- Confirm native radio and progress semantics, accessible labels and correct progress values. Verify dialog focus and dismissal when relevant.
+- Review hierarchy with typography, spacing, grouping, layout, and contrast as well as elevation. Remove unnecessary headings, borders, gradients, and shadows only when clarity remains. Large shadows and dramatic highlights should be rare; avoid arbitrary depth and excessive 3D effects. Stop when the result is coherent and useful.

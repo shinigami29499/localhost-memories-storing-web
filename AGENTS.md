@@ -20,6 +20,8 @@ Before any task, read and follow [the Caveman skill](.agents/skills/01-overview-
 
 For full-stack work, load both overviews. Do not load skills for an unaffected stack.
 
+For UI implementation, layout changes, or visual refinement, use [`03-fe-09-ui-spacing-system`](.agents/skills/03-fe-09-ui-spacing-system/SKILL.md) as the primary spacing, grouping, alignment, and padding guidance. Establish spacing hierarchy before color, depth, and decoration, subject to accessibility, explicit user requirements, and project constraints.
+
 ## Repository restrictions
 
 - Do not read, edit, or move `Backend/Adapter/Security/` or `Backend/Scripts/`.

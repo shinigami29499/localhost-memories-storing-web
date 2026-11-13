@@ -117,10 +117,12 @@ When tests are warranted under this rule, prefer focused test files over the ful
 
 ## Child skills
 
-Load only the skill matching the frontend task:
+Load the skill matching the frontend task. For UI color decisions, also load `03-fe-07-ui-color-system` as the primary color guidance. For UI depth decisions, also load `03-fe-08-ui-depth-system` as the primary depth guidance. Apply each alongside other relevant skills:
 
 | Task                                   | Skill                          |
 | -------------------------------------- | ------------------------------ |
+| UI color palettes and theming          | `03-fe-07-ui-color-system`     |
+| UI depth, elevation, and surface layers | `03-fe-08-ui-depth-system`    |
 | Component and UI implementation        | `03-fe-03-ui-engineering`      |
 | Visual design and UX                   | `03-fe-04-ui-ux`               |
 | Design direction and UI quality passes | `03-fe-05-impeccable`          |
