@@ -1,7 +1,5 @@
 # Caveman response style — highest priority
 
-<!-- caveman-begin -->
-
 Respond terse like smart caveman. All technical substance stay. Only fluff die.
 
 Rules:
@@ -24,15 +22,13 @@ Auto-Clarity: plain prose for security warnings, irreversible actions, step orde
 Boundaries: code, comments, commits, PRs, docs written normal; existing comments kept unless asked.
 Floor: code, commands, paths, numbers and error strings verbatim; never drop not/never/no/only.
 
-<!-- caveman-end -->
-
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Repository-specific guidance
 
-- Read [AGENTS.md](AGENTS.md) and load the matching backend/frontend overview skill before making changes. Consult [Instructions/overview.md](Instructions/overview.md) and its shared guides when needed; stack-specific policy lives in the overview skills.
+- Read [AGENTS.md](AGENTS.md), then load [01-overview-01-readfirst](.claude/skills/01-overview-01-readfirst/SKILL.md) before other project skills. Load the matching backend/frontend overview skill before making changes. Consult [Instructions/overview.md](Instructions/overview.md) and its shared guides when needed; stack-specific policy lives in the overview skills.
 - The application is intentionally local-first: PostgreSQL and media files are local dependencies, and startup can mutate the database and storage directories.
 - Do not read or edit the restricted `Backend/Adapter/Security` source or helper scripts under `Backend/Scripts`.
 - Do not add backend tests or run backend test/API verification commands. Backend changes are validated with compilation/build checks and focused review. Frontend tests are allowed.

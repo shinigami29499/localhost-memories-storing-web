@@ -33,10 +33,11 @@ Floor: code, commands, paths, numbers and error strings verbatim; never drop not
 
 Before any task, follow the relevant project workflow guidance below.
 
-1. Identify whether the task affects the backend, frontend, or both.
-2. Load the matching overview skill(s): [`02-be-01-readfirst`](.agents/skills/02-be-01-readfirst/SKILL.md) for backend work and [`03-fe-01-readfirst`](.agents/skills/03-fe-01-readfirst/SKILL.md) for frontend work.
-3. Load a listed child skill only when it matches the task.
-4. Consult [Instructions/overview.md](Instructions/overview.md) and its linked shared guidance when needed. The overviews link to their stack-specific project details.
+1. Read [`01-overview-01-readfirst`](.agents/skills/01-overview-01-readfirst/SKILL.md) first to assess task scope and delegation.
+2. Identify whether the task affects the backend, frontend, or both.
+3. Load the matching overview skill(s): [`02-be-01-readfirst`](.agents/skills/02-be-01-readfirst/SKILL.md) for backend work and [`03-fe-01-readfirst`](.agents/skills/03-fe-01-readfirst/SKILL.md) for frontend work.
+4. Load a listed child skill only when it matches the task.
+5. Consult [Instructions/overview.md](Instructions/overview.md) and its linked shared guidance when needed. The overviews link to their stack-specific project details.
 
 For full-stack work, load both overviews. Do not load skills for an unaffected stack.
 
