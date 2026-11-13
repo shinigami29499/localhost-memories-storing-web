@@ -29,10 +29,11 @@
 }
 
 .profile-page__card {
-  padding: 20px;
-  border-radius: 12px;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
   background: var(--surface);
-  box-shadow: none;
+  box-shadow: var(--shadow-sm);
 }
 
 .profile-page__identity {
@@ -85,7 +86,7 @@
 .profile-password button[type="submit"] { justify-self: start; margin-top: 12px; }
 
 .profile-password__toggle { display: flex; align-items: center; justify-content: space-between; gap: 16px; width: 100%; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
-.profile-password__toggle:focus-visible { outline: 2px solid var(--text-strong); outline-offset: 4px; }
+.profile-password__toggle:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 4px; }
 .profile-password__toggle svg { transition: transform 0.2s ease; }
 .profile-password__toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
 .profile-password__panel { overflow: hidden; }
@@ -93,5 +94,5 @@
 @media (prefers-reduced-motion: reduce) { .profile-password__toggle svg { transition: none; } }
 
 @media (max-width: 767px) {
-  .profile-page__card { padding: 0; }
+  .profile-page__card { padding: 16px; }
 }

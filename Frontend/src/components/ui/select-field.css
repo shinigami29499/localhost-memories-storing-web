@@ -8,7 +8,7 @@
   min-height: 44px;
   padding: 8px 12px;
   border: 1px solid var(--border-control);
-  background: var(--surface-card);
+  background: var(--surface-raised);
   color: var(--text-strong);
   font: inherit;
   font-size: 1rem;
@@ -26,7 +26,8 @@
   overflow: auto;
   padding: 4px;
   border: 1px solid var(--border-control);
-  background: var(--surface);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-lg);
   color: var(--text-strong);
   font-size: .875rem;
 }
@@ -40,8 +41,8 @@
   cursor: pointer;
   outline: none;
 }
-.select-field__item:is(:hover, [data-highlighted], [data-selected]) { background: var(--surface-hover); }
-.select-field__item[data-selected] { font-weight: 600; }
+.select-field__item:is(:hover, [data-highlighted]) { background: var(--surface-hover); }
+.select-field__item[data-selected] { background: var(--accent-wash); font-weight: 600; }
 @media (prefers-reduced-motion: reduce) {
   .select-field__icon { transition: none; }
 }

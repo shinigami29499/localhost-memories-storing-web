@@ -34,7 +34,7 @@
   place-items: center;
   padding: 8px;
   border: 2px solid transparent;
-  border-radius: 12px;
+  border-radius: var(--radius);
   background: var(--surface-raised);
   cursor: pointer;
 }
@@ -48,7 +48,7 @@
 }
 
 .avatar-picker__option:has(input:focus-visible) {
-  outline: 2px solid var(--text-strong);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 3px;
 }
 

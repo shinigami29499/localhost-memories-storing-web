@@ -26,10 +26,10 @@
 }
 
 .toast-root {
-  --toast-accent: #1746d1;
-  --toast-background: #f2f5ff;
-  --toast-border: #aabcf0;
-  --toast-text: #1238a6;
+  --toast-accent: var(--info);
+  --toast-background: var(--info-subtle);
+  --toast-border: var(--info-border);
+  --toast-text: var(--text);
   position: absolute;
   z-index: calc(1000 - var(--toast-index, 0));
   bottom: 0;
@@ -41,28 +41,28 @@
   background: var(--toast-background);
   border: 1px solid var(--toast-border);
   border-radius: var(--radius, 14px);
-  box-shadow: none;
+  box-shadow: var(--shadow-md);
   color: var(--toast-text);
   overflow: hidden;
 }
 
 .toast-root[data-toast-type="success"] {
-  --toast-accent: #3c9b35;
-  --toast-background: #eff8ed;
-  --toast-border: #afd9aa;
-  --toast-text: #276d24;
+  --toast-accent: var(--success);
+  --toast-background: var(--success-subtle);
+  --toast-border: var(--success-border);
+  --toast-text: var(--text);
 }
 .toast-root[data-toast-type="error"], .toast-root[data-toast-type="delete"] {
-  --toast-accent: #db2b0b;
-  --toast-background: #fff0ed;
-  --toast-border: #eda99e;
-  --toast-text: #a92009;
+  --toast-accent: var(--danger);
+  --toast-background: var(--error-subtle);
+  --toast-border: var(--error-border);
+  --toast-text: var(--text);
 }
 .toast-root[data-toast-type="warning"] {
-  --toast-accent: #e99b22;
-  --toast-background: #fff8e8;
-  --toast-border: #f2d59b;
-  --toast-text: #000;
+  --toast-accent: var(--warning);
+  --toast-background: var(--warning-subtle);
+  --toast-border: var(--warning-border);
+  --toast-text: var(--text);
 }
 
 .toast-content {
@@ -79,7 +79,7 @@
   height: 32px;
   border-radius: 6px;
   background: var(--toast-accent);
-  color: #fff;
+  color: var(--bg-dark);
   flex-shrink: 0;
 }
 
@@ -150,7 +150,7 @@
 }
 
 .toast-action:hover:not(:disabled) {
-  background: var(--toast-border);
+  background: color-mix(in oklch, var(--toast-background) 75%, var(--toast-border));
 }
 
 .toast-action:disabled {
@@ -178,7 +178,7 @@
 
 .toast-close:hover {
   color: var(--toast-text);
-  background: var(--toast-border);
+  background: color-mix(in oklch, var(--toast-background) 75%, var(--toast-border));
 }
 
 @media (pointer: coarse) {

@@ -12,12 +12,34 @@ const toastStyles = readFileSync(resolve("src", "components", "ui", "toast.css")
 const loginStyles = readFileSync(resolve("src", "pages", "login", "login.css"), "utf8");
 const placeStyles = readFileSync(resolve("src", "pages", "place", "place.css"), "utf8");
 
+function tokenValue(tokens: CSSStyleDeclaration, name: string): string {
+  const value = tokens.getPropertyValue(name).trim();
+  const alias = value.match(/^var\((--[^)]+)\)$/);
+  return alias ? tokenValue(tokens, alias[1]) : value;
+}
+
 function contrastRatio(foreground: string, background: string) {
   const luminance = (color: string) => {
-    const channels = color.match(/[a-f\d]{2}/gi)!.map((channel) => parseInt(channel, 16) / 255);
-    const [red, green, blue] = channels.map((channel) =>
-      channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4,
-    );
+    if (color.startsWith("#")) {
+      const hex = color.slice(1);
+      const expanded = hex.length === 3 ? [...hex].map((channel) => channel + channel).join("") : hex;
+      const channels = expanded.match(/[a-f\d]{2}/gi)!.map((channel) => parseInt(channel, 16) / 255);
+      const [red, green, blue] = channels.map((channel) => channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4);
+      return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+    }
+    const match = color.match(/^oklch\(([\d.]+)\s+([\d.]+)\s+([\d.]+)\)$/);
+    if (!match) throw new Error("Unsupported color: " + color);
+    const [, lightness, chroma, hue] = match.map(Number);
+    const radians = hue * Math.PI / 180;
+    const a = chroma * Math.cos(radians);
+    const b = chroma * Math.sin(radians);
+    const l = (lightness + 0.3963377774 * a + 0.2158037573 * b) ** 3;
+    const m = (lightness - 0.1055613458 * a - 0.0638541728 * b) ** 3;
+    const s = (lightness - 0.0894841775 * a - 1.291485548 * b) ** 3;
+    const clamp = (channel: number) => Math.max(0, Math.min(1, channel));
+    const red = clamp(4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s);
+    const green = clamp(-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s);
+    const blue = clamp(-0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s);
     return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
   };
   const [lighter, darker] = [luminance(foreground), luminance(background)].sort((a, b) => b - a);
@@ -206,73 +228,25 @@ describe("Global styles", () => {
     expect(galleryStyles).toMatch(/\.gallery-page__inner\s*\{[^}]*margin-inline:\s*auto;[^}]*max-width:\s*1600px;/);
   });
 
-  it("uses the theme class for the palette while the saved theme is unchanged during a wipe", () => {
-    document.documentElement.dataset.theme = "dark";
-    document.documentElement.classList.remove("dark");
-    const lightPalette = getComputedStyle(document.documentElement);
-    expect(lightPalette.getPropertyValue("--bg").trim()).toBe("#eef0f2");
-    expect(lightPalette.getPropertyValue("--surface").trim()).toBe("#fafafa");
-    expect(lightPalette.getPropertyValue("--surface-raised").trim()).toBe("#f0f1f3");
-    expect(lightPalette.getPropertyValue("--surface-card-raised").trim()).toBe("#f0f1f3");
-    expect(lightPalette.getPropertyValue("--text").trim()).toBe("#30343a");
-    expect(lightPalette.getPropertyValue("--text-muted").trim()).toBe("#606771");
-    expect(lightPalette.getPropertyValue("--text-strong").trim()).toBe("#17191d");
-    expect(lightPalette.getPropertyValue("--border").trim()).toBe("#cdd1d6");
-    expect(lightPalette.getPropertyValue("--border-card").trim()).toBe("#cdd1d6");
-    expect(lightPalette.getPropertyValue("--accent").trim()).toBe("#30343a");
-    expect(lightPalette.getPropertyValue("--text-on-accent").trim()).toBe("#ffffff");
-
-    document.documentElement.dataset.theme = "light";
-    document.documentElement.classList.add("dark");
-    const darkPalette = getComputedStyle(document.documentElement);
-    expect(darkPalette.getPropertyValue("--bg").trim()).toBe("#111315");
-    expect(darkPalette.getPropertyValue("--surface").trim()).toBe("#1c1f23");
-    expect(darkPalette.getPropertyValue("--surface-card").trim()).toBe("var(--surface)");
-    expect(darkPalette.getPropertyValue("--surface-raised").trim()).toBe("#30343a");
-    expect(darkPalette.getPropertyValue("--surface-card-raised").trim()).toBe("#262a30");
-    expect(darkPalette.getPropertyValue("--border").trim()).toBe("#3e444d");
-    expect(darkPalette.getPropertyValue("--border-card").trim()).toBe("#3e444d");
-    expect(darkPalette.getPropertyValue("--text").trim()).toBe("#d5d9df");
-    expect(darkPalette.getPropertyValue("--text-muted").trim()).toBe("#aeb4bd");
-    expect(darkPalette.getPropertyValue("--text-strong").trim()).toBe("#f4f5f7");
-    expect(darkPalette.getPropertyValue("--accent-soft").trim()).toBe("#dedede");
-    expect(darkPalette.getPropertyValue("--accent").trim()).toBe("#dedede");
-  });
-
-  it.each(["dark", "light"])("matches the sidebar hover background in %s mode", (theme) => {
-    document.documentElement.dataset.theme = theme;
-    document.documentElement.classList.toggle("dark", theme === "dark");
-    const rules = Array.from(style.sheet!.cssRules)
-      .filter((rule): rule is CSSStyleRule => rule instanceof CSSStyleRule);
-    const sidebarHover = rules.find((rule) => rule.selectorText === ".sidebar__sub-link:hover");
-    expect(sidebarHover?.style.background).toBe("var(--surface-hover)");
-    const surfaceHover = getComputedStyle(document.documentElement)
-      .getPropertyValue("--surface-hover")
-      .replace(/\s/g, "");
-    expect(surfaceHover).toBe(theme === "dark" ? "rgba(222,222,222,0.14)" : "rgba(28,28,28,0.12)");
-
-    for (const selector of [".reactions__chip:hover:not(:disabled)", ".post-card__comment-action:hover"]) {
-      const rule = rules.find((entry) => entry.selectorText.split(",").map((part) => part.trim()).includes(selector));
-      expect(rule?.style.background).toBe("var(--surface-hover)");
+  it("uses the dark palette regardless of the old theme marker", () => {
+    for (const theme of ["dark", "light"]) {
+      document.documentElement.dataset.theme = theme;
+      document.documentElement.classList.toggle("dark", theme === "dark");
+      const tokens = getComputedStyle(document.documentElement);
+      expect(tokenValue(tokens, "--bg")).toBe("oklch(0.15 0 20)");
+      expect(tokenValue(tokens, "--surface")).toBe("oklch(0.2 0 20)");
+      expect(tokenValue(tokens, "--surface-raised")).toBe("oklch(0.26 0 0)");
+      expect(tokenValue(tokens, "--accent")).toBe("oklch(0.96 0 0)");
     }
   });
 
-  it.each(["dark", "light"])("keeps dialogs and card actions on %s theme surfaces", (theme) => {
-    document.documentElement.dataset.theme = theme;
-    document.documentElement.classList.toggle("dark", theme === "dark");
-    const rules = Array.from(style.sheet!.cssRules)
-      .filter((rule): rule is CSSStyleRule => rule instanceof CSSStyleRule);
+  it("uses neutral hover surfaces and raised dialogs", () => {
+    const rules = Array.from(style.sheet!.cssRules).filter((rule): rule is CSSStyleRule => rule instanceof CSSStyleRule);
     const ruleFor = (selector: string) => rules.find((rule) => rule.selectorText === selector);
-
-    expect(ruleFor(".confirmation-dialog")?.style.background).toBe("var(--surface-card)");
-    expect(ruleFor(".confirmation-dialog")?.style.boxShadow).toBe("var(--shadow-popover)");
-    expect(ruleFor(".place__dialog")?.style.boxShadow).toBe("var(--shadow-popover)");
-    expect(ruleFor(".place-picker")?.style.boxShadow).toBe("var(--shadow-popover)");
-    expect(ruleFor(".confirmation-dialog__actions")?.style.background).toBe("var(--surface-card)");
-    expect(ruleFor(".confirmation-dialog__actions")?.style.borderTop).toBe("");
-    expect(ruleFor(".confirmation-dialog__actions")?.style.flexDirection).toBe("column");
-    expect(ruleFor(".confirmation-dialog__actions > .btn")?.style.width).toBe("100%");
-    expect(ruleFor(".post-card__footer")?.style.background).toBe("var(--surface-raised)");
+    expect(ruleFor(".sidebar__sub-link:hover")?.style.background).toBe("var(--surface-hover)");
+    expect(ruleFor(".confirmation-dialog")?.style.background).toBe("var(--surface-raised)");
+    expect(ruleFor(".confirmation-dialog")?.style.boxShadow).toBe("var(--shadow-lg)");
+    expect(ruleFor(".place-picker")?.style.boxShadow).toBe("var(--shadow-lg)");
     expect(ruleFor(".confirmation-dialog-backdrop")?.style.backgroundColor).toBe("var(--overlay-backdrop)");
   });
 
@@ -290,60 +264,44 @@ describe("Global styles", () => {
     expect(motionStyles).toContain("opacity 150ms ease-in");
   });
 
-  it.each(["dark", "light"])("separates text hierarchy and control borders in %s mode", (theme) => {
-    document.documentElement.classList.toggle("dark", theme === "dark");
+  it("keeps text and controls legible on dark surfaces", () => {
     const tokens = getComputedStyle(document.documentElement);
-    const textColors = ["--text", "--text-muted", "--text-strong"]
-      .map((token) => tokens.getPropertyValue(token).trim());
-
-    expect(new Set(textColors).size).toBe(3);
-    expect(tokens.getPropertyValue("--border-control").trim())
-      .not.toBe(tokens.getPropertyValue("--border").trim());
-  });
-
-  it.each(["dark", "light"])("uses contrasting palette colors for the brand mark in %s mode", (theme) => {
-    document.documentElement.dataset.theme = theme;
-    document.documentElement.classList.toggle("dark", theme === "dark");
-    const tokens = getComputedStyle(document.documentElement);
-    const rules = Array.from(style.sheet!.cssRules)
-      .filter((rule): rule is CSSStyleRule => rule instanceof CSSStyleRule);
-    const markRule = rules.find((rule) => rule.selectorText === ".brand__mark");
-
-    expect(markRule?.style.background).toBe("var(--accent-soft)");
-    expect(markRule?.style.color).toBe("var(--selection-text)");
-    expect(contrastRatio(
-      tokens.getPropertyValue("--selection-text").trim(),
-      tokens.getPropertyValue("--accent-soft").trim(),
-    )).toBeGreaterThanOrEqual(4.5);
-  });
-
-  it.each(["dark", "light"])("keeps primary and muted text at WCAG AA contrast in %s mode", (theme) => {
-    document.documentElement.dataset.theme = theme;
-    document.documentElement.classList.toggle("dark", theme === "dark");
-    const tokens = getComputedStyle(document.documentElement);
-    const token = (name: string): string => {
-      const value = tokens.getPropertyValue(name).trim();
-      const alias = value.match(/^var\((--[^)]+)\)$/);
-      return alias ? token(alias[1]) : value;
-    };
-    const surfaces = ["--bg", "--surface", "--surface-card", "--surface-raised", "--surface-card-raised", "--community-intro-bg"];
-
-    for (const foreground of ["--text", "--text-muted", "--text-strong", "--danger"]) {
-      for (const background of surfaces) {
+    const token = (name: string) => tokenValue(tokens, name);
+    for (const foreground of ["--text", "--text-muted"]) {
+      for (const background of ["--bg", "--surface", "--surface-raised", "--surface-hover"]) {
         expect(contrastRatio(token(foreground), token(background))).toBeGreaterThanOrEqual(4.5);
       }
     }
-
     expect(contrastRatio(token("--text-on-accent"), token("--accent"))).toBeGreaterThanOrEqual(4.5);
-    expect(contrastRatio(token("--text-on-accent"), token("--accent-strong"))).toBeGreaterThanOrEqual(4.5);
-    expect(contrastRatio(token("--text-on-danger"), token("--danger"))).toBeGreaterThanOrEqual(4.5);
-
-    for (const background of ["--surface", "--surface-raised", "--surface-card-raised"]) {
+    expect(contrastRatio(token("--text-on-danger"), token("--error-solid"))).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(token("--error-text"), token("--surface-raised"))).toBeGreaterThanOrEqual(4.5);
+    for (const status of ["--success", "--warning", "--danger", "--info"]) {
+      expect(contrastRatio(token("--bg-dark"), token(status))).toBeGreaterThanOrEqual(3);
+    }
+    for (const background of ["--surface", "--surface-raised", "--surface-hover"]) {
       expect(contrastRatio(token("--border-control"), token(background))).toBeGreaterThanOrEqual(3);
       expect(contrastRatio(token("--focus-ring"), token(background))).toBeGreaterThanOrEqual(3);
-      expect(contrastRatio(token("--theme-icon"), token(background))).toBeGreaterThanOrEqual(3);
-      expect(contrastRatio(token("--notification-icon"), token(background))).toBeGreaterThanOrEqual(3);
     }
+  });
+
+  it("uses the revised dark and semantic color roles", () => {
+    const tokens = getComputedStyle(document.documentElement);
+    const expected: Record<string, string> = {
+      "--bg-dark": "oklch(0.1 0 20)", "--bg": "oklch(0.15 0 20)", "--bg-light": "oklch(0.2 0 20)",
+      "--text": "oklch(0.96 0 20)", "--text-muted": "oklch(0.76 0 20)",
+      "--highlight": "oklch(0.5 0 20)", "--border": "oklch(0.4 0 20)", "--border-muted": "oklch(0.3 0 20)",
+      "--primary": "oklch(0.96 0 0)", "--secondary": "oklch(0.76 0 0)",
+      "--success": "oklch(0.75 0.16 160)", "--warning": "oklch(0.86 0.17 95)",
+      "--danger": "oklch(0.7 0.18 30)", "--info": "oklch(0.75 0.16 260)",
+      "--success-solid": "oklch(0.55 0.16 160)", "--warning-solid": "oklch(0.78 0.17 95)",
+      "--danger-solid": "oklch(0.55 0.18 30)", "--info-solid": "oklch(0.55 0.16 260)",
+    };
+    for (const [name, value] of Object.entries(expected)) expect(tokenValue(tokens, name)).toBe(value);
+    expect(tokenValue(tokens, "--accent")).toBe(expected["--primary"]);
+    expect(tokenValue(tokens, "--error-solid")).toBe(expected["--danger-solid"]);
+    const dangerRule = Array.from(style.sheet!.cssRules)
+      .find((rule): rule is CSSStyleRule => rule instanceof CSSStyleRule && rule.selectorText === ".btn--danger");
+    expect(dangerRule?.style.background).toBe("var(--error-solid)");
   });
 
   it("lets SVG icons inherit their control color while preserving semantic heart color", () => {

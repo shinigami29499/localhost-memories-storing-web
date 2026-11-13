@@ -1,3 +1,31 @@
+# Caveman response style — highest priority
+
+<!-- caveman-begin -->
+
+Respond terse like smart caveman. All technical substance stay. Only fluff die.
+
+Rules:
+
+- Answer first: Answer, then reason, then next step.
+- Kill ceremony: No greeting, hedging, pleasantries, recap, or closer.
+- Short word: "fix" not "implement a solution for".
+- Articles optional, meaning never: Drop a/an/the when the sentence still reads in one pass.
+- One idea per sentence: ASD-STE100 is the floor: 20 words max, active voice, imperative for instructions, one term per thing, pronoun only with an obvious referent.
+- Payload verbatim: Code blocks unchanged.
+- Tool runs: bounded status: No text between routine calls.
+- User's language: Compress the style, not the language.
+- Never perform caveman: No "caveman mode on", no "me think", no "Caveman:" prefix, no normal answer plus caveman copy.
+
+Switch: /caveman (default), /ultracave (fragments, each fact once), /megacave (Classical Chinese 文言文)
+Stop: "stop caveman" or "normal mode"
+
+Auto-Clarity: plain prose for security warnings, irreversible actions, step order a fragment could scramble, user confused, questions you ask the user. Resume after.
+
+Boundaries: code, comments, commits, PRs, docs written normal; existing comments kept unless asked.
+Floor: code, commands, paths, numbers and error strings verbatim; never drop not/never/no/only.
+
+<!-- caveman-end -->
+
 # Agent Instructions
 
 Keep this file short. Stack-specific guidance belongs in the corresponding overview skill.
@@ -11,7 +39,7 @@ Keep this file short. Stack-specific guidance belongs in the corresponding overv
 
 ## Required workflow
 
-Before any task, read and follow [the Caveman skill](.agents/skills/01-overview-01-readfirst/SKILL.md). Then continue with the workflow below.
+Before any task, follow the relevant project workflow guidance below. Do not load a project-level Caveman voice skill; use a global Caveman skill only when the user requests it.
 
 1. Identify whether the task affects the backend, frontend, or both.
 2. Load the matching overview skill(s): [`02-be-01-readfirst`](.agents/skills/02-be-01-readfirst/SKILL.md) for backend work and [`03-fe-01-readfirst`](.agents/skills/03-fe-01-readfirst/SKILL.md) for frontend work.
@@ -35,9 +63,25 @@ See [CLAUDE.md](CLAUDE.md) for repository architecture and common commands.
 
 Project subagents follow the Codex-native TOML format used by [VoltAgent's awesome-codex-subagents](https://github.com/VoltAgent/awesome-codex-subagents). Keep project profiles in `.codex/agents/`; these take precedence over global profiles. Refresh the Codex session after changing profiles.
 
-- Use `code-mapper` for read-only path and ownership tracing before uncertain changes.
-- Use `backend-developer` or `frontend-developer` for scoped implementation in the matching stack.
-- Use `reviewer` for read-only, evidence-based review after implementation.
+- `api-designer` — API contracts, compatibility, and evolution.
+- `backend-developer` — scoped backend implementation and bug fixes.
+- `code-mapper` — read-only tracing of code paths, ownership, and execution flow before uncertain changes.
+- `frontend-developer` — scoped frontend implementation and UI behavior fixes.
+- `fullstack-developer` — one bounded feature or bug spanning frontend and backend.
+- `graphql-architect` — GraphQL schemas, resolvers, federation, performance, and security.
+- `microservices-architect` — service boundaries, distributed contracts, and architecture.
+- `mobile-developer` — mobile implementation, lifecycle, device, and platform issues.
+- `ui-designer` — UI design decisions and implementation-ready interaction guidance.
+- `ui-fixer` — small fixes for already-reproduced UI issues.
+- `websocket-engineer` — WebSocket lifecycle, messaging, reconnection, and state synchronization.
+- `dotnet-core-expert` — .NET and ASP.NET Core hosting, middleware, APIs, and framework behavior.
+- `react-specialist` — React components, state flow, rendering bugs, and React patterns.
+- `code-reviewer` — broader code-health, maintainability, and design review.
+- `anti-ui-slop-reviewer` — visual quality, generic design patterns, hierarchy, and design-system consistency.
+- `ad-security-reviewer` — Active Directory identity, delegation, GPO, and hardening review.
+- `reviewer` — read-only PR review after implementation for correctness, regressions, security, and missing tests.
+- `ui-ux-tester` — functional testing of documented UI flows and defect reporting.
+- `security-auditor` — application and infrastructure security, auth, secrets, and input validation.
 - Keep agent tasks scoped. Never assign overlapping edits to multiple agents. Main agent owns coordination and final decisions.
 - Consult each profile's instructions. Repository restrictions, validation rules, and stack skills in this file still apply to every agent.
 
@@ -54,17 +98,3 @@ Profiles are maintained from VoltAgent's collection. Review upstream before addi
 | Shell commands         | Ask for confirmation |
 | Destructive operations | Always confirm       |
 -->
-
-## graphify
-
-This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
-
-When the user types `/graphify`, use the installed graphify skill or instructions before doing anything else.
-
-Rules:
-- When graphify-out/graph.json exists, run `graphify query "<question>"` before your first grep, search or source-file read for a codebase question, and put this rule in every subagent prompt that explores code. Read raw files only for lines the graph or an earlier read already located. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
-- Dirty graphify-out/ files are expected after hooks or incremental updates; dirty graph files are not a reason to skip graphify. Only skip graphify if the task is about stale or incorrect graph output, or the user explicitly says not to use it.
-- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
-- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
-- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
-- A committed graphify-out/graph.json is rewritten whole on every build, so a large diff to it in a pull request is expected. Do not flag it as churn or suggest skipping the graph rebuild or its hooks.

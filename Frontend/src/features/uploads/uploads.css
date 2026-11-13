@@ -200,11 +200,11 @@
 
 .upload-batch {
   --upload-status-background: var(--surface-card);
-  --upload-status-success-border: #6A3F36;
-  --upload-status-pending-border: #EEA988;
-  --upload-status-success-fill: #F8E4BE;
-  --upload-status-pending-fill: #F8E4BE;
-  --upload-status-failed-fill: #F8E4BE;
+  --upload-status-success-border: var(--success-border);
+  --upload-status-pending-border: var(--warning-border);
+  --upload-status-success-fill: color-mix(in oklch, var(--surface) 90%, var(--success-border));
+  --upload-status-pending-fill: color-mix(in oklch, var(--surface) 90%, var(--warning-border));
+  --upload-status-failed-fill: color-mix(in oklch, var(--surface) 90%, var(--error-border));
   container-type: inline-size;
   min-width: 0;
   overflow: hidden;
@@ -231,12 +231,7 @@
 }
 
 :root .upload-batch {
-  --upload-status-background: #F4F3EE;
-  --upload-status-success-border: #6A3F36;
-  --upload-status-pending-border: #6A3F36;
-  --upload-status-success-fill: #F4F3EE;
-  --upload-status-pending-fill: #F4F3EE;
-  --upload-status-failed-fill: #F4F3EE;
+  --upload-status-background: var(--surface);
   background: var(--surface-card-raised);
 }
 
@@ -331,8 +326,8 @@
 }
 
 .upload-status--failed {
-  border-color: var(--accent-strong);
-  color: var(--text);
+  border-color: var(--error-border);
+  color: var(--error-border);
   background: var(--upload-status-failed-fill);
 }
 
@@ -377,7 +372,7 @@
 }
 
 :is(.upload-batch__summary, .upload-item):has(.upload-status--failed) {
-  --upload-progress-color: var(--text);
+  --upload-progress-color: var(--error-border);
 }
 
 .upload-progress[data-indeterminate] .upload-progress__indicator {
@@ -523,7 +518,7 @@
 }
 
 :root .upload-item__select:not(.upload-batch__select-all):not(:checked):not(:indeterminate) {
-  background: #F4F3EE;
+  background: var(--surface-raised);
 }
 
 .upload-item__select:indeterminate::before {
@@ -559,7 +554,7 @@
 }
 
 :root .upload-item__file-type {
-  background: #F4F3EE;
+  background: var(--surface-raised);
 }
 
 .upload-item__file-type svg {

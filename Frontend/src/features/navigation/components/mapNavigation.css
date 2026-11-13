@@ -9,7 +9,7 @@
 }
 
 .map-navigation__toolbar {
-  border: 2px solid #F4F3EE;
+  border: 2px solid var(--surface);
   display: grid;
   grid-template-columns: 44px 1px max-content 1px 44px;
   width: max-content;
@@ -23,7 +23,7 @@
   background: var(--surface);
   border: 0;
   border-radius: var(--radius);
-  box-shadow: none;
+  box-shadow: var(--shadow-md);
   width: max-content;
   max-height: calc(100% - 88px);
   overflow-y: auto;
@@ -56,7 +56,7 @@
   width: max-content;
   background: var(--surface);
   border-radius: var(--radius);
-  box-shadow: none;
+  box-shadow: var(--shadow-sm);
   padding: 6px;
 }
 .map-navigation--fallback a { text-decoration: none; text-align: center; }
@@ -73,11 +73,11 @@
   min-height: 44px;
   padding: 8px;
 }
-.map-navigation__steps summary:hover { background: var(--surface-hover); color: #000; }
+.map-navigation__steps summary:hover { background: var(--surface-hover); color: var(--text); }
 .map-navigation .btn--secondary { background: var(--surface); color: var(--text); }
 .map-navigation .btn--secondary:hover:not(:disabled) { background: var(--surface-hover); color: var(--text); }
 .map-navigation .btn--secondary[aria-pressed="true"] { background: var(--accent); color: var(--text-on-accent); }
-.map-navigation .btn:disabled { color: #000; }
+.map-navigation .btn:disabled { color: var(--text-muted); }
 .map-navigation__steps ol { margin: 0; padding-left: 24px; }
 .map-navigation__steps li { padding-block: 4px; }
 .map-navigation__steps small { color: var(--text-muted); white-space: nowrap; }
@@ -123,7 +123,7 @@
 
 @media (max-width: 767px) {
   .page-action-bar .map-navigation__toolbar {
-    border: 2px solid #F4F3EE;
+    border: 2px solid var(--surface);
     display: flex;
     flex-direction: column-reverse;
     gap: 0;

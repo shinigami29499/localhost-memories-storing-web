@@ -38,12 +38,12 @@
 
 .place__search-bar {
   align-items: center;
-  background: #F4F3EE;
-  border: 0;
+  background: var(--surface-raised);
+  border: 1px solid var(--border-control);
   border-radius: var(--radius);
   bottom: max(12px, var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
-  box-shadow: none;
-  color: #000;
+  box-shadow: var(--shadow-sm);
+  color: var(--text);
   display: flex;
   gap: 10px;
   left: 50%;
@@ -56,7 +56,7 @@
   width: 100%;
   z-index: 20;
 }
-:root .place__search-bar { background: #6A3F36; color: #F4F3EE; }
+:root .place__search-bar { background: var(--surface-raised); color: var(--text); }
 .page-action-bar .place__action-bar {
   width: min(360px, var(--page-action-bar-max-width));
   padding: 0;
@@ -123,7 +123,7 @@
 .place__search-bar input:focus-visible,
 .place__search-bar:focus-within { outline: 0; box-shadow: none; }
 .place__search-bar input::placeholder { color: currentColor; opacity: 0.72; }
-.place__search-bar:focus-within { outline: 0; outline-offset: 0; }
+.place__search-bar:focus-within { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 .place__search-divider { align-self: stretch; background: var(--border-card); margin-block: 6px; width: 1px; }
 .place__rating-filter {
   align-items: center;
@@ -153,7 +153,7 @@
 .place__rating-star--animated:not(:first-child) { animation: place-rating-star-enter 180ms ease-out; }
 @keyframes place-rating-star-enter { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }
 .place__rating-filter:hover,
-.place__rating-filter[aria-pressed="true"] { background: var(--surface-hover); color: #000; }
+.place__rating-filter[aria-pressed="true"] { background: oklch(0.92 0 0) !important; color: #000 !important; }
 .place__rating-filter:hover svg,
 .place__rating-filter[aria-pressed="true"] svg { stroke: #000; }
 .place__rating-filter:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
@@ -1138,9 +1138,9 @@
 
 .place__photo-action {
   align-items: center;
-  background: #6A3F36;
+  background: var(--surface-raised);
   border: 0;
-  color: #F4F3EE;
+  color: var(--text);
   cursor: pointer;
   display: inline-flex;
   height: 24px;
@@ -1151,7 +1151,7 @@
 }
 
 .place__photo-action:hover:not(:disabled),
-.place__photo-action:focus-visible { background: #6A3F36; }
+.place__photo-action:focus-visible { background: var(--surface-hover); }
 .place__photo-action:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
 .place__photo-action:disabled { cursor: not-allowed; opacity: 0.5; }
 .place__photo-action--remove { right: 4px; top: 4px; }

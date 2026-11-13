@@ -1312,7 +1312,7 @@
 }
 .user-presence {
   align-items: center;
-  color: #000;
+  color: var(--text);
   display: inline-flex;
   gap: 7px;
   white-space: nowrap;
@@ -1326,7 +1326,7 @@
 }
 
 .user-presence--online {
-  color: #000;
+  color: var(--text);
 }
 
 .user-presence--online > span:first-child {

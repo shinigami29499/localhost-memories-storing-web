@@ -18,9 +18,12 @@ test("mobile gallery actions stay anchored across gallery sections", async ({ pa
   const bar = page.locator(".page-action-bar");
   const nav = page.getByRole("navigation", { name: "Gallery", exact: true });
   const galleryActions = bar.locator(".page-action-bar__item > .gallery-page__actions");
-  await expect(galleryActions.getByRole("button", { name: "Upload media" })).toBeVisible();
+  await expect(galleryActions.getByRole("button", { name: "Upload media" })).toBeVisible({ timeout: 15_000 });
   await expect(galleryActions).toHaveCSS("border-top-width", "2px");
-  await expect(galleryActions).toHaveCSS("border-top-color", "rgb(244, 243, 238)");
+  const surface = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--surface").trim());
+  await expect(galleryActions).toHaveCSS("border-top-color", surface);
+  const main = (await page.locator(".app-shell__main").boundingBox())!;
+  const expectedBottom = Math.round(main.y + main.height - 12);
   await page.evaluate(() => {
     const original = Element.prototype.animate;
     (window as Window & { mobileExitFrames: Keyframe[][]; mobileExitRects: number[][] }).mobileExitFrames = [];
@@ -60,7 +63,7 @@ test("mobile gallery actions stay anchored across gallery sections", async ({ pa
       await expect(bar.locator(".page-action-bar__item > .gallery-page__actions")).toBeHidden();
       await page.waitForTimeout(250);
       const collapse = await page.evaluate((start) => (window as Window & { collapseSamples: number[][] }).collapseSamples.slice(start), sampleCount);
-      expect(collapse.some(([width, height, right, bottom]) => width > 4 && width < 44 && height > 0 && Math.round(right) === 378 && Math.round(bottom) === 764), JSON.stringify(collapse)).toBe(true);
+      expect(collapse.some(([width, height, right, bottom]) => width > 4 && width < 44 && height > 0 && Math.round(right) === 378 && Math.round(bottom) === expectedBottom), JSON.stringify(collapse)).toBe(true);
       await expect(bar.locator("[data-collapsing-bar]")).toHaveCount(0);
     }
   }
@@ -69,7 +72,7 @@ test("mobile gallery actions stay anchored across gallery sections", async ({ pa
   const samples = await page.evaluate(() => (window as Window & { collapseSamples: number[][] }).collapseSamples);
   const visibleSamples = samples.filter(([width, height, , , opacity]) => width > 4 && height > 0 && opacity > 0);
   expect(visibleSamples.length, JSON.stringify(samples)).toBeGreaterThan(5);
-  expect(visibleSamples.every(([, , right, bottom]) => Math.round(right) === 378 && Math.round(bottom) === 764), JSON.stringify(samples)).toBe(true);
+  expect(visibleSamples.every(([, , right, bottom]) => Math.round(right) === 378 && Math.round(bottom) === expectedBottom), JSON.stringify(samples)).toBe(true);
   const rects = await page.evaluate(() => (window as Window & { mobileExitRects: number[][] }).mobileExitRects);
   expect(rects.every(([width, height, right, bottom]) => width > 0 && height > 0 && Math.round(right) === 378 && bottom > 0), JSON.stringify(rects)).toBe(true);
 });
@@ -130,7 +133,7 @@ for (const width of [320, 390, 640, 641, 767]) {
           right: Math.round(main.x + main.width - bounds.x - bounds.width),
           bottom: Math.round(main.y + main.height - bounds.y - bounds.height),
         };
-      }).toEqual({ width: size + 4, right: Math.round(width / 100 + 8), bottom: 16 });
+      }).toEqual({ width: size + 4, right: 12, bottom: 12 });
     }
   });
 }

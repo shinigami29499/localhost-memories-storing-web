@@ -53,9 +53,9 @@
   padding: 12px;
   border: 1px solid var(--border-card);
   border-radius: var(--radius);
-  background: var(--accent-strong);
-  box-shadow: none;
-  color: var(--text-on-accent);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-lg);
+  color: var(--text);
   transform-origin: var(--transform-origin);
   transition: opacity 140ms ease, transform 140ms ease;
 }
@@ -160,7 +160,7 @@
 .date-picker__day:focus-visible,
 .date-picker__icon-button:focus-visible,
 .date-picker__text-button:focus-visible {
-  outline: 2px solid var(--text-on-accent);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 1px;
 }
 
@@ -188,9 +188,9 @@
 
 .date-picker__day--selected,
 .date-picker__day--selected:hover {
-  background: var(--surface);
-  border-color: var(--surface);
-  color: var(--text-strong);
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--text-on-accent);
   opacity: 1;
 }
 

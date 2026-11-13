@@ -13,86 +13,43 @@ For an illustrative dark HSL starting point, page/card/raised backgrounds are `h
 This skeleton uses explicit selection plus a system fallback. `data-theme` is placed on the root element; an absent attribute follows the OS. If an existing app has its own mechanism, preserve it. Apply a persisted user choice before first paint when appropriate, offer a system option that removes the attribute, and never let the OS override an explicit choice. Guard storage access if the environment can deny it.
 
 ```css
-:root {
+
+:root[data-theme="light"] {
   color-scheme: light;
-  --bg-base: oklch(0.96 0 0);
-  --bg-surface: oklch(0.985 0 0);
-  --bg-raised: oklch(1 0 0);
-  --text-primary: oklch(0.16 0 0);
-  --text-secondary: oklch(0.42 0 0);
-  --text-disabled: oklch(0.60 0 0);
-  --border-subtle: oklch(0.93 0 0);
-  --border-default: oklch(0.86 0 0);
-  --border-strong: oklch(0.56 0 0);
-  --highlight-top: oklch(1 0 0 / 0.9);
-  --surface-gradient: linear-gradient(180deg, var(--bg-raised), var(--bg-surface));
-  --surface-gradient-hover: linear-gradient(180deg, var(--bg-raised), var(--bg-base));
-  --shadow-card: 0 2px 4px oklch(0 0 0 / 0.10), 0 12px 32px oklch(0 0 0 / 0.05);
-  --primary-solid: oklch(0.48 0.15 260);
-  --primary-hover: oklch(0.42 0.15 260);
-  --primary-active: oklch(0.36 0.14 260);
-  --primary-disabled: oklch(0.72 0.04 260);
-  --primary-on-solid: oklch(1 0 0);
-  --primary-subtle: oklch(0.94 0.025 260);
-  --primary-text: oklch(0.38 0.12 260);
-  --focus-ring: oklch(0.48 0.15 260);
-  --success-solid: oklch(0.48 0.12 150);
-  --success-subtle: oklch(0.95 0.035 150);
-  --success-text: oklch(0.32 0.08 150);
-  --success-border: oklch(0.65 0.10 150);
-  --warning-solid: oklch(0.55 0.12 80);
-  --warning-subtle: oklch(0.96 0.045 90);
-  --warning-text: oklch(0.35 0.07 80);
-  --warning-border: oklch(0.70 0.11 80);
-  --error-solid: oklch(0.50 0.17 25);
-  --error-subtle: oklch(0.95 0.035 25);
-  --error-text: oklch(0.36 0.13 25);
-  --error-border: oklch(0.65 0.13 25);
-  --info-solid: oklch(0.48 0.13 240);
-  --info-subtle: oklch(0.95 0.025 240);
-  --info-text: oklch(0.36 0.10 240);
-  --info-border: oklch(0.65 0.10 240);
+  --bg-dark: oklch(0.92 0 20);
+  --bg: oklch(0.96 0 20);
+  --bg-light: oklch(1 0 20);
+  --text: oklch(0.15 0 20);
+  --text-muted: oklch(0.4 0 20);
+  --highlight: oklch(1 0 20);
+  --border: oklch(0.6 0 20);
+  --border-muted: oklch(0.7 0 20);
+  --primary: oklch(0.18 0 0);
+  --secondary: oklch(0.4 0 0);
+  --success-solid: oklch(0.55 0.16 160);
+  --warning-solid: oklch(0.78 0.17 95);
+  --danger-solid: oklch(0.55 0.18 30);
+  --info-solid: oklch(0.55 0.16 260);
 }
+
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg-base: oklch(0.10 0 0);
-  --bg-surface: oklch(0.15 0 0);
-  --bg-raised: oklch(0.20 0 0);
-  --text-primary: oklch(0.94 0 0);
-  --text-secondary: oklch(0.72 0 0);
-  --text-disabled: oklch(0.50 0 0);
-  --border-subtle: oklch(0.25 0 0);
-  --border-default: oklch(0.30 0 0);
-  --border-strong: oklch(0.55 0 0);
-  --highlight-top: oklch(0.45 0 0 / 0.55);
-  --surface-gradient: linear-gradient(180deg, var(--bg-raised), var(--bg-surface));
-  --surface-gradient-hover: linear-gradient(180deg, oklch(0.24 0 0), var(--bg-surface));
-  --shadow-card: 0 2px 4px oklch(0 0 0 / 0.18), 0 12px 32px oklch(0 0 0 / 0.08);
-  --primary-solid: oklch(0.72 0.12 260);
-  --primary-hover: oklch(0.78 0.10 260);
-  --primary-active: oklch(0.66 0.13 260);
-  --primary-disabled: oklch(0.38 0.04 260);
-  --primary-on-solid: oklch(0.16 0 0);
-  --primary-subtle: oklch(0.25 0.05 260);
-  --primary-text: oklch(0.80 0.09 260);
-  --focus-ring: oklch(0.80 0.10 260);
-  --success-solid: oklch(0.74 0.12 150);
-  --success-subtle: oklch(0.25 0.05 150);
-  --success-text: oklch(0.82 0.10 150);
-  --success-border: oklch(0.58 0.10 150);
-  --warning-solid: oklch(0.80 0.12 85);
-  --warning-subtle: oklch(0.27 0.05 85);
-  --warning-text: oklch(0.87 0.10 85);
-  --warning-border: oklch(0.65 0.10 85);
-  --error-solid: oklch(0.73 0.14 25);
-  --error-subtle: oklch(0.26 0.06 25);
-  --error-text: oklch(0.82 0.10 25);
-  --error-border: oklch(0.60 0.13 25);
-  --info-solid: oklch(0.75 0.11 240);
-  --info-subtle: oklch(0.25 0.05 240);
-  --info-text: oklch(0.83 0.08 240);
-  --info-border: oklch(0.60 0.10 240);
+  --bg-dark: oklch(0.1 0 20);
+  --bg: oklch(0.15 0 20);
+  --bg-light: oklch(0.2 0 20);
+  --text: oklch(0.96 0 20);
+  --text-muted: oklch(0.76 0 20);
+  --highlight: oklch(0.5 0 20);
+  --border: oklch(0.4 0 20);
+  --border-muted: oklch(0.3 0 20);
+  --primary: oklch(0.96 0 0);
+  --secondary: oklch(0.76 0 0);
+  --success: oklch(0.75 0.16 160);
+  --warning: oklch(0.86 0.17 95);
+  --danger: oklch(0.7 0.18 30);
+  --info: oklch(0.75 0.16 260);
 }
+
 ```
 
 For a system dark fallback, put the same dark declarations in `@media (prefers-color-scheme: dark) { :root:not([data-theme]) { ... } }`, or use a shared generated selector/mixin so declarations do not drift. Explicit `data-theme="light"` remains light; explicit dark remains dark. Do not copy literal ellipses into production CSS.

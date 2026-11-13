@@ -22,9 +22,7 @@
 
 .map-loading-overlay {
   align-items: center;
-  background: #6A3F36;
-  --text-muted: #F4F3EE;
-  --accent-soft: #F4F3EE;
+  background: var(--surface);
   border-radius: inherit;
   display: grid;
   inset: 0;
@@ -82,8 +80,8 @@
 }
 
 :is(.place, .locations) .map-controls .mapboxgl-ctrl-group:has(.mapboxgl-ctrl-geolocate) {
-  background: #6A3F36;
-  box-shadow: none;
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-sm);
   margin: 0 0 8px 8px;
   width: 54px;
   height: 54px;
@@ -101,7 +99,7 @@
 }
 
 :is(.place, .locations) .map-controls .mapboxgl-ctrl-geolocate:not(:disabled):is(:hover, :active, .mapboxgl-ctrl-geolocate-active) {
-  background-color: var(--accent);
+  background-color: var(--surface-raised);
 }
 
 :is(.place, .locations) .map-controls .mapboxgl-ctrl-geolocate .mapboxgl-ctrl-icon {
@@ -109,11 +107,11 @@
 }
 
 :is(.place, .locations) .map-controls .mapboxgl-ctrl-geolocate:not(:disabled):is(:hover, :focus-visible) {
-  background-color: var(--accent);
+  background-color: var(--surface-raised);
 }
 
 :is(.place, .locations) .map-controls .mapboxgl-ctrl-geolocate:not(:disabled):is(:hover, :focus-visible)::before {
-  background: var(--surface-hover);
+  background: oklch(0.92 0 0);
   border-radius: var(--radius-inner);
   content: "";
   inset: var(--box-inset);
@@ -133,10 +131,10 @@
 
 :is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes):not([open]) {
   width: 54px;
-  background: #6A3F36;
-  color: var(--text-on-accent);
+  background: var(--surface-raised);
+  color: var(--text);
   border: 0;
-  box-shadow: none;
+  box-shadow: var(--shadow-sm);
 }
 
 :is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes)[open] {
@@ -325,15 +323,15 @@
 
 :is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes):not([open]) summary {
   display: grid;
-  color: var(--text-on-accent);
+  color: var(--text);
   grid-template-columns: 44px;
   justify-content: start;
   padding: 0;
 }
 
 :is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes)[open] > summary {
-  background: var(--accent-strong);
-  color: var(--text-on-accent);
+  background: var(--surface-raised);
+  color: var(--text);
 }
 
 :is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes):not([open]) > summary:is(:hover, :focus-visible),
@@ -351,13 +349,6 @@
 }
 
 :is(.place, .locations) .map-controls .place__location-search {
-  --sidebar-bg: #6A3F36;
-  --surface: #6A3F36;
-  --text: var(--text-on-accent);
-  --text-strong: #F4F3EE;
-  --text-muted: #F4F3EE;
-  --border: #6A3F36;
-  --surface-hover: #F8E4BE;
   color: var(--text);
   right: 8px;
   top: 8px;
@@ -365,9 +356,9 @@
 }
 
 :is(.place, .locations) .map-controls .place__location-search:not(:focus-within) .place__location-search-form {
-  background: #6A3F36;
+  background: var(--surface-raised);
   border: 0;
-  box-shadow: none;
+  box-shadow: var(--shadow-sm);
 }
 
 :is(.place, .locations) .map-controls .place__location-search:focus-within {
@@ -395,7 +386,7 @@
   right: 0;
   width: 54px;
   height: 54px;
-  color: var(--text-on-accent);
+  color: var(--text);
   transform: translateY(-50%);
 }
 
@@ -433,7 +424,7 @@
 
 :is(.place, .locations) :is(.place__location-search-message, .place__location-search-results) button:hover {
   background: var(--surface-hover);
-  color: var(--sidebar-bg);
+  color: var(--text);
 }
 :is(.place, .locations) .place__location-search-message [role="alert"] { color: var(--text); }
 
@@ -444,11 +435,11 @@
   bottom: auto;
   height: 54px;
   width: 54px;
-  background: #6A3F36;
+  background: var(--surface-raised);
   border: 0;
   border-radius: var(--radius);
-  box-shadow: none;
-  color: var(--text-on-accent);
+  box-shadow: var(--shadow-sm);
+  color: var(--text);
 }
 
 :is(.place, .locations) .map-controls :is(.place__map-home-control, .locations__map-home-control)::before {
@@ -468,12 +459,12 @@
 }
 
 :root :is(.place, .locations) .map-controls :is(.place__map-home-control, .locations__map-home-control):is(:hover, :active, [aria-pressed="true"]):not(:disabled) {
-  background: #6A3F36;
+  background: var(--surface-raised);
   color: #000;
 }
 
 :is(.place, .locations) .map-controls :is(.place__map-home-control, .locations__map-home-control):is(:hover, :active, [aria-pressed="true"]):not(:disabled)::before {
-  background: #F8E4BE;
+  background: oklch(0.92 0 0);
 }
 
 .place .map-controls .place__add-marker-control,
@@ -491,10 +482,10 @@
   height: 54px;
   padding: 0;
   z-index: 5;
-  background: #6A3F36;
+  background: var(--surface-raised);
   border: 0;
   border-radius: var(--radius);
-  box-shadow: none;
+  box-shadow: var(--shadow-sm);
   color: #F8E4BE;
   cursor: pointer;
 }
@@ -502,7 +493,7 @@
 .place .map-controls .place__add-marker-control:is(:hover, :active):not(:disabled),
 .locations .map-controls .locations__add-marker-control:is(:hover, :active):not(:disabled),
 .locations .map-controls .locations__camera-control:is(:hover, :active):not(:disabled) {
-  background: #6A3F36;
+  background: var(--surface-hover);
 }
 
 .place .map-controls .place__map-home-control,
@@ -515,7 +506,7 @@
   .mapboxgl-ctrl-group:has(.mapboxgl-ctrl-geolocate),
   .place__location-search:not(:focus-within) .place__location-search-form
 ) {
-  border: 2px solid #F4F3EE;
+  border: 2px solid var(--border-control);
 }
 
 :is(.place, .locations) .home-location-marker > .map-marker__pin:active { cursor: grabbing; }

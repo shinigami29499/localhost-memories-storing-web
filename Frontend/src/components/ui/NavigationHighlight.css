@@ -1,4 +1,4 @@
-﻿.navigation-highlight-bar { background: var(--surface-hover); border: 1px solid var(--border); border-radius: var(--radius); box-sizing: border-box; display: flex; isolation: isolate; padding: var(--box-inset); width: 100%; }
+.navigation-highlight-bar { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-sizing: border-box; display: flex; isolation: isolate; padding: var(--box-inset); width: 100%; }
 .navigation-highlight { display: flex; flex: 1; min-width: 0; }
 .navigation-highlight__indicator { pointer-events: none; }
 .navigation-highlight__indicator::before { background: var(--accent); border-radius: var(--radius); content: ""; inset: calc(-1 * var(--box-inset) - 6px) calc(-1 * var(--box-inset) - 2px); position: absolute; }

@@ -652,7 +652,7 @@
   position: fixed;
   inset: 0;
   z-index: 30;
-  background: #6A3F36;
+  background: var(--overlay-backdrop);
 }
 
 @media (max-width: 640px) {
@@ -778,12 +778,12 @@
 }
 
 :root :is(.sidebar__link:not(.sidebar__link--danger):hover, .sidebar__link--active, .sidebar__group-toggle:hover, .sidebar__account-trigger:hover, .sidebar__account-trigger[aria-expanded="true"]) {
-  background: #6A3F36;
-  color: #F4F3EE;
+  background: var(--surface-hover);
+  color: var(--text);
 }
 
 :root :is(.sidebar__account-trigger:hover .sidebar__account-name, .sidebar__account-trigger:hover .sidebar__account-role, .sidebar__account-trigger[aria-expanded="true"] .sidebar__account-name, .sidebar__account-trigger[aria-expanded="true"] .sidebar__account-role) {
-  color: #F4F3EE;
+  color: var(--text);
 }
 
 :root :is(.sidebar__link[href="/library/gallery/trash"]:hover, .sidebar__link[href="/library/gallery/trash"].sidebar__link--active) > svg {
@@ -817,6 +817,16 @@
   stroke: var(--notification-icon);
 }
 
+/* Preserve the authored brown icon colors against dark navigation surfaces. */
+.sidebar__link:is([href="/library/album"], [href="/location/saved"], [href="/library/gallery/trash"]) > svg,
+.gallery-card__album > svg {
+  box-sizing: content-box;
+  padding: 2px;
+  margin: -2px;
+  border-radius: 2px;
+  background: oklch(0.92 0 0);
+}
+
 .sidebar__link--active {
   position: relative;
   isolation: isolate;
@@ -831,7 +841,7 @@
 }
 
 :root .sidebar__link--active::before {
-  background: #6A3F36;
+  background: var(--accent-wash);
 }
 
 .sidebar__link--active {
@@ -843,13 +853,13 @@
 }
 
 :root :is(.sidebar__nav .sidebar__link:hover, .sidebar__nav .sidebar__link--active) {
-  background: #6A3F36;
-  color: #F4F3EE;
+  background: var(--surface-hover);
+  color: var(--text);
   box-shadow: none;
 }
 
 :root .sidebar__nav .sidebar__link--active::before {
-  background: #6A3F36;
+  background: var(--accent-wash);
 }
 
 :root .sidebar__nav .sidebar__link:not(.sidebar__link--active):hover {

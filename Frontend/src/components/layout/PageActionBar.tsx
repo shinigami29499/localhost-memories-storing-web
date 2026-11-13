@@ -38,17 +38,15 @@ function animateExit(footer: HTMLElement, bar: HTMLElement, bounds: { left: numb
 }
 
 function animateMobileExit(footer: HTMLElement, bar: HTMLElement, bounds: { left: number; top: number; width: number; height: number }, nextHeight: number) {
-  const mobile = window.matchMedia("(max-width: 767px)").matches;
   const wrapper = document.createElement("div");
   wrapper.dataset.collapsingBar = "true";
   wrapper.setAttribute("aria-hidden", "true");
   wrapper.inert = true;
   Object.assign(wrapper.style, {
-    position: "absolute", right: mobile ? "calc(var(--page-gutter) + 8px)" : "12px",
-    bottom: mobile ? "calc(var(--page-padding-bottom) + 8px)" : "12px",
+    position: "absolute", right: "12px", bottom: "12px",
     width: `${bounds.width}px`, height: `${bounds.height}px`,
     display: "flex", alignItems: "flex-end", justifyContent: "flex-end", overflow: "hidden", pointerEvents: "none", zIndex: "2",
-    boxSizing: "border-box", border: "2px solid var(--surface)", borderRadius: "var(--control-radius)", background: "var(--accent)",
+    boxSizing: "border-box", border: "2px solid var(--surface)", borderRadius: "var(--control-radius)", background: "var(--surface-raised)",
   });
   const exiting = bar.cloneNode(true) as HTMLElement;
   Object.assign(exiting.style, { flex: "none", width: "100%", maxWidth: "none", border: "0", borderRadius: "0" });

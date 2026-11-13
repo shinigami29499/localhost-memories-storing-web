@@ -1,5 +1,5 @@
-﻿.header-filters__trigger { min-height: 44px; padding: 0 14px; border: 1px solid var(--border-control); background: var(--surface); color: var(--text-strong); cursor: pointer; }
-.header-filters__popup { width: min(340px, calc(100vw - 32px)); max-height: min(calc(100dvh - 32px), var(--available-height)); overflow-y: auto; background: var(--surface); border: 1px solid var(--border-control); color: var(--text-strong); box-shadow: var(--shadow-popover); }
+.header-filters__trigger { min-height: 44px; padding: 0 14px; border: 1px solid var(--border-control); background: var(--surface); color: var(--text-strong); cursor: pointer; }
+.header-filters__popup { width: min(340px, calc(100vw - 32px)); max-height: min(calc(100dvh - 32px), var(--available-height)); overflow-y: auto; background: var(--surface-raised); border: 1px solid var(--border-control); color: var(--text-strong); box-shadow: var(--shadow-popover); }
 .header-filters__header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 12px 0; }
 .header-filters__title { margin: 0; font-size: 1rem; font-weight: 600; }
 .header-filters__close { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; background: transparent; color: inherit; cursor: pointer; }

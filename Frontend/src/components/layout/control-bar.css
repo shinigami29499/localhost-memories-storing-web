@@ -1,21 +1,15 @@
 .control-bar {
-  --control-bar-bg: #F4F3EE;
-  --control-bar-fg: #000;
-  --control-bar-hover: #F4F3EE;
+  --control-bar-bg: var(--surface-raised);
+  --control-bar-fg: var(--text);
+  --control-bar-hover: var(--surface-hover);
   display: flex;
   align-items: center;
   gap: 0;
   padding: var(--box-inset);
-  border: 0;
+  border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--control-bar-bg);
-  box-shadow: none;
-}
-
-:root .control-bar {
-  --control-bar-bg: #6A3F36;
-  --control-bar-fg: #F4F3EE;
-  --control-bar-hover: #6A3F36;
+  box-shadow: var(--shadow-sm);
 }
 
 .control-bar > button {
@@ -34,7 +28,7 @@
 }
 
 .control-bar > button:hover:not(:focus-visible):not(:disabled) {
-  background: transparent;
+  background: var(--control-bar-hover);
   color: var(--control-bar-fg);
 }
 

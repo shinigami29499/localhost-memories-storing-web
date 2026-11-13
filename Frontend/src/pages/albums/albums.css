@@ -4,7 +4,7 @@
   background: var(--surface-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  box-shadow: none;
+  box-shadow: var(--shadow-lg);
   color: var(--text-strong);
   max-width: calc(100vw - 1rem);
   min-width: 12rem;
@@ -92,8 +92,8 @@
 
 .album-card__selection {
   align-items: center;
-  background: #F4F3EE;
-  border: 2px solid #F4F3EE;
+  background: var(--accent);
+  border: 2px solid var(--accent);
   border-radius: 4px;
   color: #000;
   display: flex;
@@ -116,7 +116,7 @@
   position: absolute;
 }
 
-.album-card__link[aria-checked="true"] .album-card__media { background: #F8E4BE; }
+.album-card__link[aria-checked="true"] .album-card__media { background: var(--accent); }
 .album-card__link[aria-checked="true"] .album-card__media img,
 .album-card__link[aria-checked="true"] .album-card__placeholder { visibility: hidden; }
 .album-card__link[aria-checked] .album-card__badge { left: auto; right: 5px; }
@@ -291,7 +291,7 @@
   max-width: min(420px, calc(100vw - 32px));
   overflow: hidden;
   padding: 0;
-  background: #6A3F36;
+  background: var(--surface-raised);
   border: 0;
   box-shadow: none;
 }
@@ -299,7 +299,7 @@
 .album-caption-dialog__header {
   padding: 20px 24px;
   border-bottom: 1px solid var(--border);
-  background: #6A3F36;
+  background: var(--surface-raised);
 }
 
 .album-caption-dialog__title {
@@ -311,7 +311,7 @@
 
 .album-caption-dialog__content {
   padding: 12px;
-  background: #6A3F36;
+  background: var(--surface-raised);
 }
 
 .album-caption-dialog__field {
@@ -320,7 +320,7 @@
 
 .album-caption-dialog__field textarea {
   box-sizing: border-box;
-  background: #6A3F36;
+  background: var(--surface);
   border: 1px solid var(--border-control);
   color: var(--text-strong);
   font: inherit;
@@ -333,22 +333,22 @@
 
 .album-caption-dialog__actions {
   padding: 0 12px 12px;
-  background: #6A3F36;
+  background: var(--surface-raised);
 }
 
 :root .album-caption-dialog,
 :root .album-caption-dialog__content,
 :root .album-caption-dialog__actions {
-  background: #F4F3EE;
+  background: var(--surface-raised);
 }
 
 :root .album-caption-dialog__header {
-  background: #F4F3EE;
+  background: var(--surface-raised);
 }
 
 :root .album-caption-dialog__field textarea {
-  background: #F4F3EE;
-  color: #000;
+  background: var(--surface);
+  color: var(--text);
 }
 
 .album-hero__actions {
