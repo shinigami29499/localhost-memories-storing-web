@@ -1,0 +1,14 @@
+.mobile-avatar-picker fieldset { min-width: 0; padding: 0; margin: 0; border: 0; }
+.mobile-avatar-picker legend { font-weight: 650; }
+.mobile-avatar-picker fieldset > p { margin: .5rem 0 1rem; color: var(--mobile-text-muted); font-size: .875rem; }
+.mobile-avatar-picker__options { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; }
+.mobile-avatar-picker__option { position: relative; display: grid; min-width: 0; min-height: 44px; place-items: center; padding: .5rem; border: 2px solid transparent; border-radius: .75rem; background: var(--mobile-surface-muted); cursor: pointer; }
+.mobile-avatar-picker__option:has(input:checked) { border-color: var(--accent); }
+.mobile-avatar-picker__option:has(input:focus-visible) { outline: 2px solid var(--focus-ring); outline-offset: 3px; }
+.mobile-avatar-picker__option input { position: absolute; width: 1px; height: 1px; padding: 0; border: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.mobile-avatar-picker__image { display: block; width: 100%; max-width: 80px; aspect-ratio: 1; border-radius: 50%; }
+.mobile-avatar-picker__actions { display: grid; gap: .75rem; margin-top: 1rem; }
+.mobile-avatar-picker__actions .pagination { max-width: 100%; padding: 0; }
+.mobile-avatar-picker__actions > button { min-height: 44px; justify-self: end; }
+.mobile-avatar-picker__error { color: var(--mobile-text); }
+.mobile-avatar-picker:has(fieldset:disabled) .mobile-avatar-picker__option { cursor: wait; }

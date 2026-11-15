@@ -1,0 +1,1094 @@
+.mobile-card-upload-batch {
+  --mobile-card-upload-status-background: var(--surface-card);
+  --mobile-card-upload-status-success-border: var(--success-border);
+  --mobile-card-upload-status-pending-border: var(--warning-border);
+  --mobile-card-upload-status-success-fill: color-mix(in oklch, var(--surface) 90%, var(--success-border));
+  --mobile-card-upload-status-pending-fill: color-mix(in oklch, var(--surface) 90%, var(--warning-border));
+  --mobile-card-upload-status-failed-fill: color-mix(in oklch, var(--surface) 90%, var(--error-border));
+  container-type: inline-size;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: var(--radius);
+  background: var(--surface-card);
+  box-shadow: none;
+}
+
+.mobile-card-upload-batch__summary {
+  position: relative;
+  display: grid;
+  grid-template-columns: 32px minmax(100px, 1fr) 160px minmax(120px, 1fr) auto 200px;
+  grid-template-areas: "selectall created status progress filters footer";
+  align-items: center;
+  gap: 16px;
+  padding: 10px 16px;
+  background: var(--surface-card-raised);
+  cursor: pointer;
+}
+
+.mobile-card-upload-batch__summary--admin {
+  grid-template-columns: 32px 52px minmax(120px, 1.1fr) minmax(80px, 0.6fr) 176px minmax(120px, 1fr) minmax(140px, auto) 200px;
+  grid-template-areas: "selectall avatar username created status progress filters footer";
+}
+
+:root .mobile-card-upload-batch {
+  --mobile-card-upload-status-background: var(--surface);
+  background: var(--surface-card-raised);
+}
+
+:root .mobile-card-upload-batch__summary {
+  background: var(--surface-card);
+}
+
+.mobile-card-upload-batch__field {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.mobile-card-upload-batch__status-field {
+  grid-area: status;
+  align-content: center;
+  justify-items: center;
+  text-align: center;
+}
+.mobile-card-upload-batch__status-field .mobile-card-upload-status { font-weight: 700; }
+
+.mobile-card-upload-batch__username-field { grid-area: username; }
+.mobile-card-upload-batch__owner-avatar { grid-area: avatar; align-self: center; justify-self: center; width: 36px; height: 36px; border-radius: 50%; overflow: hidden; }
+.mobile-card-upload-batch__created-field { grid-area: created; }
+.mobile-card-upload-batch__created-field .mobile-card-upload-batch__date-value,
+.mobile-card-upload-batch__created-field .mobile-card-upload-batch__time-value { display: none; }
+
+.mobile-card-upload-batch__label {
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+
+.mobile-card-upload-batch__value {
+  min-width: 0;
+  color: var(--text-strong);
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.mobile-card-upload-batch__toggle {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.mobile-card-upload-batch__summary:has(.mobile-card-upload-batch__toggle:focus-visible) {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+.mobile-card-upload-batch__chevron {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.mobile-card-upload-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 120px;
+  max-width: 100%;
+  min-height: 24px;
+  padding: 2px 8px;
+  border: 2px solid var(--border);
+  border-radius: 999px;
+  background: var(--mobile-card-upload-status-background, var(--surface-card-raised));
+  color: var(--text-strong);
+  font-size: 0.75rem;
+  font-weight: 650;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.mobile-card-upload-status--completed,
+.mobile-card-upload-status--success,
+.mobile-card-upload-status--sent-to-browser {
+  border-color: var(--mobile-card-upload-status-success-border);
+  color: var(--mobile-card-upload-status-success-border);
+  background: var(--mobile-card-upload-status-success-fill);
+}
+
+.mobile-card-upload-status--pending,
+.mobile-card-upload-status--pending-upload,
+.mobile-card-upload-status--uploading,
+.mobile-card-upload-status--paused {
+  border-color: var(--mobile-card-upload-status-pending-border);
+  color: var(--mobile-card-upload-status-pending-border);
+  background: var(--mobile-card-upload-status-pending-fill);
+}
+
+.mobile-card-upload-status--failed {
+  border-color: var(--error-border);
+  color: var(--error-border);
+  background: var(--mobile-card-upload-status-failed-fill);
+}
+
+.mobile-card-upload-batch__progress-field {
+  grid-area: progress;
+  min-width: 0;
+}
+
+.mobile-card-upload-progress__line,
+.mobile-card-upload-item__progress-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.mobile-card-upload-progress {
+  display: block;
+  flex: 1;
+  min-width: 0;
+}
+
+.mobile-card-upload-progress__track {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-raised);
+}
+
+.mobile-card-upload-progress__indicator {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--mobile-card-upload-progress-color, var(--accent-strong));
+}
+
+:is(.mobile-card-upload-batch__summary, .mobile-card-upload-item):has(:is(.mobile-card-upload-status--completed, .mobile-card-upload-status--success, .mobile-card-upload-status--sent-to-browser)) {
+  --mobile-card-upload-progress-color: var(--mobile-card-upload-status-success-border);
+}
+
+:is(.mobile-card-upload-batch__summary, .mobile-card-upload-item):has(:is(.mobile-card-upload-status--pending, .mobile-card-upload-status--pending-upload, .mobile-card-upload-status--uploading, .mobile-card-upload-status--paused)) {
+  --mobile-card-upload-progress-color: var(--mobile-card-upload-status-pending-border);
+}
+
+:is(.mobile-card-upload-batch__summary, .mobile-card-upload-item):has(.mobile-card-upload-status--failed) {
+  --mobile-card-upload-progress-color: var(--error-border);
+}
+
+.mobile-card-upload-progress[data-indeterminate] .mobile-card-upload-progress__indicator {
+  width: 35%;
+  animation: mobile-card-upload-progress-indeterminate 1.3s ease-in-out infinite alternate;
+}
+
+.mobile-card-upload-progress__value {
+  min-width: 42px;
+  color: var(--text-strong);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.mobile-card-upload-batch__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  grid-area: footer;
+  gap: 4px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.mobile-card-upload-batch__filters {
+  display: flex;
+  flex-wrap: nowrap;
+  grid-area: filters;
+  gap: 8px;
+  min-width: 0;
+}
+
+.mobile-card-upload-batch__filter-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 140px;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  background: var(--surface-card);
+  color: var(--text-strong);
+  font: inherit;
+  cursor: pointer;
+}
+
+.mobile-card-upload-batch__filter-trigger:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.mobile-card-upload-batch__filter-positioner { z-index: 30; }
+
+.mobile-card-upload-batch__filter-popup {
+  min-width: var(--anchor-width);
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-card);
+  color: var(--text-strong);
+  box-shadow: none;
+}
+
+.mobile-card-upload-batch__filter-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 36px;
+  padding: 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  outline: none;
+}
+
+.mobile-card-upload-batch__filter-option[data-highlighted] { background: var(--surface-hover); }
+
+.mobile-card-upload-batch__filter-indicator {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--text-strong);
+}
+
+.mobile-card-upload-batch__empty { color: var(--text-muted); }
+
+.mobile-card-upload-batch__items {
+  border-top: 1px solid var(--border);
+  padding: 0 16px;
+}
+
+.mobile-card-upload-item {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+  grid-template-areas:
+    "icon details controls"
+    "icon progress .";
+  align-items: center;
+  gap: 6px 12px;
+  padding: 8px 0;
+}
+
+.mobile-card-upload-item--selectable { cursor: pointer; }
+
+.mobile-card-upload-item:has(.mobile-card-upload-item__select) {
+  grid-template-columns: 32px 52px minmax(0, 1fr) auto;
+  grid-template-areas: "select icon details controls" "select icon progress .";
+  column-gap: 16px;
+}
+
+.mobile-card-upload-item__select {
+  appearance: none;
+  display: grid;
+  grid-area: select;
+  place-content: center;
+  justify-self: center;
+  box-sizing: border-box;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface-raised);
+  cursor: pointer;
+}
+
+.mobile-card-upload-item__select::before {
+  width: 10px;
+  height: 10px;
+  background: var(--surface-card);
+  clip-path: polygon(14% 44%, 0 59%, 39% 100%, 100% 19%, 84% 6%, 37% 72%);
+  content: "";
+  transform: scale(0);
+  transition: transform 160ms ease-out;
+}
+
+.mobile-card-upload-batch__select-all {
+  grid-area: selectall;
+  margin-right: 0;
+}
+
+:root .mobile-card-upload-item__select:not(.mobile-card-upload-batch__select-all):not(:checked):not(:indeterminate) {
+  background: var(--surface-raised);
+}
+
+.mobile-card-upload-item__select:indeterminate::before {
+  clip-path: inset(40% 0);
+  transform: scale(1);
+}
+
+.mobile-card-upload-item__select:indeterminate,
+.mobile-card-upload-item__select:checked {
+  border-color: var(--text);
+  background: var(--accent-strong);
+}
+
+.mobile-card-upload-item__select:checked::before {
+  transform: scale(1);
+}
+
+.mobile-card-upload-item__select:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.mobile-card-upload-item__file-type {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  grid-area: icon;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) / 2);
+  background: var(--surface-raised);
+  color: var(--text-muted);
+}
+
+:root .mobile-card-upload-item__file-type {
+  background: var(--surface-raised);
+}
+
+.mobile-card-upload-item__file-type svg {
+  width: 70%;
+  height: 70%;
+}
+
+.mobile-card-upload-item__action svg {
+  width: 18px;
+  height: 18px;
+}
+
+.mobile-card-upload-item__details {
+  align-self: start;
+  grid-area: details;
+  min-width: 0;
+}
+
+.mobile-card-upload-item__name-group {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.mobile-card-upload-item__name {
+  overflow: hidden;
+  color: var(--text-strong);
+  font-size: 0.875rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobile-card-upload-item__meta {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  overflow-wrap: anywhere;
+}
+
+.mobile-card-upload-item__meta-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  min-width: 0;
+}
+
+.mobile-card-upload-item__meta-type::after { content: " · "; }
+
+.mobile-card-upload-item__status.mobile-card-upload-status {
+  min-height: 20px;
+  padding: 0 6px;
+  font-size: 0.7rem;
+}
+
+.mobile-card-upload-item__controls {
+  display: flex;
+  align-items: center;
+  align-self: center;
+  justify-self: end;
+  grid-area: controls;
+  gap: 8px;
+}
+
+.mobile-card-upload-item__progress-row {
+  align-self: end;
+  grid-area: progress;
+  margin-bottom: 2px;
+}
+
+@container (min-width: 521px) {
+  .mobile-card-upload-item__progress-row {
+    grid-column-end: -1;
+  }
+}
+
+.mobile-card-upload-item__error {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--text);
+  font-size: 0.82rem;
+  overflow-wrap: anywhere;
+}
+
+.mobile-card-upload-item__actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 4px;
+}
+
+.mobile-card-upload-item__action.btn {
+  display: inline-grid;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  place-items: center;
+}
+
+@keyframes mobile-card-upload-progress-indeterminate {
+  from { transform: translateX(-45%); }
+  to { transform: translateX(190%); }
+}
+
+@container (max-width: 520px) {
+  .upload-page .mobile-card-upload-batch__summary--admin {
+    grid-template-columns: 24px minmax(88px, 1fr) 40px 117px;
+    grid-template-areas: "selectall created status footer";
+  }
+
+  .upload-page .mobile-card-upload-batch__summary--admin .mobile-card-upload-batch__owner-avatar,
+  .upload-page .mobile-card-upload-batch__summary--admin .mobile-card-upload-batch__username-field {
+    display: none;
+  }
+}
+
+@container (max-width: 1200px) {
+  .mobile-card-upload-batch__summary,
+  .mobile-card-upload-batch__summary--admin {
+    grid-template-columns: 32px repeat(3, minmax(0, 1fr));
+    grid-template-areas:
+      "selectall created created created"
+      "status progress progress footer"
+      "filters filters filters filters";
+    gap: 10px 12px;
+  }
+
+  .mobile-card-upload-batch__summary--admin {
+    grid-template-columns: 32px 52px repeat(3, minmax(0, 1fr));
+    grid-template-areas:
+      "selectall avatar username created created"
+      "status progress progress footer footer"
+      "filters filters filters filters filters";
+  }
+
+  .mobile-card-upload-item {
+    grid-template-columns: 52px minmax(0, 1fr) auto;
+  }
+
+}
+
+@container (max-width: 520px) {
+  .mobile-card-upload-item {
+    grid-template-columns: 52px minmax(0, 1fr);
+    grid-template-areas: "icon details" "icon progress" "controls controls";
+  }
+
+  .mobile-card-upload-item:has(.mobile-card-upload-item__select) {
+    grid-template-columns: 32px 52px minmax(0, 1fr);
+    grid-template-areas: "select icon details" "select icon progress" "controls controls controls";
+  }
+
+  .mobile-card-upload-item__controls { justify-content: flex-end; }
+
+  .mobile-card-upload-batch__summary:not(.mobile-card-upload-batch__summary--admin) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas: none;
+    gap: 12px;
+  }
+
+  .mobile-card-upload-batch__summary--admin {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-areas:
+      "toggle selectall avatar"
+      "username created status"
+      "progress progress progress"
+      "filters filters filters"
+      "footer footer footer";
+    gap: 12px;
+  }
+
+  .mobile-card-upload-batch__summary:not(.mobile-card-upload-batch__summary--admin) .mobile-card-upload-batch__toggle,
+  .mobile-card-upload-batch__summary:not(.mobile-card-upload-batch__summary--admin) .mobile-card-upload-batch__select-all,
+  .mobile-card-upload-batch__summary:not(.mobile-card-upload-batch__summary--admin) .mobile-card-upload-batch__created-field,
+  .mobile-card-upload-batch__summary:not(.mobile-card-upload-batch__summary--admin) .mobile-card-upload-batch__status-field,
+  .mobile-card-upload-batch__summary:not(.mobile-card-upload-batch__summary--admin) .mobile-card-upload-batch__progress-field,
+  .mobile-card-upload-batch__summary:not(.mobile-card-upload-batch__summary--admin) .mobile-card-upload-batch__filters,
+  .mobile-card-upload-batch__summary:not(.mobile-card-upload-batch__summary--admin) .mobile-card-upload-batch__footer {
+    grid-area: auto;
+  }
+
+  .mobile-card-upload-batch__filters { flex-wrap: wrap; }
+
+  .mobile-card-upload-batch__progress-field,
+  .mobile-card-upload-batch__filters,
+  .mobile-card-upload-batch__footer {
+    grid-column: 1 / -1;
+  }
+
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-card-upload-item__select::before { transition: none; }
+
+  .mobile-card-upload-progress[data-indeterminate] .mobile-card-upload-progress__indicator {
+    animation-duration: 3s;
+  }
+}
+
+.mobile-card-upload-item,
+.mobile-card-upload-item:has(.mobile-card-upload-item__select) {
+  grid-template-columns: 32px 52px minmax(160px, 1.2fr) minmax(76px, 0.6fr) 176px minmax(120px, 1fr) minmax(140px, auto) 200px;
+  grid-template-areas: "select icon details date status progress . controls";
+  gap: 16px;
+}
+.mobile-card-upload-item--admin,
+.mobile-card-upload-item--admin:has(.mobile-card-upload-item__select) {
+  grid-template-columns: 32px 52px minmax(120px, 1.1fr) minmax(80px, 0.6fr) 176px minmax(120px, 1fr) minmax(140px, auto) 200px;
+}
+.mobile-card-upload-item__file-type { display: grid; width: 36px; height: 36px; grid-area: icon; align-self: center; justify-self: center; }
+.mobile-card-upload-item__date { grid-area: date; }
+.mobile-card-upload-item__status-field { grid-area: status; align-content: center; justify-items: center; }
+.mobile-card-upload-item__progress-row { display: grid; align-self: center; gap: 6px; margin: 0; }
+.mobile-card-upload-item__progress-row .mobile-card-upload-progress { width: 100%; }
+@container (min-width: 521px) {
+  .mobile-card-upload-item__progress-row { grid-column-end: auto; }
+}
+@container (max-width: 1200px) {
+  .mobile-card-upload-item,
+  .mobile-card-upload-item:has(.mobile-card-upload-item__select) {
+    grid-template-columns: 32px 52px minmax(0, 1.25fr) minmax(76px, 0.65fr) minmax(152px, 1.1fr);
+    grid-template-areas: "select icon details date status" "select icon progress progress controls";
+    gap: 10px 12px;
+  }
+}
+@container (max-width: 520px) {
+  .mobile-card-upload-item,
+  .mobile-card-upload-item:has(.mobile-card-upload-item__select) {
+    grid-template-columns: 32px 36px repeat(2, minmax(0, 1fr));
+    grid-template-areas: "select icon details details" ". icon date status" ". icon progress progress" "controls controls controls controls";
+    gap: 10px 12px;
+  }
+}
+
+/* Keep admin batch headers and their items on the same responsive tracks. */
+@container (max-width: 1200px) {
+  .mobile-card-upload-batch__summary--admin {
+    grid-template-columns: 32px 52px minmax(0, 1.1fr) minmax(76px, 0.65fr) minmax(152px, 1.1fr);
+    grid-template-areas:
+      "selectall avatar username created created"
+      ". . progress progress status"
+      ". . footer footer footer"
+      "filters filters filters filters filters";
+  }
+
+  .mobile-card-upload-item--admin,
+  .mobile-card-upload-item--admin:has(.mobile-card-upload-item__select) {
+    grid-template-columns: 32px 52px minmax(0, 1.1fr) minmax(76px, 0.65fr) minmax(152px, 1.1fr);
+    grid-template-areas:
+      "select icon details date status"
+      "select icon progress progress controls";
+    gap: 10px 12px;
+  }
+}
+
+@container (max-width: 520px) {
+  .mobile-card-upload-batch__summary--admin {
+    grid-template-columns: 32px 52px minmax(0, 1fr);
+    grid-template-areas:
+      "selectall avatar username"
+      ". created created"
+      ". status status"
+      ". progress progress"
+      "filters filters filters"
+      "footer footer footer";
+    gap: 10px 12px;
+  }
+
+  .mobile-card-upload-item--admin,
+  .mobile-card-upload-item--admin:has(.mobile-card-upload-item__select) {
+    grid-template-columns: 32px 52px minmax(0, 1fr);
+    grid-template-areas:
+      "select icon details"
+      ". date date"
+      ". status status"
+      ". progress progress"
+      "controls controls controls";
+    gap: 10px 12px;
+  }
+}
+
+.mobile-card-upload-batch__panel > .pagination {
+  width: calc(100% - 32px);
+  margin-inline: auto;
+  border-top: 1px solid var(--border);
+}
+
+.mobile-card-upload-batch__date-label-mobile,
+.mobile-card-upload-batch__date-only {
+  display: none;
+}
+
+@container (max-width: 520px) {
+  .mobile-card-upload-batch__progress-field,
+  .mobile-card-upload-item__progress-row {
+    display: none;
+  }
+
+  .mobile-card-upload-batch__select-all,
+  .mobile-card-upload-item__select {
+    display: grid;
+    place-self: center;
+    margin: 0;
+  }
+
+  .mobile-card-upload-batch__select-all {
+    transform: none;
+  }
+
+  .mobile-card-upload-batch__summary {
+    padding-block: 0;
+  }
+
+  .mobile-card-upload-batch__summary .mobile-card-upload-batch__footer {
+    align-self: stretch;
+  }
+
+  .mobile-card-upload-batch__date-label-mobile,
+  .mobile-card-upload-batch__date-only {
+    display: initial;
+  }
+
+  .mobile-card-upload-batch__date-label,
+  .mobile-card-upload-batch__date-time {
+    display: none;
+  }
+
+  .mobile-card-upload-batch__created-field time { display: grid; gap: 2px; }
+
+  .mobile-card-upload-batch__created-field .mobile-card-upload-batch__date-label-mobile,
+  .mobile-card-upload-batch__created-field .mobile-card-upload-batch__date-only {
+    display: none;
+  }
+
+  .mobile-card-upload-batch__created-field .mobile-card-upload-batch__date-value,
+  .mobile-card-upload-batch__created-field .mobile-card-upload-batch__time-value {
+    display: block;
+  }
+
+  .mobile-card-upload-batch__created-field .mobile-card-upload-batch__date-value {
+    color: var(--text-strong);
+    font-weight: 700;
+    line-height: 17px;
+  }
+
+  .mobile-card-upload-batch__created-field .mobile-card-upload-batch__time-value {
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    line-height: 14px;
+  }
+
+  .mobile-card-upload-item__date {
+    display: none;
+  }
+
+  .mobile-card-upload-batch__summary:not(.mobile-card-upload-batch__summary--admin) {
+    grid-template-columns: 24px minmax(0, 1fr) minmax(72px, auto);
+    grid-template-areas: "selectall created status" "footer footer footer";
+    align-items: center;
+    gap: 8px;
+    padding-block: 10px;
+  }
+
+  .mobile-card-upload-batch__created-field {
+    margin-left: 8px;
+  }
+
+  .mobile-card-upload-batch__summary--admin {
+    grid-template-columns: 24px 32px minmax(0, 1fr) minmax(72px, auto);
+    grid-template-areas: "selectall avatar username status" "footer footer footer footer";
+    align-items: center;
+    gap: 8px;
+    padding-block: 10px;
+  }
+
+  .mobile-card-upload-batch__owner-avatar {
+    width: 32px;
+    height: 32px;
+  }
+
+  .mobile-card-upload-batch__summary--admin .mobile-card-upload-batch__username-field {
+    grid-area: username;
+    display: grid;
+    min-width: 0;
+  }
+
+  .mobile-card-upload-batch__summary--admin .mobile-card-upload-batch__owner-avatar {
+    margin-left: 8px;
+  }
+
+  .mobile-card-upload-batch__summary--admin .mobile-card-upload-batch__username-field .mobile-card-upload-batch__value {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobile-card-upload-batch__summary--admin .mobile-card-upload-batch__status-field {
+    display: grid;
+    grid-template-rows: auto auto;
+    align-content: center;
+    justify-items: center;
+    justify-content: center;
+    gap: 2px;
+  }
+
+  .mobile-card-upload-batch__summary--admin .mobile-card-upload-batch__status-field .mobile-card-upload-batch__label {
+    display: block;
+    font-weight: 700;
+  }
+
+  .mobile-card-upload-batch__summary--admin .mobile-card-upload-batch__status-field {
+    grid-area: status;
+  }
+
+  .mobile-card-upload-batch__summary--admin .mobile-card-upload-batch__footer,
+  .mobile-card-upload-batch__summary:not(.mobile-card-upload-batch__summary--admin) .mobile-card-upload-batch__footer {
+    grid-area: footer;
+  }
+
+  .mobile-card-upload-batch__summary:not(.mobile-card-upload-batch__summary--admin) .mobile-card-upload-batch__toggle {
+    grid-area: toggle;
+  }
+
+  .mobile-card-upload-batch__summary:not(.mobile-card-upload-batch__summary--admin) .mobile-card-upload-batch__status-field {
+    grid-area: status;
+    grid-template-rows: auto auto;
+    gap: 2px;
+    align-self: center;
+    justify-items: center;
+    text-align: center;
+  }
+
+  .mobile-card-upload-batch__summary .mobile-card-upload-batch__status-field .mobile-card-upload-batch__label {
+    color: var(--text-strong);
+    font-size: 0.875rem;
+    font-weight: 700;
+    line-height: 17px;
+  }
+
+  .mobile-card-upload-batch__summary .mobile-card-upload-batch__status-field .mobile-card-upload-status {
+    align-self: center;
+  }
+
+  .mobile-card-upload-batch__summary:not(.mobile-card-upload-batch__summary--admin) .mobile-card-upload-batch__filters {
+    grid-area: filters;
+  }
+
+  .mobile-card-upload-batch__summary .mobile-card-upload-status {
+    white-space: nowrap;
+  }
+
+  .mobile-card-upload-batch__summary .mobile-card-upload-status,
+  .mobile-card-upload-item .mobile-card-upload-status {
+    width: auto;
+    height: auto;
+    min-height: 24px;
+    padding: 2px 6px;
+    border: 1px solid var(--border-control);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 0.75rem;
+  }
+
+  .mobile-card-upload-status--completed,
+  .mobile-card-upload-status--success {
+    background: var(--surface);
+  }
+
+  .mobile-card-upload-status--pending,
+  .mobile-card-upload-status--pending-upload,
+  .mobile-card-upload-status--uploading,
+  .mobile-card-upload-status--paused {
+    background: var(--surface);
+  }
+
+  .mobile-card-upload-status--failed {
+    background: var(--surface);
+  }
+
+  .mobile-card-upload-status--cancelled {
+    background: var(--surface);
+  }
+
+  .mobile-card-upload-item,
+  .mobile-card-upload-item:has(.mobile-card-upload-item__select) {
+    grid-template-columns: 24px minmax(0, 1fr) minmax(72px, auto);
+    grid-template-areas: "select details status" "controls controls controls";
+    align-items: center;
+    gap: 8px;
+    padding-block: 8px;
+  }
+
+  .mobile-card-upload-item--admin,
+  .mobile-card-upload-item--admin:has(.mobile-card-upload-item__select) {
+    grid-template-columns: 24px minmax(0, 1fr) minmax(72px, auto);
+    grid-template-areas: "select details status" "controls controls controls";
+  }
+
+  .mobile-card-upload-item__status-field {
+    align-self: center;
+    justify-items: center;
+    text-align: center;
+  }
+
+  .mobile-card-upload-item__status-field .mobile-card-upload-batch__label {
+    font-weight: 700;
+  }
+
+  .mobile-card-upload-item__file-type {
+    display: none;
+  }
+
+  .mobile-card-upload-item__details {
+    align-self: center;
+    margin-left: 8px;
+  }
+
+  .mobile-card-upload-item__name {
+    display: block;
+    overflow-wrap: anywhere;
+  }
+
+  .mobile-card-upload-item__name-group {
+    gap: 0;
+  }
+
+  .mobile-card-upload-item__meta-row {
+    display: block;
+    min-width: 0;
+  }
+
+  .mobile-card-upload-item__meta-row .mobile-card-upload-item__meta {
+    display: grid;
+    gap: 1px;
+    font-size: 0.75rem;
+    line-height: 1.3;
+  }
+
+  .mobile-card-upload-item__meta-type {
+    display: block;
+  }
+
+  .mobile-card-upload-item__meta-type::after {
+    content: none;
+  }
+
+  .mobile-card-upload-item__name-group {
+    display: grid;
+    justify-content: stretch;
+    gap: 2px;
+  }
+
+  .mobile-card-upload-item__date .mobile-card-upload-batch__label,
+  .mobile-card-upload-item__status-field .mobile-card-upload-batch__label {
+    display: none;
+  }
+
+  .mobile-card-upload-item__date .mobile-card-upload-batch__value {
+    white-space: nowrap;
+    font-size: 0.75rem;
+  }
+
+  .mobile-card-upload-item__status-field {
+    justify-items: center;
+  }
+
+  .mobile-card-upload-item__action.btn {
+    width: 36px;
+    min-width: 36px;
+    height: 36px;
+    min-height: 36px;
+    color: var(--text-strong);
+  }
+
+  .mobile-card-upload-item__action.btn:disabled {
+    opacity: 0.75;
+  }
+
+  .mobile-card-upload-item__actions {
+    gap: 0;
+  }
+
+  .mobile-card-upload-batch__footer {
+    gap: 0;
+    flex-wrap: nowrap;
+  }
+
+  .mobile-card-upload-batch__footer,
+  .mobile-card-upload-item__controls {
+    align-self: stretch;
+    align-items: center;
+    box-sizing: border-box;
+    border-left: 1px solid var(--border);
+    padding-left: 8px;
+  }
+
+  .mobile-card-upload-item:not(:has(.mobile-card-upload-item__date)) {
+    grid-template-columns: 32px minmax(0, 1fr) 117px;
+    grid-template-areas: "icon details controls";
+  }
+}
+
+.mobile-card-upload-batch__summary--unread { box-shadow: none; background: var(--mobile-card-upload-status-pending-fill); }
+
+@media (max-width: 640px) {
+  .mobile-card-upload-batch {
+    box-shadow: none;
+  }
+
+  .mobile-card-upload-item__select {
+    border: 0;
+    box-shadow: none;
+  }
+
+  .mobile-card-upload-item__select:checked,
+  .mobile-card-upload-item__select:indeterminate {
+    border: 0;
+  }
+
+  .upload-page .mobile-card-upload-batch__summary:not(.mobile-card-upload-batch__summary--admin) {
+    grid-template-columns: 24px minmax(0, 1fr) auto;
+    grid-template-areas: "selectall created status" "footer footer footer";
+    padding-block: 10px;
+  }
+
+  .mobile-card-upload-batch__summary:not(.mobile-card-upload-batch__summary--admin) .mobile-card-upload-batch__created-field {
+    margin-left: 8px;
+  }
+
+  .upload-page .mobile-card-upload-batch__summary--admin {
+    grid-template-columns: 24px minmax(0, 1fr) auto;
+    grid-template-areas: "selectall created status" "footer footer footer";
+    padding-block: 10px;
+  }
+
+  .mobile-card-upload-batch__summary--admin .mobile-card-upload-batch__owner-avatar {
+    margin-left: 8px;
+  }
+
+  .mobile-card-upload-item,
+  .mobile-card-upload-item:has(.mobile-card-upload-item__select) {
+    grid-template-columns: 24px minmax(0, 1fr) 40px 117px;
+  }
+
+  .mobile-card-upload-item__details {
+    margin-left: 8px;
+  }
+
+  .mobile-card-upload-item--admin,
+  .mobile-card-upload-item--admin:has(.mobile-card-upload-item__select) {
+    grid-template-columns: 24px minmax(0, 1fr) 40px 117px;
+  }
+}
+
+/* Keep upload rows compact when a half-width desktop panel has room. */
+@container (min-width: 800px) {
+  .mobile-card-upload-batch__summary,
+  .mobile-card-upload-batch__summary--admin {
+    grid-template-columns: 24px minmax(110px, 1fr) minmax(90px, 0.8fr) minmax(100px, 1fr) auto;
+    grid-template-areas: "selectall created status progress footer";
+    gap: 8px;
+  }
+
+  .mobile-card-upload-batch__summary--admin {
+    grid-template-columns: 24px 36px minmax(120px, 1.2fr) minmax(110px, 1fr) minmax(90px, 0.8fr) minmax(100px, 1fr) auto;
+    grid-template-areas: "selectall avatar username created status progress footer";
+  }
+
+  .mobile-card-upload-item,
+  .mobile-card-upload-item:has(.mobile-card-upload-item__select),
+  .mobile-card-upload-item--admin,
+  .mobile-card-upload-item--admin:has(.mobile-card-upload-item__select) {
+    grid-template-columns: 24px 36px minmax(120px, 1.2fr) minmax(110px, 1fr) minmax(90px, 0.8fr) minmax(100px, 1fr) auto;
+    grid-template-areas: "select icon details date status progress controls";
+    gap: 8px;
+  }
+
+  .mobile-card-upload-batch__value { overflow-wrap: normal; }
+  .mobile-card-upload-item__progress-row { grid-column-end: auto; }
+  .mobile-card-upload-item__action.btn { width: 36px; min-width: 36px; height: 36px; min-height: 36px; }
+}
+
+:root .mobile-card-upload-batch { background: var(--surface-card); }
+:root .mobile-card-upload-batch__summary { background: var(--surface-card-raised); }
+:root .mobile-card-upload-batch__summary--unread { background: var(--surface-hover); }
+
+.mobile-card-upload-batch { border: 1px solid var(--border-card); }
+.mobile-card-upload-batch__select-all,
+.mobile-card-upload-item__select { align-self: center; }
+.mobile-card-upload-item__details { align-self: center; }
+.mobile-card-upload-batch__footer .mobile-card-upload-item__action.btn:not(.btn--danger-solid) {
+  border-color: var(--border-control);
+  background: var(--surface-card);
+  color: var(--text-strong);
+}
+.mobile-card-upload-batch__footer .mobile-card-upload-item__action.btn:not(.btn--danger-solid):hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+
+.mobile-uploads .mobile-card-upload-batch { overflow: hidden; border-radius: 14px; }
+.mobile-uploads .mobile-card-upload-batch__summary--admin { grid-template-columns: 24px minmax(0, 1fr) auto; grid-template-areas: "selectall username status" ". created status" "footer footer footer"; }
+.mobile-uploads .mobile-card-upload-batch__summary--admin .mobile-card-upload-batch__username-field { display: grid; grid-area: username; min-width: 0; }
+.mobile-uploads .mobile-card-upload-batch__summary--admin .mobile-card-upload-batch__username-field .mobile-card-upload-batch__label { display: none; }
+.mobile-uploads .mobile-card-upload-batch__summary--admin .mobile-card-upload-batch__username-field .mobile-card-upload-batch__value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 650; }
+.mobile-uploads .mobile-card-upload-batch__toggle { position: absolute; z-index: 1; left: 12px; bottom: 8px; width: auto; height: auto; min-height: 44px; padding: 8px; border: 0; clip-path: none; background: transparent; color: var(--mobile-text); font-family: inherit; font-size: .875rem; font-weight: 600; line-height: 1.2; text-decoration: underline; text-underline-offset: 3px; }
+:root[data-mobile-theme] .mobile-uploads .mobile-card-upload-item__select { border: 1px solid var(--mobile-text-muted); }
+:root[data-mobile-theme] .mobile-uploads .mobile-card-upload-item__select:checked,
+:root[data-mobile-theme] .mobile-uploads .mobile-card-upload-item__select:indeterminate { border-color: var(--mobile-text); }
+
+.app-shell__content:has(.mobile-uploads) { overflow: hidden; padding-bottom: 0; }
+.mobile-uploads { display: flex; flex-direction: column; width: 100%; height: 100%; min-height: 0; min-width: 0; }
+.mobile-uploads__content { flex: 1; min-height: 0; overflow: auto; scroll-padding-block: 24px; }
+.mobile-uploads__list, .mobile-uploads .empty-state, .mobile-uploads__content > .spinner, .mobile-uploads__content > .error-state { max-width: var(--page-content-max-width); margin-inline: auto; }
+.mobile-uploads .mobile-uploads__content { padding: 20px 20px 40px; }
+.mobile-uploads__start { padding: 20px; border: 1px solid var(--mobile-border-subtle); border-radius: 14px; background: var(--mobile-surface); }
+.mobile-uploads__start-copy h1 { margin: 0; color: var(--mobile-text); font-size: 1.25rem; line-height: 1.25; }
+.mobile-uploads__start-copy p { margin: 6px 0 0; color: var(--mobile-text-muted); font-size: .875rem; }
+.mobile-uploads__primary-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+.mobile-uploads__primary-actions .btn { flex: 1 1 auto; min-height: 48px; padding: 10px 14px; }
+.mobile-uploads__selection { display: flex; width: 100%; min-height: 44px; justify-content: space-between; align-items: center; gap: 12px; margin-top: 12px; padding: 8px 12px; border: 1px solid var(--mobile-border-subtle); background: var(--mobile-surface-muted); color: var(--mobile-text); font: inherit; text-align: left; }
+.mobile-uploads__history-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 28px 0 8px; }
+.mobile-uploads__history-header h2 { margin: 0; font-size: 1.125rem; }
+.mobile-uploads__history-header .mobile-uploads__read { min-width: 44px; min-height: 44px; padding: 8px; }
+.mobile-uploads__date { margin-bottom: 16px; }
+.mobile-uploads__list { display: grid; gap: 12px; }
+.mobile-uploads .upload-batch { overflow: hidden; border-radius: 14px; }
+.mobile-uploads .upload-batch__summary--admin { grid-template-columns: 24px minmax(0, 1fr) auto; grid-template-areas: "selectall username status" ". created status" "footer footer footer"; }
+.mobile-uploads .upload-batch__summary--admin .upload-batch__username-field { display: grid; grid-area: username; min-width: 0; }
+.mobile-uploads .upload-batch__summary--admin .upload-batch__username-field .upload-batch__label { display: none; }
+.mobile-uploads .upload-batch__summary--admin .upload-batch__username-field .upload-batch__value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 650; }
+.mobile-uploads .upload-batch__toggle { position: absolute; z-index: 1; left: 12px; bottom: 8px; width: auto; height: auto; min-height: 44px; padding: 8px; border: 0; clip-path: none; background: transparent; color: var(--mobile-text); font-family: inherit; font-size: .875rem; font-weight: 600; line-height: 1.2; text-decoration: underline; text-underline-offset: 3px; }
+:root[data-mobile-theme] .mobile-uploads .upload-item__select { border: 1px solid var(--mobile-text-muted); }
+:root[data-mobile-theme] .mobile-uploads .upload-item__select:checked,
+:root[data-mobile-theme] .mobile-uploads .upload-item__select:indeterminate { border-color: var(--mobile-text); }

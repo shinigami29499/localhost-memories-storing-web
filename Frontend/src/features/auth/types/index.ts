@@ -1,17 +1,1 @@
-export type AccountStatus = "active" | "disabled" | "pending_approval";
-
-export interface AuthUser {
-  id: string;
-  username: string;
-  avatarSeed?: string | null;
-  role: string;
-  status: AccountStatus;
-  createdAt: string;
-  lastSeenAt?: string | null;
-}
-
-export interface AuthSession {
-  accessToken: string;
-  refreshToken: string;
-  user: AuthUser;
-}
+export type { AccountStatus, AuthSession, AuthUser } from "../../../../packages/types/src/auth";

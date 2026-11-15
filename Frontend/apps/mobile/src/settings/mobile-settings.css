@@ -1,0 +1,18 @@
+.mobile-settings { min-height: 100%; padding: 24px 20px 48px; color: var(--mobile-text); }
+.mobile-settings__inner { max-width: 720px; margin: 0 auto; }
+.mobile-settings__section, .mobile-settings__mobile-notifications { margin-bottom: 32px; }
+.mobile-settings__section h2, .mobile-settings__mobile-notifications h2 { margin: 0 0 12px; font-size: 1.125rem; line-height: 1.3; }
+.mobile-settings__section > .mobile-theme-selector legend { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.mobile-settings__fields { display: grid; }
+.mobile-settings__field, .mobile-settings__notification { display: grid; grid-template-columns: minmax(0, 1fr) 44px; align-items: center; gap: 16px; min-height: 72px; padding: 16px 0; border-bottom: 1px solid var(--mobile-border-subtle); }
+.mobile-settings__field-copy, .mobile-settings__notification-copy { display: grid; min-width: 0; gap: 4px; }
+.mobile-settings__field-copy label, .mobile-settings__notification-copy label { font-weight: 650; }
+.mobile-settings__field-copy p, .mobile-settings__notification-copy p, .mobile-settings__notification-note { margin: 0; color: var(--mobile-text-muted); font-size: .875rem; line-height: 1.4; overflow-wrap: anywhere; }
+.mobile-settings__notification-note { margin-top: 12px; }
+.mobile-settings__switch { position: relative; display: flex; align-items: center; justify-self: end; width: 40px; height: 24px; padding: 2px; border: 1px solid var(--mobile-border); border-radius: 999px !important; background: var(--mobile-surface-muted); cursor: pointer; }
+.mobile-settings__switch::before { content: ""; position: absolute; inset: -10px -2px; }
+.mobile-settings__switch[data-checked] { border-color: var(--mobile-text); background: var(--mobile-text); }
+.mobile-settings__switch[data-disabled] { opacity: .65; cursor: wait; }
+.mobile-settings__switch:focus-visible { outline: 2px solid var(--mobile-focus); outline-offset: 3px; }
+.mobile-settings__switch-thumb { display: block; flex-shrink: 0; width: 18px; height: 18px; border-radius: 50%; background: var(--mobile-text); }
+.mobile-settings__switch[data-checked] .mobile-settings__switch-thumb { margin-left: auto; background: var(--mobile-bg); }

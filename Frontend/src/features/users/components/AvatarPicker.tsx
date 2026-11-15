@@ -1,51 +1,22 @@
-import { useId, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useId } from "react";
 import { UserAvatar } from "../../../components/common/UserAvatar";
 import { Button } from "../../../components/ui/Button";
 import { Pagination } from "../../../components/ui/Pagination";
-import { showToast } from "../../../components/ui/Toast";
-import { useLocale } from "../../../context/LocaleContext";
 import { ApiError } from "../../../services/api";
-import { useAuthStore } from "../../../store/authStore";
 import type { AuthUser } from "../../auth/types";
-import { userService } from "../services/userService";
+import { useAvatarPicker } from "../hooks/useAvatarPicker";
 import "./avatar-picker.css";
 
 export function AvatarPicker({ user }: { user: AuthUser }) {
-  const { t } = useLocale();
   const name = useId();
-  const queryClient = useQueryClient();
-  const [batch, setBatch] = useState(0);
-  const [draft, setDraft] = useState<string | null>(null);
-  const savedSeed = user.avatarSeed ?? user.id;
-  const selectedSeed = draft ?? savedSeed;
-  const seeds = [
-    savedSeed,
-    ...Array.from({ length: 8 }, (_, index) => `${user.id}:avatar:${batch}:${index}`)
-      .filter((seed) => seed !== savedSeed)
-      .slice(0, 7),
-  ];
-  const save = useMutation({
-    mutationFn: userService.setAvatar,
-    onMutate: () => queryClient.cancelQueries({ queryKey: ["profile", user.id] }),
-    onSuccess: (updated) => {
-      if (useAuthStore.getState().user?.id !== updated.id) return;
-      useAuthStore.getState().updateUser(updated);
-      queryClient.setQueryData(["profile", updated.id], updated);
-      setDraft(null);
-      showToast.success(t("Avatar saved."));
-      for (const key of ["users", "admin-users", "albums", "places"]) {
-        void queryClient.invalidateQueries({ queryKey: [key] });
-      }
-    },
-  });
+  const { t, batch, setBatch, savedSeed, selectedSeed, seeds, save, select, submit } = useAvatarPicker(user);
 
   return (
     <form
       className="avatar-picker"
       onSubmit={(event) => {
         event.preventDefault();
-        if (selectedSeed !== savedSeed && !save.isPending) save.mutate(selectedSeed);
+        submit();
       }}
     >
       <fieldset disabled={save.isPending}>
@@ -60,10 +31,7 @@ export function AvatarPicker({ user }: { user: AuthUser }) {
                 value={seed}
                 checked={selectedSeed === seed}
                 aria-label={index === 0 ? t("Current avatar") : t("Avatar {number}", { number: index })}
-                onChange={() => {
-                  setDraft(seed);
-                  save.reset();
-                }}
+                onChange={() => select(seed)}
               />
               <UserAvatar user={{ id: user.id, avatarSeed: seed }} className="avatar-picker__image" />
             </label>

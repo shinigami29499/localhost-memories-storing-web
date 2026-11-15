@@ -1,0 +1,201 @@
+.mobile-album-feed-post {
+  overflow: hidden;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: none;
+}
+
+.mobile-album-feed-post__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+}
+
+.mobile-album-feed-post__avatar {
+  display: grid;
+  place-items: center;
+  flex: 0 0 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--surface-raised);
+  color: var(--text-strong);
+  font-weight: 600;
+}
+
+.mobile-album-feed-post__identity {
+  min-width: 0;
+}
+
+.mobile-album-feed-post__title { display: none; }
+.mobile-album-feed-post__owner-prefix { display: none; }
+
+.mobile-album-feed-post__owner {
+  display: block;
+  overflow-wrap: anywhere;
+  color: var(--text-strong);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.mobile-album-feed-post__meta {
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+}
+
+.mobile-album-feed-post__preview {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-radius: 0;
+  background: #000;
+  touch-action: pan-y;
+}
+
+.mobile-album-feed-post__preview:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
+
+.mobile-album-feed-post__count {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text-strong);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+}
+
+.mobile-album-feed-post__preview img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  object-fit: contain;
+}
+
+.mobile-album-feed-post__placeholder {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  padding: 24px;
+  color: #fff;
+  text-align: center;
+}
+
+.mobile-album-feed-post__actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px 0;
+}
+
+.mobile-album-feed-post__retry {
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.mobile-album-feed-post__retry:hover {
+  background: var(--surface-hover);
+  color: var(--text-strong);
+}
+
+.mobile-album-feed-post__retry:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.mobile-album-feed-post__action {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-strong);
+  cursor: pointer;
+}
+
+.mobile-album-feed-post__action:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+
+.mobile-album-feed-post__action:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.mobile-album-feed-post__delete:hover {
+  color: var(--text);
+}
+
+.mobile-album-feed-post__delete {
+  margin-left: auto;
+  border-radius: 50%;
+}
+
+.mobile-album-feed-post a:focus-visible,
+.mobile-album-feed-post__action:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+.mobile-album-feed-post__body {
+  padding: 0 16px 16px;
+  overflow-wrap: anywhere;
+}
+
+.mobile-album-feed-post__body h2 {
+  margin: 4px 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.mobile-album-feed-post__body a {
+  color: var(--text-strong);
+  text-decoration: none;
+}
+
+.mobile-album-feed-post__body a:hover {
+  text-decoration: underline;
+}
+
+.mobile-album-feed-post__caption {
+  margin: 12px 0 8px;
+  overflow: hidden;
+}
+
+.mobile-album-feed-post__caption p {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  margin: 0;
+  line-height: 1.5;
+  overflow: hidden;
+  white-space: pre-wrap;
+}
+
+
+.mobile-albums .mobile-album-feed-post { display: flex; flex-direction: column; overflow: visible; border: 0; background: transparent; }
+.mobile-albums .mobile-album-feed-post__preview { order: -1; aspect-ratio: 1.1; border-radius: 14px; background: var(--mobile-surface-muted); }
+.mobile-albums .mobile-album-feed-post__preview img { object-fit: cover; }
+.mobile-albums .mobile-album-feed-post__placeholder { color: var(--mobile-text-muted); }
+.mobile-albums .mobile-album-feed-post__header { padding: 12px 2px 0; }
+.mobile-albums .mobile-album-feed-post__title { display: block; overflow-wrap: anywhere; }
+.mobile-albums .mobile-album-feed-post__owner { font-weight: 400; color: var(--mobile-text-muted); }
+.mobile-albums .mobile-album-feed-post__body { padding: 0 2px; }

@@ -1,0 +1,195 @@
+// @vitest-environment jsdom
+import { act } from "react";
+import { createRoot, type Root } from "react-dom/client";
+import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { AnimateUIProvider } from "@animate-ui/react/provider";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { ThemeProvider } from "../../../../../src/context/ThemeContext";
+import { useAuthStore } from "../../../../../src/store/authStore";
+import { AuthenticatedLayout } from "../../../../../src/components/layout/AuthenticatedLayout";
+
+vi.mock("../../../../../src/features/uploads/components/UploadRuntime", () => ({
+  UploadRuntime: () => null,
+}));
+
+vi.mock("../../../../../src/components/animate-ui/icons/home", async () => {
+  const { useAnimateIconContext } = await import("@animate-ui/react/icons");
+  return { Home: () => <svg data-animated={String(useAnimateIconContext().active === true)} /> };
+});
+
+vi.mock("../../../../../src/components/animate-ui/icons/map-pin", async () => {
+  const { useAnimateIconContext } = await import("@animate-ui/react/icons");
+  return { MapPin: () => <svg data-animated={String(useAnimateIconContext().active === true)} /> };
+});
+
+vi.mock("../../../../../src/components/animate-ui/icons/plane-takeoff", async () => {
+  const { useAnimateIconContext } = await import("@animate-ui/react/icons");
+  return { PlaneTakeoff: () => <svg data-animated={String(useAnimateIconContext().active === true)} /> };
+});
+
+vi.mock("../../../../../src/components/animate-ui/icons/key", async () => {
+  const { useAnimateIconContext } = await import("@animate-ui/react/icons");
+  return { Key: () => <svg data-animated={String(useAnimateIconContext().active === true)} /> };
+});
+
+vi.mock("../../../../../src/components/animate-ui/icons/camera", async () => {
+  const { useAnimateIconContext } = await import("@animate-ui/react/icons");
+  return { Camera: () => <svg data-animated={String(useAnimateIconContext().active === true)} /> };
+});
+
+vi.mock("../../../../../src/components/animate-ui/icons/library-big", async () => {
+  const { useAnimateIconContext } = await import("@animate-ui/react/icons");
+  return { LibraryBig: () => <svg data-animated={String(useAnimateIconContext().active === true)} /> };
+});
+
+vi.mock("../../../../../src/components/animate-ui/icons/image", async () => {
+  const { useAnimateIconContext } = await import("@animate-ui/react/icons");
+  return { Image: () => <svg data-animated={String(useAnimateIconContext().active === true)} /> };
+});
+
+vi.mock("../../../../../src/components/animate-ui/icons/refresh-cw", async () => {
+  const { useAnimateIconContext } = await import("@animate-ui/react/icons");
+  return { RefreshCw: () => <svg data-animated={String(useAnimateIconContext().active === true)} /> };
+});
+
+
+vi.mock("../../../../../src/components/animate-ui/icons/upload", async () => {
+  const { useAnimateIconContext } = await import("@animate-ui/react/icons");
+  return { Upload: () => <svg data-animated={String(useAnimateIconContext().active === true)} /> };
+});
+
+vi.mock("../../../../../src/components/animate-ui/icons/file-text", async () => {
+  const { useAnimateIconContext } = await import("@animate-ui/react/icons");
+  return { FileText: () => <svg data-animated={String(useAnimateIconContext().active === true)} /> };
+});
+
+vi.mock("../../../../../src/components/animate-ui/icons/users", async () => {
+  const { useAnimateIconContext } = await import("@animate-ui/react/icons");
+  return { Users: () => <svg data-animated={String(useAnimateIconContext().active === true)} /> };
+});
+
+vi.mock("../../../../../src/components/animate-ui/icons/trash-2", async () => {
+  const { useAnimateIconContext } = await import("@animate-ui/react/icons");
+  return { Trash2: () => <svg data-animated={String(useAnimateIconContext().active === true)} /> };
+});
+
+describe("Sidebar navigation", () => {
+  let container: HTMLDivElement;
+  let root: Root;
+  const originalAnimate = Object.getOwnPropertyDescriptor(Element.prototype, "animate");
+
+  beforeEach(async () => {
+    vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+    vi.stubGlobal("scrollTo", vi.fn());
+    vi.stubGlobal("IntersectionObserver", class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    });
+    vi.stubGlobal("matchMedia", vi.fn((query: string) => ({
+      matches: query === "(hover: hover) and (pointer: fine)",
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+    })));
+    Object.defineProperty(Element.prototype, "animate", {
+      configurable: true,
+      value: vi.fn(() => ({ finished: Promise.resolve(), cancel: vi.fn() })),
+    });
+    useAuthStore.setState({
+      user: { id: "admin", username: "Admin", role: "admin", status: "active", createdAt: "2026-01-01T00:00:00Z" },
+    });
+    container = document.createElement("div");
+    document.body.append(container);
+    root = createRoot(container);
+    await act(async () => {
+      root.render(
+        <ThemeProvider>
+          <QueryClientProvider client={new QueryClient()}>
+            <AnimateUIProvider reducedMotion="never">
+              <MemoryRouter initialEntries={["/users"]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+                <AuthenticatedLayout />
+              </MemoryRouter>
+            </AnimateUIProvider>
+          </QueryClientProvider>
+        </ThemeProvider>,
+      );
+    });
+  });
+
+  afterEach(() => {
+    act(() => root.unmount());
+    container.remove();
+    useAuthStore.getState().clear();
+    if (originalAnimate) Object.defineProperty(Element.prototype, "animate", originalAnimate);
+    else Reflect.deleteProperty(Element.prototype, "animate");
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it.each(["/", "/gallery", "/location", "/users", "/uploads"])("shows a stable icon and label for %s", async (href) => {
+    const link = container.querySelector<HTMLAnchorElement>(`.sidebar__nav a[href="${href}"]`)!;
+    const label = link.querySelector("span")!;
+    expect(link.classList.contains("sidebar__link")).toBe(true);
+    expect(link.classList.contains("sidebar__link--active")).toBe(href === "/users");
+    expect(link.getAttribute("aria-current")).toBe(href === "/users" ? "page" : null);
+    expect(link.querySelector("svg")?.getAttribute("data-animated")).toBe("false");
+
+    await act(async () => label.dispatchEvent(new MouseEvent("pointerover", { bubbles: true })));
+    expect(link.querySelector("svg")?.getAttribute("data-animated")).toBe("false");
+  });
+
+  it("shows the main destinations for non-admin users", async () => {
+    await act(async () => useAuthStore.setState({
+      user: { id: "reader", username: "reader", role: "user", status: "active", createdAt: "2026-01-01T00:00:00Z" },
+    }));
+    expect(Array.from(container.querySelectorAll(".sidebar__nav > a"), (link) => link.getAttribute("href")))
+      .toEqual(["/", "/gallery", "/location", "/users", "/uploads"]);
+    expect(container.querySelector('[href="/users"]')?.textContent).toBe("Users");
+    expect(container.querySelector('[href="/location"]')?.textContent).toBe("Locations");
+    expect(container.querySelector('[href="/location/place"]')).toBeNull();
+    expect(container.querySelector('[href="/location/saved"]')).toBeNull();
+    expect(container.querySelector('[href="/gallery/trash"]')).toBeNull();
+    expect(container.querySelector('[href^="/admin"]')).toBeNull();
+  });
+
+  it("shows Upload as a main navigation link", () => {
+    const upload = container.querySelector<HTMLAnchorElement>('[aria-label="Upload"]');
+    expect(upload?.getAttribute("href")).toBe("/uploads");
+    expect(upload?.getAttribute("data-sidebar")).toBe("menu-button");
+    expect(container.querySelector('[aria-label="Sync"]')).toBeNull();
+    expect(container.querySelector('[aria-label="Download"]')).toBeNull();
+  });
+
+  it("shows the account name and role and closes its menu on outside click", async () => {
+    const account = container.querySelector<HTMLElement>(".sidebar__account")!;
+    const trigger = account.querySelector<HTMLButtonElement>(".sidebar__account-trigger")!;
+
+    expect(trigger.querySelector(".sidebar__account-name")?.textContent).toBe("Admin");
+    expect(trigger.querySelector(".sidebar__account-role")?.textContent).toBe("Admin");
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+    const profileLink = account.querySelector<HTMLAnchorElement>('a[href="/profile"]');
+    expect(profileLink?.textContent?.trim()).toBe("User profile");
+    const settingsLink = account.querySelector<HTMLAnchorElement>('a[href="/settings"]');
+    expect(settingsLink?.textContent?.trim()).toBe("Settings");
+    expect(settingsLink?.classList.contains("sidebar__link")).toBe(true);
+    expect(account.querySelector('[aria-label="Log out"]')).not.toBeNull();
+
+    await act(async () => trigger.click());
+
+    expect(trigger.getAttribute("aria-expanded")).toBe("true");
+    expect(account.querySelector(".sidebar__account-menu-user .sidebar__account-name")?.textContent).toBe("Admin");
+    expect(account.querySelector(".sidebar__account-menu-user .sidebar__account-role")?.textContent).toBe("Admin");
+    expect(profileLink).not.toBeNull();
+
+    await act(async () => {
+      document.body.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true }));
+    });
+
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+  });
+
+});

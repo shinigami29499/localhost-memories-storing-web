@@ -1,0 +1,45 @@
+/* Shared authenticated shell ------------------------------------------------ */
+
+.app-shell {
+  display: flex;
+  height: 100vh;
+  height: 100dvh;
+}
+
+.app-shell__main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.app-shell--sidebar-collapsed {
+  --sidebar-width: 90px;
+}
+
+.app-shell__content {
+  position: relative;
+  isolation: isolate;
+  z-index: 0;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  scroll-padding-block: 24px;
+  padding-bottom: 0;
+}
+
+@media (max-width: 640px) {
+  :root {
+    --page-gutter: 16px;
+    --page-padding-top: 16px;
+    --page-padding-bottom: 24px;
+    --page-section-gap: 24px;
+    --shadow-space: 8px;
+  }
+
+  .app-shell :is(.gallery-page__header, .place__header, .locations__header, .admin-users__header, .admin-posts__header, .upload-page__header, .settings-page__header, .profile-page__header) {
+    display: none;
+  }
+}
+

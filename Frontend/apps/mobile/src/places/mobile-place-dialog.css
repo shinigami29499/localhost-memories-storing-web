@@ -1,0 +1,112 @@
+.place__dialog {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: none;
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 32px);
+  max-width: min(480px, calc(100vw - 32px));
+  overflow: hidden;
+  padding: 0;
+  width: 100%;
+}
+
+.place__form {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+}
+.place__form-actions { grid-column: 1 / -1; }
+.place__marker-settings {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  min-inline-size: 0;
+  padding: 12px 16px;
+}
+.place__marker-settings legend {
+  color: var(--text-strong);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0 4px;
+}
+.place__marker-settings-row {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
+}
+.place__rating-field {
+  grid-column: 1 / -1;
+  text-align: center;
+}
+
+.place__note-trigger {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--text-strong);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  justify-content: space-between;
+  min-height: 44px;
+  padding: 8px;
+  width: 100%;
+}
+.place__field input,
+.place__textarea {
+  background: var(--surface-card);
+  border: 1px solid var(--border-control);
+  color: var(--text);
+  font: inherit;
+  padding: 10px 12px;
+  width: 100%;
+}
+
+.place__textarea { min-height: 96px; resize: vertical; }
+
+.place__color-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.place__color-option {
+  background: var(--marker-color);
+  border: 2px solid transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  height: 32px;
+  padding: 0;
+  width: 32px;
+}
+
+.place__color-option:hover:not(:disabled) { transform: scale(1.1); }
+.place__color-option[aria-pressed="true"] { border-color: var(--text-strong); box-shadow: none; }
+.place__color-option:disabled { cursor: default; opacity: 0.6; }
+.place__color-option:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+
+.place__form-error { color: var(--text); font-size: 0.875rem; margin: 0; }
+.place__form-actions {
+  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+.place__form > .place__form-actions { margin-top: -8px; }
+.place__form-actions button {
+  width: 100%;
+}
+
+@media (max-width: 640px) {
+  .place__dialog { max-height: calc(100dvh - 16px); max-width: calc(100vw - 16px); }
+  .place__form { grid-template-columns: 1fr; }
+  .place__form > .place__form-actions { grid-column: auto; }
+}

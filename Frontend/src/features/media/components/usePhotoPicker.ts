@@ -1,0 +1,177 @@
+import { useEffect, useId, useRef, useState, type UIEvent } from "react";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCustomDialog } from "../../../components/ui/CustomDialog";
+import { showToast } from "../../../components/ui";
+import { useLocale } from "../../../context/LocaleContext";
+import { useDialogViewportStyle } from "../../../hooks/useDialogViewportStyle";
+import { mediaQueryOptions } from "../hooks/useMedia";
+import { previewService } from "../services/previewService";
+import { uploadService } from "../../uploads/services/uploadService";
+import type { MediaFile } from "../types";
+
+export interface PhotoPickerProps {
+  selectedId: string | null;
+  selectedIds?: string[];
+  maxImages?: number;
+  onConfirm: (image: MediaFile | null, previousImage: MediaFile | null) => void;
+  onUploadedPreview: (mediaId: string) => void;
+  onClose: () => void;
+  backdropClassName?: string;
+  viewportClassName?: string;
+}
+
+type PhotoSource = "gallery" | "preview";
+const PAGE_SIZE = 48;
+
+export function usePhotoPicker({
+  selectedId, selectedIds = [], maxImages = Infinity, onConfirm, onUploadedPreview, onClose,
+}: PhotoPickerProps) {
+  const { t } = useLocale();
+  const queryClient = useQueryClient();
+  const translate = useRef(t);
+  translate.current = t;
+  const inputRef = useRef<HTMLInputElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const selectedRef = useRef<HTMLButtonElement>(null);
+  const uploadInFlight = useRef(false);
+  const pickerDrafts = useRef(new Set<string>());
+  const confirmedId = useRef<string | null>(null);
+  const focusedSelection = useRef(false);
+  const [source, setSource] = useState<PhotoSource>("gallery");
+  const [picked, setPicked] = useState<MediaFile | null>(null);
+  const [uploaded, setUploaded] = useState<MediaFile[]>([]);
+  const [uploadingPreview, setUploadingPreview] = useState(false);
+  const [galleryBatchId, setGalleryBatchId] = useState<string | null>(null);
+  const [initialized, setInitialized] = useState(!selectedId);
+  const tabId = useId();
+  const initialImage = useQuery({
+    queryKey: ["picker-image", selectedId],
+    queryFn: () => previewService.getImage(selectedId!),
+    enabled: Boolean(selectedId),
+    staleTime: 0,
+  });
+  const gallery = useInfiniteQuery({
+    ...mediaQueryOptions(PAGE_SIZE, "all", "image"),
+    enabled: initialized && source === "gallery",
+  });
+  const previews = useInfiniteQuery({
+    queryKey: ["previews", PAGE_SIZE],
+    initialPageParam: 0,
+    queryFn: ({ pageParam }) => previewService.list(pageParam, PAGE_SIZE),
+    getNextPageParam: (page) => page.offset + page.items.length < page.total
+      ? page.offset + page.items.length : undefined,
+    enabled: initialized && source === "preview",
+  });
+  const query = source === "gallery" ? gallery : previews;
+  const batch = useQuery({
+    queryKey: ["uploads", "picker", galleryBatchId],
+    queryFn: () => uploadService.get(galleryBatchId!),
+    enabled: Boolean(galleryBatchId),
+    refetchInterval: (current) => current.state.data
+      && ["Completed", "Failed", "Cancelled"].includes(current.state.data.status) ? false : 2000,
+    retry: false,
+  });
+  const busy = uploadingPreview || galleryBatchId !== null;
+  const { dialogProps, close } = useCustomDialog(onClose, { blocked: busy });
+  const viewportStyle = useDialogViewportStyle();
+  const full = selectedIds.length >= maxImages && !initialImage.data?.isPreviewOnly;
+  const pageImages = query.data?.pages.flatMap((page) => page.items) ?? [];
+  const availableImages = [...(source === "preview" ? uploaded : []), ...pageImages];
+  const images = [...new Map([
+    ...(picked && Boolean(picked.isPreviewOnly) === (source === "preview")
+      && !availableImages.some((image) => image.id === picked.id) ? [picked] : []),
+    ...availableImages,
+  ].map((image) => [image.id, image])).values()];
+
+  useEffect(() => {
+    if (!initialized && initialImage.data) {
+      setPicked(initialImage.data);
+      setSource(initialImage.data.isPreviewOnly ? "preview" : "gallery");
+      setInitialized(true);
+    }
+  }, [initialized, initialImage.data]);
+
+  useEffect(() => {
+    if (initialized && !query.isPending && selectedRef.current) {
+      selectedRef.current.scrollIntoView({ block: "nearest" });
+      if (!focusedSelection.current) {
+        selectedRef.current.focus({ preventScroll: true });
+        focusedSelection.current = true;
+      }
+    }
+  }, [initialized, source, query.isPending]);
+
+  useEffect(() => {
+    const result = batch.data;
+    if (!galleryBatchId) return;
+    if (batch.isError || (result && ["Completed", "Failed", "Cancelled"].includes(result.status))) {
+      setGalleryBatchId(null);
+      uploadInFlight.current = false;
+      void queryClient.invalidateQueries({ queryKey: ["media"] });
+      void queryClient.invalidateQueries({ queryKey: ["uploads"] });
+      if (batch.isError || result?.status !== "Completed" || result.failedFiles > 0)
+        showToast.error(t("Could not start this upload."));
+    }
+  }, [batch.data, batch.isError, galleryBatchId, queryClient, t]);
+
+  useEffect(() => {
+    const drafts = pickerDrafts.current;
+    return () => {
+      for (const mediaId of drafts) {
+        if (mediaId !== confirmedId.current) {
+          void previewService.releaseDraft(mediaId)
+            .then(() => queryClient.invalidateQueries({ queryKey: ["previews"] }))
+            .catch((error: unknown) => showToast.error(
+              translate.current("Could not remove unused preview."), error instanceof Error ? error.message : undefined,
+            ));
+        }
+      }
+    };
+  }, [queryClient]);
+
+  const upload = async (file: File | undefined) => {
+    if (!file || uploadInFlight.current) return;
+    if (file.type && !file.type.startsWith("image/")) {
+      showToast.error(t("Choose an image file."));
+      return;
+    }
+    uploadInFlight.current = true;
+    setUploadingPreview(true);
+    try {
+      if (source === "preview") {
+        const image = await previewService.upload(file);
+        pickerDrafts.current.add(image.id);
+        onUploadedPreview(image.id);
+        setUploaded((current) => [image, ...current]);
+        setPicked(image);
+        void queryClient.invalidateQueries({ queryKey: ["previews"] });
+        uploadInFlight.current = false;
+      } else {
+        const submitted = await uploadService.submit([file]);
+        setGalleryBatchId(submitted.id);
+      }
+    } catch (error) {
+      uploadInFlight.current = false;
+      showToast.error(t("Could not start this upload."), error instanceof Error ? error.message : undefined);
+    } finally {
+      setUploadingPreview(false);
+    }
+  };
+
+  const changeSource = (value: string) => {
+    setSource(value === "preview" ? "preview" : "gallery");
+    bodyRef.current?.scrollTo({ top: 0 });
+  };
+  const handleScroll = (event: UIEvent<HTMLDivElement>) => {
+    const element = event.currentTarget;
+    const range = element.scrollHeight - element.clientHeight;
+    if (range - element.scrollTop < 160 && query.hasNextPage
+      && !query.isFetchingNextPage && !query.isFetchNextPageError) void query.fetchNextPage();
+  };
+  const confirm = () => {
+    confirmedId.current = picked?.id ?? null;
+    onConfirm(picked, initialImage.data ?? null);
+    close();
+  };
+  return { t, inputRef, bodyRef, selectedRef, source, picked, setPicked, initialized, tabId, initialImage, query, busy, dialogProps, viewportStyle, full, images, upload, close, changeSource, handleScroll, confirm };
+}

@@ -1,0 +1,50 @@
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: var(--text-strong);
+  font-size: 1.2rem;
+  font-weight: 750;
+  letter-spacing: -0.04em;
+  flex-shrink: 0;
+}
+
+.brand__mark {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--selection-text);
+  font-size: 1.4rem;
+  font-style: italic;
+  box-shadow: none;
+}
+
+.brand__dot {
+  color: var(--text);
+}
+
+.gradient-text {
+  background: var(--gradient-text);
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.eyebrow > span {
+  width: 48px;
+  height: 2px;
+  background: var(--gradient);
+}
+

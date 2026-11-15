@@ -1,11 +1,10 @@
-import { useState, type CSSProperties } from "react";
+import { type CSSProperties } from "react";
 import { Button, Input } from "../../../components/ui";
 import { UploadIcon } from "../../../components/animate-ui/icons/upload";
 import { Plus } from "../../../components/animate-ui/icons/plus";
-import { useLocale } from "../../../context/LocaleContext";
 import { PlaceMarkerCombobox } from "./PlaceMarkerCombobox";
 import { PhotoPicker } from "../../media/components/PhotoPicker";
-import { usePreviewDrafts } from "../../media/hooks/usePreviewDrafts";
+import { usePlaceEditorState } from "./usePlaceEditorState";
 import {
   PLACE_MARKER_COLORS,
   MAX_PLACE_IMAGES,
@@ -15,7 +14,7 @@ import {
 
 export type PlaceFormValues = Omit<SavePlaceInput, "latitude" | "longitude">;
 
-interface Props {
+export interface PlaceEditorProps {
   values: PlaceFormValues;
   coordinate: PlaceCoordinate | null;
   saving: boolean;
@@ -32,12 +31,8 @@ const MAX_NAME_LENGTH = 120;
 
 export function PlaceEditor({
   values, coordinate, saving, deleting, isNew, error, onChange, onSubmit, onCancel, onDelete,
-}: Props) {
-  const { t } = useLocale();
-  const [pickingImages, setPickingImages] = useState(false);
-  const { register: registerDraft, retain: retainDrafts } = usePreviewDrafts();
-  const busy = saving || deleting === true || pickingImages;
-  const setMediaIds = (mediaIds: string[]) => onChange({ ...values, mediaIds });
+}: PlaceEditorProps) {
+  const { t, pickingImages, setPickingImages, registerDraft, retainDrafts, busy, setMediaIds } = usePlaceEditorState(values, saving, deleting, onChange);
 
   return (
     <form

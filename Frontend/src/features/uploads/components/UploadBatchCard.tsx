@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Collapsible } from "@animate-ui/react/primitives/base-ui/collapsible";
 import { Progress } from "@animate-ui/react/primitives/base-ui/progress";
 import { motionTokens } from "@animate-ui/react/utils/motion";
@@ -12,10 +11,7 @@ import { Image } from "../../../components/animate-ui/icons/image";
 import { Video } from "../../../components/animate-ui/icons/video";
 import { FileText } from "../../../components/animate-ui/icons/file-text";
 import { UserAvatar } from "../../../components/common/UserAvatar";
-import { useLocale } from "../../../context/LocaleContext";
-import { useAuthStore } from "../../../store/authStore";
-import { useUploadNotificationStore } from "../../notifications/uploadNotificationStore";
-import { uploadCategory, useUploadReadStore } from "../hooks/useUnreadUploads";
+import { useUploadBatchCard } from "../hooks/useUploadBatchCard";
 import type { UploadBatch, UploadBatchStatus, UploadItem, UploadItemStatus } from "../types";
 
 const ITEMS_PER_PAGE = 5;
@@ -58,37 +54,7 @@ export function UploadBatchCard({
   onDeleteMany,
   onPause,
 }: UploadBatchCardProps) {
-  const { t, language } = useLocale();
-  const userId = useAuthStore((state) => state.user?.id) ?? "";
-  const read = useUploadReadStore((state) => state.read);
-  const markBatchSeenLocally = useUploadReadStore((state) => state.markBatchRead);
-  const unreadItems = batch.viewedAt ? [] : batch.items.filter((item) => { const category = uploadCategory(item); return category && read[`${userId}:${item.id}`] !== category; });
-  const markBatchRead = () => {
-    if (!unreadItems.length) return;
-    markBatchSeenLocally(userId, batch.id, unreadItems);
-    useUploadNotificationStore.getState().markRead(userId, `upload:${userId}:${batch.id}`);
-  };
-  const active = batch.status === "Uploading" || batch.status === "Pending";
-  const [expanded, setExpanded] = useState(active);
-  const [itemPage, setItemPage] = useState(1);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const selectedItems = batch.items.filter((item) => selectedIds.has(item.id));
-  const actionItems = selectedItems.length ? selectedItems : batch.items;
-  const [deleteTarget, setDeleteTarget] = useState<{ item?: UploadItem; selected?: UploadItem[] } | null>(null);
-  const filteredItems = batch.items;
-  const totalItemPages = Math.max(1, Math.ceil(filteredItems.length / ITEMS_PER_PAGE));
-  const currentItemPage = Math.min(itemPage, totalItemPages);
-  const visibleItems = filteredItems.slice(
-    (currentItemPage - 1) * ITEMS_PER_PAGE,
-    currentItemPage * ITEMS_PER_PAGE,
-  );
-  const panelId = `upload-batch-${batch.id}`;
-  const progress = batch.totalFiles > 0
-    ? Math.max(0, Math.min((batch.successfulFiles / batch.totalFiles) * 100, 100))
-    : 0;
-  const toggleLabel = active
-    ? (expanded ? t("Hide files") : t("View files"))
-    : (expanded ? t("Hide history") : t("View history"));
+  const { confirmDelete, t, language, unreadItems, markBatchRead, expanded, setExpanded, selectedIds, setSelectedIds, selectedItems, actionItems, deleteTarget, setDeleteTarget, filteredItems, currentItemPage, visibleItems, setItemPage, panelId, progress, toggleLabel } = useUploadBatchCard(batch, onDelete, onDeleteMany);
 
   return (
     <Collapsible.Root
@@ -254,16 +220,7 @@ export function UploadBatchCard({
           confirmLabel={deleteTarget.item ? "Delete record" : deleteTarget.selected ? "Delete selected records" : "Delete batch record"}
           danger
           onClose={() => setDeleteTarget(null)}
-          onConfirm={async () => {
-            if (deleteTarget.selected) {
-              if (!onDeleteMany) throw new Error(t("Could not delete upload record."));
-              await onDeleteMany(batch, deleteTarget.selected);
-              setSelectedIds(new Set());
-            } else {
-              if (!onDelete) throw new Error(t("Could not delete upload record."));
-              await onDelete(batch, deleteTarget.item);
-            }
-          }}
+          onConfirm={confirmDelete}
         >
           <p>{deleteTarget.item
             ? t("Delete the record for {filename}?", { filename: deleteTarget.item.originalFilename })

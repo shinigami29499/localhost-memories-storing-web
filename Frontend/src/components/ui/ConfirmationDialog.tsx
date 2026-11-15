@@ -1,46 +1,10 @@
-import { useRef, useState } from "react";
-import type { ReactNode } from "react";
-import { ApiError } from "../../services/api";
 import { Button } from "./Button";
-import { showToast } from "./Toast";
-import { CustomDialog as Dialog, useCustomDialog } from "./CustomDialog";
-import { useLocale } from "../../context/LocaleContext";
-import { useDialogViewportStyle } from "../../hooks/useDialogViewportStyle";
+import { CustomDialog as Dialog } from "./CustomDialog";
+import { useConfirmationDialog, type ConfirmationDialogProps } from "./useConfirmationDialog";
 
-interface Props {
-  title: string;
-  confirmLabel: string;
-  children: ReactNode;
-  danger?: boolean;
-  cancelPrompt?: string;
-  portalContainer?: HTMLElement | null;
-  onConfirm: () => Promise<void | (() => void)>;
-  onClose: () => void;
-}
-
-export function ConfirmationDialog({ title, confirmLabel, children, danger = false, cancelPrompt, onConfirm, onClose, portalContainer }: Props) {
-  const { t } = useLocale();
-  const popupRef = useRef<HTMLDivElement>(null);
-  const pending = useRef(false);
-  const [busy, setBusy] = useState(false);
-  const { dialogProps, close, dismiss } = useCustomDialog(onClose, { blocked: busy });
-  const viewportStyle = useDialogViewportStyle();
-
-  const confirm = async () => {
-    if (pending.current) return;
-    pending.current = true;
-    setBusy(true);
-    try {
-      const afterClose = await onConfirm();
-      close(afterClose ?? undefined);
-    } catch (err) {
-      showToast.error(err instanceof ApiError ? err.message : t("Could not complete this action. Please retry."));
-      pending.current = false;
-      setBusy(false);
-      return;
-    }
-  };
-
+export function ConfirmationDialog(props: ConfirmationDialogProps) {
+  const { title, confirmLabel, children, danger = false, cancelPrompt, portalContainer } = props;
+  const { t, popupRef, busy, dialogProps, dismiss, viewportStyle, confirm } = useConfirmationDialog(props);
   return (
     <Dialog.Root {...dialogProps}>
       <Dialog.Portal container={portalContainer} style={portalContainer ? { position: "absolute", inset: 0 } : undefined}>

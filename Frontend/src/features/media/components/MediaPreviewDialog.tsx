@@ -1,62 +1,31 @@
-import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { useInView } from "motion/react";
-import { Particles, ParticlesEffect } from "@animate-ui/react/primitives/effects/particles";
-import { useShouldReduceMotion } from "@animate-ui/react/utils/motion";
-import { CopyButton, CopyButtonIcon } from "@animate-ui/react/primitives/buttons/copy";
-import useEmblaCarousel, {
-  CarouselCounter,
-  CarouselDots,
-} from "@animate-ui/react/primitives/carousel";
-import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { Bookmark } from "@/components/animate-ui/icons/bookmark";
 import { Check } from "@/components/animate-ui/icons/check";
 import { Copy } from "@/components/animate-ui/icons/copy";
-import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import { Heart } from "@/components/animate-ui/icons/heart";
+import { AnimateIcon } from "@/components/animate-ui/icons/icon";
+import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import { MapPin } from "@/components/animate-ui/icons/map-pin";
 import { RotateCcw } from "@/components/animate-ui/icons/rotate-ccw";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
 import { X } from "@/components/animate-ui/icons/x";
-import { useNavigate } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
-import { mediaService } from "../services/mediaService";
-import { ConfirmationDialog, ErrorState, showToast, Spinner } from "../../../components/ui";
-import { useLocale } from "../../../context/LocaleContext";
-import { useMediaQuery } from "../../../hooks/useMediaQuery";
-import { useAlbums } from "../../albums/hooks/useAlbums";
-import { mediaPreviewUrl, mediaUrl } from "../../../utils/media";
+import { CopyButton,CopyButtonIcon } from "@animate-ui/react/primitives/buttons/copy";
+import {
+CarouselCounter,
+CarouselDots,
+} from "@animate-ui/react/primitives/carousel";
+import { Particles,ParticlesEffect } from "@animate-ui/react/primitives/effects/particles";
+import { lazy,Suspense } from "react";
+import { ConfirmationDialog,ErrorState,Spinner } from "../../../components/ui";
+import { mediaUrl } from "../../../utils/media";
 import type { MediaFile } from "../types";
-import { VideoPlayer } from "./VideoPlayer";
 import { MediaFavoriteButton } from "./MediaFavoriteButton";
+import { VideoPlayer } from "./VideoPlayer";
 
 const SaveToAlbumDialog = lazy(() =>
   import("../../albums/components/SaveToAlbumDialog").then((module) => ({ default: module.SaveToAlbumDialog })),
 );
 
 const MAX_DOTS = 20;
-
-async function loadImageAsPng(url: string): Promise<Blob> {
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`Image request failed with status ${response.status}.`);
-  const bitmap = await createImageBitmap(await response.blob());
-
-  try {
-    const canvas = document.createElement("canvas");
-    canvas.width = bitmap.width;
-    canvas.height = bitmap.height;
-    const context = canvas.getContext("2d");
-    if (!context) throw new Error("Could not create image canvas.");
-    context.drawImage(bitmap, 0, 0);
-    return await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob((blob) => {
-        if (blob) resolve(blob);
-        else reject(new Error("Could not encode image."));
-      }, "image/png");
-    });
-  } finally {
-    bitmap.close();
-  }
-}
 
 interface CommonProps {
   media: MediaFile[];
@@ -77,34 +46,9 @@ type Props = CommonProps & ({
   onToggleFavorite: (mediaId: string, isFavorited: boolean) => void;
 });
 
-interface SlideProps {
-  media: MediaFile;
-  active: boolean;
-  preloadOriginal: boolean;
-  includeDeleted: boolean;
-  favoriteBurst: number | null;
-  onFavoriteBurstEnd: (revision: number) => void;
-}
-
-function PreviewSlide({ media, active, preloadOriginal, includeDeleted, favoriteBurst, onFavoriteBurstEnd }: SlideProps) {
-  const { t } = useLocale();
-  const stageRef = useRef<HTMLDivElement>(null);
-  const inView = useInView(stageRef, { margin: "200px 0px" });
-  const previewUrl = mediaPreviewUrl(media.id, includeDeleted);
-  const originalUrl = mediaUrl(media.id, includeDeleted);
-  const [failedUrls, setFailedUrls] = useState<Set<string>>(() => new Set());
-  const [loadedOriginalUrl, setLoadedOriginalUrl] = useState<string | null>(null);
-  const reduceMotion = useShouldReduceMotion();
-  const handleOriginalLoad = useCallback((image: HTMLImageElement) => {
-    setLoadedOriginalUrl(originalUrl);
-    stageRef.current?.style.setProperty("--media-aspect", String(image.naturalWidth / image.naturalHeight));
-  }, [originalUrl]);
-  const handlePreviewError = useCallback(() => {
-    setFailedUrls((current) => new Set(current).add(previewUrl));
-  }, [previewUrl]);
-  const handleOriginalError = useCallback(() => {
-    setFailedUrls((current) => new Set(current).add(originalUrl));
-  }, [originalUrl]);
+function PreviewSlide(props: PreviewSlideProps) {
+  const { media, active, preloadOriginal, favoriteBurst, onFavoriteBurstEnd } = props;
+  const { t, stageRef, inView, previewUrl, originalUrl, failedUrls, setFailedUrls, loadedOriginalUrl, reduceMotion, handleOriginalLoad, handlePreviewError, handleOriginalError } = usePreviewSlide(props);
 
 return (
     <div ref={stageRef} className="media-preview-dialog__stage" data-active={active}>
@@ -161,163 +105,15 @@ return (
   );
 }
 
-function OriginalImageLoader({ src, onLoad, onError }: {
-  src: string;
-  onLoad: (image: HTMLImageElement) => void;
-  onError: () => void;
-}) {
-  const onLoadRef = useRef(onLoad);
-  const onErrorRef = useRef(onError);
-  onLoadRef.current = onLoad;
-  onErrorRef.current = onError;
-  useEffect(() => {
-    const loadedImage = new Image();
-    let cancelled = false;
-    loadedImage.decoding = "async";
-    loadedImage.onload = () => {
-      void loadedImage.decode().catch(() => undefined).then(() => {
-        if (!cancelled) onLoadRef.current(loadedImage);
-      });
-    };
-    loadedImage.onerror = () => onErrorRef.current();
-    loadedImage.src = src;
-    return () => {
-      cancelled = true;
-      loadedImage.onload = null;
-      loadedImage.onerror = null;
-    };
-  }, [src]);
+import { OriginalImageLoader } from "./OriginalImageLoader";
+import { usePreviewSlide,type PreviewSlideProps } from "./usePreviewSlide";
 
-  return null;
-}
+import { useMediaPreviewDialog,type MediaPreviewDialogProps } from "./useMediaPreviewDialog";
 
-export function MediaPreviewDialog({
-  media, initialMediaId, total = media.length, loadingMore = false, loadMoreError = false,
-  onLoadMore, favoriteBusy = false, onToggleFavorite, onClose, trashActions,
-}: Props) {
-  const { t } = useLocale();
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const [deleteMediaId, setDeleteMediaId] = useState<string | null>(null);
-  const dialogRef = useRef<HTMLDialogElement>(null);
-  const closeRef = useRef<HTMLButtonElement>(null);
-  const closingRef = useRef(false);
-  const albumButtonRef = useRef<HTMLButtonElement>(null);
-  const lastViewedId = useRef(initialMediaId);
-  const [initialIndex] = useState(() => {
-    const index = media.findIndex((item) => item.id === initialMediaId);
-    return index >= 0 ? index : 0;
-  });
-  const [selectedIndex, setSelectedIndex] = useState(initialIndex);
-  const selectedSnap = useRef(initialIndex);
-  const [albumDialogOpen, setAlbumDialogOpen] = useState(false);
-  const [copyingImage, setCopyingImage] = useState(false);
-  const [copyResult, setCopyResult] = useState<{ mediaId: string } | null>(null);
-  const [favoriteBurst, setFavoriteBurst] = useState<{ mediaId: string; revision: number } | null>(null);
-  const favoriteBurstRevision = useRef(0);
-  const isMobile = useMediaQuery("(max-width: 640px)");
-  const hasMore = Boolean(onLoadMore) && media.length < total;
-  const loop = !hasMore && media.length >= (isMobile ? 3 : 5);
-  const slideCount = media.length + (hasMore ? 1 : 0);
-  const [carouselRef, api] = useEmblaCarousel({
-    startIndex: selectedIndex,
-    loop,
-    align: "center",
-    containScroll: false,
-    scale: isMobile ? 1 : 0.8,
-    visible: isMobile || slideCount === 1 ? 1 : 3,
-    watchDrag: (_api, event) => !(event.target instanceof Element && event.target.closest(".video-player")),
-  });
-  const current = media[selectedIndex];
-  const currentIndex = selectedIndex;
-  const albums = useAlbums("mine", Boolean(current) && !trashActions, current?.id);
-  const inAlbum = albums.data?.some((album) => album.containsMedia) ?? false;
-  const imageCopied = copyResult !== null && copyResult.mediaId === current?.id;
-
-  useEffect(() => {
-    if (!copyResult) return;
-    if (copyResult.mediaId !== current?.id) {
-      setCopyResult(null);
-      return;
-    }
-    const timeout = window.setTimeout(() => setCopyResult(null), 3_000);
-    return () => window.clearTimeout(timeout);
-  }, [copyResult, current?.id]);
-
-  useEffect(() => {
-    if (current) lastViewedId.current = current.id;
-  }, [current]);
-
-  useEffect(() => {
-    if (media.length === 0) onClose(lastViewedId.current);
-  }, [media.length, onClose]);
-
-  useEffect(() => {
-    if (hasMore && currentIndex >= media.length && !loadingMore && !loadMoreError) {
-      onLoadMore?.();
-    }
-  }, [hasMore, currentIndex, media.length, loadingMore, loadMoreError, onLoadMore]);
-
-  useLayoutEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    dialog.showModal();
-    closeRef.current?.focus();
-    return () => dialog.close();
-  }, []);
-
-  useEffect(() => {
-    if (!api) return;
-    const update = () => {
-      selectedSnap.current = api.selectedScrollSnap();
-      setSelectedIndex(selectedSnap.current);
-    };
-    const restoreSelection = () => {
-      // Option changes reapply startIndex, including when the final page enables looping.
-      api.scrollTo(Math.min(selectedSnap.current, Math.max(0, api.scrollSnapList().length - 1)), true);
-      update();
-    };
-    update();
-    api.on("settle", update).on("reInit", restoreSelection);
-    return () => {
-      api.off("settle", update).off("reInit", restoreSelection);
-    };
-  }, [api]);
-
+export function MediaPreviewDialog(props: MediaPreviewDialogProps) {
+  const { media, initialMediaId, total = media.length, loadingMore = false, loadMoreError = false, onLoadMore, favoriteBusy = false, onToggleFavorite, onClose, trashActions } = props;
+  const { t, navigate, queryClient, deleteMediaId, setDeleteMediaId, dialogRef, closeRef, albumButtonRef, selectedIndex, albumDialogOpen, setAlbumDialogOpen, copyingImage, favoriteBurst, setFavoriteBurst, hasMore, loop, slideCount, carouselRef, api, current, currentIndex, albums, inAlbum, imageCopied, close, toggleFavorite, copyImage, goToLocation, closeAlbum, confirmDelete } = useMediaPreviewDialog(props);
   if (media.length === 0) return null;
-
-  const close = () => {
-    const dialog = dialogRef.current;
-    if (!dialog || closingRef.current) return;
-    closingRef.current = true;
-    onClose(lastViewedId.current);
-  };
-  const toggleFavorite = () => {
-    if (!current || favoriteBusy) return;
-    if (!current.isFavorited) {
-      favoriteBurstRevision.current += 1;
-      setFavoriteBurst({ mediaId: current.id, revision: favoriteBurstRevision.current });
-    }
-    onToggleFavorite?.(current.id, current.isFavorited);
-  };
-  const copyImage = async () => {
-    if (!current || current.mediaKind !== "image" || copyingImage) return;
-    setCopyResult(null);
-    setCopyingImage(true);
-    try {
-      const image = loadImageAsPng(mediaUrl(current.id));
-      await navigator.clipboard.write([new ClipboardItem({ "image/png": image })]);
-      if (current.id === lastViewedId.current) setCopyResult({ mediaId: current.id });
-      showToast.success(t("Image copied"));
-    } catch (error) {
-      showToast.error(
-        t("Could not copy the image."),
-        error instanceof Error ? error.message : undefined,
-      );
-    } finally {
-      setCopyingImage(false);
-    }
-  };
 
   return (
     <dialog
@@ -445,11 +241,7 @@ export function MediaPreviewDialog({
               className="viewer-icon-btn media-preview-dialog__action"
               aria-label={t(current.location ? "View photo location" : "Set photo location")}
               title={t(current.location ? "View photo location" : "Set photo location")}
-              onClick={() => {
-                onClose(current.id);
-                const parameter = current.location ? "focusMediaId" : "mediaId";
-                navigate(`/location/travel?${parameter}=${encodeURIComponent(current.id)}`);
-              }}
+              onClick={goToLocation}
             >
               <MapPin
                 size={20}
@@ -542,24 +334,7 @@ export function MediaPreviewDialog({
           danger
           portalContainer={dialogRef.current}
           onClose={() => setDeleteMediaId(null)}
-          onConfirm={async () => {
-            const mediaId = deleteMediaId;
-            await mediaService.remove(mediaId);
-            showToast.delete(t("Media moved to trash"), {
-              undo: async () => {
-                await mediaService.restore(mediaId);
-                await Promise.all([
-                  queryClient.invalidateQueries({ queryKey: ["media"] }),
-                  queryClient.invalidateQueries({ queryKey: ["albums"] }),
-                ]);
-              },
-            });
-            return () => {
-              onClose(mediaId);
-              void queryClient.invalidateQueries({ queryKey: ["media"] });
-              void queryClient.invalidateQueries({ queryKey: ["albums"] });
-            };
-          }}
+          onConfirm={confirmDelete}
         >
           <p>{media.find((item) => item.id === deleteMediaId)?.originalFilename}</p>
           {t("Selected media will move to trash and can be restored later.")}
@@ -570,10 +345,7 @@ export function MediaPreviewDialog({
           <SaveToAlbumDialog
             mediaIds={[current.id]}
             portalContainer={dialogRef.current}
-            onClose={() => {
-              setAlbumDialogOpen(false);
-              albumButtonRef.current?.focus();
-            }}
+            onClose={closeAlbum}
           />
         </Suspense>
       ) : null}

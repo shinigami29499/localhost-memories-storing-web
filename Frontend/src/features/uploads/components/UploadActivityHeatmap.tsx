@@ -1,12 +1,12 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ActivityHeatmap } from "../../../components/common/ActivityHeatmap";
+import { ActivityHeatmap } from "./ActivityHeatmap";
 import { useMediaQuery } from "../../../hooks/useMediaQuery";
 import { useAuthStore } from "../../../store/authStore";
 import { uploadService } from "../services/uploadService";
 import type { UploadBatch } from "../types";
 
-import { MOBILE_QUERY, MOBILE_WEEKS, DESKTOP_WEEKS, startOfDay, dateKey, startOfHeatmap, makeHeatmapDays } from "../../../utils/activityHeatmap";
+import { MOBILE_QUERY, MOBILE_WEEKS, DESKTOP_WEEKS, startOfDay, dateKey, startOfHeatmap, makeHeatmapDays } from "../utils/activityHeatmap";
 
 const PAGE_SIZE = 100;
 

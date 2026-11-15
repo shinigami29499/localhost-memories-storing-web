@@ -1,0 +1,11 @@
+/* Legacy gallery controls use white icon strokes for the desktop palette.
+   In the mobile light palette, inherit the control's foreground instead. */
+:root[data-mobile-theme] .gallery-selection-bar :is(.gallery-selection-bar__action:not(.gallery-selection-bar__action--danger), .gallery-selection-bar__cancel) svg {
+  stroke: currentColor;
+}
+
+/* The action bar's surface-colored border otherwise disappears on light pages. */
+:root[data-mobile-theme="light"] .gallery-page__actions {
+  background: var(--mobile-surface-muted);
+  box-shadow: var(--mobile-shadow);
+}

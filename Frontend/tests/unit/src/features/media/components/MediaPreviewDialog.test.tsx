@@ -1,0 +1,309 @@
+// @vitest-environment jsdom
+import { act } from "react";
+import { createRoot, type Root } from "react-dom/client";
+import { MemoryRouter, useLocation } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { MediaPreviewDialog } from "../../../../../../src/features/media/components/MediaPreviewDialog";
+import type { MediaFile } from "../../../../../../src/features/media/types";
+
+
+const state = vi.hoisted(() => ({
+  selected: 0,
+  select: undefined as (() => void) | undefined,
+  settle: undefined as (() => void) | undefined,
+}));
+
+vi.mock("@animate-ui/react/primitives/carousel", () => {
+  const api = {
+    selectedScrollSnap: () => state.selected,
+    scrollSnapList: () => [0, 1, 2],
+    scrollTo: (index: number) => { state.selected = index; },
+    scrollNext: () => { state.selected++; state.select?.(); state.settle?.(); },
+    scrollPrev: () => { state.selected--; state.select?.(); state.settle?.(); },
+    on(name: string, listener: () => void) {
+      if (name === "select") state.select = listener;
+      if (name === "settle") state.settle = listener;
+      return this;
+    },
+    off() { return this; },
+  };
+  return {
+    default: () => [() => {}, api],
+    CarouselCounter: () => null,
+    CarouselDots: () => null,
+  };
+});
+
+vi.mock("motion/react", async (importOriginal) => ({
+  ...await importOriginal<typeof import("motion/react")>(),
+  useInView: () => true,
+}));
+vi.mock("../../../../../../src/features/albums/hooks/useAlbums", () => ({
+  useAlbums: () => ({ data: [] }),
+}));
+
+const image: MediaFile = {
+  id: "image", mediaKind: "image", originalFilename: "photo.png",
+  createdAt: "2026-10-28T12:00:00Z", isFavorited: false,
+};
+const media: MediaFile[] = [
+  image,
+  { ...image, id: "video", mediaKind: "video", originalFilename: "clip.mp4" },
+  { ...image, id: "other-image" },
+];
+
+function RouteProbe() {
+  const location = useLocation();
+  return <output data-path={location.pathname} data-search={location.search} />;
+}
+
+describe("MediaPreviewDialog resolution loading", () => {
+  let container: HTMLDivElement;
+  let root: Root;
+  let queryClient: QueryClient;
+
+  beforeEach(() => {
+    queryClient = new QueryClient();
+    state.selected = 0;
+    state.select = undefined;
+    state.settle = undefined;
+    vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+    vi.stubGlobal("SVGGeometryElement", class extends SVGElement {});
+    vi.stubGlobal("IntersectionObserver", class { observe() {} unobserve() {} disconnect() {} });
+    vi.stubGlobal("matchMedia", vi.fn((query: string) => ({
+      matches: false, media: query, addEventListener: vi.fn(), removeEventListener: vi.fn(),
+    })));
+    Object.defineProperties(HTMLDialogElement.prototype, {
+      showModal: { configurable: true, value: vi.fn() },
+      close: { configurable: true, value: vi.fn() },
+    });
+    vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => {});
+    container = document.createElement("div");
+    document.body.append(container);
+    root = createRoot(container);
+  });
+
+  afterEach(() => {
+    act(() => root.unmount());
+    queryClient.clear();
+    container.remove();
+    vi.restoreAllMocks();
+    Reflect.deleteProperty(HTMLDialogElement.prototype, "showModal");
+    Reflect.deleteProperty(HTMLDialogElement.prototype, "close");
+    vi.unstubAllGlobals();
+  });
+
+  function render(includeDeleted = false) {
+    const actions = includeDeleted
+      ? { trashActions: { onRestore: vi.fn(), onDelete: vi.fn() } }
+      : { onToggleFavorite: vi.fn() };
+    act(() => root.render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <MediaPreviewDialog media={media} initialMediaId="image" onClose={vi.fn()} {...actions} />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    ));
+  }
+
+  function sources() {
+    return Array.from(container.querySelectorAll<HTMLImageElement | HTMLVideoElement>(
+      ".media-preview-dialog__stage img, .media-preview-dialog__stage video",
+    ), (element) => new URL(element.src));
+  }
+
+  function navigate(key: string) {
+    act(() => container.querySelector("dialog")!.dispatchEvent(
+      new KeyboardEvent("keydown", { bubbles: true, key }),
+    ));
+  }
+
+  it.each([false, true])("keeps previews visible while active originals load (trash=%s)", (includeDeleted) => {
+    render(includeDeleted);
+    expect(sources().map((url) => url.searchParams.has("preview"))).toEqual([true, true, true]);
+    expect(container.querySelector("video")).toBeNull();
+    expect(sources().every((url) => url.searchParams.has("includeDeleted") === includeDeleted)).toBe(true);
+
+    navigate("ArrowRight");
+    expect(sources().map((url) => url.searchParams.has("preview"))).toEqual([true, false, true]);
+    expect(container.querySelector("video")?.src).toContain("/api/library/gallery/video/file?");
+    expect(container.querySelector('[aria-label="Video progress"]')).not.toBeNull();
+    expect(container.querySelector('[aria-label="Toggle fullscreen"]')).not.toBeNull();
+
+    navigate("ArrowRight");
+    expect(sources().map((url) => url.searchParams.has("preview"))).toEqual([true, true, true]);
+    expect(container.querySelector("video")).toBeNull();
+  });
+
+  it("does not let a failed neighboring preview block the active original", () => {
+    render();
+    const neighbor = container.querySelectorAll(".media-preview-dialog__stage img")[1];
+    act(() => neighbor.dispatchEvent(new Event("error")));
+    expect(container.querySelectorAll(".media-preview-dialog__stage img")).toHaveLength(2);
+    navigate("ArrowRight");
+    expect(container.querySelector("video")).not.toBeNull();
+    expect(sources().filter((url) => !url.searchParams.has("preview"))).toHaveLength(1);
+  });
+
+  it("closes when the last visible media item is removed", () => {
+    const onClose = vi.fn();
+    const onToggleFavorite = vi.fn();
+    const renderItems = (items: MediaFile[]) => act(() => root.render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <MediaPreviewDialog
+            media={items}
+            initialMediaId={image.id}
+            onClose={onClose}
+            onToggleFavorite={onToggleFavorite}
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    ));
+
+    renderItems([image]);
+    expect(container.querySelector("dialog")).not.toBeNull();
+    renderItems([]);
+
+    expect(onClose).toHaveBeenCalledExactlyOnceWith(image.id);
+  });
+
+  it.each([false, true])("toggles the selected image's favorite state (favorited=%s)", (isFavorited) => {
+    const onToggleFavorite = vi.fn();
+    act(() => root.render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <MediaPreviewDialog
+            media={[{ ...image, isFavorited }, media[2]]}
+            initialMediaId="image"
+            onClose={vi.fn()}
+            onToggleFavorite={onToggleFavorite}
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    ));
+
+    const images = container.querySelectorAll(".media-preview-dialog__stage img");
+    act(() => images[1].dispatchEvent(new MouseEvent("dblclick", { bubbles: true })));
+    expect(onToggleFavorite).not.toHaveBeenCalled();
+    act(() => images[0].dispatchEvent(new MouseEvent("dblclick", { bubbles: true })));
+    expect(onToggleFavorite).not.toHaveBeenCalled();
+
+    act(() => container.querySelector<HTMLButtonElement>(
+      `[aria-label="${isFavorited ? "Remove from favorites" : "Add to favorites"}"]`,
+    )!.click());
+    expect(onToggleFavorite).toHaveBeenCalledExactlyOnceWith("image", isFavorited);
+    expect(onToggleFavorite).toHaveBeenLastCalledWith("image", isFavorited);
+    if (!isFavorited) {
+      expect(container.querySelector<SVGElement>(".media-preview-dialog__heart-burst-icon svg")?.style.color)
+        .toBe("var(--heart-active)");
+      expect(container.querySelector(".media-preview-dialog__heart-blossom")).toBeNull();
+    }
+  });
+
+  it.each([false, true])("toggles the selected video's favorite state (favorited=%s)", (isFavorited) => {
+    const onToggleFavorite = vi.fn();
+    act(() => root.render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <MediaPreviewDialog
+            media={[{ ...media[1], isFavorited }]}
+            initialMediaId="video"
+            onClose={vi.fn()}
+            onToggleFavorite={onToggleFavorite}
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    ));
+    act(() => container.querySelector("video")!.dispatchEvent(
+      new MouseEvent("dblclick", { bubbles: true, cancelable: true }),
+    ));
+    expect(onToggleFavorite).not.toHaveBeenCalled();
+    act(() => container.querySelector<HTMLButtonElement>(
+      `[aria-label="${isFavorited ? "Remove from favorites" : "Add to favorites"}"]`,
+    )!.click());
+    expect(onToggleFavorite).toHaveBeenCalledExactlyOnceWith("video", isFavorited);
+  });
+
+  it("keeps favorite action disabled while an update is pending", () => {
+    const onToggleFavorite = vi.fn();
+    act(() => root.render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <MediaPreviewDialog
+            media={[image]}
+            initialMediaId="image"
+            onClose={vi.fn()}
+            onToggleFavorite={onToggleFavorite}
+            favoriteBusy
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    ));
+    act(() => container.querySelector(".media-preview-dialog__stage img")!.dispatchEvent(
+      new MouseEvent("dblclick", { bubbles: true }),
+    ));
+    expect(onToggleFavorite).not.toHaveBeenCalled();
+    expect(container.querySelector<HTMLButtonElement>('[aria-label="Add to favorites"]')!.disabled).toBe(true);
+  });
+
+  it("does not expose favorite actions for trashed images or videos", () => {
+    const onRestore = vi.fn();
+    const onDelete = vi.fn();
+    act(() => root.render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <MediaPreviewDialog
+            media={media}
+            initialMediaId="image"
+            onClose={vi.fn()}
+            trashActions={{ onRestore, onDelete }}
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    ));
+    act(() => container.querySelector(".media-preview-dialog__stage img")!.dispatchEvent(
+      new MouseEvent("dblclick", { bubbles: true }),
+    ));
+    navigate("ArrowRight");
+    act(() => container.querySelector("video")!.dispatchEvent(
+      new MouseEvent("dblclick", { bubbles: true }),
+    ));
+    expect(container.querySelector('[aria-label="Add to favorites"]')).toBeNull();
+    expect(onRestore).not.toHaveBeenCalled();
+    expect(onDelete).not.toHaveBeenCalled();
+  });
+
+
+  it.each([true, false])("opens the photo location action (located=%s)", (located) => {
+    const onClose = vi.fn();
+    act(() => root.render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <MediaPreviewDialog
+            media={[{ ...image, location: located ? { latitude: 10, longitude: 20 } : null }]}
+            initialMediaId="image"
+            onClose={onClose}
+            onToggleFavorite={vi.fn()}
+          />
+          <RouteProbe />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    ));
+
+    const button = container.querySelector<HTMLButtonElement>(
+      `[aria-label="${located ? "View photo location" : "Set photo location"}"]`,
+    )!;
+    expect(button).not.toBeNull();
+    const pin = button.querySelector("svg")!;
+    expect(pin.getAttribute("stroke")).toBe("currentColor");
+    expect(pin.getAttribute("aria-hidden")).toBe("true");
+    act(() => button.click());
+
+    expect(onClose).toHaveBeenCalledWith("image");
+    expect(container.querySelector("output")?.getAttribute("data-path")).toBe("/location/travel");
+    expect(container.querySelector("output")?.getAttribute("data-search"))
+      .toBe(located ? "?focusMediaId=image" : "?mediaId=image");
+  });
+});

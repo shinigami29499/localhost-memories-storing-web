@@ -1,0 +1,16 @@
+{
+  "name": "@shinigacim/core",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./authStore": "./src/authStore.ts",
+    "./sessionReplacement": "./src/sessionReplacement.ts",
+    "./notificationTransport": "./src/notificationTransport.ts"
+  },
+  "dependencies": {
+    "@microsoft/signalr": "^8.0.29",
+    "@shinigacim/types": "*",
+    "zustand": "^4.5.5"
+  }
+}

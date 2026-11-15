@@ -1,0 +1,28 @@
+.mobile-register {
+  min-height: 100dvh;
+  padding: calc(20px + env(safe-area-inset-top, 0px)) 24px calc(40px + env(safe-area-inset-bottom, 0px));
+  background: var(--mobile-bg);
+  color: var(--mobile-text);
+}
+.mobile-register__header { display: flex; min-height: 48px; align-items: center; justify-content: space-between; }
+.mobile-register__header strong { font-size: 1.1rem; letter-spacing: -.02em; }
+.mobile-register__header strong span { color: var(--mobile-primary); }
+.mobile-register__header-actions { display: flex; align-items: center; gap: 4px; }
+.mobile-register__header-actions button { display: grid; place-items: center; min-width: 44px; min-height: 44px; border: 0; background: transparent; color: var(--mobile-text); }
+.mobile-register__content { max-width: 440px; margin: 48px auto 0; }
+.mobile-register h1 { margin: 0; font-size: 2rem; line-height: 1.15; letter-spacing: -.03em; }
+.mobile-register__content > p { color: var(--mobile-text-muted); }
+.mobile-register form { display: grid; gap: 8px; margin-top: 28px; }
+.mobile-register form label { font-size: .875rem; font-weight: 650; }
+.mobile-register form input { min-height: 52px; border: 1px solid var(--mobile-border); border-radius: 10px; background: var(--mobile-surface); color: var(--mobile-text); }
+.mobile-register form .password-input { margin: 0; }
+.mobile-register__help, .mobile-register__error { margin: 0 0 12px; font-size: .8125rem; line-height: 1.4; }
+.mobile-register__help { color: var(--mobile-text-muted); }
+.mobile-register__error { color: var(--mobile-danger); }
+.mobile-register__primary { display: flex; min-height: 52px; align-items: center; justify-content: center; margin-top: 12px; padding: 12px 16px; border: 0; border-radius: 10px; background: var(--mobile-primary); color: var(--mobile-on-primary); font-family: inherit; font-size: 1rem; font-weight: 700; line-height: 1.25; text-align: center; text-decoration: none; }
+.mobile-register__primary:disabled { opacity: .6; }
+.mobile-register__signin { margin-top: 24px; font-size: .875rem; text-align: center; }
+.mobile-register__signin a { font-weight: 650; text-underline-offset: 3px; }
+.mobile-register__settings { width: min(800px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); padding: 16px; border: 0; border-radius: 14px; background: var(--mobile-surface); color: var(--mobile-text); }
+.mobile-register__settings::backdrop { background: rgb(0 0 0 / .55); }
+.mobile-register__settings-close { position: sticky; top: 0; float: right; min-height: 44px; padding: 8px 12px; border: 0; background: var(--mobile-surface); color: var(--mobile-text); font: inherit; }

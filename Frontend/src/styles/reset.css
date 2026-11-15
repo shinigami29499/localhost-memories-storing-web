@@ -1,0 +1,79 @@
+* {
+  box-sizing: border-box;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
+}
+
+.lucide {
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+svg {
+  color: inherit;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100vh;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+h1 {
+  text-wrap: balance;
+}
+
+html {
+  font-size: 100%;
+  scroll-padding-top: 110px;
+}
+
+a {
+  color: var(--text);
+}
+
+button,
+a,
+input,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  * {
+    -webkit-touch-callout: none;
+  }
+}
+
+:focus-visible {
+  --focus-icon-inner: var(--focus-ring);
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 4px;
+}
+
+button:focus-visible {
+  border-color: var(--focus-ring);
+}
+
+:focus-visible svg {
+  color: var(--focus-icon-inner);
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--selection-text);
+}
+

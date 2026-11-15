@@ -12,14 +12,11 @@ interface Props {
   onSelect: (result: LocationSearchResult) => void;
 }
 
-export function LocationSearch({ disabled = false, onFocus, onSelect }: Props) {
-  const { t } = useLocale();
-  const id = useId();
-  const [query, setQuery] = useState("");
-  const [open, setOpen] = useState(false);
-  const { results, searching, error, retry } = useLocationSearch(query, open && !disabled);
-  const showResults = open && !disabled;
-  const showMessage = showResults && (query.trim().length < 3 || searching || !!error || results?.length === 0);
+import { useLocationSearchController } from "./useLocationSearchController";
+
+export function LocationSearch(props: Props) {
+  const { disabled = false, onFocus, onSelect } = props;
+  const { t, id, query, setQuery, setOpen, results, searching, error, retry, showResults, showMessage } = useLocationSearchController(props);
 
   return (
     <AnimateIcon animateOnHover animateOnTap={false} animateOnView={false} completeOnStop asChild>

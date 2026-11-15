@@ -1,13 +1,14 @@
 import { AnimateIcon } from "@/components/animate-ui/icons/icon";
-import { useLayoutEffect, useState } from "react";
+import { useContext, useLayoutEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import * as PaginationPrimitive from "@animate-ui/react/primitives/pagination";
 import { Select } from "@animate-ui/react/primitives/base-ui/select";
 import "./Pagination.css";
 import { useLocale } from "../../context/LocaleContext";
-import { PageActionBar, usePageActionBarFooter } from "../layout/PageActionBar";
+import { ActionBarContext } from "../layout/PageActionBarContext";
+import { PAGE_SIZE_OPTIONS } from "./paginationConstants";
 
-export const PAGE_SIZE_OPTIONS = [10, 20, 50] as const;
-export const DEFAULT_PAGE_SIZE = 10;
+export { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS } from "./paginationConstants";
 
 interface PaginationProps {
   page: number;
@@ -33,7 +34,8 @@ export function Pagination({
   onPageSizeChange,
 }: PaginationProps) {
   const { t } = useLocale();
-  const actionBarFooter = usePageActionBarFooter();
+  const actionBarTarget = useContext(ActionBarContext);
+  const actionBarFooter = actionBarTarget?.parentElement ?? null;
   const [ready, setReady] = useState(revealBeforeTransitionEndMs === undefined);
   useLayoutEffect(() => {
     if (revealBeforeTransitionEndMs === undefined) return;
@@ -46,7 +48,7 @@ export function Pagination({
           .map((animation) => {
             const end = animation.effect?.getComputedTiming().endTime ?? 0;
             const current = typeof animation.currentTime === "number" ? animation.currentTime : 0;
-            return Number.isFinite(end) ? Math.max(0, (end - current) / Math.abs(animation.playbackRate || 1)) : 0;
+            return typeof end === "number" && Number.isFinite(end) ? Math.max(0, (end - current) / Math.abs(animation.playbackRate || 1)) : 0;
           });
         timer = window.setTimeout(() => {
           if (!cancelled) setReady(true);
@@ -149,8 +151,8 @@ export function Pagination({
 
   if (!ready) return null;
 
-  return inActionBar && actionBarFooter
-    ? <PageActionBar className="pagination-action-bar">{navigation}</PageActionBar>
+  return inActionBar && actionBarFooter && actionBarTarget
+    ? createPortal(<div className="gallery-selection-bar gallery-selection-bar--compact pagination-action-bar">{navigation}</div>, actionBarTarget)
     : navigation;
 }
 

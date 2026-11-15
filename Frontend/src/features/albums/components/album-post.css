@@ -1,0 +1,357 @@
+/* Post card ---------------------------------------------------------------- */
+
+.post-card {
+  background: var(--surface-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius);
+  overflow: visible;
+}
+
+.post-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.post-card__author {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.post-card__author > div {
+  min-width: 0;
+}
+
+.post-card__avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--gradient);
+  color: var(--text-on-accent);
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.post-card__username {
+  font-weight: 600;
+  color: var(--text-strong);
+  overflow-wrap: anywhere;
+}
+
+.post-card__time {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.post-card__actions {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.post-card__more,
+.post-card__delete {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  font-size: 1.6rem;
+}
+
+.post-card__delete:hover:not(:disabled) {
+  color: var(--text);
+  background: var(--danger-wash);
+}
+
+.post-card__more:hover:not(:disabled),
+.post-card__more[data-state="open"] {
+  background: var(--surface-hover);
+}
+
+.post-card__menu {
+  z-index: 99999;
+  min-width: 12rem;
+  max-width: calc(100vw - 1rem);
+  padding: 0.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-lg);
+  color: var(--text-strong);
+}
+
+.post-card__menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-radius: var(--radius-inner);
+  font-size: 0.875rem;
+  cursor: pointer;
+  outline: none;
+}
+
+.post-card__menu-item[data-highlighted] {
+  background: var(--surface-hover);
+}
+
+[data-floating-ui-portal] {
+  z-index: 99999;
+}
+
+
+.post-card__caption {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--text-strong);
+}
+
+.post-card__tag {
+  font-weight: 600;
+}
+
+.post-card__tag--mention {
+  color: var(--text);
+}
+
+.post-card__tag--hashtag {
+  color: var(--text-muted);
+}
+
+.post-card__caption-wrapper {
+  padding: 18px 22px 20px;
+  width: 100%;
+}
+
+.post-card__caption-toggle {
+  display: flex;
+  padding: 6px 22px 12px;
+}
+
+.post-card__toggle-btn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 8px 0 0;
+  font: inherit;
+  font-weight: 700;
+  color: var(--text-strong);
+  cursor: pointer;
+  display: block;
+}
+
+.post-card__toggle-btn:hover,
+.post-card__toggle-btn:focus-visible {
+  text-decoration: underline;
+}
+
+.post-card__footer {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
+  min-height: 46px;
+  border-top: 1px solid var(--border);
+  background: var(--surface-raised);
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+
+.post-card__comment-action,
+.reactions__chip {
+  min-height: 44px;
+}
+
+.post-card__comment-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 16px;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.post-card__comment-action[aria-expanded="true"] {
+  color: var(--text-strong);
+}
+
+.post-card__comment-action:hover,
+.post-card__comment-action:focus-visible {
+  background: var(--surface-hover);
+  color: var(--text-strong);
+}
+
+
+/* Reactions ------------------------------------------------------------------ */
+
+.reaction-icon--heart {
+  flex-shrink: 0;
+  color: var(--text);
+}
+
+.reactions {
+  display: flex;
+  flex-shrink: 0;
+}
+
+.reactions__chip:focus-visible,
+.post-card__comment-action:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -3px;
+}
+
+.reactions__chip:focus-visible {
+  --focus-icon-inner: var(--danger);
+}
+
+.reactions__chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 16px;
+  background: transparent;
+  border: 0;
+  color: var(--text-muted);
+  font: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease, scale 140ms ease-out;
+  position: relative;
+}
+
+.reactions__chip:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+
+.reactions__chip--active {
+  color: var(--text);
+}
+
+.reactions__chip:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.reactions__particles {
+  color: currentColor;
+}
+
+.reactions__count {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Comments ------------------------------------------------------------------ */
+
+.comments {
+  padding: 12px 16px 14px;
+  border-top: 1px solid var(--border);
+}
+
+.comments__none {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.comments__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.comments__item {
+  background: var(--surface-card-raised);
+  border-radius: 10px;
+  padding: 8px 12px;
+}
+
+.comments__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  flex-wrap: wrap;
+  overflow-wrap: anywhere;
+}
+
+.comments__head time {
+  color: var(--text-muted);
+}
+
+.comments__delete {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.comments__delete:hover {
+  color: var(--text);
+}
+
+.comments__content {
+  margin: 4px 0 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.comments__composer {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.comments__composer .btn {
+  flex-shrink: 0;
+}
+
+
+
+
+@media (max-width: 560px) {
+
+  .post-card__header {
+    padding: 16px 18px;
+  }
+
+  .reactions__chip,
+  .post-card__comment-action {
+    padding: 0 12px;
+  }
+
+  .post-card__caption-wrapper {
+    padding: 14px 16px 16px;
+  }
+
+  .post-card__caption-toggle {
+    padding: 6px 16px 12px;
+  }
+}
+
+
+
+@media (pointer: coarse) {
+
+  .post-card__more,
+  .post-card__delete {
+    width: 44px;
+    height: 44px;
+  }
+}

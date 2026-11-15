@@ -25,6 +25,13 @@ const LocaleContext = createContext<LocaleContextValue>({
 });
 
 const vietnamese: Record<string, string> = {
+  "Appearance": "Giao diện",
+  "System": "Theo hệ thống",
+  "Upload history": "Lịch sử tải lên",
+  "Select images or videos": "Chọn ảnh hoặc video",
+  "Approve": "Duyệt",
+  "Block": "Chặn",
+  "Unblock": "Bỏ chặn",
   "Permanently delete missing media records?": "Xóa vĩnh viễn bản ghi nội dung bị thiếu?",
   "Delete records": "Xóa bản ghi",
   "Media records permanently deleted": "Đã xóa vĩnh viễn các bản ghi nội dung",

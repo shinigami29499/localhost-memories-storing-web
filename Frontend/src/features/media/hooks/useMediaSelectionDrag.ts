@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, type MouseEvent, type PointerEvent } fr
 
 interface SelectionDrag {
   pointerId: number;
+  pointerType: string;
   startX: number;
   startY: number;
   startMediaId: string;
@@ -42,7 +43,7 @@ export function useMediaSelectionDrag(
     if (drag.current && drag.current.holdTimer !== null) clearTimeout(drag.current.holdTimer);
     if (drag.current?.active) {
       suppressClick.current = true;
-      suppressClickTimer.current = setTimeout(clearSuppressClick, 0);
+      suppressClickTimer.current = setTimeout(clearSuppressClick, drag.current.pointerType === "touch" ? 700 : 0);
     }
     drag.current = null;
   }, [clearSuppressClick]);
@@ -60,6 +61,14 @@ export function useMediaSelectionDrag(
     };
   }, [enabled, clearSuppressClick]);
 
+  useEffect(() => {
+    const preventActiveDragScroll = (event: TouchEvent) => {
+      if (drag.current?.active && drag.current.pointerType === "touch" && event.cancelable) event.preventDefault();
+    };
+    document.addEventListener("touchmove", preventActiveDragScroll, { passive: false });
+    return () => document.removeEventListener("touchmove", preventActiveDragScroll);
+  }, []);
+
   const onPointerDown = useCallback((event: PointerEvent<HTMLElement>) => {
     if (!enabled || !event.isPrimary || event.button !== 0) return;
     const mediaId = mediaIdAt(event.target);
@@ -67,6 +76,7 @@ export function useMediaSelectionDrag(
     clearSuppressClick();
     drag.current = {
       pointerId: event.pointerId,
+      pointerType: event.pointerType,
       startX: event.clientX,
       startY: event.clientY,
       startMediaId: mediaId,

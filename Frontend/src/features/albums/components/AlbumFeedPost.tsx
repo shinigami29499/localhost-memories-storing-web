@@ -1,5 +1,4 @@
-import { useRef, useState } from "react";
-import { AnimatePresence, motion, useInView } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import { useNavigate } from "react-router-dom";
 import { motionTokens, useShouldReduceMotion, useTempoTransition } from "@animate-ui/react/utils/motion";
 import { Bookmark } from "@/components/animate-ui/icons/bookmark";
@@ -8,8 +7,7 @@ import { ConfirmationDialog } from "../../../components/ui";
 import { useLocale } from "../../../context/LocaleContext";
 import { UserAvatar } from "../../../components/common/UserAvatar";
 import { formatTimestamp, mediaPreviewUrl } from "../../../utils/media";
-import { useInfiniteAlbumMedia, useInvalidateAlbums } from "../hooks/useAlbums";
-import { albumService } from "../services/albumService";
+import { useAlbumFeedPost } from "../hooks/useAlbumFeedPost";
 import { useCaptionPreview } from "../hooks/useCaptionPreview";
 import type { Album } from "../types";
 import "./album-feed.css";
@@ -29,38 +27,7 @@ export function AlbumFeedPost({ album, canDelete }: Props) {
   const navigate = useNavigate();
   const shouldReduceMotion = useShouldReduceMotion();
   const captionTransition = useTempoTransition(motionTokens.transition.reveal);
-  const invalidateAlbums = useInvalidateAlbums();
-  const [deleting, setDeleting] = useState(false);
-  const [failedPreview, setFailedPreview] = useState<string | null>(null);
-  const [attempt, setAttempt] = useState(0);
-  const previewRef = useRef<HTMLDivElement>(null);
-  const swipeStart = useRef<{ x: number; y: number } | null>(null);
-  const suppressClick = useRef(false);
-  const inView = useInView(previewRef, { margin: "200px 0px" });
-  const [imageIndex, setImageIndex] = useState(0);
-  const [slideDirection, setSlideDirection] = useState(1);
-  const media = useInfiniteAlbumMedia(album.id, 5, inView && album.mediaCount > 0);
-  const items = media.data?.pages.flatMap((page) => page.items) ?? [];
-  const previewId = items[imageIndex]?.id ?? (!media.data ? album.previewMediaId : null);
-  const failed = previewId !== null && failedPreview === previewId;
-  const previousImage = () => {
-    if (imageIndex > 0) {
-      setSlideDirection(-1);
-      setImageIndex((index) => index - 1);
-    }
-  };
-  const nextImage = async () => {
-    if (imageIndex + 1 < items.length) {
-      setSlideDirection(1);
-      setImageIndex((index) => index + 1);
-    } else if (media.hasNextPage && !media.isFetchingNextPage) {
-      const result = await media.fetchNextPage();
-      if (result.data && result.data.pages.flatMap((page) => page.items).length > imageIndex + 1) {
-        setSlideDirection(1);
-        setImageIndex((index) => index + 1);
-      }
-    }
-  };
+  const { deleting, setDeleting, setFailedPreview, attempt, setAttempt, previewRef, swipeStart, suppressClick, inView, imageIndex, slideDirection, media, items, previewId, failed, previousImage, nextImage, deleteAlbum } = useAlbumFeedPost(album);
   return (
     <article className="album-feed-post" aria-label={album.name}>
       <header className="album-feed-post__header">
@@ -175,10 +142,7 @@ export function AlbumFeedPost({ album, canDelete }: Props) {
           confirmLabel="Delete album"
           danger
           onClose={() => setDeleting(false)}
-          onConfirm={async () => {
-            await albumService.remove(album.id);
-            await invalidateAlbums();
-          }}
+          onConfirm={deleteAlbum}
         >
           {t("The album “{name}” will be deleted. Saved media stay in your gallery.", { name: album.name })}
         </ConfirmationDialog>

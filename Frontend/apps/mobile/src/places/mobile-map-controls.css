@@ -1,0 +1,884 @@
+:is(.place, .locations) :is(.place__map-panel, .locations__map-panel) {
+  height: clamp(420px, calc(100dvh - var(--app-topbar-height, 96px) - 190px), 900px);
+  min-height: 0;
+  overflow: hidden;
+}
+
+:is(.place, .locations) :is(.place__map, .locations__map) {
+  height: 100%;
+  isolation: isolate;
+  min-height: 0;
+  position: relative;
+}
+
+:is(.place, .locations) .map-controls > .mapboxgl-map {
+  position: relative;
+  z-index: 0;
+}
+
+:is(.place, .locations) .map-controls .mapboxgl-ctrl:has(> .mapboxgl-ctrl-logo) {
+  display: none !important;
+}
+
+.map-loading-overlay {
+  align-items: center;
+  background: var(--surface);
+  border-radius: inherit;
+  display: grid;
+  inset: 0;
+  place-items: center;
+  position: absolute;
+  z-index: 50;
+}
+
+.map-loading-overlay[data-exiting="true"] {
+  animation: map-loading-iris-exit 1000ms ease-in forwards;
+  pointer-events: none;
+}
+
+@keyframes map-loading-iris-exit {
+  from { clip-path: circle(150% at center); }
+  to { clip-path: circle(0 at center); }
+}
+.map-loading-overlay .spinner__wheel {
+  color: var(--text-muted);
+}
+
+@keyframes map-marker-bounce {
+  0%, 100% { transform: translateY(-4px); }
+  25% { transform: translateY(0); }
+  75% { transform: translateY(-8px); }
+}
+
+@keyframes map-marker-drop {
+  0% { opacity: 0; transform: translateY(-28px) scale(0.9); }
+  70% { opacity: 1; transform: translateY(3px) scale(1.04); }
+  88% { transform: translateY(-4px) scale(1); }
+  100% { opacity: 1; transform: translateY(-4px); }
+}
+
+
+
+@media (prefers-reduced-motion: no-preference) {
+  :is(.place__pin, .locations__pin)[data-marker-motion="true"]:is(:hover, :focus-visible):not([aria-pressed="true"]) {
+    animation: map-marker-bounce 0.8s linear infinite;
+  }
+  :is(.place__pin, .locations__pin)[data-marker-motion="true"][aria-pressed="true"] {
+    animation: map-marker-bounce 0.8s linear infinite;
+  }
+  :is(.place__home-pin, .locations__home-pin):is(:hover, :focus-visible, [aria-pressed="true"]) {
+    animation: map-marker-bounce 0.8s linear infinite;
+  }
+  .map-draft-marker__pin {
+    animation: map-marker-drop 480ms ease-out, map-marker-bounce 0.8s linear 480ms infinite;
+    animation-fill-mode: forwards, both;
+  }
+}
+
+:is(.place__map, .locations__map)[data-relocating="true"] :is(.place__pin, .locations__pin) {
+  animation: none !important;
+}
+
+:is(.place, .locations) .map-controls .mapboxgl-ctrl-group:has(.mapboxgl-ctrl-geolocate) {
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-sm);
+  margin: 0 0 8px 8px;
+  width: 54px;
+  height: 54px;
+}
+
+:is(.place, .locations) .map-controls .mapboxgl-ctrl-group .mapboxgl-ctrl-geolocate {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+:is(.place, .locations) .map-controls .mapboxgl-ctrl-geolocate .mapboxgl-ctrl-icon {
+  background-size: 30px 30px;
+  position: relative;
+}
+
+:is(.place, .locations) .map-controls .mapboxgl-ctrl-geolocate:not(:disabled):is(:hover, :active, .mapboxgl-ctrl-geolocate-active) {
+  background-color: var(--surface-raised);
+}
+
+:is(.place, .locations) .map-controls .mapboxgl-ctrl-geolocate .mapboxgl-ctrl-icon {
+  filter: brightness(0) invert(1);
+}
+
+:is(.place, .locations) .map-controls .mapboxgl-ctrl-geolocate:not(:disabled):is(:hover, :focus-visible) {
+  background-color: var(--surface-raised);
+}
+
+:is(.place, .locations) .map-controls .mapboxgl-ctrl-geolocate:not(:disabled):is(:hover, :focus-visible)::before {
+  background: oklch(0.92 0 0);
+  border-radius: var(--radius-inner);
+  content: "";
+  inset: var(--box-inset);
+  position: absolute;
+  pointer-events: none;
+}
+
+:is(.place, .locations) .map-controls .mapboxgl-ctrl-geolocate:not(:disabled):is(:hover, :focus-visible) .mapboxgl-ctrl-icon {
+  filter: brightness(0) saturate(100%) invert(24%) sepia(17%) saturate(1636%) hue-rotate(322deg) brightness(91%);
+}
+
+:is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes) {
+  left: 8px;
+  top: 8px;
+  max-height: calc(100% - 16px);
+}
+
+:is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes):not([open]) {
+  width: 54px;
+  background: var(--surface-raised);
+  color: var(--text);
+  border: 0;
+  box-shadow: var(--shadow-sm);
+}
+
+:is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes)[open] {
+  width: min(264px, calc(100% - 78px));
+  z-index: 7;
+}
+
+:is(.place, .locations) .map-controls .map-appearance-control {
+  top: 68px;
+}
+
+:is(.place, .locations) .map-controls[data-scene="streets"] .map-appearance-control { display: none; }
+.place .map-controls[data-scene="streets"] .place__add-marker-control,
+.locations .map-controls[data-scene="streets"] :is(.locations__add-marker-control, .locations__camera-control) { top: 68px; }
+.place .map-controls[data-scene="streets"] .place__map-home-control,
+.locations .map-controls[data-scene="streets"] .locations__map-home-control { top: 128px; }
+
+:is(.place, .locations) .map-appearance {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+:is(.place, .locations) .map-appearance__section {
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+}
+
+:is(.place, .locations) .map-appearance__heading {
+  margin: 0 0 8px;
+  color: var(--text-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+:is(.place, .locations) .map-appearance__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+:is(.place, .locations) .map-appearance__option {
+  display: flex;
+  position: relative;
+  isolation: isolate;
+  min-width: 0;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background-color 140ms ease, border-color 140ms ease;
+}
+
+:is(.place, .locations) .map-appearance__option > :not(.map-appearance__selection-indicator) {
+  position: relative;
+  z-index: 1;
+}
+
+:is(.place, .locations) .map-appearance__selection-indicator {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--accent-wash);
+  pointer-events: none;
+}
+
+:is(.place, .locations) .map-appearance__option:hover {
+  background: var(--surface-hover);
+}
+
+:is(.place, .locations) .map-appearance__option:hover .map-appearance__selection-indicator {
+  background: var(--surface-hover);
+}
+
+:is(.place, .locations) .map-appearance__option:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+:is(.place, .locations) .map-appearance__option[aria-pressed="true"] {
+  background: transparent;
+  border-color: var(--text-strong);
+  color: var(--text-strong);
+}
+
+:is(.place, .locations) .map-appearance__grid--themes {
+  row-gap: 8px;
+}
+
+:is(.place, .locations) .map-appearance__theme {
+  min-height: 54px;
+  flex-direction: column;
+  gap: 4px;
+}
+
+:is(.place, .locations) .map-appearance__swatches {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  height: 12px;
+}
+
+:is(.place, .locations) .map-appearance__swatches span {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--map-swatch, #6A3F36);
+}
+
+:is(.place, .locations) .map-appearance__swatches {
+  transition: transform 140ms ease-out;
+}
+
+@media (hover: hover) {
+  :is(.place, .locations) .map-appearance__option:hover .map-appearance__swatches {
+    transform: translateY(-2px);
+  }
+}
+
+:is(.place, .locations) .map-appearance__swatches span:nth-child(2) {
+  background: var(--map-swatch-secondary, #C8A796);
+}
+
+:is(.place, .locations) .map-appearance__swatches span:nth-child(3) {
+  background: var(--map-swatch-tertiary, #C8A796);
+}
+
+:is(.place, .locations) .map-appearance__theme[data-theme="faded"] {
+  --map-swatch: #C8A796;
+  --map-swatch-secondary: #C8A796;
+  --map-swatch-tertiary: #F8E4BE;
+}
+
+:is(.place, .locations) .map-appearance__theme[data-theme="mono"] {
+  --map-swatch: #6A3F36;
+  --map-swatch-secondary: #6A3F36;
+  --map-swatch-tertiary: #C8A796;
+}
+
+:is(.place, .locations) .map-appearance__theme[data-theme="ocean"] {
+  --map-swatch: #6A3F36;
+  --map-swatch-secondary: #C8A796;
+  --map-swatch-tertiary: #C8A796;
+}
+
+:is(.place, .locations) .map-appearance__theme[data-theme="warm"] {
+  --map-swatch: #EEA988;
+  --map-swatch-secondary: #EEA988;
+  --map-swatch-tertiary: #6A3F36;
+}
+
+:is(.place, .locations) .map-appearance__theme[data-theme="vivid"] {
+  --map-swatch: #EEA988;
+  --map-swatch-secondary: #C8A796;
+  --map-swatch-tertiary: #6A3F36;
+}
+
+:is(.place, .locations) .map-controls :is(.place__scenes-title, .locations__scenes-title) {
+  display: grid;
+  grid-template-columns: 44px max-content 20px;
+  justify-content: start;
+  align-items: center;
+  gap: 12px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0 12px 0 0;
+  white-space: nowrap;
+}
+
+:is(.place, .locations) .map-controls .map-appearance-control > summary {
+  transform: none;
+}
+
+:is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes):not([open]) summary {
+  display: grid;
+  color: var(--text);
+  grid-template-columns: 44px;
+  justify-content: start;
+  padding: 0;
+}
+
+:is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes)[open] > summary {
+  background: var(--surface-raised);
+  color: var(--text);
+}
+
+:is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes):not([open]) > summary:is(:hover, :focus-visible),
+:is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes)[open] > summary:is(:hover, :focus-visible) {
+  background: var(--surface-hover);
+  color: var(--text-strong);
+}
+
+:is(.place, .locations) .map-controls :is(.place__scenes-title, .locations__scenes-title) > svg:first-of-type {
+  justify-self: center;
+}
+
+:is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes):not([open]) summary > span {
+  display: none;
+}
+
+:is(.place, .locations) .map-controls .place__location-search {
+  color: var(--text);
+  right: 8px;
+  top: 8px;
+  width: 54px;
+}
+
+:is(.place, .locations) .map-controls .place__location-search:not(:focus-within) .place__location-search-form {
+  background: var(--surface-raised);
+  border: 0;
+  box-shadow: var(--shadow-sm);
+}
+
+:is(.place, .locations) .map-controls .place__location-search:focus-within {
+  width: min(360px, calc(100% - 78px));
+  z-index: 6;
+}
+
+:is(.place, .locations) .map-controls .place__location-search-input:focus {
+  outline: none;
+}
+
+:is(.place, .locations) .map-controls .place__location-search:not(:focus-within) .place__location-search-input {
+  background: transparent;
+  color: transparent;
+  cursor: text;
+  padding: 0;
+}
+
+:is(.place, .locations) .map-controls .place__location-search:not(:focus-within) .place__location-search-input::placeholder {
+  color: transparent;
+}
+
+:is(.place, .locations) .map-controls .place__location-search:not(:focus-within) .place__location-search-icon {
+  top: 50%;
+  right: 0;
+  width: 54px;
+  height: 54px;
+  color: var(--text);
+  transform: translateY(-50%);
+}
+
+:is(.place, .locations) .map-controls .place__location-search:not(:focus-within) :is(.place__location-search-message, .place__location-search-results) {
+  display: none;
+}
+
+:is(.place, .locations) .place__location-search button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+:is(.place, .locations) .place__location-search button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+:is(.place, .locations) .place__location-search-message {
+  display: grid;
+  font-size: 0.8125rem;
+  gap: 8px;
+  padding: 12px;
+}
+
+:is(.place, .locations) .place__location-search-message p { margin: 0; }
+
+:is(.place, .locations) .place__location-search-message button {
+  background: transparent;
+  border: 1px solid var(--border-control);
+  color: var(--text);
+  cursor: pointer;
+  min-height: 44px;
+  padding: 8px;
+}
+
+:is(.place, .locations) :is(.place__location-search-message, .place__location-search-results) button:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+:is(.place, .locations) .place__location-search-message [role="alert"] { color: var(--text); }
+
+:is(.place, .locations) :is(.place__map-home-control, .locations__map-home-control) {
+  left: 8px;
+  right: auto;
+  top: 128px;
+  bottom: auto;
+  height: 54px;
+  width: 54px;
+  background: var(--surface-raised);
+  border: 0;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  color: var(--text);
+}
+
+:is(.place, .locations) .map-controls :is(.place__map-home-control, .locations__map-home-control)::before {
+  content: "";
+  position: absolute;
+  inset: var(--box-inset);
+  border-radius: var(--radius-inner);
+  background: transparent;
+  pointer-events: none;
+}
+
+:is(.place, .locations) .map-controls :is(.place__map-home-control, .locations__map-home-control) svg {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+}
+
+:root :is(.place, .locations) .map-controls :is(.place__map-home-control, .locations__map-home-control):is(:hover, :active, [aria-pressed="true"]):not(:disabled) {
+  background: var(--surface-raised);
+  color: #000;
+}
+
+:is(.place, .locations) .map-controls :is(.place__map-home-control, .locations__map-home-control):is(:hover, :active, [aria-pressed="true"]):not(:disabled)::before {
+  background: oklch(0.92 0 0);
+}
+
+.place .map-controls .place__add-marker-control,
+.locations .map-controls .locations__add-marker-control,
+.locations .map-controls .locations__camera-control {
+  align-items: center;
+  bottom: auto;
+  display: inline-flex;
+  justify-content: center;
+  position: absolute;
+  left: 8px;
+  right: auto;
+  top: 128px;
+  width: 54px;
+  height: 54px;
+  padding: 0;
+  z-index: 5;
+  background: var(--surface-raised);
+  border: 0;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  color: #F8E4BE;
+  cursor: pointer;
+}
+
+.place .map-controls .place__add-marker-control:is(:hover, :active):not(:disabled),
+.locations .map-controls .locations__add-marker-control:is(:hover, :active):not(:disabled),
+.locations .map-controls .locations__camera-control:is(:hover, :active):not(:disabled) {
+  background: var(--surface-hover);
+}
+
+.place .map-controls .place__map-home-control,
+.locations .map-controls .locations__map-home-control { top: 188px; }
+
+:root :is(.place, .locations) .map-controls :is(
+  .place__scenes:not([open]), .locations__scenes:not([open]),
+  .place__map-home-control, .locations__map-home-control,
+  .place__add-marker-control, .locations__add-marker-control, .locations__camera-control,
+  .mapboxgl-ctrl-group:has(.mapboxgl-ctrl-geolocate),
+  .place__location-search:not(:focus-within) .place__location-search-form
+) {
+  border: 2px solid var(--border-control);
+}
+
+:is(.place, .locations) .home-location-marker > .map-marker__pin:active { cursor: grabbing; }
+
+@media (prefers-reduced-motion: reduce) {
+  :is(.place, .locations) .home-location-marker button { transition: none; }
+  :is(.place, .locations) .map-appearance__option { transition: none; }
+  :is(.place, .locations) .map-appearance__swatches { transition: none; transform: none !important; }
+  :is(.place, .locations) .map-controls .map-appearance-control > summary { transition: none; }
+}
+
+@media (hover: hover) and (pointer: fine) and (min-width: 641px) {
+  :is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes):not([open]):hover {
+    width: auto;
+  }
+
+  :is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes):not([open]):hover summary {
+    grid-template-columns: 44px max-content 20px;
+    padding: 0 12px 0 0;
+  }
+
+  :is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes):not([open]):hover summary > span {
+    display: inline-flex;
+  }
+
+  :is(.place, .locations) .map-controls .place__location-search:hover {
+    width: min(360px, calc(100% - 78px));
+    z-index: 6;
+  }
+
+  :is(.place, .locations) .map-controls .place__location-search:hover .place__location-search-input {
+    background: var(--surface);
+    color: var(--text);
+    padding: 10px 40px 10px 12px;
+  }
+
+  :is(.place, .locations) .map-controls .place__location-search:hover .place__location-search-input::placeholder {
+    color: var(--text-muted);
+  }
+
+  :is(.place, .locations) .map-controls .place__location-search:hover:not(:focus-within) .place__location-search-icon {
+    color: var(--text-muted);
+  }
+}
+
+@media (max-width: 900px) {
+  :is(.place, .locations) :is(.place__map-panel, .locations__map-panel) {
+    height: clamp(420px, calc(100dvh - var(--app-topbar-height, 68px) - 190px), 900px);
+  }
+}
+
+@media (max-width: 640px) {
+  :is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes, .place__location-search, .place__map-home-control, .locations__map-home-control, .place__add-marker-control, .locations__add-marker-control, .locations__camera-control, .mapboxgl-ctrl-group:has(.mapboxgl-ctrl-geolocate)) {
+    transition: opacity 180ms ease, visibility 180ms ease;
+  }
+  :is(.place, .locations) .map-controls:has(:is(.place__marker, .locations__marker)[data-selected="true"]) :is(.place__scenes, .locations__scenes, .place__location-search, .place__map-home-control, .locations__map-home-control, .place__add-marker-control, .locations__add-marker-control, .locations__camera-control, .mapboxgl-ctrl-group:has(.mapboxgl-ctrl-geolocate)) {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    :is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes, .place__location-search, .place__map-home-control, .locations__map-home-control, .place__add-marker-control, .locations__add-marker-control, .locations__camera-control, .mapboxgl-ctrl-group:has(.mapboxgl-ctrl-geolocate)) { transition: none; }
+  }
+  :is(.place, .locations) .map-controls .mapboxgl-ctrl-group:has(.mapboxgl-ctrl-geolocate) {
+    width: 44px;
+    height: 44px;
+  }
+
+  :is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes):not([open]),
+  :is(.place, .locations) .map-controls .place__location-search {
+    width: 44px;
+  }
+
+  :is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes)[open] {
+    width: min(220px, calc(100% - 62px));
+  }
+
+  :is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes)[open]:not(.map-appearance-control) {
+    width: max-content;
+    max-width: calc(100% - 62px);
+  }
+
+  :is(.place, .locations) .map-controls .map-appearance-control { top: 58px; }
+
+  :is(.place, .locations) .map-controls :is(.place__map-home-control, .locations__map-home-control) {
+    top: 108px;
+    width: 44px;
+    height: 44px;
+  }
+
+  :is(.place .map-controls .place__add-marker-control, .locations .map-controls .locations__add-marker-control) { top: 108px; width: 44px; height: 44px; }
+  .place .map-controls .place__map-home-control { top: 158px; }
+  .locations .map-controls .locations__camera-control { top: 158px; width: 44px; height: 44px; }
+  .locations .map-controls .locations__map-home-control { top: 208px; }
+
+  .place .map-controls[data-scene="streets"] .place__add-marker-control,
+  .locations .map-controls[data-scene="streets"] :is(.locations__add-marker-control, .locations__camera-control) { top: 58px; }
+  .place .map-controls[data-scene="streets"] .place__map-home-control,
+  .locations .map-controls[data-scene="streets"] .locations__map-home-control { top: 108px; }
+
+  :is(.place, .locations) .map-controls :is(.place__scenes-title, .locations__scenes-title) {
+    grid-template-columns: 34px minmax(0, 1fr) 16px;
+    gap: 8px;
+    justify-content: stretch;
+    height: 34px;
+    min-height: 34px;
+  }
+
+  :is(.place, .locations) .map-controls :is(.place__scenes, .locations__scenes):not([open]) summary {
+    grid-template-columns: 34px;
+  }
+
+  :is(.place, .locations) .map-controls :is(.place__scenes-title, .locations__scenes-title) > svg:first-of-type,
+  :is(.place, .locations) .map-controls .place__location-search-icon svg,
+  :is(.place, .locations) .map-controls :is(.place__scene-icon, .locations__scene-icon) svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  :is(.place, .locations) .map-controls .place__location-search:not(:focus-within) .place__location-search-icon {
+    width: 44px;
+    height: 44px;
+  }
+
+  :is(.place, .locations) .map-controls .place__location-search-form {
+    height: 44px;
+    padding: 0;
+  }
+
+  :is(.place, .locations) .map-controls .place__location-search:focus-within {
+    width: min(252px, calc(100% - 62px));
+  }
+
+  :is(.place, .locations) .map-controls :is(.place__scenes-title, .locations__scenes-title),
+  :is(.place, .locations) .map-controls .place__location-search-input {
+    font-size: 0.75rem;
+  }
+
+  :is(.place, .locations) .map-controls .place__location-search-input {
+    height: 44px;
+    min-height: 44px;
+  }
+
+  :is(.place, .locations) .map-appearance { gap: 6px; }
+
+  :is(.place, .locations) .map-appearance__section { padding: 6px; }
+
+  :is(.place, .locations) .map-appearance__grid { gap: 6px; }
+
+  :is(.place, .locations) .map-appearance__option {
+    min-height: 44px;
+    padding: 4px;
+    font-size: 0.75rem;
+  }
+
+  :is(.place, .locations) .map-appearance__theme {
+    min-height: 44px;
+    gap: 3px;
+  }
+
+  :is(.place, .locations) .map-appearance__swatches span {
+    width: 7px;
+    height: 7px;
+  }
+
+  :is(.place, .locations) .map-controls :is(.place__scene-list, .locations__scene-list) {
+    gap: 3px;
+    padding: 3px 3px 2px;
+  }
+
+  :is(.place, .locations) .map-controls :is(.place__scene, .locations__scene) {
+    min-height: 44px;
+    gap: 8px;
+    padding: 8px;
+    border-radius: 7px;
+  }
+
+  :is(.place, .locations) .map-controls :is(.place__scene-copy, .locations__scene-copy) strong {
+    font-size: 0.75rem;
+    white-space: nowrap;
+  }
+
+  :is(.place, .locations) .map-controls:has(.place__scenes[open]:not(.map-appearance-control), .locations__scenes[open]:not(.map-appearance-control)) .map-appearance-control {
+    visibility: hidden;
+  }
+
+  :is(.place, .locations) .map-appearance__heading {
+    margin-bottom: 6px;
+    font-size: 0.6875rem;
+  }
+
+  :is(.place, .locations) .map-appearance__section { border-radius: 5px; }
+
+  :is(.place, .locations) .map-appearance__option { border-radius: 3px; }
+
+  :is(.place, .locations) :is(.place__map-panel, .locations__map-panel) {
+    height: max(360px, calc(100dvh - var(--app-topbar-height, 68px) - 220px));
+  }
+
+  .place .place__map-panel {
+    height: max(320px, calc(100dvh - var(--app-topbar-height, 68px) - 134.5px - max(8px, var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)))));
+  }
+
+  :is(.place, .locations) .place__location-search-results { max-height: 200px; }
+}
+.locations__cluster {
+  height: 54px;
+  position: relative;
+  width: 44px;
+}
+.locations__cluster .locations__marker { position: absolute; inset: 0; }
+.locations__cluster--group .locations__marker {
+  transform-origin: 50% 100%;
+  transition: opacity 200ms ease, transform 200ms cubic-bezier(0.2, 0.8, 0.3, 1);
+  z-index: calc(var(--fan-count) - var(--fan-index));
+}
+.locations__cluster--group .locations__marker:is(:hover, :focus-within, [data-selected="true"]) { z-index: 50; }
+.locations__cluster--group[data-open="false"] .locations__marker {
+  transform: none;
+}
+.locations__cluster--group[data-open="false"] .locations__marker:not(:first-of-type) { opacity: 0; }
+.locations__cluster--group[data-open="false"] .locations__pin { pointer-events: none; }
+.locations__cluster--group[data-open="true"] .locations__marker,
+.locations__cluster[data-home-expanded="true"] .locations__marker {
+  --fan-angle: calc((var(--fan-index) - (var(--fan-count) - 1) / 2) * var(--fan-step));
+  transform: rotate(var(--fan-angle)) translateY(-64px) rotate(calc(-1 * var(--fan-angle)));
+}
+.locations__cluster--group[data-open="true"][data-near-home="false"] .locations__marker:first-of-type { transform: none; }
+.locations__cluster-toggle {
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  inset: 0;
+  padding: 0;
+  position: absolute;
+  z-index: 13;
+}
+.locations__cluster--group[data-open="true"] .locations__cluster-toggle { bottom: -6px; left: auto; right: -10px; top: auto; }
+.locations__cluster-count {
+  pointer-events: none;
+  user-select: none;
+  align-items: center;
+  background: #F4F3EE;
+  border: 2px solid var(--counter-color, #6A3F36);
+  border-radius: 999px;
+  bottom: -6px;
+  color: var(--counter-color, #000);
+  display: inline-flex;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  justify-content: center;
+  line-height: 1;
+  min-width: 22px;
+  padding: 3px 5px;
+  position: absolute;
+  right: -10px;
+  z-index: 31;
+}
+.place__cluster-next {
+  background: var(--surface-raised);
+  border: 0;
+  border-radius: 999px;
+  bottom: -32px;
+  color: var(--text-strong);
+  cursor: pointer;
+  left: 50%;
+  padding: 4px 8px;
+  position: absolute;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  z-index: 40;
+}
+.place__cluster-next:focus-visible { outline: 2px solid var(--focus-ring); }
+.locations__marker { height: 54px; position: relative; width: 44px; }
+
+.place:not(.place--saved) .place__map-panel {
+  height: 100%;
+  min-height: 320px;
+}
+.locations__pin[data-movable="true"] { cursor: grab; touch-action: none; user-select: none; }
+.locations__pin[data-movable="true"]:active { cursor: grabbing; }
+.locations__popup {
+  background: #F4F3EE;
+  border: 4px solid #F4F3EE;
+  border-radius: 10px;
+  bottom: calc(100% + 12px);
+  box-shadow: none;
+  color: #000;
+  left: 50%;
+  overflow: visible;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  transform: translate(-50%, 4px);
+  transition: opacity 120ms ease, transform 120ms ease, visibility 120ms ease;
+  visibility: hidden;
+  width: min(180px, calc(100vw - 48px));
+  z-index: 6;
+}
+.locations__marker:focus-within .locations__popup,
+.locations__marker[data-selected="true"] .locations__popup { opacity: 1; transform: translate(-50%, 0); visibility: visible; }
+@media (hover: hover) and (pointer: fine) {
+  .locations__marker:hover .locations__popup { opacity: 1; transform: translate(-50%, 0); visibility: visible; }
+}
+.locations__popup::after { border: 8px solid transparent; border-top-color: #F4F3EE; content: ""; left: calc(50% - 8px); position: absolute; top: 100%; }
+.locations__popup > img { aspect-ratio: 1; border-radius: 6px 6px 0 0; display: block; object-fit: cover; width: 100%; }
+.locations__popup > div { display: grid; gap: 2px; padding: 10px 12px 12px; }
+.locations__popup small { color: inherit; font-size: 0.75rem; overflow-wrap: anywhere; }
+@media (prefers-reduced-motion: reduce) {
+  .locations__cluster--group .locations__marker,
+  .locations__popup,
+  .locations__pin { transition: none; }
+}
+
+.place .map-controls .place__map-home-control { top: 128px; }
+.place .map-controls[data-scene="streets"] .place__map-home-control { top: 68px; }
+
+@media (max-width: 640px) {
+  .place .map-controls .place__map-home-control { top: 108px; }
+  .place .map-controls[data-scene="streets"] .place__map-home-control { top: 58px; }
+}
+
+.place .map-controls .place__scenes[open]:not(.map-appearance-control) {
+  width: min(200px, calc(100% - 62px));
+}
+.place .map-controls .place__scenes.map-appearance-control[open] {
+  width: min(224px, calc(100% - 62px));
+}
+.place .map-controls .place__scenes[open] > .place__scenes-title {
+  grid-template-columns: 44px minmax(0, 1fr) 20px;
+  justify-content: stretch;
+}
+@media (max-width: 640px) {
+  .place .map-controls .place__scenes[open] > .place__scenes-title {
+    grid-template-columns: 34px minmax(0, 1fr) 16px;
+  }
+}
+
+.map-marker { --marker-color: var(--text); height: 54px; position: relative; width: 44px; }
+.map-marker::before { background: color-mix(in srgb, var(--marker-color), black 35%); border-radius: 50%; bottom: -6px; content: ""; height: 9px; left: 12px; pointer-events: none; position: absolute; width: 20px; }
+.home-location-marker.map-marker::before, .map-marker--draft::before { content: none; }
+.home-location-shadow { --marker-color: #333; }
+.map-draft-shadow { --marker-color: #da4747; }
+.map-marker__shadow { height: 54px; inset: 0; pointer-events: none; position: absolute; width: 44px; z-index: 0; }
+.map-shadow-layer { position: relative; width: 44px; height: 54px; }
+.map-marker__shadow::before { background: color-mix(in srgb, var(--marker-color), black 35%); border-radius: 50%; bottom: -6px; content: ""; height: 9px; left: 12px; position: absolute; width: 20px; }
+:is(.locations__cluster, .place__cluster) .map-marker::before { content: none; }
+:is(.locations__cluster, .place__cluster) .map-marker__pin { z-index: 1; }
+.locations__cluster-shadow,
+.place__cluster-shadow { transform-origin: 50% 100%; transition: opacity 200ms ease, transform 200ms cubic-bezier(0.2, 0.8, 0.3, 1); }
+.locations__cluster--group[data-open="false"] .locations__cluster-shadow,
+.place__cluster--group[data-open="false"] .place__cluster-shadow { transform: none; }
+:is(.locations__cluster--group[data-open="true"], .locations__cluster[data-home-expanded="true"]) .locations__cluster-shadow,
+:is(.place__cluster--group[data-open="true"], .place__cluster[data-home-expanded="true"]) .place__cluster-shadow { --fan-angle: calc((var(--fan-index) - (var(--fan-count) - 1) / 2) * var(--fan-step)); transform: rotate(var(--fan-angle)) translateY(-64px) rotate(calc(-1 * var(--fan-angle))); }
+.locations__cluster--group[data-open="true"][data-near-home="false"] .locations__cluster-shadow:first-child,
+.place__cluster--group[data-open="true"][data-near-home="false"] .place__cluster-shadow:first-child { transform: none; }
+.locations__cluster--group[data-open="false"] .locations__cluster-shadow:not(:first-child),
+.place__cluster--group[data-open="false"] .place__cluster-shadow:not(:first-child) { opacity: 0; }
+.map-marker__pin { align-items: flex-start; background: transparent; border: 0; box-shadow: none; cursor: pointer; display: inline-flex; height: 50px; justify-content: center; left: 0; padding: 9px 0 0; position: absolute; top: 0; transition: scale 140ms ease-out; width: 44px; z-index: 1; }
+.map-marker__pin::before,
+.map-marker__pin::after { content: ""; inset: 0; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 44 50'%3E%3Cpath d='M22 0C10 0 1 9 1 21c0 13 12 21 21 29 9-8 21-16 21-29C43 9 34 0 22 0Z'/%3E%3C/svg%3E") center / 100% 100% no-repeat; pointer-events: none; position: absolute; }
+.map-marker__pin::before { background: color-mix(in srgb, var(--marker-color), black 35%); }
+.map-marker__pin::after { background: var(--marker-color); inset: 2px 2px 3px; }
+.map-marker:not(.map-marker--draft) .map-marker__pin { padding-top: 7px; }
+.map-marker:not(.map-marker--draft) .map-marker__pin::before,
+.map-marker:not(.map-marker--draft) .map-marker__pin::after { transform: scale(1.15); transform-origin: 50% 48%; }
+.map-marker__center { align-items: center; background: #fff; border-radius: 50%; color: var(--marker-color); display: inline-flex; flex: none; font-size: 1.25rem; height: 30px; justify-content: center; position: relative; width: 30px; z-index: 1; }
+.map-marker__center svg path { fill: currentColor; stroke: #fff; }
+.map-marker__center svg circle { stroke: #fff; }
+.map-marker--draft { --marker-color: #da4747; }
+.map-marker--draft .map-marker__center { height: 24px; width: 24px; }
+.home-location-marker.map-marker { --marker-color: #333; }
+.home-location-marker .map-marker__center { background: var(--marker-color); color: #fff; }
+.home-location-marker .map-marker__center svg path { fill: none; stroke: currentColor; }

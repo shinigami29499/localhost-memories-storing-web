@@ -1,13 +1,11 @@
-import { useState, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { AnimateIcon } from "../../../components/animate-ui/icons/icon";
 import { XIcon } from "../../../components/animate-ui/icons/x";
-import { useLocale } from "../../../context/LocaleContext";
-import { useAnimationStore } from "../../../store/animationStore";
-import { useDialogViewportStyle } from "../../../hooks/useDialogViewportStyle";
-import "../../../pages/place/place.css";
+import { usePlaceDialogState } from "./usePlaceDialogState";
+import "../../../../apps/web/src/pages/place/place.css";
 
-interface Props {
+export interface PlaceDialogProps {
   title: string;
   icon?: ReactNode;
   subtitle?: string;
@@ -19,15 +17,8 @@ interface Props {
   headerAction?: ReactNode;
 }
 
-export function PlaceDialog({ title, icon, subtitle, subtitleSecondLine, children, onClose, closeDisabled = false, className = "", headerAction }: Props) {
-  const { t } = useLocale();
-  const animationsEnabled = useAnimationStore((state) => state.enabled);
-  const [open, setOpen] = useState(true);
-  const viewportStyle = useDialogViewportStyle();
-  const handleOpenChange = (nextOpen: boolean) => {
-    if (!nextOpen && closeDisabled) return;
-    setOpen(nextOpen);
-  };
+export function PlaceDialog({ title, icon, subtitle, subtitleSecondLine, children, onClose, closeDisabled = false, className = "", headerAction }: PlaceDialogProps) {
+  const { t, animationsEnabled, open, viewportStyle, handleOpenChange } = usePlaceDialogState(closeDisabled);
 
   return (
     <Dialog.Root open={open} onOpenChange={handleOpenChange} onOpenChangeComplete={(nextOpen) => { if (!nextOpen) onClose(); }}>

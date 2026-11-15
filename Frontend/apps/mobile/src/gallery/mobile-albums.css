@@ -1,0 +1,12 @@
+.mobile-albums-page__scroll { flex: 1; min-height: 0; overflow: auto; padding: 16px 20px 100px; }
+.mobile-albums-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 12px; }
+.mobile-album-card { position: relative; min-width: 0; }
+.mobile-album-card__link { display: grid; gap: 4px; color: var(--mobile-text); text-decoration: none; }
+.mobile-album-card__image { position: relative; display: grid; place-items: center; aspect-ratio: 1; overflow: hidden; border-radius: 14px; background: var(--mobile-surface-muted); color: var(--mobile-text-muted); }
+.mobile-album-card__image img { width: 100%; height: 100%; object-fit: cover; }
+.mobile-album-card__name { margin-top: 4px; overflow-wrap: anywhere; line-height: 1.3; }
+.mobile-album-card__meta { color: var(--mobile-text-muted); font-size: .8125rem; overflow-wrap: anywhere; }
+.mobile-album-card__count { position: absolute; right: 8px; bottom: 8px; padding: 3px 8px; border-radius: 8px; background: var(--mobile-surface); color: var(--mobile-text); font-size: .75rem; }
+.mobile-album-card__selection { position: absolute; left: 8px; top: 8px; display: grid; place-items: center; width: 26px; height: 26px; border: 2px solid var(--mobile-text); border-radius: 50%; background: var(--mobile-surface); color: var(--mobile-text); }
+.mobile-album-card__link[aria-checked="true"] .mobile-album-card__image { outline: 3px solid var(--mobile-text); outline-offset: -3px; }
+.mobile-album-card__edit { position: absolute; top: 8px; right: 8px; display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 50%; background: var(--mobile-surface); color: var(--mobile-text); }

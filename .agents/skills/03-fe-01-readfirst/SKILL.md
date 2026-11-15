@@ -12,6 +12,8 @@ Load this skill for work in `Frontend/`. For full-stack work, also load [02-be-0
 
 ShinigaCim uses React, TypeScript, Vite, TanStack Query, and Zustand. The app is organized by routed pages and reusable feature components, with hooks and services handling behavior and API access.
 
+One repository contains one React application for desktop and mobile. Use responsive layouts and platform-specific UI components when needed. Do not split the frontend into `apps/web` and `apps/mobile` or introduce separate frontend entry points, build pipelines, or development ports. Existing platform packaging and PWA support use the same application. Consider separate frontend applications or repositories only if product requirements fundamentally change.
+
 ```text
 Routes → Pages → Features → Shared Components / Services → API
                      ↘ Hooks / Store / Context
@@ -21,30 +23,38 @@ Use a feature-oriented structure: keep feature-specific components, hooks, API o
 
 ```text
 src/
+  main.tsx         # Single application entry point
+  App.tsx          # Providers, routes, and route guards
   assets/          # Static images, fonts, and icons
   components/
-    common/        # Reusable UI primitives
+    animate-ui/    # Shared animation-oriented components
+    common/        # Shared components
     layout/        # Shared application shell and navigation
+    ui/            # Reusable UI primitives
   features/
-    <feature>/
-      components/
-      hooks/
-      services/
-      types/
-      index.ts     # Optional public feature exports
+    <feature>/     # Feature components, hooks, services, state, and types
   pages/           # Route-level screens composed from features
-  routes/          # Route definitions and route guards
   hooks/           # Cross-feature hooks only
   context/         # Shared React providers, when needed
   store/           # Cross-feature client state
   services/        # Shared API client and external integrations
-  config/          # App-level configuration
-  types/           # Cross-feature types
+  lib/             # Shared library helpers
   utils/           # Cross-feature helpers
   styles/          # Global styles and theme
+  test/            # Shared test setup and helpers
 ```
 
-This is a guide, not a requirement to create every directory. Prefer colocating a component's styles and tests with the component or feature. Keep route-level pages focused on composition; business behavior belongs in features. Keep shared `services/`, `hooks/`, `types/`, and `utils/` limited to functionality used across features.
+This is a guide, not a requirement to create every directory. Feature subfolders vary by need; place platform-specific components alongside their feature or shared layout rather than creating separate app trees. Prefer colocating a component's styles and tests with the component or feature. Keep route-level pages focused on composition; business behavior belongs in features. Keep shared `services/`, `hooks/`, types, and `utils/` limited to functionality used across features.
+
+### Desktop and mobile presentation decisions
+
+Share business logic, API services, authentication, state, hooks, and feature modules across desktop and mobile. Reuse shared UI primitives whenever possible. Choose the smallest presentation boundary that fits the behavior:
+
+- **One shared responsive component:** Use responsive CSS for simple layout differences; do not duplicate an entire component for styling alone.
+- **Separate desktop and mobile components:** Isolate presentation components within the same application when their behavior or layout genuinely differs. Keep common primitives and behavior shared.
+- **Shared feature logic with platform-specific presentations:** When substantially different interfaces serve the same feature, keep its logic, data access, and state shared and compose them into the separate presentations.
+
+Preserve existing mobile navigation, action-bar animations, desktop sidebar behavior, and PWA architecture. Follow the specific constraints below and the applicable UI, spacing, color, depth, and performance guidance.
 
 ## Frontend conventions
 
@@ -119,15 +129,15 @@ When tests are warranted under this rule, prefer focused test files over the ful
 
 Load the skill matching the frontend task. For UI color decisions, also load `03-fe-07-ui-color-system` as the primary color guidance. For UI depth decisions, also load `03-fe-08-ui-depth-system` as the primary depth guidance. Apply each alongside other relevant skills:
 
-| Task                                   | Skill                          |
-| -------------------------------------- | ------------------------------ |
-| UI color palettes and theming          | `03-fe-07-ui-color-system`     |
-| UI depth, elevation, and surface layers | `03-fe-08-ui-depth-system`    |
-| Component and UI implementation        | `03-fe-03-ui-engineering`      |
-| Visual design and UX                   | `03-fe-04-ui-ux`               |
-| Design direction and UI quality passes | `03-fe-05-impeccable`          |
-| Cross-cutting performance              | `01-overview-03-performance`   |
-| Serialization and data contracts       | `01-overview-04-serialization` |
+| Task                                    | Skill                          |
+| --------------------------------------- | ------------------------------ |
+| UI color palettes and theming           | `03-fe-07-ui-color-system`     |
+| UI depth, elevation, and surface layers | `03-fe-08-ui-depth-system`     |
+| Component and UI implementation         | `03-fe-03-ui-engineering`      |
+| Visual design and UX                    | `03-fe-04-ui-ux`               |
+| Design direction and UI quality passes  | `03-fe-05-impeccable`          |
+| Cross-cutting performance               | `01-overview-03-performance`   |
+| Serialization and data contracts        | `01-overview-04-serialization` |
 
 ## Further details
 

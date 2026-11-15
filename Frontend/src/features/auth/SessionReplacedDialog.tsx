@@ -1,19 +1,9 @@
-import { useEffect } from "react";
-import { CustomDialog as AlertDialog, useCustomDialog } from "../../components/ui/CustomDialog";
+import { CustomDialog as AlertDialog } from "../../components/ui/CustomDialog";
 import { Button } from "../../components/ui/Button";
-import { useQueryClient } from "@tanstack/react-query";
-import { useLocale } from "../../context/LocaleContext";
-import { sessionReplacedEvent } from "./sessionReplacement";
+import { useSessionReplacedDialog } from "./useSessionReplacedDialog";
 
 export function SessionReplacedDialog() {
-  const { dialogProps, close, openDialog } = useCustomDialog(() => {}, { dismissible: false, defaultOpen: false });
-  const queryClient = useQueryClient();
-  const { t } = useLocale();
-  useEffect(() => {
-    const onReplaced = () => { queryClient.clear(); openDialog(); };
-    window.addEventListener(sessionReplacedEvent, onReplaced);
-    return () => window.removeEventListener(sessionReplacedEvent, onReplaced);
-  }, [queryClient, openDialog]);
+  const { dialogProps, close, t } = useSessionReplacedDialog();
   return (
     <AlertDialog.Root {...dialogProps}>
       <AlertDialog.Portal>

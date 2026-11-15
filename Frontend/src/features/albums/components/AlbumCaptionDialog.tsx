@@ -1,35 +1,11 @@
-import { useState } from "react";
-import { CustomDialog as Dialog, useCustomDialog } from "../../../components/ui/CustomDialog";
 import { Button } from "../../../components/ui/Button";
-import { showToast } from "../../../components/ui/Toast";
-import { useLocale } from "../../../context/LocaleContext";
-import { ApiError } from "../../../services/api";
+import { CustomDialog as Dialog } from "../../../components/ui/CustomDialog";
 import { ALBUM_CAPTION_MAX_LENGTH } from "../types";
 
-interface Props {
-  caption: string;
-  onSave: (caption: string) => Promise<void>;
-  onClose: () => void;
-}
+import { useAlbumCaptionDialog,type AlbumCaptionDialogProps } from "./useAlbumCaptionDialog";
 
-export function AlbumCaptionDialog({ caption: initialCaption, onSave, onClose }: Props) {
-  const { t } = useLocale();
-  const [caption, setCaption] = useState(initialCaption);
-  const [busy, setBusy] = useState(false);
-  const { dialogProps, close, dismiss } = useCustomDialog(onClose, { blocked: busy });
-
-  const save = async () => {
-    if (busy) return;
-    setBusy(true);
-    try {
-      await onSave(caption.trim());
-      close();
-    } catch (error) {
-      showToast.error(error instanceof ApiError ? error.message : t("Could not update album caption."));
-      setBusy(false);
-    }
-  };
-
+export function AlbumCaptionDialog(props: AlbumCaptionDialogProps) {
+  const { t, caption, setCaption, busy, dialogProps, dismiss, save } = useAlbumCaptionDialog(props);
   return (
     <Dialog.Root {...dialogProps}>
       <Dialog.Portal>

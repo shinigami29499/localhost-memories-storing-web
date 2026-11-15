@@ -1,81 +1,15 @@
-import { useRef, useState, type FormEvent } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { Bookmark } from "@/components/animate-ui/icons/bookmark";
-import { PlaceDialog } from "../../place/components/PlaceDialog";
 import { Button } from "../../../components/ui/Button";
-import { showToast } from "../../../components/ui/Toast";
-import { useLocale } from "../../../context/LocaleContext";
-import { ApiError } from "../../../services/api";
-import { PhotoPicker } from "../../media/components/PhotoPicker";
-import { usePreviewDrafts } from "../../media/hooks/usePreviewDrafts";
-import { previewService } from "../../media/services/previewService";
 import { mediaPreviewUrl } from "../../../utils/media";
-import type { Album, UpdateAlbumInput } from "../types";
+import { PhotoPicker } from "../../media/components/PhotoPicker";
+import { PlaceDialog } from "../../place/components/PlaceDialog";
 import { ALBUM_NAME_MAX_LENGTH } from "../types";
 
-interface Props {
-  /** Existing album to edit; omit to create a new one. */
-  album?: Album;
-  onSubmit: (input: UpdateAlbumInput) => Promise<void | (() => void)>;
-  onClose: () => void;
-  onDelete?: () => Promise<void | (() => void)>;
-}
+import { useAlbumFormDialog,type AlbumFormDialogProps } from "./useAlbumFormDialog";
 
-/** Create or edit an album: name, visibility, and (when editing) the preview image. */
-export function AlbumFormDialog({ album, onSubmit, onClose, onDelete }: Props) {
-  const { t, language } = useLocale();
-  const editing = Boolean(album);
-  const [name, setName] = useState(album?.name ?? "");
-  const [isPublic, setIsPublic] = useState(album?.isPublic ?? false);
-  const [previewMediaId, setPreviewMediaId] = useState<string | null>(album?.customPreviewMediaId ?? null);
-  const displayedPreviewId = previewMediaId ?? album?.previewMediaId;
-  const [isPhotoPickerOpen, setIsPhotoPickerOpen] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
-  const pending = useRef(false);
-  const closeDialog = () => {
-    if (!busy && !isPhotoPickerOpen) onClose();
-  };
-  const { register: registerDraft, retain: retainDrafts } = usePreviewDrafts();
-  const selectedImage = useQuery({
-    queryKey: ["picker-image", previewMediaId],
-    queryFn: () => previewService.getImage(previewMediaId!),
-    enabled: Boolean(previewMediaId),
-  });
-
-  const submit = async (event: FormEvent) => {
-    event.preventDefault();
-    const trimmed = name.trim();
-    if (!trimmed || busy || isPhotoPickerOpen || confirmingDelete || pending.current) return;
-    pending.current = true;
-    setBusy(true);
-    try {
-      const afterClose = await onSubmit({ name: trimmed, isPublic, previewMediaId });
-      onClose();
-      afterClose?.();
-    } catch (err) {
-      showToast.error(err instanceof ApiError ? err.message : t("Could not complete this action. Please retry."));
-      pending.current = false;
-      setBusy(false);
-      return;
-    }
-  };
-
-  const confirmDelete = async () => {
-    if (!onDelete || pending.current) return;
-    pending.current = true;
-    setBusy(true);
-    try {
-      const afterClose = await onDelete();
-      onClose();
-      afterClose?.();
-    } catch (err) {
-      showToast.error(err instanceof ApiError ? err.message : t("Could not complete this action. Please retry."));
-      pending.current = false;
-      setBusy(false);
-    }
-  };
-
+export function AlbumFormDialog(props: AlbumFormDialogProps) {
+  const { album, onDelete } = props;
+  const { t, language, editing, name, setName, isPublic, setIsPublic, previewMediaId, setPreviewMediaId, displayedPreviewId, isPhotoPickerOpen, setIsPhotoPickerOpen, busy, confirmingDelete, setConfirmingDelete, closeDialog, registerDraft, retainDrafts, selectedImage, submit, confirmDelete } = useAlbumFormDialog(props);
   return (
     <PlaceDialog title={t(editing ? "Edit album" : "New album")} onClose={closeDialog} closeDisabled={busy || isPhotoPickerOpen} className="album-dialog"
       subtitle={album ? t("by {owner}", { owner: album.owner.username }) : undefined}

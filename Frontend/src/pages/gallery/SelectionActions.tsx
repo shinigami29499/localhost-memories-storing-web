@@ -1,12 +1,10 @@
 import type { ReactNode } from "react";
-import { AnimatePresence, motion, useIsPresent, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
-import { useAnimationStore } from "../../store/animationStore";
+import { useSelectionActionState } from "./useSelectionActionState";
 
 function Actions({ children, vertical }: { children: ReactNode; vertical: boolean }) {
-  const isPresent = useIsPresent();
-  const reducedMotion = useReducedMotion();
-  const animationsEnabled = useAnimationStore((state) => state.enabled);
+  const { isPresent, duration } = useSelectionActionState();
 
   return (
     <motion.div
@@ -14,7 +12,7 @@ function Actions({ children, vertical }: { children: ReactNode; vertical: boolea
       initial={vertical ? { height: 0, opacity: 0 } : { width: 0, opacity: 0 }}
       animate={vertical ? { height: "auto", opacity: 1 } : { width: "auto", opacity: 1 }}
       exit={vertical ? { height: 0, opacity: 0 } : { width: 0, opacity: 0 }}
-      transition={{ duration: animationsEnabled && !reducedMotion ? 0.2 : 0, ease: "easeOut" }}
+      transition={{ duration, ease: "easeOut" }}
       inert={!isPresent}
       aria-hidden={!isPresent || undefined}
     >

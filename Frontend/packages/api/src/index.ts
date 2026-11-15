@@ -1,0 +1,268 @@
+import { useAuthStore } from "../../core/src/authStore";
+import type { AuthSession } from "../../types/src/auth";
+import { endReplacedSession } from "../../core/src/sessionReplacement";
+
+const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+const API_REQUEST_TIMEOUT_MS = 30_000;
+
+/** Error thrown by the API client; carries the HTTP status and problem details. */
+export class ApiError extends Error {
+  readonly status: number;
+  readonly errors?: Record<string, string[]>;
+
+  constructor(status: number, title: string, detail: string, errors?: Record<string, string[]>) {
+    super(detail || title);
+    this.name = "ApiError";
+    this.status = status;
+    this.errors = errors;
+  }
+}
+
+interface RequestOptions extends Omit<RequestInit, "body"> {
+  body?: BodyInit | Record<string, unknown> | readonly unknown[] | null;
+  /** Skip the automatic refresh-on-401 flow (used by the auth endpoints themselves). */
+  skipAuthRefresh?: boolean;
+}
+
+/**
+ * Minimal API client for the ShinigaCim backend.
+ *
+ *  - Adds the Authorization header from the auth store when present.
+ *  - On 401 for a non-auth endpoint, refreshes the token pair once
+ *    (single-flight across concurrent callers) and retries the original request.
+ *  - Clears the session when the refresh token itself is invalid/expired/revoked.
+ */
+export async function api<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  return (await unwrap(await requestResponse(path, options))) as T;
+}
+
+async function requestResponse(path: string, options: RequestOptions): Promise<Response> {
+  const { skipAuthRefresh, headers: extraHeaders, body, ...rest } = options;
+  const requestToken = useAuthStore.getState().accessToken;
+
+  let response = await performRequest(path, extraHeaders, rest, body);
+
+  if (response.status === 401 && !skipAuthRefresh) {
+    const problem = await response.clone().json().catch(() => null) as { code?: string } | null;
+    if (problem?.code === "session_replaced") endReplacedSession(requestToken);
+    const refreshed = problem?.code !== "session_replaced" && requestToken === useAuthStore.getState().accessToken && await refreshSession();
+    if (refreshed) {
+      response = await performRequest(path, extraHeaders, rest, body);
+    }
+  }
+
+  if (!response.ok) {
+    if (response.status === 401 && !skipAuthRefresh && requestToken === useAuthStore.getState().accessToken) {
+      useAuthStore.getState().clear();
+    }
+    throw await toError(response);
+  }
+
+  return response;
+}
+
+export function uploadWithProgress<T>(
+  path: string,
+  file: File,
+  onProgress: (loaded: number, total: number) => void,
+  signal: AbortSignal,
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    let xhr: XMLHttpRequest | null = null;
+    let settled = false;
+
+    const cleanup = () => {
+      signal.removeEventListener("abort", abort);
+    };
+    const finish = (action: () => void) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      action();
+    };
+    const abort = () => {
+      xhr?.abort();
+      finish(() => reject(new DOMException("Upload cancelled.", "AbortError")));
+    };
+    const send = async (retried: boolean) => {
+      if (signal.aborted) {
+        abort();
+        return;
+      }
+
+      xhr = new XMLHttpRequest();
+      const requestToken = useAuthStore.getState().accessToken;
+      xhr.open("POST", `${API_URL}${path}`);
+      for (const [name, value] of Object.entries(sessionHeader())) {
+        xhr.setRequestHeader(name, value);
+      }
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) onProgress(event.loaded, event.total);
+      };
+      xhr.onerror = () => finish(() => reject(new ApiError(0, "Network error", "Upload request failed.")));
+      xhr.onabort = () => finish(() => reject(new DOMException("Upload cancelled.", "AbortError")));
+      xhr.onload = async () => {
+        if (xhr?.status === 401 && !retried) {
+          try {
+            if ((JSON.parse(xhr.responseText) as { code?: string }).code === "session_replaced") {
+              endReplacedSession(requestToken);
+              finish(() => reject(toXhrError(xhr!)));
+              return;
+            }
+          } catch { /* Ignore non-JSON responses. */ }
+          if (await refreshSession()) {
+            await send(true);
+            return;
+          }
+          if (requestToken === useAuthStore.getState().accessToken) useAuthStore.getState().clear();
+        }
+
+        if (xhr!.status < 200 || xhr!.status >= 300) {
+          finish(() => reject(toXhrError(xhr!)));
+          return;
+        }
+
+        let body: T;
+        try {
+          body = JSON.parse(xhr!.responseText) as T;
+        } catch {
+          finish(() => reject(new ApiError(xhr!.status, "Invalid response", "The upload response was not valid JSON.")));
+          return;
+        }
+        finish(() => resolve(body));
+      };
+
+      const form = new FormData();
+      form.append("file", file, file.name);
+      xhr.send(form);
+    };
+
+    signal.addEventListener("abort", abort, { once: true });
+    void send(false).catch((error: unknown) => finish(() => reject(error)));
+  });
+}
+
+async function unwrap(response: Response): Promise<unknown> {
+  if (response.status === 204) return undefined;
+  try {
+    return await response.json();
+  } catch {
+    return undefined;
+  }
+}
+
+async function toError(response: Response): Promise<ApiError> {
+  let title = response.statusText || "Request failed";
+  let detail = "";
+  let errors: Record<string, string[]> | undefined;
+  try {
+    const problem = (await response.json()) as {
+      title?: string;
+      detail?: string;
+      errors?: Record<string, string[]>;
+    };
+    title = problem.title ?? title;
+    detail = problem.detail ?? "";
+    errors = problem.errors;
+  } catch {
+    // non-JSON error body — keep defaults
+  }
+  return new ApiError(response.status, title, detail, errors);
+}
+
+function toXhrError(xhr: XMLHttpRequest): ApiError {
+  let title = xhr.statusText || "Request failed";
+  let detail = "";
+  let errors: Record<string, string[]> | undefined;
+  try {
+    const problem = JSON.parse(xhr.responseText) as {
+      title?: string;
+      detail?: string;
+      errors?: Record<string, string[]>;
+    };
+    title = problem.title ?? title;
+    detail = problem.detail ?? "";
+    errors = problem.errors;
+  } catch {
+    // non-JSON error body — keep defaults
+  }
+  return new ApiError(xhr.status, title, detail, errors);
+}
+
+function sessionHeader(): Record<string, string> {
+  const token = useAuthStore.getState().accessToken;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+async function performRequest(
+  path: string,
+  extraHeaders: HeadersInit | undefined,
+  rest: Partial<RequestInit>,
+  body: BodyInit | Record<string, unknown> | readonly unknown[] | null | undefined,
+): Promise<Response> {
+  const headers: Record<string, string> = { ...sessionHeader(), ...(extraHeaders as Record<string, string>) };
+
+  let payload = body;
+  if (payload !== null && payload !== undefined && !(payload instanceof FormData)) {
+    headers["Content-Type"] = "application/json";
+    payload = JSON.stringify(payload);
+  }
+
+  const requestController = new AbortController();
+  const callerSignal = rest.signal;
+  const abortFromCaller = () => requestController.abort(callerSignal?.reason);
+  if (callerSignal?.aborted) abortFromCaller();
+  else callerSignal?.addEventListener("abort", abortFromCaller, { once: true });
+
+  const timeout = setTimeout(() => requestController.abort(), API_REQUEST_TIMEOUT_MS);
+  try {
+    return await fetch(`${API_URL}${path}`, {
+      ...rest,
+      headers,
+      body: payload as BodyInit | null | undefined,
+      signal: requestController.signal,
+    });
+  } catch (error) {
+    if (requestController.signal.aborted && !callerSignal?.aborted) {
+      throw new ApiError(0, "Request timed out", "The request timed out. Try again.");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+    callerSignal?.removeEventListener("abort", abortFromCaller);
+  }
+}
+
+let refreshInFlight: Promise<boolean> | null = null;
+
+/** Shared refresh; concurrent callers await the same request. */
+function refreshSession(): Promise<boolean> {
+  refreshInFlight ??= doRefresh().finally(() => {
+    refreshInFlight = null;
+  });
+  return refreshInFlight;
+}
+
+async function doRefresh(): Promise<boolean> {
+  const current = useAuthStore.getState();
+  if (!current.refreshToken) return false;
+
+  try {
+    const response = await fetch(`${API_URL}/api/auth/refresh`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken: current.refreshToken }),
+    });
+    if (!response.ok) {
+      const problem = await response.json().catch(() => null) as { code?: string } | null;
+      if (problem?.code === "session_replaced") endReplacedSession(current.accessToken);
+      return false;
+    }
+    const session = (await response.json()) as AuthSession;
+    if (useAuthStore.getState().refreshToken !== current.refreshToken) return false;
+    current.setSession(session);
+    return true;
+  } catch {
+    return false;
+  }
+}

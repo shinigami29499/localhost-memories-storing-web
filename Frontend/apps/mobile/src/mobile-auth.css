@@ -1,0 +1,12 @@
+.mobile-login { min-height:100dvh; padding:calc(20px + env(safe-area-inset-top, 0px)) 24px 40px; background:var(--mobile-bg); }
+.mobile-login > header { display:flex; align-items:center; justify-content:space-between; min-height:48px; }
+.mobile-login > header strong { font-size:1.1rem; letter-spacing:-.02em; } .mobile-login > header strong span { color:var(--mobile-primary); }
+.mobile-login__content { max-width:440px; margin:64px auto 0; }
+.mobile-login h1 { margin:0; font-size:2rem; letter-spacing:-.03em; line-height:1.15; }
+.mobile-login p { color:var(--mobile-text-muted); }
+.mobile-login form { display:grid; gap:8px; margin-top:32px; }
+.mobile-login label { font-size:.875rem; font-weight:650; }
+.mobile-login input { min-height:52px; margin-bottom:14px; border:1px solid var(--mobile-border); border-radius:10px; background:var(--mobile-surface); color:var(--mobile-text); }
+.mobile-login .password-input { margin-bottom:14px; } .mobile-login .password-input input { margin:0; }
+.mobile-login form > button { min-height:52px; margin-top:12px; border:0; border-radius:10px; background:var(--mobile-primary); color:var(--mobile-on-primary); font-family:inherit; font-size:1rem; font-weight:700; }
+.mobile-login__signup { margin-top:24px; font-size:.875rem; text-align:center; } .mobile-login__signup a { font-weight:650; text-underline-offset:3px; }

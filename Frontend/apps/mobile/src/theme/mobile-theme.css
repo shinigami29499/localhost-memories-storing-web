@@ -1,0 +1,93 @@
+﻿:root {
+  --mobile-bg: #ffffff;
+  --mobile-surface: #ffffff;
+  --mobile-surface-muted: #f6f5f3;
+  --mobile-surface-raised: #ffffff;
+  --mobile-text: #222222;
+  --mobile-text-muted: #595959;
+  --mobile-border: #d2d2d2;
+  --mobile-border-subtle: #e8e6e3;
+  --mobile-primary: #b9344c;
+  --mobile-on-primary: #ffffff;
+  --mobile-focus: #1763b0;
+  --mobile-danger: #b3261e;
+  --mobile-success: #216c47;
+  --mobile-warning: #7c4e00;
+  --mobile-info: #175b97;
+  --mobile-shadow: 0 4px 18px rgb(0 0 0 / 0.1);
+  color-scheme: light;
+}
+
+:root[data-mobile-theme="dark"] {
+  --mobile-bg: #181818;
+  --mobile-surface: #222222;
+  --mobile-surface-muted: #292929;
+  --mobile-surface-raised: #303030;
+  --mobile-text: #f5f5f5;
+  --mobile-text-muted: #c1c1c1;
+  --mobile-border: #777777;
+  --mobile-border-subtle: #484848;
+  --mobile-primary: #ff9aaa;
+  --mobile-on-primary: #351018;
+  --mobile-focus: #91c6ff;
+  --mobile-danger: #ffb4ab;
+  --mobile-success: #8ad5a8;
+  --mobile-warning: #f5c66e;
+  --mobile-info: #a5ceff;
+  --mobile-shadow: 0 4px 18px rgb(0 0 0 / 0.3);
+  color-scheme: dark;
+}
+
+.mobile-theme-selector {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  color: var(--mobile-text);
+}
+
+.mobile-theme-selector legend {
+  margin-bottom: 0.75rem;
+  font-weight: 650;
+}
+
+.mobile-theme-selector__choices {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.mobile-theme-selector__choice {
+  position: relative;
+  display: inline-flex;
+  cursor: pointer;
+}
+
+.mobile-theme-selector__choice input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.mobile-theme-selector__choice span {
+  display: grid;
+  min-height: 44px;
+  place-items: center;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--mobile-border);
+  border-radius: 999px;
+  background: var(--mobile-surface);
+  color: var(--mobile-text);
+  font: inherit;
+}
+
+.mobile-theme-selector__choice input:checked + span {
+  border-color: var(--mobile-text);
+  background: var(--mobile-text);
+  color: var(--mobile-bg);
+}
+
+.mobile-theme-selector__choice input:focus-visible + span {
+  outline: 3px solid var(--mobile-focus);
+  outline-offset: 3px;
+}

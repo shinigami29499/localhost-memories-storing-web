@@ -40,7 +40,7 @@ export default defineConfig(({ command }) => ({
   test: {
     environment: "node",
     globals: true,
-    include: ["src/**/*.test.{ts,tsx}"],
-    setupFiles: ["./src/test/setup.ts"],
+    include: ["tests/unit/**/*.test.{ts,tsx}"],
+    setupFiles: ["./tests/setup.ts"],
   },
 }));

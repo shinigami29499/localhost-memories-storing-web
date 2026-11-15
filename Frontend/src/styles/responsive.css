@@ -1,0 +1,243 @@
+/* Responsive ----------------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .feed,
+  .new-post {
+    scroll-margin-top: 24px;
+  }
+}
+
+@media (max-width: 640px) {
+  input,
+  textarea,
+  select {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 560px) {
+  .community-intro h2 {
+    margin: 12px 0;
+    font-size: clamp(1.9rem, 9vw, 2.5rem);
+  }
+
+  .brand {
+    font-size: 1rem;
+    gap: 8px;
+  }
+
+  .brand__mark {
+    width: 32px;
+    height: 32px;
+    font-size: 1.1rem;
+  }
+
+  .app-shell__content {
+    padding-bottom: 32px;
+  }
+
+  .community-intro--feed {
+    padding-bottom: 32px;
+    margin-bottom: 28px;
+  }
+
+  .community-intro__description {
+    font-size: 0.9rem;
+  }
+
+  .new-post {
+    padding: 18px;
+  }
+
+  .new-post__row {
+    flex-wrap: wrap;
+  }
+}
+
+
+
+@media (max-width: 560px) {
+
+  .comments {
+    padding-inline: 12px;
+  }
+
+  .new-post__chip {
+    max-width: 100%;
+  }
+
+  .confirmation-dialog__actions {
+    flex-wrap: wrap;
+    margin: 0 -12px;
+    padding: 12px 12px calc(12px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom)));
+  }
+
+  .confirmation-dialog__actions .btn {
+    flex: 1 1 auto;
+  }
+
+  .confirmation-dialog__actions--danger > .btn--danger {
+    flex: 1;
+  }
+}
+
+
+
+@media (pointer: coarse) {
+  .comments__delete,
+  .new-post__chip-remove {
+    min-width: 32px;
+    min-height: 32px;
+  }
+}
+
+
+
+@keyframes content-reveal {
+  from {
+    opacity: 0;
+    translate: 0 0.5rem;
+  }
+
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@media (display-mode: standalone) and (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    main :where(
+      section,
+      article,
+      header,
+      footer,
+      form,
+      li,
+      h1,
+      h2,
+      h3,
+      p,
+      button,
+      a[href],
+      input,
+      textarea,
+      select,
+      [role="button"],
+      [role="listitem"],
+      [class$="-card"],
+      [class$="__card"],
+      [class$="-panel"],
+      [class$="__panel"]
+    ) {
+      animation: content-reveal 600ms ease-out both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 30%;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Loading overlay styles */
+.loading-overlay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  inset: 0;
+  position: fixed;
+  z-index: 9999;
+}
+
+/* Error page ---------------------------------------------------------------- */
+
+.error-page {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.error-page__content {
+  max-width: 480px;
+  text-align: center;
+}
+
+.error-page__icon {
+  display: grid;
+  place-items: center;
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 24px;
+  border-radius: 50%;
+  background: var(--danger-wash);
+  color: var(--text);
+}
+
+.error-page__icon span {
+  font-size: 32px;
+  line-height: 1;
+}
+
+.error-page__title {
+  margin: 0 0 12px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-strong);
+}
+
+.error-page__message {
+  margin: 0 0 32px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.error-page__actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.error-page__actions .btn--secondary {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+:is(:disabled, [aria-disabled="true"], [data-disabled], [data-state="disabled"]) svg {
+  color: var(--text-muted) !important;
+}
+
+.animated-icon-action {
+  align-items: center;
+  display: inline-flex;
+  justify-content: center;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.btn { min-height: 44px; box-shadow: none; transition: none; }
+.btn--secondary { background: var(--surface); }
+.btn--primary:hover:not(:disabled) { filter: none; text-decoration: underline; }
+.btn:disabled:not(.dialog-actions:has(> .dialog-action[aria-busy="true"]) > .dialog-action) { opacity: 1; color: var(--text); background: var(--surface-hover); border-color: var(--border-control); }
+.dialog-actions:has(> .dialog-action[aria-busy="true"]) > .dialog-action:disabled { opacity: 1; }
+input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]),
+textarea, select { min-height: 44px; }

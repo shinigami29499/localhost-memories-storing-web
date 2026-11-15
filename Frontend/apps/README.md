@@ -1,0 +1,9 @@
+# Web and mobile hosting
+
+Build the applications with `npm run build:web` and `npm run build:mobile` from `Frontend/`. Deploy each app's `dist` directory at the root of its own HTTPS origin. The builds use root-relative asset, manifest, and service-worker URLs; hosting both under paths on one origin is not supported. Set `VITE_API_URL` to the empty string when building for a same-origin reverse proxy, then route `/api` and `/hubs` to the backend. Otherwise set `VITE_API_URL` to the backend origin before building and configure backend CORS and WebSocket access for both app origins. If unset, the production client defaults to `http://localhost:8000`. Configure SPA navigation fallback to each app's `index.html`.
+
+`npm run android:sync` builds the mobile app and syncs `apps/mobile/dist` into the Android project. Set `VITE_API_URL` to a backend origin reachable from the Android device before building; the production default points to the device itself.
+
+Each origin has its own service-worker scope and cache. The worker stores the installed shell and static assets for offline startup. Authentication, API data, uploads, and protected media require a network connection. Do not configure a proxy or CDN to cache authenticated responses or protected media.
+
+The worker fetches the shell and static assets without credentials. Do not mark these public files `Cache-Control: private` or `no-store` if offline startup is required. After an online navigation, the worker refreshes the cached shell and its built assets for the next offline startup.

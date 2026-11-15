@@ -1,0 +1,22 @@
+:root[data-mobile-theme] {
+  --bg-dark: var(--mobile-bg); --bg: var(--mobile-bg); --bg-light: var(--mobile-surface);
+  --surface: var(--mobile-surface); --surface-raised: var(--mobile-surface-raised); --surface-hover: var(--mobile-surface-muted);
+  --surface-card: var(--mobile-surface); --surface-card-raised: var(--mobile-surface-raised);
+  --navigation-bg: var(--mobile-surface); --border: var(--mobile-border); --border-muted: var(--mobile-border-subtle);
+  --border-card: var(--mobile-border-subtle); --border-control: var(--mobile-border);
+  --text: var(--mobile-text); --text-strong: var(--mobile-text); --text-muted: var(--mobile-text-muted);
+  --text-disabled: var(--mobile-text-muted); --secondary: var(--mobile-text-muted);
+  --primary: var(--mobile-text); --accent: var(--mobile-text); --accent-strong: var(--mobile-text);
+  --accent-soft: var(--mobile-text); --accent-text: var(--mobile-text); --gradient: var(--mobile-text); --gradient-text: var(--mobile-text);
+  --accent-wash: var(--mobile-surface-muted); --selection-text: var(--mobile-bg); --text-on-accent: var(--mobile-bg);
+  --success: var(--mobile-success); --success-text: var(--mobile-success); --success-border: var(--mobile-success);
+  --warning: var(--mobile-warning); --warning-text: var(--mobile-warning); --warning-border: var(--mobile-warning);
+  --danger: var(--mobile-danger); --error-text: var(--mobile-danger); --error-border: var(--mobile-danger);
+  --info: var(--mobile-info); --info-text: var(--mobile-info); --info-border: var(--mobile-info);
+  --success-subtle: color-mix(in srgb, var(--mobile-surface) 90%, var(--mobile-success));
+  --warning-subtle: color-mix(in srgb, var(--mobile-surface) 90%, var(--mobile-warning));
+  --error-subtle: color-mix(in srgb, var(--mobile-surface) 90%, var(--mobile-danger));
+  --info-subtle: color-mix(in srgb, var(--mobile-surface) 90%, var(--mobile-info));
+  --focus-ring: var(--mobile-focus); --radius: 14px; --control-radius: 10px; --page-gutter: 20px;
+}
+body { background: var(--mobile-bg); color: var(--mobile-text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }

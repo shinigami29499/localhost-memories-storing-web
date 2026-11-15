@@ -1,0 +1,18 @@
+{
+  "buildPath": "code",
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "gradient-text",
+        "value": "*",
+        "files": [
+          "Frontend/src/components/layout/brand.css"
+        ],
+        "createdAt": "2026-11-15T08:39:38.584Z",
+        "reason": "Reviewed: --gradient-text resolves to solid --text; existing CommunityIntro style preserved."
+      }
+    ]
+  }
+}

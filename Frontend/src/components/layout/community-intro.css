@@ -1,0 +1,113 @@
+.community-intro h2 {
+  margin: 20px 0;
+  color: var(--text-strong);
+  font-size: clamp(2.5rem, 5.4vw, 4.2rem);
+  line-height: 1.1;
+  letter-spacing: -0.055em;
+  font-weight: 700;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+
+.community-intro__description {
+  max-width: 480px;
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.8;
+}
+
+.community-intro--feed {
+  padding-bottom: 56px;
+  margin-bottom: 36px;
+  background: var(--surface);
+}
+
+.community-intro--feed .community-intro__description {
+  max-width: 540px;
+}
+
+.community-art {
+  position: relative;
+  height: 250px;
+  margin-top: 32px;
+  isolation: isolate;
+}
+
+.community-art__orbit {
+  position: absolute;
+  width: 88%;
+  height: 230px;
+  top: 5px;
+  left: 5%;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  transform: rotate(-18deg);
+  box-shadow: none;
+}
+
+.community-art__card {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface-raised);
+  box-shadow: none;
+}
+
+.community-art__card--back {
+  top: 12px;
+  left: 14%;
+  width: 210px;
+  padding: 10px;
+  gap: 8px;
+  transform: rotate(-10deg);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.community-art__landscape {
+  height: 100px;
+  border-radius: 10px;
+  background: var(--community-art-ground);
+}
+
+.community-art__card--front {
+  right: 0;
+  bottom: 34px;
+  width: 250px;
+  padding: 18px;
+  gap: 4px;
+  transform: rotate(5deg);
+  background: var(--surface-raised);
+}
+
+.community-art__card--front > span:last-child {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.community-art__spark {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  margin-bottom: 6px;
+  border-radius: 10px;
+  background: var(--gradient);
+  font-size: 1.5rem;
+}
+
+.community-art__tag {
+  position: absolute;
+  bottom: 0;
+  left: 8%;
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  border-radius: 50px;
+  background: var(--surface-raised);
+  color: var(--text-strong);
+  font-size: 0.75rem;
+  transform: rotate(-5deg);
+}
+

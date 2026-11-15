@@ -1,0 +1,23 @@
+.mobile-home { padding:24px 20px 40px; }
+.mobile-home__heading { display:flex; justify-content:space-between; align-items:end; gap:16px; margin-bottom:24px; }
+.mobile-home__heading h1 { margin:0; font-size:1.75rem; line-height:1.15; letter-spacing:-.03em; }
+.mobile-home__heading p { margin:8px 0 0; color:var(--mobile-text-muted); font-size:.875rem; }
+.mobile-home__heading a { flex:none; font-size:.875rem; font-weight:650; text-underline-offset:3px; }
+.mobile-albums { display:grid; gap:28px; }
+.mobile-albums .album-feed-post { display:flex; flex-direction:column; overflow:visible; border:0; background:transparent; }
+.mobile-albums .album-feed-post__preview { order:-1; aspect-ratio:1.1; border-radius:14px; background:var(--mobile-surface-muted); }
+.mobile-albums .album-feed-post__preview img { object-fit:cover; }
+.mobile-albums .album-feed-post__placeholder { color:var(--mobile-text-muted); }
+.mobile-albums .album-feed-post__header { padding:12px 2px 0; }
+.mobile-albums .album-feed-post__title { display:block; overflow-wrap:anywhere; }
+.mobile-albums .album-feed-post__owner { font-weight:400; color:var(--mobile-text-muted); }
+.mobile-albums .album-feed-post__body { padding:0 2px; }
+.mobile-album { min-width:0; color:var(--mobile-text); text-decoration:none; }
+.mobile-album__image { display:grid; place-items:center; aspect-ratio:1.1; overflow:hidden; border-radius:14px; background:var(--mobile-surface-muted); color:var(--mobile-text-muted); }
+.mobile-album__image img { width:100%; height:100%; object-fit:cover; }
+.mobile-album__details { display:grid; gap:2px; padding:12px 2px 0; }
+.mobile-album__details strong { overflow-wrap:anywhere; font-size:1rem; }
+.mobile-album__details span { color:var(--mobile-text-muted); font-size:.875rem; }
+.mobile-empty { padding:40px 0; } .mobile-empty h2 { margin:0 0 8px; } .mobile-empty p { color:var(--mobile-text-muted); } .mobile-empty a { display:inline-block; padding:12px 16px; border-radius:10px; background:var(--mobile-text); color:var(--mobile-bg); text-decoration:none; font-weight:650; }
+.mobile-load { width:100%; min-height:48px; margin-top:24px; border:1px solid var(--mobile-border); background:var(--mobile-surface); color:var(--mobile-text); font:inherit; }
+@media (min-width:700px) { .mobile-albums { grid-template-columns:repeat(2,minmax(0,1fr)); } .mobile-home { max-width:1000px; margin:auto; } }

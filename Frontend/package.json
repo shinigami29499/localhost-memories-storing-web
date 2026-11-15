@@ -3,10 +3,18 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "android:sync": "npm run build && cap sync android",
+    "dev:web": "npm run dev --workspace @shinigacim/web",
+    "build:web": "npm run build --workspace @shinigacim/web",
+    "dev:mobile": "npm run dev --workspace @shinigacim/mobile",
+    "build:mobile": "npm run build --workspace @shinigacim/mobile",
+    "android:sync": "npm run build:mobile && cap sync android",
     "preview": "vite preview",
     "test": "vitest",
     "test:e2e": "playwright test"

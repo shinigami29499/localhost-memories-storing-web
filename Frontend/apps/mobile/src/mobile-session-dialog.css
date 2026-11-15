@@ -1,0 +1,7 @@
+.mobile-session-dialog-backdrop { position: fixed; inset: 0; z-index: 1000; background: rgb(0 0 0 / .55); }
+.mobile-session-dialog-viewport { position: fixed; inset: 0; z-index: 1001; display: grid; place-items: center; padding: 1.25rem; }
+.mobile-session-dialog { width: min(100%, 26rem); padding: 1.5rem; border-radius: 1rem; background: var(--mobile-surface); color: var(--mobile-text); box-shadow: 0 12px 32px rgb(0 0 0 / .24); }
+.mobile-session-dialog__title { margin: 0; font-size: 1.25rem; font-weight: 700; }
+.mobile-session-dialog__message { margin: .75rem 0 0; color: var(--mobile-text-muted); }
+.mobile-session-dialog__actions { display: flex; justify-content: flex-end; margin-top: 1.5rem; }
+.mobile-session-dialog__button { min-width: 4rem; min-height: 44px; }

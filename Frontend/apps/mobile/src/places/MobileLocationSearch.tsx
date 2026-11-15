@@ -1,0 +1,78 @@
+import { useId, useState } from "react";
+import { Input } from "@/components/ui";
+import { AnimateIcon } from "@/components/animate-ui/icons/icon";
+import { Search } from "@/components/animate-ui/icons/search";
+import { useLocale } from "@/context/LocaleContext";
+import { useLocationSearch } from "@/features/locations/hooks/useLocationSearch";
+import type { LocationSearchResult } from "@/features/locations/services/locationSearchService";
+
+interface Props {
+  disabled?: boolean;
+  onFocus?: () => void;
+  onSelect: (result: LocationSearchResult) => void;
+}
+
+import { useLocationSearchController } from "@/features/locations/components/useLocationSearchController";
+
+export function MobileLocationSearch(props: Props) {
+  const { disabled = false, onFocus, onSelect } = props;
+  const { t, id, query, setQuery, setOpen, results, searching, error, retry, showResults, showMessage } = useLocationSearchController(props);
+
+  return (
+    <AnimateIcon animateOnHover animateOnTap={false} animateOnView={false} completeOnStop asChild>
+      <section className="place__location-search" aria-label={t("Search locations")}
+        onBlur={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            event.stopPropagation();
+            setOpen(false);
+          }
+        }}>
+        <form className="place__location-search-form" onSubmit={(event) => {
+          event.preventDefault();
+          if (!disabled) setOpen(true);
+        }}>
+          <Input
+            className="place__location-search-input"
+            name="query"
+            value={query}
+            onChange={(value) => { setQuery(value); setOpen(true); }}
+            onFocus={() => { setOpen(true); onFocus?.(); }}
+            placeholder={t("Search a city or address")}
+            aria-label={t("Search a city or address")}
+            aria-describedby={showMessage ? `${id}-hint` : undefined}
+            autoComplete="off"
+            disabled={disabled}
+            maxLength={200}
+          />
+          <span className="place__location-search-icon" aria-hidden="true">
+            {searching ? <span className="place__location-search-spinner" /> : <Search size={20} />}
+          </span>
+        </form>
+        {showResults && <>
+          {showMessage && <div id={`${id}-hint`} className="place__location-search-message">
+            {query.trim().length < 3 && <p role="status">{t("Enter 3 characters to begin.")}</p>}
+            {searching && <p role="status">{t("Searching locations...")}</p>}
+            {error && <>
+              <p role="alert">{t(error.message === "Location search returned an invalid response. Try again later."
+                ? error.message : "Could not search locations. Check your connection and try again.")}</p>
+              <button type="button" onClick={() => void retry()}>{t("Try again")}</button>
+            </>}
+            {!searching && results?.length === 0 && <p role="status">{t("No matching locations found.")}</p>}
+          </div>}
+          {!searching && !!results?.length && <ul className="place__location-search-results" aria-label={t("Search results")}>
+            {results.map((result) => <li key={result.id}>
+              <button type="button" onClick={() => {
+                setOpen(false);
+                setQuery(result.placeName);
+                onSelect(result);
+              }}>{result.placeName}</button>
+            </li>)}
+          </ul>}
+        </>}
+      </section>
+    </AnimateIcon>
+  );
+}
