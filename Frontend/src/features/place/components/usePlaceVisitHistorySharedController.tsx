@@ -25,7 +25,7 @@ export interface PlaceVisitHistoryProps {
 
 export function usePlaceVisitHistorySharedController({ visits, showPlaceDetails = true, showVisitor = false, showVisitorName = false, canEditVisits = true, onRemove, removingVisitId, onShowOnMap, DialogComponent }: PlaceVisitHistoryProps) {
   const { language, t } = useLocale();
-  const isAdmin = useAuthStore((state) => state.user?.role?.toLowerCase() === "admin");
+  const isAdmin = useAuthStore((state) => ["admin", "superadmin"].includes(state.user?.role?.toLowerCase() ?? ""));
   const currentUserId = useAuthStore((state) => state.user?.id);
   const [now, setNow] = useState(() => Date.now());
   const [confirmingRemoval, setConfirmingRemoval] = useState(false);

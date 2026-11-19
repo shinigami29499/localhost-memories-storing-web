@@ -23,9 +23,12 @@ public class TokenService(IOptions<JwtOptions> options) : ITokenService
             new(Constants.Auth.SubClaim, user.Id.ToString()),
             new(Constants.Auth.SessionClaim, user.SessionId?.ToString() ?? ""),
             new(Constants.Auth.UsernameClaim, user.Username),
-            new(Constants.Auth.RoleClaim, user.Role == Domains.Enums.UserRole.Admin
-                ? Constants.Roles.Admin
-                : Constants.Roles.User),
+            new(Constants.Auth.RoleClaim, user.Role switch
+            {
+                Domains.Enums.UserRole.SuperAdmin => Constants.Roles.SuperAdmin,
+                Domains.Enums.UserRole.Admin => Constants.Roles.Admin,
+                _ => Constants.Roles.User,
+            }),
         };
 
         var credentials = new SigningCredentials(

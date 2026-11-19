@@ -1524,7 +1524,4 @@
   .place__list { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 }
 
-.mobile-place-switch { display:flex; align-items:stretch; gap:24px; min-width:0; overflow:auto; padding:0 20px; border-bottom:1px solid var(--mobile-border-subtle); background:var(--mobile-surface); }
-.mobile-place-switch button { flex:none; min-height:48px; padding:0 2px; border:0; border-bottom:2px solid transparent; background:transparent; color:var(--mobile-text-muted); font-family:inherit; font-size:.875rem; font-weight:600; }
-.mobile-place-switch button[aria-pressed="true"] { border-bottom-color:var(--mobile-text); color:var(--mobile-text); }
-.mobile-place-switch button:focus-visible { outline:2px solid var(--mobile-focus); outline-offset:-3px; }
+.mobile-place-navigation { margin-inline: calc(-1 * var(--page-gutter)); padding: 0 20px; }

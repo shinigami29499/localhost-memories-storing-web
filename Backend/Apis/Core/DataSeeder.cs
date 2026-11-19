@@ -37,6 +37,16 @@ public static class DataSeeder
             return;
         }
 
+        await db.Database.ExecuteSqlInterpolatedAsync($"""
+            WITH bootstrap AS (
+                UPDATE super_admin_bootstrap SET completed = true
+                WHERE id = 1 AND completed = false RETURNING id
+            )
+            UPDATE users SET role = {(int)UserRole.SuperAdmin}
+            WHERE username = {username} AND role = {(int)UserRole.Admin} AND deleted_at IS NULL
+              AND EXISTS (SELECT 1 FROM bootstrap)
+            """, cancellationToken);
+
         var adminExists = await db.Users.IgnoreQueryFilters()
             .AnyAsync(u => u.Username == username, cancellationToken);
         if (adminExists)
@@ -47,7 +57,7 @@ public static class DataSeeder
             Username = username,
             Password = password,
             Status = AccountStatus.Active,
-            Role = UserRole.Admin,
+            Role = UserRole.SuperAdmin,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = null,
         });

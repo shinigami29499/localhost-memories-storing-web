@@ -133,7 +133,18 @@ builder.Services
                     return;
                 }
                 var db = context.HttpContext.RequestServices.GetRequiredService<ApplicationDbContext>();
-                if (!await db.Users.AsNoTracking().AnyAsync(u => u.Id == id && u.SessionId == session, context.HttpContext.RequestAborted))
+                var account = await db.Users.AsNoTracking()
+                    .Where(u => u.Id == id && u.SessionId == session)
+                    .Select(u => new { u.Role, u.Status })
+                    .FirstOrDefaultAsync(context.HttpContext.RequestAborted);
+                var expectedRole = account?.Role switch
+                {
+                    Domains.Enums.UserRole.SuperAdmin => Constants.Roles.SuperAdmin,
+                    Domains.Enums.UserRole.Admin => Constants.Roles.Admin,
+                    _ => Constants.Roles.User,
+                };
+                if (account is null || account.Status != Domains.Enums.AccountStatus.Active ||
+                    context.Principal?.FindFirst(Constants.Auth.RoleClaim)?.Value != expectedRole)
                 {
                     context.HttpContext.Items["session_replaced"] = true;
                     context.Fail("Session replaced.");
@@ -162,7 +173,7 @@ builder.Services
     });
 
 builder.Services.AddAuthorizationBuilder()
-    .AddPolicy(Constants.Auth.AdminPolicy, policy => policy.RequireRole(Constants.Roles.Admin));
+    .AddPolicy(Constants.Auth.AdminPolicy, policy => policy.RequireRole(Constants.Roles.Admin, Constants.Roles.SuperAdmin));
 
 builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<MediaStorageOptions>>().Value);
 builder.Services.AddSingleton<MediaStorageService>();

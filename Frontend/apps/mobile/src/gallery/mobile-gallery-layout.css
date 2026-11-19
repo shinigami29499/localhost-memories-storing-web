@@ -7,34 +7,4 @@
   overflow: visible;
 }
 
-.mobile-gallery-nav {
-  display: flex;
-  gap: 24px;
-  align-items: stretch;
-  min-width: 0;
-  overflow-x: auto;
-  border-bottom: 1px solid var(--mobile-border-subtle);
-}
 
-.mobile-gallery-nav a {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  min-height: 48px;
-  padding: 0 2px;
-  border-bottom: 2px solid transparent;
-  color: var(--mobile-text-muted);
-  font-size: 0.875rem;
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.mobile-gallery-nav a[aria-current="page"] {
-  border-bottom-color: var(--mobile-text);
-  color: var(--mobile-text);
-}
-
-.mobile-gallery-nav a:focus-visible {
-  outline: 2px solid var(--mobile-focus);
-  outline-offset: -3px;
-}

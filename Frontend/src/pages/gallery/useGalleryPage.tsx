@@ -52,7 +52,7 @@ async function applyFavorites(mediaIds: string[], favorite: boolean) {
 
 export function useGalleryPage({ view = "pictures", initialFilter }: { view?: GalleryView; initialFilter?: MediaKindFilter }) {
   const { t, language } = useLocale();
-  const isAdmin = useAuthStore((state) => state.user?.role?.toLowerCase() === "admin");
+  const isAdmin = useAuthStore((state) => ["admin", "superadmin"].includes(state.user?.role?.toLowerCase() ?? ""));
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const animationsEnabled = useAnimationStore((state) => state.enabled);

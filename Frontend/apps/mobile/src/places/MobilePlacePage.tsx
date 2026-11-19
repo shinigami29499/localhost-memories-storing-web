@@ -3,9 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { lazy, Suspense, startTransition, useCallback, useEffect, useLayoutEffect, useRef, useState, useMemo, type ComponentType, type CSSProperties } from "react";
-import { HighlightItem } from "@animate-ui/react/primitives/effects/highlight";
-import { NavigationHighlight, SwapLabel } from "@/components/ui";
-import { PageHighlightBar } from "@/components/ui/PageHighlightBar";
+import { motion, useReducedMotion } from "motion/react";
 import { cloneMobileSearchFooter, PageActionBar, usePageActionBarFooter } from "../layout/MobilePageActionBar";
 import {
   Button,
@@ -71,6 +69,7 @@ import {
 } from "@/features/place/types";
 import type { MediaFile, PickedLocation } from "@/features/media/types";
 import "./mobile-places.css";
+import "../layout/mobile-highlight-navigation.css";
 
 
 const PlaceMap = lazy(() => import("./MobilePlaceMap").then((module) => ({ default: module.MobilePlaceMap })));
@@ -81,15 +80,21 @@ import { MobilePhotoMarkerPreview } from "./MobilePhotoMarkerPreview";
 
 function MobilePlaceViewSwitch({ view, onChange }: PlaceViewSwitchProps) {
   const { t } = useLocale();
-  return <nav className="mobile-place-switch" aria-label={t("Place view")}>
+  const animationsEnabled = useAnimationStore((state) => state.enabled);
+  const reducedMotion = useReducedMotion();
+  return <nav className="mobile-highlight-nav" aria-label={t("Place view")}>
     {([["map", "Map"], ["saved", "Saved"], ["history", "History"]] as const).map(([value, label]) =>
-      <button key={value} type="button" aria-pressed={view === value} onClick={() => onChange(value)}>{t(label)}</button>)}
+      <button key={value} type="button" aria-pressed={view === value} onClick={() => onChange(value)}>
+        {t(label)}
+        {view === value && <motion.span className="mobile-highlight-nav__indicator" layoutId="mobile-place-indicator"
+          transition={animationsEnabled && !reducedMotion ? { type: "spring", stiffness: 500, damping: 40 } : { duration: 0 }} />}
+      </button>)}
   </nav>;
 }
 
 
 export function MobilePlacePage() {
-  const { t, location, isMobile, user, home, view, animationsEnabled, requestView, mapSettings, saved, mapStartReady, setMapStartReady, setHighlightMotionVersion, addToolbar, setAddToolbar, city, setCity, owner, setOwner, dateFrom, setDateFrom, dateTo, setDateTo, hasLocationFilters, placeSearch, setPlaceSearch, minimumRating, historySearch, setHistorySearch, historyMinimumRating, activeRating, setActiveRating, historySentinel, photoSelection, setPhotoSelection, handleMapBounds, photos, photosQuery, uploading, uploadInput, savedPlaces, mapPlacesQuery, query, save, remove, checkInMutation, removeVisitMutation, editor, setEditor, editorOpen, setEditorOpen, selectedId, setSelectedId, detailsOpen, setDetailsOpen, visitHistory, historyQuery, historyVisits, formError, setFormError, placeToDelete, setPlaceToDelete, confirmingDetailDeleteId, setConfirmingDetailDeleteId, placeToMove, setPlaceToMove, moveConfirmationOpen, setMoveConfirmationOpen, workspaceRef, manualHomePick, setManualHomePick, homeRelocationDraft, setHomeRelocationDraft, homeMoveConfirmationOpen, setHomeMoveConfirmationOpen, homeDialogOpen, setHomeDialogOpen, confirmHomeRemoval, setConfirmHomeRemoval, photoMoveConfirmationOpen, setPhotoMoveConfirmationOpen, startWithCurrentLocation, places, filteredPlaces, cityOptions, ownerOptions, homePicking, selected, selectedVisits, selectedPhoto, photoRelocating, canEdit, canChangeMarker, mapPlaces, clearPreview, canMovePhoto, selectPhoto, movePhoto, confirmPhotoMove, pickHome, confirmHomeRelocation, cancelHomePick, startHomePick, openHomeDialog, removeHomeLocation, checkIn, removeVisit, startEdit, selectPlace, pickOnMap, cancelMapPick, movePlace, deletePlace, confirmMove, submit, confirmDelete } = usePlacePageController();
+  const { t, location, isMobile, user, home, view, animationsEnabled, requestView, mapSettings, saved, mapStartReady, addToolbar, setAddToolbar, city, setCity, owner, setOwner, dateFrom, setDateFrom, dateTo, setDateTo, hasLocationFilters, placeSearch, setPlaceSearch, minimumRating, historySearch, setHistorySearch, historyMinimumRating, activeRating, setActiveRating, historySentinel, photoSelection, setPhotoSelection, handleMapBounds, photos, photosQuery, uploading, uploadInput, savedPlaces, mapPlacesQuery, query, save, remove, checkInMutation, removeVisitMutation, editor, setEditor, editorOpen, setEditorOpen, selectedId, setSelectedId, detailsOpen, setDetailsOpen, visitHistory, historyQuery, historyVisits, formError, setFormError, placeToDelete, setPlaceToDelete, confirmingDetailDeleteId, setConfirmingDetailDeleteId, placeToMove, setPlaceToMove, moveConfirmationOpen, setMoveConfirmationOpen, workspaceRef, manualHomePick, setManualHomePick, homeRelocationDraft, setHomeRelocationDraft, homeMoveConfirmationOpen, setHomeMoveConfirmationOpen, homeDialogOpen, setHomeDialogOpen, confirmHomeRemoval, setConfirmHomeRemoval, photoMoveConfirmationOpen, setPhotoMoveConfirmationOpen, startWithCurrentLocation, places, filteredPlaces, cityOptions, ownerOptions, homePicking, selected, selectedVisits, selectedPhoto, photoRelocating, canEdit, canChangeMarker, mapPlaces, clearPreview, canMovePhoto, selectPhoto, movePhoto, confirmPhotoMove, pickHome, confirmHomeRelocation, cancelHomePick, startHomePick, openHomeDialog, removeHomeLocation, checkIn, removeVisit, startEdit, selectPlace, pickOnMap, cancelMapPick, movePlace, deletePlace, confirmMove, submit, confirmDelete } = usePlacePageController();
   const ViewSwitch = MobilePlaceViewSwitch;
   const SavedPlacesList = MobileSavedPlacesList;
 
@@ -158,12 +163,7 @@ export function MobilePlacePage() {
               </div>
             )}
 
-            <PageHighlightBar id="place-navigation" label="location navigation" onToggle={() => {
-              if (!saved && animationsEnabled && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-                setMapStartReady(false);
-                setHighlightMotionVersion((version) => version + 1);
-              }
-            }}><ViewSwitch view={view} onChange={requestView} /></PageHighlightBar>
+            <div className="mobile-place-navigation place__view-switch"><ViewSwitch view={view} onChange={requestView} /></div>
             {!saved && !homeRelocationDraft && (!addToolbar || addToolbar.visible) && <AddNavigationToolbar onAdd={addToolbar?.add ?? (() => {})} disabled={addToolbar?.disabled ?? true} />}
             <div className="place__view-content" data-push-page-content aria-busy={view === "history" && historyQuery.isPending || undefined}>
             <PushTransition transitionKey={view} />

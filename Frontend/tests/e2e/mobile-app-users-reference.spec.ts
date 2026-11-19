@@ -1,0 +1,20 @@
+import { test, expect } from '@playwright/test';
+test('mobile users reference layout and presence', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => localStorage.setItem('shinigacim-auth', JSON.stringify({state:{user:{id:'admin',username:'admin',role:'admin',status:'active',createdAt:'2026-01-01'},accessToken:'test',refreshToken:'test'},version:0})));
+  const users = [ ['online', 0, 'active'], ['recent', 600000, 'active'], ['old', 25200000, 'active'], ['pending', 0, 'pending_approval'] ].map(([id, age, status]) => ({id, username:id, status, role:'user', createdAt:'2026-01-01', lastSeenAt:new Date(Date.now()-Number(age)).toISOString()}));
+  await page.route(/^https?:\/\/[^/]+\/api\//, route => route.fulfill({json:new URL(route.request().url()).pathname === '/api/users' ? users : []}));
+  await page.route('**/hubs/**', route => route.abort());
+  await page.goto('/users');
+  const rows = page.locator('.mobile-users__item');
+  await expect(rows).toHaveCount(4);
+  await expect(page.getByRole('button', {name:/Change role/})).toHaveCount(0);
+  await page.screenshot({ path:'users-reference-check.png', fullPage:true });
+  await expect(rows.nth(0).locator('.mobile-users__presence--online')).toBeVisible();
+  await expect(rows.nth(1).locator('.mobile-users__presence')).toHaveText('10m');
+  await expect(rows.nth(2).locator('.mobile-users__presence')).toHaveCount(0);
+  await expect(rows.nth(3).locator('.mobile-users__presence')).toHaveCount(0);
+  await expect(rows.nth(3).getByRole('button', {name:/Approve/})).toBeVisible();
+  await page.screenshot({ path:'test-results/users-reference.png', fullPage:true });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});

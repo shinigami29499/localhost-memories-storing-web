@@ -170,7 +170,7 @@ function RouteNotifications() {
 /** Session must carry the admin role; non-admins fall back to Home. */
 function RequireAdmin({ children }: { children: ReactNode }) {
   const user = useAuthStore((s) => s.user);
-  return user?.role?.toLowerCase() === "admin" ? children : <Navigate to="/" replace />;
+  return ["admin", "superadmin"].includes(user?.role?.toLowerCase() ?? "") ? children : <Navigate to="/" replace />;
 }
 
 function LegacyAlbumRedirect() {

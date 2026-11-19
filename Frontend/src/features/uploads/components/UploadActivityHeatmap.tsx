@@ -39,7 +39,7 @@ export function UploadActivityHeatmap({ compact = false }: { compact?: boolean }
   const weeks = compact ? 8 : isMobile ? MOBILE_WEEKS : DESKTOP_WEEKS;
   const user = useAuthStore((state) => state.user);
   const userId = user?.id;
-  const isAdmin = user?.role.toLowerCase() === "admin";
+  const isAdmin = ["admin", "superadmin"].includes(user?.role.toLowerCase() ?? "");
   const today = useMemo(() => startOfDay(new Date()), []);
   const startDate = useMemo(() => startOfHeatmap(today, weeks), [today, weeks]);
   const days = useMemo(() => makeHeatmapDays(startDate, today), [startDate, today]);

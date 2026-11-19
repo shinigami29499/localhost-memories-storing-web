@@ -16,7 +16,7 @@ public class CurrentUserContext(IHttpContextAccessor httpContextAccessor) : ICur
     public string? Username => Principal?.FindFirstValue("username");
 
     public bool IsAdmin =>
-        Principal?.FindFirstValue("role") == Constants.Roles.Admin;
+        Principal?.FindFirstValue("role") is Constants.Roles.Admin or Constants.Roles.SuperAdmin;
 
     public Guid RequireUserId() =>
         UserId ?? throw new UnauthorizedAccessException("An authenticated user is required.");

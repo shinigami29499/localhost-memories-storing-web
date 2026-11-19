@@ -89,7 +89,7 @@ export function usePlacePageController() {
   const isMobile = useMediaQuery("(max-width: 767px)");
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
-  const isAdmin = user?.role?.toLowerCase() === "admin";
+  const isAdmin = ["admin", "superadmin"].includes(user?.role?.toLowerCase() ?? "");
   const home = useHomeLocation(user?.id);
   const view: PlaceView = location.pathname.replace(/\/$/, "").endsWith("/saved") ? "saved"
     : location.pathname.replace(/\/$/, "").endsWith("/history") ? "history" : "map";

@@ -77,7 +77,7 @@ export function useTravelPageController({ allowPhoneEditing = false }: { allowPh
     const requestedMedia = media.find((item) => item.id === requestedMediaId);
     if (requestedMedia) {
       setSelection({ id: requestedMedia.id, draft: requestedMedia.location ?? null, editing: true });
-      const canEdit = requestedMedia.ownerId === user?.id || user?.role?.toLowerCase() === "admin";
+      const canEdit = requestedMedia.ownerId === user?.id || ["admin", "superadmin"].includes(user?.role?.toLowerCase() ?? "");
       setRelocatingId(requestedMedia.location && (canEdit || (isMobile && !allowPhoneEditing)) ? requestedMedia.id : null);
     }
   }, [media, requestedMediaId, selection, user?.id, user?.role, isMobile, allowPhoneEditing]);
@@ -89,7 +89,7 @@ export function useTravelPageController({ allowPhoneEditing = false }: { allowPh
   const focused = media.find((item) => item.id === focusedMediaId);
   const relocating = relocatingId === selected?.id;
   const showDetails = !!selected && !!selection?.editing && (!relocating || !isMobile || allowPhoneEditing);
-  const canEditMedia = (item: MediaFile) => item.ownerId === user?.id || user?.role?.toLowerCase() === "admin";
+  const canEditMedia = (item: MediaFile) => item.ownerId === user?.id || ["admin", "superadmin"].includes(user?.role?.toLowerCase() ?? "");
   const canEditHere = (item: MediaFile) => canEditMedia(item) && (!isMobile || allowPhoneEditing);
   const canMove = (item: MediaFile) => !saving && canEditHere(item);
   const canEdit = !!selected && !!selection?.editing && canEditHere(selected);

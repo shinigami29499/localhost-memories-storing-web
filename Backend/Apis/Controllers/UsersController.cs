@@ -47,7 +47,7 @@ public class UsersController(
     public async Task<ActionResult<IReadOnlyList<UserResponse>>> ListAsync(CancellationToken cancellationToken)
     {
         var users = await _userService.ListAsync(cancellationToken);
-        return Ok(User.IsInRole(Constants.Roles.Admin) ? users : users.Where(user => user.Status != "disabled").ToList());
+        return Ok(_currentUser.IsAdmin ? users : users.Where(user => user.Status != "disabled").ToList());
     }
 
     [HttpGet("page")]
@@ -55,7 +55,7 @@ public class UsersController(
         CancellationToken cancellationToken, [FromQuery] int page = 1,
         [FromQuery] int limit = 20, [FromQuery] bool pendingOnly = false, [FromQuery] bool blockedOnly = false)
     {
-        if (blockedOnly && !User.IsInRole(Constants.Roles.Admin)) return Forbid();
+        if (blockedOnly && !_currentUser.IsAdmin) return Forbid();
         return Ok(await _userService.GetPageAsync(page, limit, pendingOnly, blockedOnly, cancellationToken));
     }
 
@@ -106,7 +106,7 @@ public class UsersController(
     [HttpPost("{id:guid}/approve")]
     public async Task<ActionResult<UserResponse>> ApproveAsync(Guid id, CancellationToken cancellationToken)
     {
-        var user = await _userService.ApproveAsync(id, cancellationToken);
+        var user = await _userService.ApproveAsync(id, _currentUser.RequireUserId(), cancellationToken);
         await NotifyUsersChangedAsync(id);
         return Ok(user);
     }
@@ -125,7 +125,7 @@ public class UsersController(
     [HttpPost("{id:guid}/activate")]
     public async Task<ActionResult<UserResponse>> ActivateAsync(Guid id, CancellationToken cancellationToken)
     {
-        var user = await _userService.ActivateAsync(id, cancellationToken);
+        var user = await _userService.ActivateAsync(id, _currentUser.RequireUserId(), cancellationToken);
         await NotifyUsersChangedAsync(id);
         return Ok(user);
     }

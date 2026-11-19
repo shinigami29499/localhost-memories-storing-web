@@ -19,7 +19,7 @@ internal static class AuthMappings
     internal static UserResponse ToResponse(User user) => new(
         user.Id,
         user.Username,
-        user.Role == UserRole.Admin ? Constants.Roles.Admin : Constants.Roles.User,
+        user.Role switch { UserRole.SuperAdmin => Constants.Roles.SuperAdmin, UserRole.Admin => Constants.Roles.Admin, _ => Constants.Roles.User },
         user.Status switch
         {
             AccountStatus.PendingApproval => "pending_approval",

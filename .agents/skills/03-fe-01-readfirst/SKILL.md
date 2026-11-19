@@ -6,7 +6,7 @@ user-invocable: false
 
 # Frontend Overview
 
-Load this skill for work in `Frontend/`. For full-stack work, also load [02-be-01-readfirst](../02-be-01-readfirst/SKILL.md). Read only the relevant child skill and project detail after this overview.
+Load this skill for work in `Frontend/`. For full-stack work, also load [02-be-01-readfirst](../02-be-01-readfirst/SKILL.md). For any UI addition or change, always read [03-fe-07-ui-color-system](../03-fe-07-ui-color-system/SKILL.md), [03-fe-08-ui-depth-system](../03-fe-08-ui-depth-system/SKILL.md), and [03-fe-09-ui-spacing-system](../03-fe-09-ui-spacing-system/SKILL.md). Read other child skills and project details only when relevant.
 
 ## Stack and architecture
 
@@ -127,7 +127,7 @@ When tests are warranted under this rule, prefer focused test files over the ful
 
 ## Child skills
 
-Load the skill matching the frontend task. For UI color decisions, also load `03-fe-07-ui-color-system` as the primary color guidance. For UI depth decisions, also load `03-fe-08-ui-depth-system` as the primary depth guidance. Apply each alongside other relevant skills:
+Load the skill matching the frontend task. For any UI addition or change, always load `03-fe-07-ui-color-system`, `03-fe-08-ui-depth-system`, and `03-fe-09-ui-spacing-system` as the primary guidance for color, depth, and spacing. Apply each alongside other relevant skills:
 
 | Task                                    | Skill                          |
 | --------------------------------------- | ------------------------------ |

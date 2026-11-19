@@ -29,7 +29,7 @@ export function useUploadManagement() {
     queryKey: ["uploads", "page", selectedDate, user?.id, user?.role],
     initialPageParam: 0,
     queryFn: ({ pageParam }) => {
-      const list = user?.role === "admin" ? uploadService.listAll : uploadService.list;
+      const list = ["admin", "superadmin"].includes(user?.role?.toLowerCase() ?? "") ? uploadService.listAll : uploadService.list;
       return list(pageParam, DEFAULT_PAGE_SIZE, selectedDate || undefined);
     },
     getNextPageParam: (lastPage, _pages, lastOffset) =>

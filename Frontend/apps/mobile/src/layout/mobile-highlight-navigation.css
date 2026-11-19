@@ -1,0 +1,44 @@
+.mobile-highlight-nav {
+  display: flex;
+  gap: 24px;
+  align-items: stretch;
+  min-width: 0;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--mobile-border-subtle);
+}
+
+.mobile-highlight-nav :is(a, button) {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 2px;
+  border: 0;
+  background: transparent;
+  color: var(--mobile-text-muted);
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.mobile-highlight-nav :is(a, button):is([aria-current="page"], [aria-pressed="true"]) {
+  color: var(--mobile-text);
+}
+
+.mobile-highlight-nav__indicator {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: var(--mobile-text);
+  pointer-events: none;
+}
+
+.mobile-highlight-nav :is(a, button):focus-visible {
+  outline: 2px solid var(--mobile-focus);
+  outline-offset: -3px;
+}
+

@@ -9,7 +9,7 @@ import "../albums/albums.css";
 export function HomePage() {
   const { t } = useLocale();
   const user = useAuthStore((state) => state.user);
-  const isAdmin = user?.role.toLowerCase() === "admin";
+  const isAdmin = ["admin", "superadmin"].includes(user?.role.toLowerCase() ?? "");
   const albumsQuery = useInfiniteAlbums(isAdmin ? "all" : "feed");
   const albums: Album[] = albumsQuery.data?.pages.flatMap((page) => page.items) ?? [];
 
@@ -42,7 +42,7 @@ export function HomePage() {
                     <AlbumFeedPost
                       key={album.id}
                       album={album}
-                      canDelete={isOwner || user?.role.toLowerCase() === "admin"}
+                      canDelete={isOwner || ["admin", "superadmin"].includes(user?.role.toLowerCase() ?? "")}
                     />
                   );
                 })}

@@ -129,6 +129,8 @@ export function UsersPage() {
                             language={language}
                             now={now}
                             canManage={isAdmin}
+                            canManageUser={user.id !== me?.id && (me?.role?.toLowerCase() === "superadmin" ? user.role.toLowerCase() !== "superadmin" : isAdmin && user.role.toLowerCase() === "user")}
+                            canChangeRole={me?.role?.toLowerCase() === "superadmin" && user.role.toLowerCase() !== "superadmin"}
                             isSelf={user.id === me?.id}
                             isLoading={approve.isPending || activate.isPending || disable.isPending || updateRole.isPending || remove.isPending || action !== null}
                             isApproving={approve.isPending && approve.variables === user.id}
@@ -155,7 +157,7 @@ export function UsersPage() {
         </section>
         </div>
         {isMobile ? <PageActionBar className="place__action-bar users__action-bar">{searchForm}</PageActionBar>
-          : headerActions ? createPortal(<div className="header-search-controls">{searchForm}<HeaderFilters selects={[{ label: "Role", value: role, onChange: setRole, options: [{ value: "admin", label: t("admin") }, { value: "user", label: t("user") }] }]} date={{ label: "Joined", from: joinedFrom, to: joinedTo, setFrom: setJoinedFrom, setTo: setJoinedTo }} /></div>, headerActions) : searchForm}
+          : headerActions ? createPortal(<div className="header-search-controls">{searchForm}<HeaderFilters selects={[{ label: "Role", value: role, onChange: setRole, options: [{ value: "superadmin", label: t("SuperAdmin") }, { value: "admin", label: t("admin") }, { value: "user", label: t("user") }] }]} date={{ label: "Joined", from: joinedFrom, to: joinedTo, setFrom: setJoinedFrom, setTo: setJoinedTo }} /></div>, headerActions) : searchForm}
       </main>
       {action && isAdmin ? (
         <ConfirmationDialog
@@ -204,6 +206,8 @@ interface RowProps {
   isOnline: boolean;
   /** Approve/delete actions are rendered for administrators only. */
   canManage: boolean;
+  canManageUser: boolean;
+  canChangeRole: boolean;
   isSelf: boolean;
   /** Any moderation action in flight disables the row's buttons. */
   isLoading: boolean;
@@ -220,7 +224,7 @@ interface RowProps {
 }
 
 function UserRow({
-  user, language, now, isOnline, canManage, isSelf, isLoading, isApproving, isActivating, isDisabling, isDeleting, onApprove, onActivate, onDisable, onRoleChange, onDelete,
+  user, language, now, isOnline, canManage, canManageUser, canChangeRole, isSelf, isLoading, isApproving, isActivating, isDisabling, isDeleting, onApprove, onActivate, onDisable, onRoleChange, onDelete,
 }: RowProps) {
   const { t } = useLocale();
   const isPending = user.status === "pending_approval";
@@ -236,10 +240,10 @@ function UserRow({
       </td>
       <td data-label={t("Role")}>
         <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
-          {canManage && !isSelf ? <button type="button" className="admin-users__role admin-users__role--button" disabled={isLoading} aria-label={t("Change role for {username}", { username: user.username })} title={t("Change role for {username}", { username: user.username })} onClick={onRoleChange}>
-            {user.role.toLowerCase() === "admin" ? <Bot size={16} aria-hidden="true" /> : <UserRound size={16} aria-hidden="true" />}
+          {canChangeRole && !isSelf ? <button type="button" className="admin-users__role admin-users__role--button" disabled={isLoading} aria-label={t("Change role for {username}", { username: user.username })} title={t("Change role for {username}", { username: user.username })} onClick={onRoleChange}>
+            {["admin", "superadmin"].includes(user.role.toLowerCase() ?? "") ? <Bot size={16} aria-hidden="true" /> : <UserRound size={16} aria-hidden="true" />}
           </button> : <span className="admin-users__role" role="img" aria-label={t(user.role)} title={t(user.role)}>
-            {user.role.toLowerCase() === "admin" ? <Bot size={16} aria-hidden="true" /> : <UserRound size={16} aria-hidden="true" />}
+            {["admin", "superadmin"].includes(user.role.toLowerCase() ?? "") ? <Bot size={16} aria-hidden="true" /> : <UserRound size={16} aria-hidden="true" />}
           </span>}
         </AnimateIcon>
       </td>
@@ -252,6 +256,7 @@ function UserRow({
       <td data-label={t("Joined")}>{new Date(user.createdAt).toLocaleDateString(language === "vi" ? "vi-VN" : "en-US")}</td>
       {canManage ? (
       <td className="admin-table__actions" data-label={t("Actions")}>
+        {canManageUser && <>
         {user.status === "disabled" ? (
           <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
             <button type="button" className="btn btn--primary admin-icon-btn" disabled={isLoading} aria-busy={isActivating || undefined}
@@ -298,6 +303,7 @@ function UserRow({
             </button>
           </AnimateIcon>
         ) : null}
+        </>}
       </td>
       ) : null}
     </tr>

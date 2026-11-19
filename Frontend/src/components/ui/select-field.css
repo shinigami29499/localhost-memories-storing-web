@@ -46,3 +46,6 @@
 @media (prefers-reduced-motion: reduce) {
   .select-field__icon { transition: none; }
 }
+.select-field__popup--limited { overflow:hidden; }
+.select-field__list--limited { max-height:min(228px, max(0px, calc(var(--available-height) - 10px))); overflow-y:auto; overscroll-behavior:contain; }
+.select-field__list--limited .select-field__item { flex:none; min-height:44px; height:44px; }

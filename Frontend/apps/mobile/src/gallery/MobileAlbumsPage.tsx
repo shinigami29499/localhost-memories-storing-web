@@ -36,7 +36,7 @@ function MobileAlbumCard({ album, selected, selectionMode, onSelect, onEdit, isO
         {selectionMode && <span className="mobile-album-card__selection" aria-hidden="true">{selected && <Check size={16} />}</span>}
       </span>
       <strong className="mobile-album-card__name">{album.name}</strong>
-      <span className="mobile-album-card__meta">{t("by {owner}", { owner: album.owner.username })} Â· {t(album.isPublic ? "Public" : "Private")}</span>
+      <span className="mobile-album-card__meta">{t("by {owner}", { owner: album.owner.username })} · {t(album.isPublic ? "Public" : "Private")}</span>
     </Link>
     {isOwner && !selectionMode && <button className="mobile-album-card__edit" type="button" aria-label={t("Edit album {name}", { name: album.name })} title={t("Edit album")} onClick={onEdit}><PencilLine size={18} aria-hidden="true" /></button>}
   </article>;

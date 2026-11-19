@@ -16,3 +16,4 @@
 .mobile-more nav { display:grid; margin-bottom:24px; }
 .mobile-more nav a { padding:14px 0; border-bottom:1px solid var(--mobile-border-subtle); text-decoration:none; font-weight:600; }
 .mobile-more__logout { margin-top:20px; padding-left:0; text-decoration:underline; }
+.mobile-keyboard-open .mobile-nav, .mobile-keyboard-open .mobile-users__bottom-actions, .mobile-keyboard-open .page-action-bar { visibility:hidden; pointer-events:none; }

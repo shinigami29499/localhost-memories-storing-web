@@ -1,0 +1,12 @@
+---
+name: api-library-gallery-favorites-batch-put
+description: "Current behavior of PUT /api/library/gallery/favorites/batch."
+---
+
+# PUT /api/library/gallery/favorites/batch
+
+- Routes: `/api/library/gallery/favorites/batch`, `/api/media/favorites/batch`.
+- Access: Requires authentication; additional service-level permissions are described below.
+- Inputs: SetMediaFavoritesRequest request.
+- Flow: Sets the requested favorite state for a batch of media IDs for the current user; returns no content.
+- Source: `Backend/Apis/Controllers/MediaFavoritesController.cs` (SetFavoritesAsync); `Backend/Infrastructures/Data/ApplicationServices/MediaService.cs`.

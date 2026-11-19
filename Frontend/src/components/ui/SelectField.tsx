@@ -1,4 +1,6 @@
-import { useId } from "react";
+import { useId, type RefObject } from "react";
+import { ScrollFade } from "@animate-ui/react/primitives/effects/scroll-fade";
+import { useAnimationStore } from "../../store/animationStore";
 import { Select } from "@animate-ui/react/primitives/base-ui/select";
 import { ChevronDownIcon } from "../animate-ui/icons/chevron-down";
 import "./select-field.css";
@@ -10,10 +12,13 @@ interface Props {
   value: string;
   options: SelectOption[];
   disabled?: boolean;
+  scrollFade?: boolean;
+  container?: RefObject<HTMLElement | null>;
   onChange: (value: string) => void;
 }
 
-export function SelectField({ label, value, options, disabled, onChange }: Props) {
+export function SelectField({ label, value, options, disabled, container, scrollFade = false, onChange }: Props) {
+  const animationsEnabled = useAnimationStore((state) => state.enabled);
   const id = useId();
   const labelId = `${id}-label`;
   return (
@@ -26,7 +31,7 @@ export function SelectField({ label, value, options, disabled, onChange }: Props
           <Select.Value />
           <ChevronDownIcon size={18} className="select-field__icon" animateOnView={false} aria-hidden="true" />
         </Select.Trigger>
-        <Select.Portal>
+        <Select.Portal container={container}>
           <Select.Positioner className="select-field__positioner" side="bottom" align="start" sideOffset={4} alignItemWithTrigger={false}>
             <Select.Popup className="select-field__popup">
               <Select.List className="select-field__list">

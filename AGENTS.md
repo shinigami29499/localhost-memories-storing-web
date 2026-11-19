@@ -43,6 +43,17 @@ For full-stack work, load both overviews. Do not load skills for an unaffected s
 
 For UI implementation, layout changes, or visual refinement, use [`03-fe-09-ui-spacing-system`](.agents/skills/03-fe-09-ui-spacing-system/SKILL.md) as the primary spacing, grouping, alignment, and padding guidance. Establish spacing hierarchy before color, depth, and decoration, subject to accessibility, explicit user requirements, and project constraints.
 
+## Feature logic skills
+
+Document the main logic of frontend features and backend endpoints in stack-local skills. Keep these skills aligned with the code they describe.
+
+- Store frontend logic skills under `Frontend/skills/`, following the owning source hierarchy. For example, `Frontend/apps/mobile/src/users/MobileUsersPage.tsx` maps to `Frontend/skills/apps/mobile/src/users/MobileUsersPage/SKILL.md`. Use the actual component or class name.
+- Store backend logic skills under `Backend/skills/`, following the HTTP endpoint hierarchy and method. For example, `PUT /api/users/{id}/role` maps to `Backend/skills/api/users/by-id/role/put/SKILL.md`. Use stable names such as `by-id` for route parameters and keep different methods separate.
+- Before changing feature logic, look for and read the corresponding stack-local skill. These nested skills may not appear in the session's available-skills catalog; locate them by their paths.
+- When a change adds or modifies feature behavior, create or update the corresponding skill in the same change. Update every affected frontend or backend skill for full-stack work. Do not create unrelated skills or rewrite existing documentation merely because a file was touched.
+- Describe the current main flow, relevant source locations, inputs and outputs, permissions, state changes, important invariants, and task-specific validation where applicable. Keep the skill concise and avoid copying implementation, secrets, or restricted files. Use valid skill frontmatter with `name` and `description`.
+- Treat code as the source of truth. Verify the affected behavior against its implementation before updating a skill, and revise stale skill content when the relevant logic changes.
+
 ## Repository restrictions
 
 - Do not read, edit, or move `Backend/Adapter/Security/` or `Backend/Scripts/`.

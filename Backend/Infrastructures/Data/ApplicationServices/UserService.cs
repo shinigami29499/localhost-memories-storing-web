@@ -103,11 +103,21 @@ public class UserService(
             usernamePrefix.Trim(), MentionCandidateLimit, cancellationToken);
     }
 
-    public async Task<UserResponse> ApproveAsync(Guid userId, CancellationToken cancellationToken = default)
+    private async Task EnsureCanManageAsync(User target, Guid actorId, CancellationToken cancellationToken)
+    {
+        var actor = await _repository.FindUserAsync(actorId, cancellationToken);
+        if (actor is null || actor.Status != AccountStatus.Active || actor.DeletedAt is not null ||
+            (actor.Role != UserRole.SuperAdmin && (actor.Role != UserRole.Admin || target.Role != UserRole.User)) ||
+            target.Role == UserRole.SuperAdmin)
+            throw new ForbiddenException("You cannot manage this account.");
+    }
+
+    public async Task<UserResponse> ApproveAsync(Guid userId, Guid actorId, CancellationToken cancellationToken = default)
     {
         var user = await _repository.FindUserAsync(userId, cancellationToken);
         if (user is null || user.DeletedAt is not null)
             throw new NotFoundException("User not found.");
+        await EnsureCanManageAsync(user, actorId, cancellationToken);
 
         if (user.Status != AccountStatus.PendingApproval)
             throw new ConflictException("Only pending accounts can be approved.");
@@ -125,6 +135,7 @@ public class UserService(
         var user = await _repository.FindUserAsync(userId, cancellationToken);
         if (user is null || user.DeletedAt is not null)
             throw new NotFoundException("User not found.");
+        await EnsureCanManageAsync(user, disabledBy, cancellationToken);
         if (user.Status != AccountStatus.Active)
             throw new ConflictException("Only active accounts can be disabled.");
 
@@ -141,11 +152,12 @@ public class UserService(
         return mapper.Map(user);
     }
 
-    public async Task<UserResponse> ActivateAsync(Guid userId, CancellationToken cancellationToken = default)
+    public async Task<UserResponse> ActivateAsync(Guid userId, Guid actorId, CancellationToken cancellationToken = default)
     {
         var user = await _repository.FindUserAsync(userId, cancellationToken);
         if (user is null || user.DeletedAt is not null)
             throw new NotFoundException("User not found.");
+        await EnsureCanManageAsync(user, actorId, cancellationToken);
         if (user.Status != AccountStatus.Disabled)
             throw new ConflictException("Only disabled accounts can be activated.");
 
@@ -167,6 +179,10 @@ public class UserService(
         var user = await _repository.FindUserAsync(userId, cancellationToken);
         if (user is null || user.DeletedAt is not null)
             throw new NotFoundException("User not found.");
+        await EnsureCanManageAsync(user, updatedBy, cancellationToken);
+        var actor = await _repository.FindUserAsync(updatedBy, cancellationToken);
+        if (actor?.Role != UserRole.SuperAdmin)
+            throw new ForbiddenException("Only super administrators can change roles.");
         if (user.Role == role)
             return mapper.Map(user);
 
@@ -188,6 +204,7 @@ public class UserService(
         var user = await _repository.FindUserAsync(userId, cancellationToken);
         if (user is null || user.DeletedAt is not null)
             throw new NotFoundException("User not found.");
+        await EnsureCanManageAsync(user, deletedBy, cancellationToken);
 
         var utcNow = DateTime.UtcNow;
         user.DeletedAt = utcNow;

@@ -209,7 +209,8 @@ button:focus-visible {
 }
 
 .btn--secondary:hover:not(:disabled) {
-  background: var(--surface-hover);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .btn--ghost {
@@ -218,8 +219,8 @@ button:focus-visible {
 }
 
 .btn--ghost:hover:not(:disabled) {
-  color: var(--text-strong);
-  background: var(--surface-hover);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .btn--danger {
