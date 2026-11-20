@@ -41,7 +41,7 @@ function useIconTriggers<T extends string>(props: IconTriggers<T>) {
   const enabled = iconsEnabled && animationsEnabled && !mobile && props.animate !== false;
 
   return {
-    animateOnHover: iconsEnabled && !mobile && props.animate !== false && hover ? (props.animateOnHover ?? true) : false,
+    animateOnHover: iconsEnabled && animationsEnabled && props.animate !== false && hover ? (props.animateOnHover ?? true) : false,
     animateOnTap: enabled ? (props.animateOnTap ?? true) : false,
     animateOnView: enabled && installed ? (props.animateOnView ?? true) : false,
     animateOnViewOnce: props.animateOnViewOnce ?? false,
@@ -52,7 +52,8 @@ function useIconTriggers<T extends string>(props: IconTriggers<T>) {
 export function AnimateIcon(props: AnimateIconProps) {
   const iconsEnabledInStore = useAnimationStore((state) => state.iconsEnabled);
   const mobile = useMediaQuery("(max-width: 640px)");
-  const iconsEnabled = iconsEnabledInStore && !mobile;
+  const animationsEnabled = useAnimationStore((state) => state.enabled);
+  const iconsEnabled = iconsEnabledInStore && animationsEnabled;
   const triggers = useIconTriggers(props);
   const reduceMotion = useShouldReduceMotion();
   const [controls, setControls] = useState<LegacyAnimationControls>();
@@ -112,8 +113,8 @@ export function AnimateIcon(props: AnimateIconProps) {
       <BaseAnimateIcon
         {...props}
         {...triggers}
-        animate={iconsEnabled ? props.animate : false}
-        loop={iconsEnabled ? props.loop : false}
+        animate={iconsEnabled ? (mobile && props.animate !== false ? undefined : props.animate) : false}
+        loop={iconsEnabled && !mobile ? props.loop : false}
         ref={setRef}
         animation={typeof triggers.animateOnView === "string" ? triggers.animateOnView : props.animation}
         animateOnView={props.loop ? triggers.animateOnView : false}
@@ -146,7 +147,6 @@ export function AnimatedAction({ animationRevision, children }: { animationRevis
 
 export function IconWrapper<T extends string>(props: IconWrapperProps<T>) {
   const iconsEnabled = useAnimationStore((state) => state.iconsEnabled);
-  const mobile = useMediaQuery("(max-width: 640px)");
   const { controls } = useAnimateIconContext();
   const hasOwnTriggers = props.animate !== undefined
     || props.animateOnHover !== undefined
@@ -154,7 +154,7 @@ export function IconWrapper<T extends string>(props: IconWrapperProps<T>) {
     || props.animateOnView !== undefined;
 
   if (controls && !hasOwnTriggers) {
-    return <BaseIconWrapper {...props} animate={iconsEnabled && !mobile ? props.animate : false} />;
+    return <BaseIconWrapper {...props} animate={iconsEnabled ? props.animate : false} />;
   }
 
   const {

@@ -14,11 +14,11 @@ export function MobilePresenceRuntime() {
         <AlertDialog.Viewport className="mobile-session-dialog-viewport">
           <AlertDialog.Popup className="mobile-session-dialog" role="alertdialog">
             <AlertDialog.Title className="mobile-session-dialog__title">
-              {t(accountChange === "disabled" ? "Account disabled" : "Role updated")}
+              {t(accountChange === "disabled" ? "Account paused" : "Role updated")}
             </AlertDialog.Title>
             <AlertDialog.Description className="mobile-session-dialog__message">
               {t(accountChange === "disabled"
-                ? "Your account has been disabled. Reload to continue."
+                ? "Your account has been paused. Reload to continue."
                 : "Your role has been updated. Reload and sign in again.")}
             </AlertDialog.Description>
             <footer className="mobile-session-dialog__actions">

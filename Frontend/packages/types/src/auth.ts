@@ -1,4 +1,4 @@
-export type AccountStatus = "active" | "disabled" | "pending_approval";
+export type AccountStatus = "active" | "disabled" | "pending_approval" | "rejected";
 
 export interface AuthUser {
   id: string;

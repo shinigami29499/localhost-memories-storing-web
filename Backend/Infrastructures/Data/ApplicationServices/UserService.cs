@@ -14,7 +14,7 @@ namespace Infrastructures.Data.ApplicationServices;
 
 public class UserService(
     IUserRepository repository, IUnitOfWork unitOfWork, IMapper mapper,
-    IMediaRepository mediaRepository) : IUserService
+    IMediaRepository mediaRepository, IAuthRepository authRepository) : IUserService
 {
     private const int MentionCandidateLimit = 8;
     private readonly IUserRepository _repository = repository;
@@ -87,7 +87,7 @@ public class UserService(
     public async Task<DateTime> HeartbeatAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         var user = await _repository.FindUserAsync(userId, cancellationToken);
-        if (user is null || user.DeletedAt is not null || user.Status != AccountStatus.Active)
+        if (user is null || user.DeletedAt is not null)
             throw new Services.Exceptions.NotFoundException("User not found.");
 
         user.LastSeenAt = DateTime.UtcNow;
@@ -114,7 +114,8 @@ public class UserService(
 
     public async Task<UserResponse> ApproveAsync(Guid userId, Guid actorId, CancellationToken cancellationToken = default)
     {
-        var user = await _repository.FindUserAsync(userId, cancellationToken);
+        await using var transaction = await _unitOfWork.BeginTransactionAsync(cancellationToken);
+        var user = await authRepository.LockUserAsync(userId, cancellationToken);
         if (user is null || user.DeletedAt is not null)
             throw new NotFoundException("User not found.");
         await EnsureCanManageAsync(user, actorId, cancellationToken);
@@ -124,6 +125,32 @@ public class UserService(
 
         user.Status = AccountStatus.Active;
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return mapper.Map(user);
+    }
+
+    public async Task<UserResponse> RejectAsync(Guid userId, Guid actorId, CancellationToken cancellationToken = default)
+    {
+        await using var transaction = await _unitOfWork.BeginTransactionAsync(cancellationToken);
+        var user = await authRepository.LockUserAsync(userId, cancellationToken);
+        if (user is null || user.DeletedAt is not null) throw new NotFoundException("User not found.");
+        await EnsureCanManageAsync(user, actorId, cancellationToken);
+        if (user.Status != AccountStatus.PendingApproval) throw new ConflictException("Only pending accounts can be rejected.");
+        user.Status = AccountStatus.Rejected;
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return mapper.Map(user);
+    }
+
+    public async Task<UserResponse> RequestApprovalAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        await using var transaction = await _unitOfWork.BeginTransactionAsync(cancellationToken);
+        var user = await authRepository.LockUserAsync(userId, cancellationToken);
+        if (user is null || user.DeletedAt is not null) throw new NotFoundException("User not found.");
+        if (user.Status != AccountStatus.Rejected) throw new ConflictException("Only rejected accounts can request approval again.");
+        user.Status = AccountStatus.PendingApproval;
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return mapper.Map(user);
     }
 
@@ -132,7 +159,8 @@ public class UserService(
         if (userId == disabledBy)
             throw new ConflictException("You cannot disable your own account.");
 
-        var user = await _repository.FindUserAsync(userId, cancellationToken);
+        await using var transaction = await _unitOfWork.BeginTransactionAsync(cancellationToken);
+        var user = await authRepository.LockUserAsync(userId, cancellationToken);
         if (user is null || user.DeletedAt is not null)
             throw new NotFoundException("User not found.");
         await EnsureCanManageAsync(user, disabledBy, cancellationToken);
@@ -140,21 +168,15 @@ public class UserService(
             throw new ConflictException("Only active accounts can be disabled.");
 
         user.Status = AccountStatus.Disabled;
-        var activeTokens = await _repository.FindActiveRefreshTokensAsync(userId, DateTime.UtcNow, cancellationToken);
-        foreach (var token in activeTokens)
-        {
-            token.RevokedAt = DateTime.UtcNow;
-            token.RevokedReason = Constants.Auth.RevocationReasons.UserDisabled;
-            token.RevokedBy = disabledBy;
-        }
-
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return mapper.Map(user);
     }
 
     public async Task<UserResponse> ActivateAsync(Guid userId, Guid actorId, CancellationToken cancellationToken = default)
     {
-        var user = await _repository.FindUserAsync(userId, cancellationToken);
+        await using var transaction = await _unitOfWork.BeginTransactionAsync(cancellationToken);
+        var user = await authRepository.LockUserAsync(userId, cancellationToken);
         if (user is null || user.DeletedAt is not null)
             throw new NotFoundException("User not found.");
         await EnsureCanManageAsync(user, actorId, cancellationToken);
@@ -163,6 +185,7 @@ public class UserService(
 
         user.Status = AccountStatus.Active;
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return mapper.Map(user);
     }
 

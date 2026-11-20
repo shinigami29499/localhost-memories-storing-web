@@ -1,0 +1,4 @@
+.approval-notice { display:flex; flex-wrap:wrap; align-items:center; gap:.5rem; padding:.75rem 1rem; background:var(--surface-raised); color:var(--text); border-bottom:1px solid var(--border-control); font-size:.875rem; }
+.approval-notice span:first-child { flex:1 1 16rem; }
+.approval-notice button { min-height:2.75rem; padding:.5rem .75rem; border:1px solid var(--border-control); border-radius:var(--radius); background:var(--surface); color:var(--text); font:inherit; cursor:pointer; }
+.approval-notice button:focus-visible { outline:2px solid var(--focus-ring); outline-offset:2px; }

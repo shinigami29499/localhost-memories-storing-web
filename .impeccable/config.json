@@ -12,6 +12,15 @@
         ],
         "createdAt": "2026-11-15T08:39:38.584Z",
         "reason": "Reviewed: --gradient-text resolves to solid --text; existing CommunityIntro style preserved."
+      },
+      {
+        "rule": "gradient-text",
+        "value": "*",
+        "files": [
+          "Frontend/apps/mobile/src/users/mobile-users.css"
+        ],
+        "createdAt": "2026-11-20T14:55:12.694Z",
+        "reason": "User explicitly requested gradient text for the User title using Animate UI reference."
       }
     ]
   }

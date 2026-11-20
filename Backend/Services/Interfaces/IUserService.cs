@@ -18,6 +18,8 @@ public interface IUserService
     Task<IReadOnlyList<UserMentionCandidateDto>> SearchMentionCandidatesAsync(
         string usernamePrefix, CancellationToken cancellationToken = default);
     Task<UserResponse> ApproveAsync(Guid userId, Guid actorId, CancellationToken cancellationToken = default);
+    Task<UserResponse> RejectAsync(Guid userId, Guid actorId, CancellationToken cancellationToken = default);
+    Task<UserResponse> RequestApprovalAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<UserResponse> DisableAsync(Guid userId, Guid disabledBy, CancellationToken cancellationToken = default);
     Task<UserResponse> ActivateAsync(Guid userId, Guid actorId, CancellationToken cancellationToken = default);
     Task<UserResponse> UpdateRoleAsync(Guid userId, Guid updatedBy, UpdateUserRoleRequest request, CancellationToken cancellationToken = default);

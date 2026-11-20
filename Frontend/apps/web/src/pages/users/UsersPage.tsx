@@ -129,8 +129,8 @@ export function UsersPage() {
                             language={language}
                             now={now}
                             canManage={isAdmin}
-                            canManageUser={user.id !== me?.id && (me?.role?.toLowerCase() === "superadmin" ? user.role.toLowerCase() !== "superadmin" : isAdmin && user.role.toLowerCase() === "user")}
-                            canChangeRole={me?.role?.toLowerCase() === "superadmin" && user.role.toLowerCase() !== "superadmin"}
+                            canManageUser={isAdmin && user.id !== me?.id && (me?.role?.toLowerCase() === "superadmin" ? user.role.toLowerCase() !== "superadmin" : user.role.toLowerCase() === "user")}
+                            canChangeRole={isAdmin && me?.role?.toLowerCase() === "superadmin" && user.role.toLowerCase() !== "superadmin"}
                             isSelf={user.id === me?.id}
                             isLoading={approve.isPending || activate.isPending || disable.isPending || updateRole.isPending || remove.isPending || action !== null}
                             isApproving={approve.isPending && approve.variables === user.id}

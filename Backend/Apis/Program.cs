@@ -1,4 +1,5 @@
 using System.Text;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.IdentityModel.Tokens;
@@ -143,12 +144,14 @@ builder.Services
                     Domains.Enums.UserRole.Admin => Constants.Roles.Admin,
                     _ => Constants.Roles.User,
                 };
-                if (account is null || account.Status != Domains.Enums.AccountStatus.Active ||
+                if (account is null || account.Status is not (Domains.Enums.AccountStatus.Active or Domains.Enums.AccountStatus.PendingApproval or Domains.Enums.AccountStatus.Rejected or Domains.Enums.AccountStatus.Disabled) ||
                     context.Principal?.FindFirst(Constants.Auth.RoleClaim)?.Value != expectedRole)
                 {
                     context.HttpContext.Items["session_replaced"] = true;
                     context.Fail("Session replaced.");
                 }
+                else if (context.Principal?.Identity is ClaimsIdentity identity)
+                    identity.AddClaim(new Claim(Constants.Auth.AccountStatusClaim, account.Status.ToString()));
             },
             OnChallenge = async context =>
             {
@@ -173,7 +176,8 @@ builder.Services
     });
 
 builder.Services.AddAuthorizationBuilder()
-    .AddPolicy(Constants.Auth.AdminPolicy, policy => policy.RequireRole(Constants.Roles.Admin, Constants.Roles.SuperAdmin));
+    .AddPolicy(Constants.Auth.AdminPolicy, policy => policy.RequireRole(Constants.Roles.Admin, Constants.Roles.SuperAdmin)
+        .RequireClaim(Constants.Auth.AccountStatusClaim, nameof(Domains.Enums.AccountStatus.Active)));
 
 builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<MediaStorageOptions>>().Value);
 builder.Services.AddSingleton<MediaStorageService>();
@@ -210,6 +214,29 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("Frontend");
 app.UseAuthentication();
+app.Use(async (context, next) =>
+{
+    var status = context.User.FindFirstValue(Constants.Auth.AccountStatusClaim);
+    var readOnly = status is nameof(Domains.Enums.AccountStatus.PendingApproval) or nameof(Domains.Enums.AccountStatus.Rejected) or nameof(Domains.Enums.AccountStatus.Disabled);
+    var path = context.Request.Path;
+    var allowedPost = HttpMethods.IsPost(context.Request.Method) &&
+        (path.Equals("/api/auth/logout", StringComparison.OrdinalIgnoreCase) ||
+         path.Equals("/api/users/me/heartbeat", StringComparison.OrdinalIgnoreCase) ||
+         path.Equals("/api/users/me/offline", StringComparison.OrdinalIgnoreCase) ||
+         path.Equals("/api/users/me/request-approval", StringComparison.OrdinalIgnoreCase) ||
+         path.Equals("/api/library/album/membership/query", StringComparison.OrdinalIgnoreCase) ||
+         path.Equals("/api/collections/membership/query", StringComparison.OrdinalIgnoreCase) ||
+         path.Equals("/hubs/notifications", StringComparison.OrdinalIgnoreCase) ||
+         path.Equals("/hubs/notifications/negotiate", StringComparison.OrdinalIgnoreCase));
+    if (readOnly && !HttpMethods.IsGet(context.Request.Method) && !HttpMethods.IsHead(context.Request.Method) &&
+        !HttpMethods.IsOptions(context.Request.Method) && !allowedPost)
+    {
+        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+        await context.Response.WriteAsJsonAsync(new { title = "Account is currently view-only.", status = 403 });
+        return;
+    }
+    await next();
+});
 app.UseAuthorization();
 app.MapControllers();
 app.MapHub<NotificationsHub>("/hubs/notifications").RequireAuthorization();

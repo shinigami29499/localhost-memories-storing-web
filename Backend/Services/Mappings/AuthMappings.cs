@@ -23,6 +23,7 @@ internal static class AuthMappings
         user.Status switch
         {
             AccountStatus.PendingApproval => "pending_approval",
+            AccountStatus.Rejected => "rejected",
             AccountStatus.Disabled => "disabled",
             _ => "active",
         },

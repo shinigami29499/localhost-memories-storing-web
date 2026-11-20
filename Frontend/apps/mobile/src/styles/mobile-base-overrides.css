@@ -124,6 +124,22 @@ textarea, select { min-height: 44px; }
   scroll-behavior: auto !important;
 }
 :root { --control-radius: 4px; }
+:root {
+  --mobile-lit-border:linear-gradient(to bottom, color-mix(in srgb, var(--mobile-surface) 65%, white), color-mix(in srgb, var(--mobile-surface) 80%, black) 100%);
+}
+
+/* Shared neutral controls blend their lit top edge into the side borders. */
+:root :is(.btn--secondary:not(:disabled):not([aria-pressed="true"]):not([aria-selected="true"]), .select-field__trigger:not(:disabled):not([data-disabled])) {
+  border:1px solid transparent;
+  background-image:linear-gradient(var(--mobile-surface), var(--mobile-surface)), var(--mobile-lit-border);
+  background-origin:border-box;
+  background-clip:padding-box, border-box;
+}
+@media (hover:hover) and (pointer:fine) {
+  :root :is(.btn--secondary:not(:disabled):not([aria-pressed="true"]):not([aria-selected="true"]), .select-field__trigger:not(:disabled):not([data-disabled])):hover { border-color:color-mix(in srgb, var(--mobile-surface) 50%, var(--mobile-text)); }
+}
+:root .select-field .select-field__trigger[data-popup-open]:not([data-disabled]),
+:root .select-field .select-field__trigger[data-popup-open]:not([data-disabled]):hover { border-color:var(--mobile-text); }
 
 :root :is(button, [role="button"], .btn, .sidebar__link, .admin-tab-highlight):not(.mapboxgl-ctrl-group button):not(.media-tile) {
   border-radius: var(--control-radius);

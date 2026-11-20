@@ -24,7 +24,6 @@ export function RegisterPage() {
     }
     setBusy(true);
     try {
-      // Accounts start pending approval; the admin approves before the first sign in.
       await authService.register(username.trim(), password);
       showToast.success(t("Account created successfully"));
       setCreated(true);
@@ -41,7 +40,7 @@ export function RegisterPage() {
           <section className="login__card" aria-labelledby="pending-title">
             <h1 id="pending-title" className="login__title">{t("Almost there")}<span className="brand__dot">.</span></h1>
             <p className="login__subtitle">
-              {t("Your account is created and waiting for an admin to approve it. Come back and sign in once you have been approved.")}
+              {t("Your account is awaiting approval. Sign in now to view content; changes require approval.")}
             </p>
             <Link className="btn btn--primary login__swap" to="/login">{t("Sign in")}</Link>
           </section>

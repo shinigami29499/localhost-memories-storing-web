@@ -1,5 +1,5 @@
 import { motion, type Variants } from "motion/react";
-import { getVariants, useAnimateIconContext, IconWrapper, type IconProps } from "@animate-ui/react/icons";
+import { getVariants, useAnimateIconContext, IconWrapper, type IconProps } from "./icon";
 
 type CheckCheckProps = IconProps<keyof typeof animations>;
 

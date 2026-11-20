@@ -57,7 +57,7 @@ export function RegisterPage() {
     </dialog>
     {created ? <section className="mobile-register__content" aria-labelledby="pending-title">
       <h1 id="pending-title">{t("Almost there")}</h1>
-      <p>{t("Your account is created and waiting for an admin to approve it. Come back and sign in once you have been approved.")}</p>
+      <p>{t("Your account is awaiting approval. Sign in now to view content; changes require approval.")}</p>
       <Link className="mobile-register__primary" to="/login">{t("Sign in")}</Link>
     </section> : <div className="mobile-register__content">
       <h1 id="register-title">{t("Create account")}</h1>

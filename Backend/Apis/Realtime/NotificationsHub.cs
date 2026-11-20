@@ -21,7 +21,8 @@ public sealed class NotificationsHub(IUserService userService) : Hub
             await Groups.AddToGroupAsync(Context.ConnectionId, UploadOwnerGroup(userId));
         }
         await Groups.AddToGroupAsync(Context.ConnectionId, PresenceGroup);
-        if (Context.User?.FindFirstValue(Constants.Auth.RoleClaim) is Constants.Roles.Admin or Constants.Roles.SuperAdmin)
+        if (Context.User?.FindFirstValue(Constants.Auth.AccountStatusClaim) == nameof(Domains.Enums.AccountStatus.Active) &&
+            Context.User?.FindFirstValue(Constants.Auth.RoleClaim) is Constants.Roles.Admin or Constants.Roles.SuperAdmin)
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, UploadAdminsGroup);
             await Groups.AddToGroupAsync(Context.ConnectionId, UserAdminsGroup);

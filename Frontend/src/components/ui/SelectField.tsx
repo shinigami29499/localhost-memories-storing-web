@@ -2,6 +2,7 @@ import { useId, type RefObject } from "react";
 import { ScrollFade } from "@animate-ui/react/primitives/effects/scroll-fade";
 import { useAnimationStore } from "../../store/animationStore";
 import { Select } from "@animate-ui/react/primitives/base-ui/select";
+import { Select as BaseSelect } from "@base-ui/react/select";
 import { ChevronDownIcon } from "../animate-ui/icons/chevron-down";
 import "./select-field.css";
 
@@ -13,14 +14,16 @@ interface Props {
   options: SelectOption[];
   disabled?: boolean;
   scrollFade?: boolean;
+  disableItemAnimation?: boolean;
   container?: RefObject<HTMLElement | null>;
   onChange: (value: string) => void;
 }
 
-export function SelectField({ label, value, options, disabled, container, scrollFade = false, onChange }: Props) {
+export function SelectField({ label, value, options, disabled, container, scrollFade = false, disableItemAnimation = false, onChange }: Props) {
   const animationsEnabled = useAnimationStore((state) => state.enabled);
   const id = useId();
   const labelId = `${id}-label`;
+  const Popup = disableItemAnimation ? BaseSelect.Popup : Select.Popup;
   return (
     <div className="select-field">
       <span id={labelId} className="select-field__label">{label}</span>
@@ -33,7 +36,7 @@ export function SelectField({ label, value, options, disabled, container, scroll
         </Select.Trigger>
         <Select.Portal container={container}>
           <Select.Positioner className="select-field__positioner" side="bottom" align="start" sideOffset={4} alignItemWithTrigger={false}>
-            <Select.Popup className="select-field__popup">
+            <Popup className="select-field__popup">
               <Select.List className="select-field__list">
                 {options.map((option) => (
                   <Select.Item key={option.value} value={option.value} className="select-field__item">
@@ -41,7 +44,7 @@ export function SelectField({ label, value, options, disabled, container, scroll
                   </Select.Item>
                 ))}
               </Select.List>
-            </Select.Popup>
+            </Popup>
           </Select.Positioner>
         </Select.Portal>
       </Select.Root>

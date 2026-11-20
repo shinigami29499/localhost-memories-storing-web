@@ -12,6 +12,7 @@ import { PresenceRuntime } from "@/features/users/components/PresenceRuntime";
 import { useLocale } from "@/context/LocaleContext";
 import { Spinner } from "@/components/ui";
 import { PageActionBarProvider } from "@/components/layout/PageActionBar";
+import { ApprovalNotice } from "@/features/users/components/ApprovalNotice";
 
 export const MOBILE_QUERY = "(max-width: 767px)";
 
@@ -49,6 +50,7 @@ export function AuthenticatedLayout() {
       <a className="skip-link" href="#main-content">{t("Skip to content")}</a>
       {!isMobile && <Sidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed((value) => !value)} />}
       <div className="app-shell__main">
+        <ApprovalNotice />
         <PresenceRuntime />
         <UploadRuntime />
         <header className="app-topbar">

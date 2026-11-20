@@ -41,6 +41,7 @@ function writePresenceCache(presence: Map<string, boolean>): void {
 export function usePresenceRuntime() {
   const authenticated = useAuthStore((state) => Boolean(state.accessToken));
   const accountId = useAuthStore((state) => state.user?.id);
+  const accountStatus = useAuthStore((state) => state.user?.status);
   const queryClient = useQueryClient();
   const [accountChange, setAccountChange] = useState<"disabled" | "roleUpdated" | null>(null);
   const { dialogProps, close, openDialog } = useCustomDialog(() => setAccountChange(null), { dismissible: false, defaultOpen: false });
@@ -173,6 +174,7 @@ export function usePresenceRuntime() {
         });
         connection.on("AccountChanged", (reason: string) => {
           if (reason === "disabled" || reason === "roleUpdated") setAccountChange(reason);
+          if (reason === "approvalUpdated") void userService.profile().then((user) => useAuthStore.getState().updateUser(user)).catch(() => undefined);
         });
         connection.on("PlacesChanged", (event: { actorUserId: string }) => {
           const userId = useAuthStore.getState().user?.id;
@@ -216,7 +218,7 @@ export function usePresenceRuntime() {
       useUserPresenceStore.getState().clear();
       transport.stop();
     };
-  }, [queryClient, authenticated, accountId]);
+  }, [queryClient, authenticated, accountId, accountStatus]);
 
   const reload = () => close(() => {
     useAuthStore.getState().clear();

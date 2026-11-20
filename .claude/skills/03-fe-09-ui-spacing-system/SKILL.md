@@ -38,3 +38,7 @@ Read only the references relevant to the task:
 - No uniform 0.5rem gaps everywhere, unjustified oversized inner gaps, cramped cards or forms, random pixel margins, or fixed large gaps used for alignment.
 - Button proportions are optically balanced rather than uniformly equal in both directions. Peer controls align without clipping; icons remain legible and grouped correctly.
 - Check narrow and wide layouts, wrapping, overflow, readable grouping, and interactive target sizes. Avoid over-adjusting a clear layout.
+
+## Icons inside containers
+
+Use the shared React IconButton for interactive icon-only controls. Badge: 24px visual container, 16px icon, 4px padding. Button: 40px container, 20px icon, 2px stroke. FAB: 56px circular container, 24px icon. Support circles and rounded squares where appropriate. Center icons optically and scale stroke weight with icon size. A centered 60% icon leaves 20% on each side; use at least 10% safe padding as a general guide, subject to the explicit sizes above. Expand every interactive visual box below 48px to a 48px hit target without changing its visual size. Keep targets from overlapping or clipping, and provide accessible labels.

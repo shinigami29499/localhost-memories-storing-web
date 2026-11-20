@@ -42,6 +42,14 @@ export const userService = {
     return api<AuthUser>(`/api/users/${userId}/approve`, { method: "POST" });
   },
 
+  reject(userId: string): Promise<AuthUser> {
+    return api<AuthUser>(`/api/users/${userId}/reject`, { method: "POST" });
+  },
+
+  requestApproval(): Promise<AuthUser> {
+    return api<AuthUser>("/api/users/me/request-approval", { method: "POST" });
+  },
+
   disable(userId: string): Promise<AuthUser> {
     return api<AuthUser>(`/api/users/${userId}/disable`, { method: "POST" });
   },

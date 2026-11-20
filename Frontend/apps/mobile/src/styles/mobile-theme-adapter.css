@@ -19,4 +19,4 @@
   --info-subtle: color-mix(in srgb, var(--mobile-surface) 90%, var(--mobile-info));
   --focus-ring: var(--mobile-focus); --radius: 14px; --control-radius: 10px; --page-gutter: 20px;
 }
-body { background: var(--mobile-bg); color: var(--mobile-text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+body { background: var(--mobile-bg); color: var(--mobile-text); font-family: "Prompt", sans-serif; }

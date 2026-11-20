@@ -18,9 +18,9 @@ export function useUsersPage(forceMobile = false) {
   const viewportMobile = useMediaQuery("(max-width: 767px)");
   const isMobile = forceMobile || viewportMobile;
   const me = useAuthStore((s) => s.user);
-  const isAdmin = ["admin", "superadmin"].includes(me?.role?.toLowerCase() ?? "");
+  const isAdmin = me?.status === "active" && ["admin", "superadmin"].includes(me.role.toLowerCase());
   const queryClient = useQueryClient();
-  const [action, setAction] = useState<{ type: "approve" | "activate" | "disable" | "delete" | "role"; user: AuthUser } | null>(null);
+  const [action, setAction] = useState<{ type: "approve" | "reject" | "activate" | "disable" | "delete" | "role"; user: AuthUser } | null>(null);
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const filter: UserFilter = forceMobile ? "all" : pathname.endsWith("/pending") ? "pending_approval" : pathname.endsWith("/blocked") && isAdmin ? "blocked" : "all";
@@ -78,6 +78,12 @@ export function useUsersPage(forceMobile = false) {
     onError: (err) => showToast.error(err instanceof ApiError ? err.message : t("Could not delete the user.")),
   });
 
+  const reject = useMutation({
+    mutationFn: (userId: string) => userService.reject(userId),
+    onSuccess: refreshUsers,
+    onError: (err) => showToast.error(err instanceof ApiError ? err.message : t("Could not reject the user.")),
+  });
+
   const disable = useMutation({
     mutationFn: (userId: string) => userService.disable(userId),
     onSuccess: refreshUsers,
@@ -110,7 +116,7 @@ export function useUsersPage(forceMobile = false) {
       || timestamp(b.createdAt) - timestamp(a.createdAt))
     : matchedUsers;
 
-  return { language, t, isMobile, me, isAdmin, action, setAction, navigate, filter, search, setSearch, role, setRole, roles, setRoles, status, setStatus, statuses, setStatuses, joinedFrom, setJoinedFrom, joinedTo, setJoinedTo, useList, sentinel, now, offlineUsers, users, activeQuery, approve, remove, disable, activate, updateRole, pagedUsers };
+  return { language, t, isMobile, me, isAdmin, action, setAction, navigate, filter, search, setSearch, role, setRole, roles, setRoles, status, setStatus, statuses, setStatuses, joinedFrom, setJoinedFrom, joinedTo, setJoinedTo, useList, sentinel, now, offlineUsers, users, activeQuery, approve, reject, remove, disable, activate, updateRole, pagedUsers };
 }
 
 export function formatLastActive(value: string | null | undefined, language: "en" | "vi", now: number): string {

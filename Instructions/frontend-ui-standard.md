@@ -8,6 +8,20 @@ Write a short design contract in the feature PR or task notes: user goal, screen
 
 ## Screen rules
 
+### Lighting and depth
+
+Apply this lighting rule globally to raised controls. Use an overhead light: keep borders close to the surface color, with a brighter top edge and darker bottom edge. Fade linearly across the full height, so the side midpoint is halfway between the top and bottom. Apply the same rule to circular controls. Keep border thickness consistent. Use black shadows in both themes, with a shorter shadow above and a longer shadow below. Keep shadows and highlights subtle and preserve contrast and selected or destructive states.
+
+For rounded rectangular controls, blend the top highlight smoothly into the side borders around the corners, as on circular controls. Avoid abrupt color joins.
+
+On hover-capable devices, highlight the entire interactive border, including the top: dark in light mode and light in dark mode. Mix the surface and full selected highlight equally for the hover border. Selected controls and open comboboxes retain the full highlight while hovered; the dropdown surface does not inherit it. Use a subtle top-to-bottom surface gradient where appropriate. On press, gradually remove the shadow and strengthen the border highlight. Text inputs use a clear highlighted border for focus without a focus gradient. Preserve visible keyboard focus. Respect the interface motion setting and reduced-motion preference; remove optional transitions when either disables motion.
+
+Apply the same border thickness, hover strength, pressed highlight, shadow behavior, and motion preferences to circular and non-circular controls.
+
+For colored controls, derive hover and press highlights from the control's own surface and semantic foreground or accent. Preserve its semantic palette rather than applying a neutral highlight.
+
+For inset selection tiles, use a longer inset shadow at the top and a shorter one at the bottom while unselected. Do not add a light top border to inset tiles. When selected, transition to an outer shadow with the shorter shadow above and the longer shadow below. Match the corresponding shadow lengths, blur, and opacity so inset depth and raised height feel equal. Preserve a distinct selection indicator and respect motion preferences.
+
 ### Box corners and padding
 
 - Use a 0px outer radius and a 0px inner radius by default: `--radius` and `--radius-inner`. Derive the inner radius as half the outer radius so the outer radius always equals twice the inner radius.

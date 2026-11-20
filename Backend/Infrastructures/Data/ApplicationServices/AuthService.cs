@@ -57,15 +57,10 @@ public class AuthService(
             throw new UnauthorizedAccessException("Invalid username or password.");
         }
 
-        if (user.Status == AccountStatus.PendingApproval)
-            throw new ForbiddenException("Account is pending admin approval.");
-        if (user.Status == AccountStatus.Disabled)
-            throw new ForbiddenException("Account is disabled.");
-
         await using var tx = await _unitOfWork.BeginTransactionAsync(cancellationToken);
         user = await _repository.LockUserAsync(user.Id, cancellationToken)
             ?? throw new UnauthorizedAccessException("Invalid username or password.");
-        if (user.Status != AccountStatus.Active)
+        if (user.Status is not (AccountStatus.Active or AccountStatus.PendingApproval or AccountStatus.Rejected or AccountStatus.Disabled))
             throw new ForbiddenException("Account is not active.");
         var now = DateTime.UtcNow;
         var activeTokens = await _repository.FindActiveRefreshTokensAsync(user.Id, now, cancellationToken);
@@ -94,7 +89,7 @@ public class AuthService(
         await _repository.ReloadTokenAsync(token, cancellationToken);
         if (user is not null && (token.SessionId is null || token.SessionId != user.SessionId))
             throw new SessionReplacedException();
-        if (user is null || user.Status != AccountStatus.Active || token.SessionId is null)
+        if (user is null || user.Status is not (AccountStatus.Active or AccountStatus.PendingApproval or AccountStatus.Rejected or AccountStatus.Disabled) || token.SessionId is null)
             throw new UnauthorizedAccessException("Invalid refresh token.");
 
         var utcNow = DateTime.UtcNow;

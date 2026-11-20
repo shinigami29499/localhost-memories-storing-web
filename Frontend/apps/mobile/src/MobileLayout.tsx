@@ -12,6 +12,7 @@ import { MobileNotificationBell } from "./MobileNotificationBell";
 import { PageActionBarProvider } from "./layout/MobilePageActionBar";
 import { Spinner } from "@/components/ui";
 import { MobileThemeSelector } from "./theme/MobileThemeSelector";
+import { ApprovalNotice } from "@/features/users/components/ApprovalNotice";
 
 export function AuthenticatedLayout() {
   const { t } = useLocale();
@@ -51,6 +52,7 @@ export function AuthenticatedLayout() {
     <a className="skip-link" href="#main-content">{t("Skip to content")}</a>
     <MobilePresenceRuntime /><UploadRuntime />
     <div className="app-shell__main">
+      <ApprovalNotice />
       {!location.pathname.startsWith("/users") && <header className="mobile-header"><span role={location.pathname !== "/" && !location.pathname.startsWith("/gallery/album/") ? "heading" : undefined} aria-level={location.pathname !== "/" && !location.pathname.startsWith("/gallery/album/") ? 1 : undefined}>{t(title)}</span><div id="page-header-actions" /><MobileNotificationBell /></header>}
       <PageActionBarProvider><div id="main-content" tabIndex={-1} className="app-shell__content"><Suspense fallback={<Spinner page />}><Outlet /></Suspense></div></PageActionBarProvider>
     </div>

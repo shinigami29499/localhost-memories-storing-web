@@ -14,6 +14,7 @@ public static class Constants
         public const string SessionClaim = "session_id";
         public const string UsernameClaim = "username";
         public const string RoleClaim = "role";
+        public const string AccountStatusClaim = "account_status";
         public const string AdminPolicy = "AdminOnly";
 
         /// <summary>Reasons recorded on refresh-token revocation.</summary>

@@ -13,3 +13,4 @@ export { Popover, PopoverContent } from "./Popover";
 export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "./Tooltip";
 
 export { HeaderFilters } from "./HeaderFilters";
+export { IconButton } from "./IconButton";

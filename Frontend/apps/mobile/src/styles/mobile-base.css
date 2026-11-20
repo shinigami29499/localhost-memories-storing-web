@@ -119,7 +119,7 @@ body,
 body {
   background-color: var(--bg);
   color: var(--text);
-  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-family: "Prompt", sans-serif;
   font-size: 1rem;
   line-height: 1.5;
 }

@@ -107,6 +107,26 @@ public class UsersController(
     public async Task<ActionResult<UserResponse>> ApproveAsync(Guid id, CancellationToken cancellationToken)
     {
         var user = await _userService.ApproveAsync(id, _currentUser.RequireUserId(), cancellationToken);
+        await NotifyAccountChangedAsync(id, "approvalUpdated");
+        await NotifyUsersChangedAsync(id);
+        return Ok(user);
+    }
+
+    [RequireAdmin]
+    [HttpPost("{id:guid}/reject")]
+    public async Task<ActionResult<UserResponse>> RejectAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var user = await _userService.RejectAsync(id, _currentUser.RequireUserId(), cancellationToken);
+        await NotifyAccountChangedAsync(id, "approvalUpdated");
+        await NotifyUsersChangedAsync(id);
+        return Ok(user);
+    }
+
+    [HttpPost("me/request-approval")]
+    public async Task<ActionResult<UserResponse>> RequestApprovalAsync(CancellationToken cancellationToken)
+    {
+        var id = _currentUser.RequireUserId();
+        var user = await _userService.RequestApprovalAsync(id, cancellationToken);
         await NotifyUsersChangedAsync(id);
         return Ok(user);
     }
@@ -116,7 +136,7 @@ public class UsersController(
     public async Task<ActionResult<UserResponse>> DisableAsync(Guid id, CancellationToken cancellationToken)
     {
         var user = await _userService.DisableAsync(id, _currentUser.RequireUserId(), cancellationToken);
-        await NotifyAccountChangedAsync(id, "disabled");
+        await NotifyAccountChangedAsync(id, "approvalUpdated");
         await NotifyUsersChangedAsync(id);
         return Ok(user);
     }
@@ -126,6 +146,7 @@ public class UsersController(
     public async Task<ActionResult<UserResponse>> ActivateAsync(Guid id, CancellationToken cancellationToken)
     {
         var user = await _userService.ActivateAsync(id, _currentUser.RequireUserId(), cancellationToken);
+        await NotifyAccountChangedAsync(id, "approvalUpdated");
         await NotifyUsersChangedAsync(id);
         return Ok(user);
     }

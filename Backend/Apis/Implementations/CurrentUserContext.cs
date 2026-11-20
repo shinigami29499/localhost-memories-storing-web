@@ -16,6 +16,7 @@ public class CurrentUserContext(IHttpContextAccessor httpContextAccessor) : ICur
     public string? Username => Principal?.FindFirstValue("username");
 
     public bool IsAdmin =>
+        Principal?.FindFirstValue(Constants.Auth.AccountStatusClaim) == nameof(Domains.Enums.AccountStatus.Active) &&
         Principal?.FindFirstValue("role") is Constants.Roles.Admin or Constants.Roles.SuperAdmin;
 
     public Guid RequireUserId() =>

@@ -9,6 +9,10 @@ Use this skill as the primary project guidance for UI color decisions. Apply it 
 
 Build a small, coherent palette with perceptually balanced shades, clear elevation, subtle lighting, and semantic tokens. Stop when the result is cohesive, functional, and accessible. Work with the existing framework and theme system; do not redesign unrelated UI or replace working conventions.
 
+## Hover states
+
+- Keep hover interior fills flat. Do not add gradient color or gradient overlays inside controls, cards, or other interactive surfaces on hover. Gradient borders may remain.
+
 ## Workflow
 
 1. Inspect existing theme, CSS conventions, components, and both themes. Identify and reuse working neutral, primary, and semantic colors.
