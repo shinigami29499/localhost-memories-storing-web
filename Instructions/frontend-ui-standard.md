@@ -10,17 +10,23 @@ Write a short design contract in the feature PR or task notes: user goal, screen
 
 ### Lighting and depth
 
-Apply this lighting rule globally to raised controls. Use an overhead light: keep borders close to the surface color, with a brighter top edge and darker bottom edge. Fade linearly across the full height, so the side midpoint is halfway between the top and bottom. Apply the same rule to circular controls. Keep border thickness consistent. Use black shadows in both themes, with a shorter shadow above and a longer shadow below. Keep shadows and highlights subtle and preserve contrast and selected or destructive states.
+Use one even border on raised boxes that need an outline. In dark mode, make it lighter than the box fill. Use soft exterior shadows in both themes, with a shorter shadow above and a slightly longer shadow below. Keep the same border treatment on circular controls.
 
-For rounded rectangular controls, blend the top highlight smoothly into the side borders around the corners, as on circular controls. Avoid abrupt color joins.
+For controls on the same layer as the page, distinguish the control fill from the page background. Keep the default treatment borderless and flat. The mobile Home notification and menu buttons use this treatment.
 
-On hover-capable devices, highlight the entire interactive border, including the top: dark in light mode and light in dark mode. Mix the surface and full selected highlight equally for the hover border. Selected controls and open comboboxes retain the full highlight while hovered; the dropdown surface does not inherit it. Use a subtle top-to-bottom surface gradient where appropriate. On press, gradually remove the shadow and strengthen the border highlight. Text inputs use a clear highlighted border for focus without a focus gradient. Preserve visible keyboard focus. Respect the interface motion setting and reduced-motion preference; remove optional transitions when either disables motion.
+On hover-capable devices, highlight the entire existing border evenly. Use a darker highlight in light mode and a lighter highlight in dark mode. For flat controls, change the fill instead. Selected controls and open comboboxes retain the full highlight while hovered. On press, reduce the exterior shadow on controls that have one. Text inputs use a clear highlighted border for focus. Preserve visible keyboard focus and respect the interface motion setting and reduced-motion preference.
 
 Apply the same border thickness, hover strength, pressed highlight, shadow behavior, and motion preferences to circular and non-circular controls.
 
 For colored controls, derive hover and press highlights from the control's own surface and semantic foreground or accent. Preserve its semantic palette rather than applying a neutral highlight.
 
-For inset selection tiles, use a longer inset shadow at the top and a shorter one at the bottom while unselected. Do not add a light top border to inset tiles. When selected, transition to an outer shadow with the shorter shadow above and the longer shadow below. Match the corresponding shadow lengths, blur, and opacity so inset depth and raised height feel equal. Preserve a distinct selection indicator and respect motion preferences.
+For inset selection tiles, keep a longer, soft dark inset shadow at the top and a shorter, soft light inset shadow at the bottom while unselected. Use the same length and blur as the corresponding exterior shadows. When selected, transition to the exterior pair with the shorter shadow above and the longer shadow below. Preserve a distinct selection indicator and respect motion preferences.
+
+### Background and typography
+
+Use the mobile theme's default page background in light and dark modes. Mobile Home is the reference: off-white `#f4f3f2` in light mode and charcoal `#272727` in dark mode. Use clear text and icon contrast across page, flat control, and raised navigation surfaces. Keep the username and active navigation label stronger than role and inactive labels.
+
+Use a 16px (`1rem`) base for new UI. Home uses a bold 16px username, a 12px supporting role, and 11px labels in its compact bottom navigation. Apply those sizes to equivalent roles. Keep existing type sizes as authored and change or reduce them only when the user requests it.
 
 ### Box corners and padding
 
@@ -78,7 +84,7 @@ For motion changes, use the existing frontend build and browser-driven checks wh
 
 ## Required states and review
 
-- On Users at widths up to 767px, keep member identity, role, status, and moderation buttons on one row. Do not expand or highlight rows on click, hover, or focus; hide Last active and Joined dates on mobile. Keep visible borders on neutral action buttons, and preserve button focus indicators, desktop dates, and moderation confirmations.
+- On Users at widths up to 767px, keep member identity, role, status, and moderation buttons on one row. Do not expand or highlight rows on click, hover, or focus; hide Last active and Joined dates on mobile. Use flat, borderless fills for mobile directory row actions. Preserve button focus indicators, desktop dates, and moderation confirmations.
 - Design loading, empty, error, populated, pending, disabled, and success states where applicable. Empty states should name the next available action and link to it when useful.
 - Check phone (390px), desktop (1440px), keyboard focus, long translated text, and reduced motion. Verify no horizontal overflow or hidden primary action.
 - Check confirmation copy and focus return, visible input labels, action names, and the result of each click. Use the existing localized `t()` copy and shared toast/error patterns.

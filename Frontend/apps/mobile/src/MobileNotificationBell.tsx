@@ -1,10 +1,12 @@
-import { Link } from "react-router-dom";
+import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { Bell } from "@/components/animate-ui/icons/bell";
 import { CheckCheckIcon } from "@/components/animate-ui/icons/check-check";
 import { formatTimestamp } from "@/utils/media";
-import { LanguageToggleButton } from "@/components/ui/LanguageToggleButton";
+import { IconButton } from "@/components/ui";
 import { useNotificationBell } from "@/features/notifications/useNotificationBell";
+import { MobilePageLink, useOpenMobilePage } from "./layout/mobilePageNavigation";
 import "./mobile-notifications.css";
 
 function emphasizeNames(message: string, names: string[]) {
@@ -15,16 +17,19 @@ function emphasizeNames(message: string, names: string[]) {
 }
 
 export function MobileNotificationBell() {
-  const { language, t, open, setOpen, containerRef, triggerRef, notifications, unreadCount, describe, markAllRead, openNotification } = useNotificationBell();
+  const location = useLocation();
+  const openPage = useOpenMobilePage();
+  const { language, t, open, setOpen, containerRef, triggerRef, notifications, unreadCount, describe, markAllRead, openNotification } = useNotificationBell(() => openPage("/gallery"));
+
+  useEffect(() => { setOpen(false); }, [location.key, setOpen]);
 
   return (
     <div ref={containerRef} className="mobile-notification">
-      <LanguageToggleButton />
       <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
-        <button
+        <IconButton
           ref={triggerRef}
           type="button"
-          className="mobile-notification__trigger"
+          className="mobile-flat-icon-button mobile-notification__trigger"
           aria-expanded={open}
           aria-controls="notification-panel"
           aria-label={unreadCount > 0 ? t("Notifications, {count} unread", { count: unreadCount }) : t("Notifications")}
@@ -37,7 +42,7 @@ export function MobileNotificationBell() {
               {unreadCount > 99 ? "99+" : unreadCount}
             </span>
           ) : null}
-        </button>
+        </IconButton>
       </AnimateIcon>
       {open ? (
         <section
@@ -61,7 +66,7 @@ export function MobileNotificationBell() {
                 const { names, message } = describe(notification);
                 return (
                 <li key={notification.kind === "album" ? notification.eventId : notification.id}>
-                  <Link
+                  <MobilePageLink
                     to={notification.kind === "album" ? `/gallery/album/${notification.albumId}` : "/gallery"}
                     className={`mobile-notification__item${notification.readAt ? "" : " mobile-notification__item--unread"}`}
                     onClick={(event) => openNotification(event, notification)}
@@ -70,7 +75,7 @@ export function MobileNotificationBell() {
                     <time dateTime={notification.createdAt}>
                       {formatTimestamp(notification.createdAt, language)}
                     </time>
-                  </Link>
+                  </MobilePageLink>
                 </li>
               ); })}
             </ul>

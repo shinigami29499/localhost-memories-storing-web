@@ -57,7 +57,7 @@ For a system dark fallback, put the same dark declarations in `@media (prefers-c
 ## Component use
 
 - Page: `--bg-base`, primary text for headings and important content; secondary text for metadata and descriptions. Use near-white and near-black rather than insisting on extremes. Keep secondary text readable.
-- Cards and panels: `--bg-surface`, subtle/default border, optional gradient, top highlight and shadow. Raised elements and dialogs/popovers use `--bg-raised`, appropriate border and elevation; distinguish overlays from the page.
+- Cards and panels use `--bg-surface`; raised elements use `--bg-raised`. Use an even border where needed and soft exterior shadows for elevation. Keep dark-theme borders lighter than their fill. Same-layer controls use a distinct flat fill.
 - Borders are separation, highlights are lighting: keep tokens independent. Dark borders are slightly lighter than adjacent surfaces; light borders are subtle. Highlight the top edge without a bright outline. Focus indicators must stand apart from both.
 - Gradients: dark surfaces may use a slightly lighter top and darker bottom, as in `background: var(--surface-gradient)`. Increase the difference subtly on hover. Define theme-appropriate light gradients; never reuse fixed dark gradient colors unchanged. Adjust direction and strength to fit the interface.
 - Shadows: combine a darker short shadow and lighter long shadow with alpha, as in `--shadow-card`. Increase strength for higher elevation only. Dark themes often rely more on surface lightness and borders; light themes benefit more from shadows. Apply consistently from base to surface to raised to overlay.

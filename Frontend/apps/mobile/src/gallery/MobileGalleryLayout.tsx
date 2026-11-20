@@ -35,7 +35,7 @@ export function MobileGalleryLayout() {
     </div>
     <div className="gallery-layout__content" data-push-page-content>
       <PushTransition transitionKey={active} />
-      <Suspense key={active} fallback={<Spinner page />}><Outlet /></Suspense>
+      <Suspense key={active} fallback={<div className="mobile-page-suspense" data-mobile-page-pending><Spinner page /></div>}><Outlet /></Suspense>
     </div>
   </div>;
 }

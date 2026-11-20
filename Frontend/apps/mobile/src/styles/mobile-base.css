@@ -69,9 +69,9 @@
   --dialog-danger-solid: var(--error-solid);
   --notification-icon: #6A3F36;
   --focus-ring: var(--primary);
-  --shadow-sm: inset 0 1px 0 oklch(1 0 0 / 0.045), 0 2px 4px oklch(0 0 0 / 0.20);
-  --shadow-md: inset 0 1px 0 oklch(1 0 0 / 0.055), 0 6px 16px oklch(0 0 0 / 0.26);
-  --shadow-lg: inset 0 1px 0 oklch(1 0 0 / 0.06), 0 12px 32px oklch(0 0 0 / 0.36);
+  --shadow-sm: 0 -1px 4px rgb(0 0 0 / 0.04), 0 3px 8px rgb(0 0 0 / 0.10);
+  --shadow-md: var(--mobile-shadow);
+  --shadow-lg: 0 -2px 10px rgb(0 0 0 / 0.08), 0 7px 18px rgb(0 0 0 / 0.18);
   --shadow-popover: var(--shadow-lg);
   --overlay-backdrop: oklch(0 0 0 / 0.72);
   --radius: 0px;

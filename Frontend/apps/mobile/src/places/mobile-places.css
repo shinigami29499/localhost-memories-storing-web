@@ -67,9 +67,6 @@
   .page-action-bar .place__search-bar {
     border: 2.25px solid var(--surface);
   }
-  .app-shell__main {
-    z-index: 0;
-  }
   .page-action-bar__item:has(> .place__action-bar) {
     width: auto !important;
     opacity: 1 !important;
@@ -245,13 +242,13 @@
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: var(--shadow-space) var(--place-gutter) 88px;
+  padding: var(--shadow-space) var(--place-gutter) calc(88px + var(--mobile-nav-clearance));
 }
 
 .place:not(.place--saved) .place__view-content {
   display: flex;
   flex-direction: column;
-  padding-bottom: var(--page-padding-bottom);
+  padding-bottom: calc(var(--page-padding-bottom) + var(--mobile-nav-clearance));
 }
 
 .place:not(.place--saved) .place__workspace {
@@ -261,7 +258,7 @@
 
 @media (max-width: 767px) {
   .place:not(.place--saved) .place__view-content {
-    padding-bottom: var(--page-padding-bottom);
+    padding-bottom: calc(var(--page-padding-bottom) + var(--mobile-nav-clearance));
   }
 }
 
@@ -633,7 +630,7 @@
 }
 
 @media (min-width: 768px) {
-  .place__view-content { padding-bottom: var(--page-padding-bottom); }
+  .place__view-content { padding-bottom: calc(var(--page-padding-bottom) + var(--mobile-nav-clearance)); }
 
   .app-topbar__actions .place__search-bar--header {
     bottom: auto;

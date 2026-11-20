@@ -4,12 +4,12 @@ Adapt these fragments to existing components, semantic HTML, radius, spacing, ty
 
 ## Navigation and active tab
 
-Use a surface container above the base and a raised selected tab; other items stay flat. A small selected shadow and top highlight are optional; avoid gradients or elevating every item. Light mode can use white on gray; dark mode needs distinct surface brightness. Use `aria-current="page"` for navigation links or proper tab roles and `aria-selected` for a tab widget. Add a non-color cue and visible focus.
+Elevate the floating navigation container with a uniform border and soft shadow. Distinguish the selected tab with a flat fill and stronger text. Use `aria-current="page"` for navigation links or proper tab roles and `aria-selected` for a tab widget. Keep focus visible.
 
 ```css
-.nav { background: var(--bg-surface); border-radius: var(--radius-md); padding: .5rem; }
+.nav { background: var(--bg-surface); border: 1px solid var(--border-surface); border-radius: var(--radius-md); padding: .5rem; box-shadow: var(--shadow-md); }
 .nav [aria-current="page"], .nav [role="tab"][aria-selected="true"] {
-  background: var(--bg-raised); color: var(--text-strong); box-shadow: var(--shadow-sm);
+  background: var(--bg-base); color: var(--text-strong);
   font-weight: 700; text-decoration: underline; text-underline-offset: .25em;
 }
 .nav :focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
@@ -17,7 +17,7 @@ Use a surface container above the base and a raised selected tab; other items st
 
 ## Profile and hover cards
 
-Use a surface with small elevation for a profile or important card; avoid a shadow on every low-priority card. In light mode shadow may carry the cue; in dark mode surface contrast and top highlight matter more. A subtle gradient is optional. Hover elevation applies only to interactive cards and must not be their only affordance. Avoid motion for reduced-motion preferences.
+Use a surface with small elevation for a profile or important card. Use a lighter uniform border in dark mode when the card needs an outline. Hover elevation applies only to interactive cards. Keep an obvious affordance at rest and respect reduced motion.
 
 ```css
 .profile-card, .hover-card { background: var(--bg-surface); border-radius: var(--radius-md); padding: 1rem; box-shadow: var(--shadow-sm); }
@@ -29,11 +29,12 @@ Use a surface with small elevation for a profile or important card; avoid a shad
 
 ## Dropdown or important control
 
-Use raised surface, a subtle vertical gradient, top highlight and small shadow when a primary control benefits from elevation. Use medium for its floating menu when warranted. In light mode keep the gradient barely visible; in dark mode tune highlight and separation. Avoid strong shadows on every input. Keep native or correctly implemented control semantics, affordance, and focus.
+When a primary control benefits from elevation, use a raised surface, uniform border, and soft shadow. Use medium elevation for its floating menu when warranted. Keep native or correctly implemented control semantics, affordance, and focus.
 
 ```css
 .important-control {
-  background: linear-gradient(180deg, var(--bg-highlight), var(--bg-raised));
+  background: var(--bg-raised);
+  border: 1px solid var(--border-surface);
   box-shadow: var(--shadow-sm); border-radius: var(--radius-md);
 }
 .important-control:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
@@ -41,7 +42,7 @@ Use raised surface, a subtle vertical gradient, top highlight and small shadow w
 
 ## Radio option cards
 
-Group related native radios in a fieldset. Provide padded clickable labels, clear label hierarchy and optional meaningful icons. Surface is neutral; selected uses raised plus small shadow and top highlight. In dark mode tune brightness; in light mode use white against a slightly darker container. Avoid replacing a visible radio with color or shadow alone, and avoid this larger treatment for dense, simple choices.
+Group related native radios in a fieldset. Provide padded clickable labels, clear label hierarchy, and optional meaningful icons. Use a neutral surface and a soft exterior shadow for raised selection tiles. Retain the visible radio indicator.
 
 ```css
 .option-group { background: var(--bg-surface); padding: 1rem; border-radius: var(--radius-md); }
@@ -54,7 +55,7 @@ Bind `data-selected` to the native radio's checked state; retain its indicator a
 
 ## Dashboard: KPI, graph, and table
 
-Use a slightly darker page base, bright raised KPI cards with small or medium shadows, a mid-level surface graph with small or no shadow, and a lower-emphasis recessed table with inset shadow. The sidebar and other regions should follow information priority, not all receive equal weight. A subtle top highlight may help raised panels; gradients are optional. In dark mode use measured brightness separation; in light mode use a restrained shadow. Avoid making every card brightest or making the table look disabled. Remove redundant borders only when boundaries remain clear; support hierarchy with size, placement, spacing, and type.
+Use a neutral page base, raised KPI cards with soft shadows, a graph surface with lower elevation, and a recessed table with inset shadows. Establish hierarchy through surface contrast, size, placement, spacing, and type.
 
 ```css
 .dashboard { background: var(--bg-base); }
@@ -66,11 +67,11 @@ Use a slightly darker page base, bright raised KPI cards with small or medium sh
 
 ## Progress
 
-Use a recessed track and a raised primary fill with a subtle top highlight; no exterior shadow or gradient is needed. Tune track separation and highlight in both themes. Avoid depth effects that hide the fill edge or imply a disabled state. Use native `<progress>` or a correctly labelled progressbar with current, minimum, and maximum values; keep the visual width in sync with the actual value.
+Use a recessed track and a solid primary fill. Tune their separation in both themes. Use native `<progress>` or a correctly labelled progressbar with current, minimum, and maximum values. Keep the visual width in sync with the actual value.
 
 ```css
 .progress-track { background: var(--bg-recessed); box-shadow: var(--shadow-inset); overflow: hidden; }
-.progress-fill { width: var(--progress-percent); background: var(--primary); box-shadow: inset 0 1px 0 oklch(1 0 0 / .20); }
+.progress-fill { width: var(--progress-percent); background: var(--primary); }
 ```
 
 ## Subscription or status badge
@@ -83,7 +84,7 @@ Use a lighter surface than its parent, semantic color and typography as appropri
 
 ## Pricing or settings sections
 
-Use base for the page, surface for grouped sections, raised and small shadow for a selected plan or important control. Use consistent radius, padding, and spacing; optional restrained top highlights can tie sections together. Adapt surface contrasts to each theme. Avoid random effects, redundant borders, and highlighting every section; reorder content only when it improves hierarchy.
+Use base for the page, surface for grouped sections, and a raised fill with soft shadow for a selected plan or important control. Use consistent radius, padding, and spacing. Adapt surface contrast to each theme.
 
 ```css
 .settings-page { background: var(--bg-base); }
@@ -93,8 +94,8 @@ Use base for the page, surface for grouped sections, raised and small shadow for
 
 ## Popover or dialog
 
-Use raised surface and large elevation when a panel floats above content. A subtle top highlight is built into the shadow; omit decorative gradients unless they support the design. Tune dark and light shadows and surface contrast separately. Avoid large shadows for ordinary in-flow sections. Implement appropriate popover or dialog semantics, focus management, dismissal, and keyboard behavior.
+Use a raised surface, uniform border, and soft exterior shadows when a panel floats above content. Tune shadows and surface contrast in both themes. Implement appropriate popover or dialog semantics, focus management, dismissal, and keyboard behavior.
 
 ```css
-.floating-panel { background: var(--bg-raised); box-shadow: var(--shadow-lg); border-radius: var(--radius-md); padding: 1rem; }
+.floating-panel { background: var(--bg-raised); border: 1px solid var(--border-surface); box-shadow: var(--shadow-lg); border-radius: var(--radius-md); padding: 1rem; }
 ```

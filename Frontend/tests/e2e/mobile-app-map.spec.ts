@@ -32,7 +32,8 @@ for (const width of [320, 390, 640, 767]) {
     await expect.poll(async () => {
       const main = (await page.locator(".app-shell__main").boundingBox())!;
       const bar = (await action.boundingBox())!;
-      return { right: Math.round(main.x + main.width - bar.x - bar.width), bottom: Math.round(main.y + main.height - bar.y - bar.height) };
+      const tabs = (await page.getByRole("navigation", { name: "Main navigation" }).boundingBox())!;
+      return { right: Math.round(main.x + main.width - bar.x - bar.width), bottom: Math.round(tabs.y - bar.y - bar.height) };
     }).toEqual({ right: 12, bottom: 12 });
     const box = (await action.boundingBox())!;
     expect(Math.round(box.width)).toBe(width <= 640 ? 44 : 54);

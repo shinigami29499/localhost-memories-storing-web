@@ -9,6 +9,12 @@ Use this skill as the primary project guidance for UI color decisions. Apply it 
 
 Build a small, coherent palette with perceptually balanced shades, clear elevation, subtle lighting, and semantic tokens. Stop when the result is cohesive, functional, and accessible. Work with the existing framework and theme system; do not redesign unrelated UI or replace working conventions.
 
+## Project defaults
+
+- Use the mobile page backgrounds from `Frontend/apps/mobile/src/theme/mobile-theme.css`: off-white `#f4f3f2` in light mode and charcoal `#272727` in dark mode.
+- Distinguish same-layer controls by their fill. Home's borderless notification and menu buttons use white in light mode and `#1c1c1c` in dark mode.
+- Use a uniform border lighter than the box fill for bordered boxes in dark mode. On Home, keep the username, icons, and current navigation label prominent. Use readable secondary contrast for the role and inactive tabs.
+
 ## Hover states
 
 - Keep hover interior fills flat. Do not add gradient color or gradient overlays inside controls, cards, or other interactive surfaces on hover. Gradient borders may remain.

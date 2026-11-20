@@ -124,16 +124,9 @@ textarea, select { min-height: 44px; }
   scroll-behavior: auto !important;
 }
 :root { --control-radius: 4px; }
-:root {
-  --mobile-lit-border:linear-gradient(to bottom, color-mix(in srgb, var(--mobile-surface) 65%, white), color-mix(in srgb, var(--mobile-surface) 80%, black) 100%);
-}
-
-/* Shared neutral controls blend their lit top edge into the side borders. */
 :root :is(.btn--secondary:not(:disabled):not([aria-pressed="true"]):not([aria-selected="true"]), .select-field__trigger:not(:disabled):not([data-disabled])) {
-  border:1px solid transparent;
-  background-image:linear-gradient(var(--mobile-surface), var(--mobile-surface)), var(--mobile-lit-border);
-  background-origin:border-box;
-  background-clip:padding-box, border-box;
+  border:1px solid var(--mobile-border-subtle);
+  background:var(--mobile-surface);
 }
 @media (hover:hover) and (pointer:fine) {
   :root :is(.btn--secondary:not(:disabled):not([aria-pressed="true"]):not([aria-selected="true"]), .select-field__trigger:not(:disabled):not([data-disabled])):hover { border-color:color-mix(in srgb, var(--mobile-surface) 50%, var(--mobile-text)); }

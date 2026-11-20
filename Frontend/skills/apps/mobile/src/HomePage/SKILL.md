@@ -1,10 +1,10 @@
 ---
 name: mobile-homepage
-description: "Mobile home album feed."
+description: "Protected mobile Home and its empty content area."
 ---
 
-# Mobile home album feed
+# Mobile Home
 
 Sources below are relative to `Frontend/apps/mobile/src/` unless marked shared, which is relative to `Frontend/src/`.
 
-MobileHomePage.tsx uses shared features/albums/hooks/useAlbums.ts and MobileAlbumFeedPost.tsx. Admins and superadmins request all albums; other users request the feed. Owners and admins receive delete controls. Initial and subsequent page failures offer retry; empty state links to albums.
+`App.tsx` routes authenticated users at `/` to `MobileHomePage.tsx`. Home renders an empty main landmark and makes no album requests. The authenticated shell supplies the account header and bottom navigation. See the [MobileLayout skill](../MobileLayout/SKILL.md).

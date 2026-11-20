@@ -1,4 +1,4 @@
-.mobile-albums-page__scroll { flex: 1; min-height: 0; overflow: auto; padding: 16px 20px 100px; }
+.mobile-albums-page__scroll { flex: 1; min-height: 0; overflow: auto; padding: 16px 20px calc(100px + var(--mobile-nav-clearance)); }
 .mobile-albums-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 12px; }
 .mobile-album-card { position: relative; min-width: 0; }
 .mobile-album-card__link { display: grid; gap: 4px; color: var(--mobile-text); text-decoration: none; }

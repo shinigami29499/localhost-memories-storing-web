@@ -1,3 +1,4 @@
+import { ArrowLeft } from "lucide-react";
 import { DropdownRangeDatePicker } from "@/components/ui/dropdown-range-date-picker";
 import { Check } from "@/components/animate-ui/icons/check";
 import { Pause } from "@/components/animate-ui/icons/pause";
@@ -6,15 +7,12 @@ import { ChevronDown } from "@/components/animate-ui/icons/chevron-down";
 ﻿import { Terminal } from "@/components/animate-ui/icons/terminal";
 import { UserRoundCog } from "@/components/animate-ui/icons/user-round-cog";
 import { CircleX } from "@/components/animate-ui/icons/circle-x";
-import { ChevronLeft } from "@/components/animate-ui/icons/chevron-left";
-import { Plus } from "@/components/animate-ui/icons/plus";
-import { showToast } from "@/components/ui/Toast";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
 import { UserRound } from "@/components/animate-ui/icons/user-round";
 import { UserAvatar } from "@/components/common/UserAvatar";
 import { Search } from "@/components/animate-ui/icons/search";
-import { ListFilter } from "@/components/animate-ui/icons/list-filter";
+import { SlidersHorizontal } from "@/components/animate-ui/icons/sliders-horizontal";
 import { IconButton, EmptyState, ErrorState, Spinner } from "@/components/ui";
 import { MobileConfirmationDialog as ConfirmationDialog } from "../gallery/MobileConfirmationDialog";
 import { formatLastActive, useUsersPage } from "@/pages/users/useUsersPage";
@@ -22,12 +20,28 @@ import { useEffect, useRef, useState } from "react";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import "./mobile-users.css";
 
+function MobileUsersHeading({ title, backLabel, onBack }: { title: string; backLabel: string; onBack: () => void }) {
+  return (
+    <header className="mobile-header mobile-users__heading">
+      <IconButton className="mobile-flat-icon-button mobile-header-back" aria-label={backLabel} title={backLabel} onClick={onBack}>
+        <ArrowLeft />
+      </IconButton>
+      <h1 className="mobile-users__title"><span className="mobile-page-title">{title}</span></h1>
+    </header>
+  );
+}
+
 export function MobileUsersPage() {
-  const { language, t, me, isAdmin, navigate, action, setAction, search, setSearch, roles, setRoles, statuses, setStatuses, joinedFrom, setJoinedFrom, joinedTo, setJoinedTo, useList, sentinel, now, offlineUsers, users, activeQuery, approve, reject, remove, disable, activate, updateRole, pagedUsers } = useUsersPage(true);
+  const { language, t, me, isAdmin, action, setAction, search, setSearch, roles, setRoles, statuses, setStatuses, joinedFrom, setJoinedFrom, joinedTo, setJoinedTo, useList, sentinel, now, offlineUsers, users, activeQuery, approve, reject, remove, disable, activate, updateRole, pagedUsers } = useUsersPage(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const profileDialog = useRef<HTMLDialogElement>(null);
   const selectedUser = pagedUsers.find((user) => user.id === selectedId);
-  useEffect(() => { if (selectedId && profileDialog.current && !profileDialog.current.open) profileDialog.current.showModal(); }, [selectedId]);
+  useEffect(() => {
+    const dialog = profileDialog.current;
+    if (!dialog) return;
+    if (selectedUser && !dialog.open) dialog.showModal();
+    if (!selectedUser && !action && dialog.open) dialog.close();
+  }, [selectedUser, action]);
   const [searchDraft, setSearchDraft] = useState(search);
   const debouncedSearch = useDebouncedValue(searchDraft, 300);
   const searchDialog = useRef<HTMLDialogElement>(null);
@@ -37,16 +51,26 @@ export function MobileUsersPage() {
     const query = debouncedSearch.trim();
     setSearch(query.length >= 3 ? query : "");
   }, [debouncedSearch, setSearch]);
+  function openFilters() {
+    const dialog = searchDialog.current;
+    if (!dialog) return;
+
+    searchInput.current?.blur();
+    const sections = dialog.querySelectorAll<HTMLDetailsElement>(".mobile-user-search__content > details");
+    sections.forEach((section, index) => { section.open = index === 0; });
+    dialog.showModal();
+  }
+
   const busy = approve.isPending || reject.isPending || activate.isPending || disable.isPending || updateRole.isPending || remove.isPending || action !== null;
   return <>
     <main className="mobile-users" aria-label={t("Users")}>
-      <h1 className="mobile-users__title"><span>{t("User")}</span></h1>
       <form className="mobile-users__search" role="search" onSubmit={(event) => { event.preventDefault(); searchInput.current?.blur(); }}>
         <Search size={18} aria-hidden="true" />
         <input ref={searchInput} type="search" aria-label={t("Search users")} placeholder={t("Search users")} value={searchDraft} maxLength={120} onChange={(event) => { const value = event.target.value; setSearchDraft(value); if (value.trim().length < 3) setSearch(""); }} />
         {searchDraft && <button type="button" className="mobile-users__clear" aria-label={t("Clear search")} onClick={() => { setSearchDraft(""); setSearch(""); searchInput.current?.focus(); }}><CircleX size={18} aria-hidden="true" /></button>}
-        <span className="mobile-user-search__divider" aria-hidden="true" />
-        <button ref={filterTrigger} type="button" className="mobile-user-search__filter-button" aria-label={t("Filters")} aria-haspopup="dialog" onClick={() => { const dialog = searchDialog.current; if (!dialog) return; searchInput.current?.blur(); const sections = dialog.querySelectorAll<HTMLDetailsElement>('.mobile-user-search__content > details'); sections.forEach((section) => { section.open = false; }); if (sections[0]) sections[0].open = true; dialog.showModal(); }}><ListFilter size={20} aria-hidden="true" /></button>
+        <IconButton ref={filterTrigger} className="mobile-users__search-action" aria-label={t("Filters")} title={t("Filters")} aria-haspopup="dialog" onClick={openFilters}>
+          <SlidersHorizontal />
+        </IconButton>
       </form>
       <div className="mobile-users__content admin-users__content">
         {activeQuery.isLoading && <Spinner label={t("Loading users...")} />}
@@ -81,16 +105,12 @@ export function MobileUsersPage() {
         {!useList && users.isFetchNextPageError && <ErrorState message={t("Could not load more users.")} onRetry={() => void users.fetchNextPage()} />}
         {!useList && users.hasNextPage && <div ref={sentinel}>{users.isFetchingNextPage && <Spinner />}</div>}
       </div>
-      <div className="mobile-users__bottom-actions">
-        <button type="button" className="mobile-users__back" aria-label={t("Back to feed")} title={t("Back to feed")} onClick={() => navigate("/")}><ChevronLeft size={24} aria-hidden="true" /></button>
-        {isAdmin && <button type="button" className="mobile-users__add" aria-label={t("Add user")} title={t("Add user")} onClick={() => showToast.info(t("This feature is a work in progress."))}><Plus size={24} aria-hidden="true" /></button>}
-      </div>
     </main>
     <dialog ref={searchDialog} className="mobile-user-search" aria-label={t("Filters")} onClose={() => { searchInput.current?.blur(); filterTrigger.current?.focus(); }}>
+      <MobileUsersHeading title={t("User")} backLabel={t("Back")} onBack={() => searchDialog.current?.close()} />
       <div className="mobile-user-search__content" onToggle={(event) => { const section = event.target; if (section instanceof HTMLDetailsElement && section.open && section.classList.contains("mobile-user-search__card")) { const joined = searchDialog.current?.querySelector<HTMLDetailsElement>(".mobile-user-search__when"); if (joined) joined.open = false; } }}>
-      <div className="mobile-user-search__header"><button type="button" className="mobile-user-search__close" aria-label={t("Close")} onClick={() => searchDialog.current?.close()}><X size={20} aria-hidden="true" /></button></div>
       <details className="mobile-user-search__card"><summary id="role-filter-heading">{t("Role")}<ChevronDown size={18} aria-hidden="true" /></summary><div className="mobile-user-search__roles" role="group" aria-labelledby="role-filter-heading">{([{ value: "superadmin", label: "S-Admin", icon: Terminal }, { value: "admin", label: "Admin", icon: UserRoundCog }, { value: "user", label: "User", icon: UserRound }] as const).map(({ value, label, icon: Icon }) => <label key={value} className="mobile-user-search__role"><input type="checkbox" checked={roles.includes(value)} onChange={() => setRoles((current) => current.includes(value) ? current.filter((item) => item !== value) : [...current, value])} /><Icon size={20} aria-hidden="true" /><span>{label}</span></label>)}</div></details>
-      <details className="mobile-user-search__card mobile-user-search__status-card"><summary id="status-filter-heading">{t("Status")}<ChevronDown size={18} aria-hidden="true" /></summary><div className="mobile-user-search__roles" role="group" aria-labelledby="status-filter-heading">{([{ value: "active", label: t("Active"), color: "active" }, { value: "pending_approval", label: t("Pending"), color: "pending" }, ...(isAdmin ? [{ value: "disabled", label: t("Paused"), color: "blocked" }, { value: "rejected", label: t("Rejected"), color: "blocked" }] : [])]).map(({ value, label, color }) => <label key={value} className="mobile-user-search__role"><input type="checkbox" checked={statuses.includes(value)} onChange={() => setStatuses((current) => current.includes(value) ? current.filter((item) => item !== value) : [...current, value])} /><span className={`mobile-user-search__status-dot mobile-user-search__status-dot--${color}`} aria-hidden="true" /><span>{label}</span></label>)}</div></details>
+      <details className="mobile-user-search__card mobile-user-search__status-card"><summary id="status-filter-heading">{t("Status")}<ChevronDown size={18} aria-hidden="true" /></summary><div className="mobile-user-search__roles" role="group" aria-labelledby="status-filter-heading">{([{ value: "active", label: t("Active"), color: "active" }, { value: "pending_approval", label: t("Pending"), color: "pending" }, ...(isAdmin ? [{ value: "disabled", label: t("Paused"), color: "blocked" }] : [])]).map(({ value, label, color }) => <label key={value} className="mobile-user-search__role"><input type="checkbox" checked={statuses.includes(value)} onChange={() => setStatuses((current) => current.includes(value) ? current.filter((item) => item !== value) : [...current, value])} /><span className={`mobile-user-search__status-dot mobile-user-search__status-dot--${color}`} aria-hidden="true" /><span>{label}</span></label>)}</div></details>
       <details className="mobile-user-search__when" onToggle={(event) => { if (event.currentTarget.open) searchDialog.current?.querySelectorAll<HTMLDetailsElement>(".mobile-user-search__card[open]").forEach((section) => { section.open = false; }); }}><summary><span>{t("Joined date")}</span><ChevronDown size={18} aria-hidden="true" /></summary><div className="mobile-user-search__dates"><DropdownRangeDatePicker from={joinedFrom} to={joinedTo} container={searchDialog} onChange={(from, to) => { setJoinedFrom(from); setJoinedTo(to); }} /></div></details>
       </div>
       <div className="mobile-user-search__footer"><button type="button" onClick={() => { setRoles([]); setStatuses([]); setJoinedFrom(""); setJoinedTo(""); }}>{t("Clear all")}</button><button type="button" onClick={() => searchDialog.current?.close()}><Search size={18} aria-hidden="true" />{t("Search")}</button></div>

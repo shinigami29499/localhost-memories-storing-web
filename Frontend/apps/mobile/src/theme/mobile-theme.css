@@ -1,10 +1,11 @@
 ﻿:root {
-  --mobile-bg: #ffffff;
+  --mobile-bg: #f4f3f2;
   --mobile-surface: #ffffff;
   --mobile-surface-muted: #f6f5f3;
   --mobile-surface-raised: #ffffff;
+  --mobile-surface-flat-control: #ffffff;
   --mobile-text: #222222;
-  --mobile-text-muted: #595959;
+  --mobile-text-muted: #4b4b4b;
   --mobile-border: #d2d2d2;
   --mobile-border-subtle: #e8e6e3;
   --mobile-primary: #b9344c;
@@ -14,17 +15,22 @@
   --mobile-success: #216c47;
   --mobile-warning: #7c4e00;
   --mobile-info: #175b97;
-  --mobile-shadow: 0 4px 18px rgb(0 0 0 / 0.1);
+  --mobile-shadow-short: -1px 6px;
+  --mobile-shadow-long: 5px 12px;
+  --mobile-shadow-short-color: rgb(0 0 0 / 0.04);
+  --mobile-shadow-long-color: rgb(0 0 0 / 0.10);
+  --mobile-shadow: 0 var(--mobile-shadow-short) var(--mobile-shadow-short-color), 0 var(--mobile-shadow-long) var(--mobile-shadow-long-color);
   color-scheme: light;
 }
 
 :root[data-mobile-theme="dark"] {
-  --mobile-bg: #181818;
+  --mobile-bg: #272727;
   --mobile-surface: #222222;
   --mobile-surface-muted: #292929;
   --mobile-surface-raised: #303030;
+  --mobile-surface-flat-control: #1c1c1c;
   --mobile-text: #f5f5f5;
-  --mobile-text-muted: #c1c1c1;
+  --mobile-text-muted: #cdcdcd;
   --mobile-border: #777777;
   --mobile-border-subtle: #484848;
   --mobile-primary: #ff9aaa;
@@ -34,7 +40,8 @@
   --mobile-success: #8ad5a8;
   --mobile-warning: #f5c66e;
   --mobile-info: #a5ceff;
-  --mobile-shadow: 0 4px 18px rgb(0 0 0 / 0.3);
+  --mobile-shadow-short-color: rgb(0 0 0 / 0.12);
+  --mobile-shadow-long-color: rgb(0 0 0 / 0.24);
   color-scheme: dark;
 }
 

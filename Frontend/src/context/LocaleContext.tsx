@@ -804,6 +804,7 @@ const vietnamese: Record<string, string> = {
   "Restore post by {username}": "Khôi phục bài viết của {username}",
   "Delete post by {username}": "Xóa bài viết của {username}",
   "Image {current} of {total} by {username}": "Ảnh {current}/{total} của {username}",
+  "Back": "Quay lại",
   "Back to feed": "Quay lại bảng tin",
   "Unexpected Error": "Đã xảy ra lỗi",
   "Something went wrong. Please try again.": "Đã xảy ra sự cố. Vui lòng thử lại.",

@@ -1,0 +1,71 @@
+.mobile-page-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 100001;
+  display: grid;
+  place-items: center;
+  color: var(--mobile-text);
+}
+
+.mobile-page-suspense { display: contents; }
+
+.mobile-page-loading__background {
+  position: absolute;
+  inset: 0;
+  background: var(--mobile-bg);
+}
+
+.mobile-page-loading__content {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 0.75rem;
+  width: min(16rem, calc(100% - 3rem));
+}
+
+.mobile-page-loading__icon {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  aspect-ratio: 1;
+}
+
+.mobile-page-loading__title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 2rem;
+}
+
+.mobile-page-loading__progress {
+  position: relative;
+  width: 100%;
+  height: 0.25rem;
+  overflow: hidden;
+  background: var(--mobile-border-subtle);
+  border-radius: 1rem;
+}
+
+.mobile-page-loading__progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--mobile-primary);
+  transform: scaleX(var(--mobile-page-progress, 0));
+  transform-origin: left center;
+}
+
+.mobile-page-loading__content > :not(.mobile-page-loading__title) {
+  transition: opacity 420ms cubic-bezier(.4,0,.1,1);
+}
+
+.mobile-page-loading[data-handoff] .mobile-page-loading__content > :not(.mobile-page-loading__title) {
+  opacity: 0;
+}
+
+.mobile-shell:has(> .mobile-page-loading) .app-shell__main .mobile-page-title {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-page-loading__content > :not(.mobile-page-loading__title) { transition: none; }
+}

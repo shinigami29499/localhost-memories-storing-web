@@ -9,8 +9,8 @@ import "./styles/mobile-base-overrides.css";
 import { App } from "./App";
 import { MobileThemeProvider } from "./theme/MobileThemeProvider";
 import "./styles/mobile-theme-adapter.css";
-import "./mobile-home.css";
 import "./mobile-shell.css";
+import "./mobile-home.css";
 import "./mobile-auth.css";
 import "./styles/mobile-legacy-surfaces.css";
 

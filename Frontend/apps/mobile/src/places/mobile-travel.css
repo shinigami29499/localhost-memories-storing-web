@@ -17,7 +17,7 @@
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 0 var(--page-gutter) var(--page-padding-bottom);
+  padding: 0 var(--page-gutter) calc(var(--page-padding-bottom) + var(--mobile-nav-clearance));
   scroll-padding-block: 24px;
 }
 
@@ -569,7 +569,7 @@
 
 @media (max-width: 640px) {
   .locations__content {
-    padding: 0 var(--page-gutter) var(--page-padding-bottom);
+    padding: 0 var(--page-gutter) calc(var(--page-padding-bottom) + var(--mobile-nav-clearance));
   }
 
   .locations__header {

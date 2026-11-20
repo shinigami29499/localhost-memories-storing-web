@@ -7,7 +7,7 @@ import { uploadMessage } from "./uploadMessage";
 import { useAuthStore } from "../../store/authStore";
 import { useLocale } from "../../context/LocaleContext";
 
-export function useNotificationBell() {
+export function useNotificationBell(navigateToGallery = () => window.location.assign("/gallery")) {
   const { language, t } = useLocale();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -74,7 +74,7 @@ export function useNotificationBell() {
           markViewed = uploadService.markBatchViewed(notification.id.slice(notification.id.lastIndexOf(":") + 1));
         }
       }
-      void markViewed.catch(() => undefined).finally(() => window.location.assign("/gallery"));
+      void markViewed.catch(() => undefined).finally(navigateToGallery);
       return;
     }
     if (userId && !notification.readAt) markAlbumsRead(userId, notification.eventId);

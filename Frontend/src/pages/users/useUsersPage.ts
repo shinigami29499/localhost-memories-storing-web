@@ -110,7 +110,7 @@ export function useUsersPage(forceMobile = false) {
     return Number.isFinite(parsed) ? parsed : 0;
   };
   const pagedUsers = forceMobile
-    ? matchedUsers.filter((user) => user.id !== me?.id).sort((a, b) =>
+    ? matchedUsers.filter((user) => user.id !== me?.id && user.status !== "rejected").sort((a, b) =>
       timestamp(b.lastSeenAt) - timestamp(a.lastSeenAt)
       || a.username.localeCompare(b.username, language === "vi" ? "vi-VN" : "en-US", { sensitivity: "base" })
       || timestamp(b.createdAt) - timestamp(a.createdAt))

@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "motion/react";
-import { useNavigate } from "react-router-dom";
+import { useOpenMobilePage } from "./layout/mobilePageNavigation";
 import { motionTokens, useShouldReduceMotion, useTempoTransition } from "@animate-ui/react/utils/motion";
 import { Bookmark } from "@/components/animate-ui/icons/bookmark";
 import { X } from "@/components/animate-ui/icons/x";
@@ -24,7 +24,7 @@ function FeedCaption({ caption }: { caption: string }) {
 
 export function MobileAlbumFeedPost({ album, canDelete }: Props) {
   const { t, language } = useLocale();
-  const navigate = useNavigate();
+  const openPage = useOpenMobilePage();
   const shouldReduceMotion = useShouldReduceMotion();
   const captionTransition = useTempoTransition(motionTokens.transition.reveal);
   const { deleting, setDeleting, setFailedPreview, attempt, setAttempt, previewRef, swipeStart, suppressClick, inView, imageIndex, slideDirection, media, items, previewId, failed, previousImage, nextImage, deleteAlbum } = useAlbumFeedPost(album);
@@ -67,11 +67,11 @@ export function MobileAlbumFeedPost({ album, canDelete }: Props) {
         onKeyDown={(event) => {
           if (event.key === "ArrowRight") { event.preventDefault(); void nextImage(); }
           if (event.key === "ArrowLeft") { event.preventDefault(); previousImage(); }
-          if (event.key === "Enter") { event.preventDefault(); navigate(`/gallery/album/${album.id}`); }
+          if (event.key === "Enter") openPage(`/gallery/album/${album.id}`, event);
         }}
-        onClick={() => {
+        onClick={(event) => {
           if (suppressClick.current) { suppressClick.current = false; return; }
-          navigate(`/gallery/album/${album.id}`);
+          openPage(`/gallery/album/${album.id}`, event);
         }}
         onPointerDown={(event) => { suppressClick.current = false; swipeStart.current = { x: event.clientX, y: event.clientY }; }}
         onPointerUp={(event) => {

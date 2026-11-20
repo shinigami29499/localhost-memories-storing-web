@@ -1,6 +1,6 @@
 import { MobileConfirmationDialog } from "./MobileConfirmationDialog";
 ﻿import { useState } from "react";
-import { Link } from "react-router-dom";
+import { MobilePageLink as Link } from "../layout/mobilePageNavigation";
 import { Plus } from "@/components/animate-ui/icons/plus";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
 import { PencilLine } from "@/components/animate-ui/icons/pencil-line";

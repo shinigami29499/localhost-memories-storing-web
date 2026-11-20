@@ -17,10 +17,10 @@
         "rule": "gradient-text",
         "value": "*",
         "files": [
-          "Frontend/apps/mobile/src/users/mobile-users.css"
+          "Frontend/apps/mobile/src/mobile-shell.css"
         ],
         "createdAt": "2026-11-20T14:55:12.694Z",
-        "reason": "User explicitly requested gradient text for the User title using Animate UI reference."
+        "reason": "The user confirmed the gradient User title as the reference for mobile page headers."
       }
     ]
   }

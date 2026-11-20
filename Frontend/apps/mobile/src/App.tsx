@@ -19,24 +19,17 @@ import { LocaleProvider } from "@/context/LocaleContext";
 import { ToastProvider, showToast } from "@/components/ui";
 import { useLocale } from "@/context/LocaleContext";
 import { MobileSessionReplacedDialog } from "./MobileSessionReplacedDialog";
+import { updateMobilePageTransition, useReturnFromMobilePage } from "./layout/mobilePageNavigation";
 
-const GalleryPage = lazy(() => import("./gallery/MobileGalleryPage").then((module) => ({ default: module.MobileGalleryPage })));
+const loadGallery = () => import("./gallery/MobileGalleryPage");
 const ErrorPage = lazy(() => import("./MobileErrorPage").then((module) => ({ default: module.MobileErrorPage })));
 const errorPage = <Suspense fallback={<main role="alert">Page unavailable.</main>}><ErrorPage /></Suspense>;
 const AuthenticatedLayout = lazy(() => import("./MobileLayout").then((module) => ({ default: module.AuthenticatedLayout })));
-const GalleryLayout = lazy(() => import("./gallery/MobileGalleryLayout").then((module) => ({ default: module.MobileGalleryLayout })));
-const HomePage = lazy(() => import("./MobileHomePage").then((module) => ({ default: module.HomePage })));
 const LoginPage = lazy(() => import("./MobileLoginPage").then((module) => ({ default: module.LoginPage })));
 const RegisterPage = lazy(() => import("./MobileRegisterPage").then((module) => ({ default: module.RegisterPage })));
 const TrashPage = lazy(() => import("./trash/MobileTrashPage").then((module) => ({ default: module.MobileTrashPage })));
-const AlbumsPage = lazy(() => import("./gallery/MobileAlbumsPage").then((module) => ({ default: module.MobileAlbumsPage })));
-const AlbumPage = lazy(() => import("./gallery/MobileAlbumPage").then((module) => ({ default: module.MobileAlbumPage })));
-const UsersPage = lazy(() => import("./users/MobileUsersPage").then((module) => ({ default: module.MobileUsersPage })));
+const loadUsers = () => import("./users/MobileUsersPage").then(({ MobileUsersPage }) => ({ Component: MobileUsersPage }));
 const LocationsPage = lazy(() => import("./places/MobileTravelPage").then((module) => ({ default: module.MobileTravelPage })));
-const PlacePage = lazy(() => import("./places/MobilePlacePage").then((module) => ({ default: module.MobilePlacePage })));
-const UploadManagementPage = lazy(() => import("./uploads/MobileUploadPage").then((module) => ({ default: module.MobileUploadPage })));
-const SettingsPage = lazy(() => import("./settings/MobileSettingsPage").then((module) => ({ default: module.SettingsPage })));
-const ProfilePage = lazy(() => import("./MobileProfilePage").then((module) => ({ default: module.ProfilePage })));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -67,17 +60,17 @@ const router = createBrowserRouter([
           </RequireAuth>
         ),
         children: [
-          { path: "/", element: <HomePage /> },
+          { path: "/", lazy: () => import("./MobileHomePage").then(({ HomePage }) => ({ Component: HomePage })) },
           {
-            element: <GalleryLayout />,
+            lazy: () => import("./gallery/MobileGalleryLayout").then(({ MobileGalleryLayout }) => ({ Component: MobileGalleryLayout })),
             children: [
-              { path: "/gallery", element: <GalleryPage view="pictures" /> },
-              { path: "/gallery/favorites", element: <GalleryPage view="favorites" /> },
+              { path: "/gallery", lazy: () => loadGallery().then(({ MobileGalleryPage }) => ({ element: <MobileGalleryPage view="pictures" /> })) },
+              { path: "/gallery/favorites", lazy: () => loadGallery().then(({ MobileGalleryPage }) => ({ element: <MobileGalleryPage view="favorites" /> })) },
               { path: "/gallery/trash", element: <RequireAdmin><TrashPage /></RequireAdmin> },
-              { path: "/gallery/album", element: <AlbumsPage /> },
+              { path: "/gallery/album", lazy: () => import("./gallery/MobileAlbumsPage").then(({ MobileAlbumsPage }) => ({ Component: MobileAlbumsPage })) },
             ],
           },
-          { path: "/gallery/album/:albumId", element: <AlbumPage /> },
+          { path: "/gallery/album/:albumId", lazy: () => import("./gallery/MobileAlbumPage").then(({ MobileAlbumPage }) => ({ Component: MobileAlbumPage })) },
           { path: "/gallery/videos", element: <Navigate replace to="/gallery" /> },
           { path: "/library/gallery", element: <Navigate replace to="/gallery" /> },
           { path: "/library/gallery/videos", element: <Navigate replace to="/gallery" /> },
@@ -89,28 +82,28 @@ const router = createBrowserRouter([
           { path: "/albums/:albumId", element: <LegacyAlbumRedirect /> },
           { path: "/saved", element: <LegacyAlbumRedirect /> },
           { path: "/saved/:albumId", element: <LegacyAlbumRedirect /> },
-          { path: "/uploads", element: <UploadManagementPage /> },
+          { path: "/uploads", lazy: () => import("./uploads/MobileUploadPage").then(({ MobileUploadPage }) => ({ Component: MobileUploadPage })) },
           { path: "/location/travel", element: <LocationsPage /> },
           {
             path: "/location",
-            element: <PlacePage />,
+            lazy: () => import("./places/MobilePlacePage").then(({ MobilePlacePage }) => ({ Component: MobilePlacePage })),
             children: [
               { path: "saved" },
               { path: "history" },
             ],
           },
           { path: "/location/place", element: <LegacyLocationRedirect /> },
-          { path: "/profile", element: <ProfilePage /> },
-          { path: "/settings", element: <SettingsPage /> },
+          { path: "/profile", lazy: () => import("./MobileProfilePage").then(({ ProfilePage }) => ({ Component: ProfilePage })) },
+          { path: "/settings", lazy: () => import("./settings/MobileSettingsPage").then(({ SettingsPage }) => ({ Component: SettingsPage })) },
           { path: "/sync/upload", element: <Navigate replace to="/uploads" /> },
           { path: "/uploads/new", element: <Navigate replace to="/uploads" /> },
           { path: "/locations", element: <Navigate replace to="/location/travel" /> },
           { path: "/food", element: <Navigate replace to="/location" /> },
           { path: "/location/food", element: <Navigate replace to="/location" /> },
           { path: "/place", element: <Navigate replace to="/location" /> },
-          { path: "/users", element: <UsersPage /> },
-          { path: "/users/pending", element: <UsersPage /> },
-          { path: "/users/blocked", element: <UsersPage /> },
+          { path: "/users", lazy: loadUsers },
+          { path: "/users/pending", lazy: loadUsers },
+          { path: "/users/blocked", lazy: loadUsers },
           { path: "/admin/users", element: <Navigate replace to="/users" /> },
         ],
       },
@@ -128,6 +121,13 @@ const router = createBrowserRouter([
   future: { v7_relativeSplatPath: true },
 });
 
+let previousLocation = router.state.location;
+router.subscribe(({ location, historyAction }) => {
+  if (location.key === previousLocation.key) return;
+  updateMobilePageTransition(previousLocation, location, historyAction === "POP", queryClient.getQueryCache());
+  previousLocation = location;
+});
+
 function RequireAuth({ children }: { children: ReactNode }) {
   const token = useAuthStore((s) => s.accessToken);
   return token ? children : <Navigate to="/login" replace />;
@@ -136,12 +136,17 @@ function RequireAuth({ children }: { children: ReactNode }) {
 function RouteNotifications() {
   const location = useLocation();
   const navigate = useNavigate();
+  const returnHome = useReturnFromMobilePage();
   const { t } = useLocale();
   const handledLocation = useRef<string | null>(null);
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
     const listener = CapacitorApp.addListener("backButton", () => {
+      if (useAuthStore.getState().accessToken && location.pathname !== "/login" && location.pathname !== "/register") {
+        returnHome();
+        return;
+      }
       const historyIndex = window.history.state?.idx;
       if (typeof historyIndex === "number" && historyIndex > 0) {
         navigate(-1);
@@ -150,7 +155,7 @@ function RouteNotifications() {
       }
     });
     return () => { void listener.then((handle) => handle.remove()); };
-  }, [location.pathname, navigate]);
+  }, [location.pathname, navigate, returnHome]);
 
   useEffect(() => {
     const state = location.state as { authToast?: { type: "login" | "logout"; username?: string } } | null;
