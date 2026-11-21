@@ -13,10 +13,7 @@ import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { inDateRange } from "../../utils/dateRange";
 import { cityFromAddress } from "../../features/place/cityFromAddress";
-import { uploadService } from "../../features/uploads/services/uploadService";
-import { registerUploadCompletionAction } from "../../features/uploads/services/uploadRuntime";
 import { locationService } from "../../features/locations/services/locationService";
-import { locateUploadedBatch } from "../../features/locations/services/locateUploadedBatch";
 import { useAnimationStore } from "../../store/animationStore";
 import type { PlaceMapSettings } from "../../features/place/components/PlaceMap";
 import { placeService } from "../../features/place/services/placeService";
@@ -227,10 +224,6 @@ export function usePlacePageController() {
   const [photoSelection, setPhotoSelection] = useState<{ id: string; draft: PickedLocation | null; editing: boolean } | null>(null);
   const { bounds: mapBounds, update: handleMapBounds } = useMapBounds();
   const { media: photos, query: photosQuery } = useLocations(!saved, photoSelection ? [photoSelection.id] : [], mapBounds);
-  const [uploading, setUploading] = useState(false);
-  const uploadInFlight = useRef(false);
-  const uploadLocation = useRef<{ latitude: number; longitude: number } | null>(null);
-  const uploadInput = useRef<HTMLInputElement>(null);
   const savedPlaces = useInfinitePlaces(view === "saved" && !hasLocationFilters, debouncedSearch, minimumRating);
   const allPlaces = usePlaces(view === "saved" && !isMobile);
   const mapPlacesQuery = useInfiniteMapPlaces(!saved, mapBounds);
@@ -284,65 +277,6 @@ export function usePlacePageController() {
   const [confirmHomeRemoval, setConfirmHomeRemoval] = useState(false);
   const [photoMoveConfirmationOpen, setPhotoMoveConfirmationOpen] = useState(false);
 
-  const startWithCurrentLocation = async (action: () => void) => {
-    if (!navigator.geolocation) {
-      showToast.error(t("Could not determine your current location. Check location permission and try again."));
-      return;
-    }
-    try {
-      uploadLocation.current = await new Promise((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(
-          ({ coords }) => resolve({ latitude: coords.latitude, longitude: coords.longitude }),
-          () => reject(new Error(t("Could not determine your current location. Check location permission and try again."))),
-          { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
-        );
-      });
-      action();
-    } catch (error) {
-      uploadLocation.current = null;
-      showToast.error(error instanceof Error ? error.message : t("Could not determine your current location. Check location permission and try again."));
-    }
-  };
-
-  const uploadPhotos = async (files: File[]) => {
-    if (!files.length || uploadInFlight.current) return;
-    const coordinate = uploadLocation.current;
-    uploadLocation.current = null;
-    if (!coordinate) {
-      showToast.error(t("Could not determine your current location. Check location permission and try again."));
-      return;
-    }
-    uploadInFlight.current = true;
-    setUploading(true);
-    try {
-      const batch = await uploadService.submit(files, (createdBatch) => {
-        registerUploadCompletionAction(createdBatch.id, async (completedBatch) => {
-          if (!completedBatch.successfulFiles) return;
-          let taggedIds: string[];
-          try {
-            taggedIds = await locateUploadedBatch(completedBatch.id, coordinate);
-          } catch {
-            showToast.error(t("Photos uploaded, but could not mark their location."));
-            return;
-          }
-          await queryClient.invalidateQueries({ queryKey: ["media"] });
-          if (!taggedIds.length) {
-            showToast.error(t("Photos uploaded, but could not mark their location."));
-            return;
-          }
-          if (taggedIds.length < completedBatch.successfulFiles) showToast.error(t("Some uploaded photos could not be marked."));
-          return `/location/travel?focusMediaId=${encodeURIComponent(taggedIds[0])}`;
-        });
-      });
-      await queryClient.invalidateQueries({ queryKey: ["uploads"] });
-      showToast.success(t("Begin uploading {count} media", { count: files.length }), { id: `upload-start:${batch.id}` });
-    } catch (error) {
-      showToast.error(t("Could not upload and mark these photos."), error instanceof Error ? error.message : undefined);
-    } finally {
-      uploadInFlight.current = false;
-      setUploading(false);
-    }
-  };
   const places = useMemo(() => saved
     ? hasLocationFilters ? allPlaces.data ?? [] : savedPlaces.data?.pages.flatMap((page) => page.items) ?? []
     : mapPlacesQuery.data?.pages.flatMap((page) => page.items) ?? [], [saved, hasLocationFilters, allPlaces.data, savedPlaces.data, mapPlacesQuery.data]);
@@ -600,5 +534,5 @@ export function usePlacePageController() {
     if (editor?.id === placeToDelete.id) setEditor(null);
     showToast.delete(t("Place deleted."));
   };
-  return { t, location, isMobile, user, home, view, animationsEnabled, requestView, mapSettings, saved, mapStartReady, setMapStartReady, setHighlightMotionVersion, addToolbar, setAddToolbar, city, setCity, owner, setOwner, dateFrom, setDateFrom, dateTo, setDateTo, hasLocationFilters, placeSearch, setPlaceSearch, minimumRating, historySearch, setHistorySearch, historyMinimumRating, activeRating, setActiveRating, historySentinel, photoSelection, setPhotoSelection, handleMapBounds, photos, photosQuery, uploading, uploadInput, savedPlaces, mapPlacesQuery, query, save, remove, checkInMutation, removeVisitMutation, editor, setEditor, editorOpen, setEditorOpen, selectedId, setSelectedId, detailsOpen, setDetailsOpen, visitHistory, historyQuery, historyVisits, formError, setFormError, placeToDelete, setPlaceToDelete, confirmingDetailDeleteId, setConfirmingDetailDeleteId, placeToMove, setPlaceToMove, moveConfirmationOpen, setMoveConfirmationOpen, workspaceRef, manualHomePick, setManualHomePick, homeRelocationDraft, setHomeRelocationDraft, homeMoveConfirmationOpen, setHomeMoveConfirmationOpen, homeDialogOpen, setHomeDialogOpen, confirmHomeRemoval, setConfirmHomeRemoval, photoMoveConfirmationOpen, setPhotoMoveConfirmationOpen, startWithCurrentLocation, places, filteredPlaces, cityOptions, ownerOptions, homePicking, selected, selectedVisits, selectedPhoto, photoRelocating, canEdit, canChangeMarker, mapPlaces, clearPreview, canMovePhoto, selectPhoto, movePhoto, confirmPhotoMove, pickHome, confirmHomeRelocation, cancelHomePick, startHomePick, openHomeDialog, removeHomeLocation, checkIn, removeVisit, startEdit, selectPlace, pickOnMap, cancelMapPick, movePlace, deletePlace, confirmMove, submit, confirmDelete };
+  return { t, location, isMobile, user, home, view, animationsEnabled, requestView, mapSettings, saved, mapStartReady, setMapStartReady, setHighlightMotionVersion, addToolbar, setAddToolbar, city, setCity, owner, setOwner, dateFrom, setDateFrom, dateTo, setDateTo, hasLocationFilters, placeSearch, setPlaceSearch, minimumRating, historySearch, setHistorySearch, historyMinimumRating, activeRating, setActiveRating, historySentinel, photoSelection, setPhotoSelection, handleMapBounds, photos, photosQuery, savedPlaces, mapPlacesQuery, query, save, remove, checkInMutation, removeVisitMutation, editor, setEditor, editorOpen, setEditorOpen, selectedId, setSelectedId, detailsOpen, setDetailsOpen, visitHistory, historyQuery, historyVisits, formError, setFormError, placeToDelete, setPlaceToDelete, confirmingDetailDeleteId, setConfirmingDetailDeleteId, placeToMove, setPlaceToMove, moveConfirmationOpen, setMoveConfirmationOpen, workspaceRef, manualHomePick, setManualHomePick, homeRelocationDraft, setHomeRelocationDraft, homeMoveConfirmationOpen, setHomeMoveConfirmationOpen, homeDialogOpen, setHomeDialogOpen, confirmHomeRemoval, setConfirmHomeRemoval, photoMoveConfirmationOpen, setPhotoMoveConfirmationOpen, places, filteredPlaces, cityOptions, ownerOptions, homePicking, selected, selectedVisits, selectedPhoto, photoRelocating, canEdit, canChangeMarker, mapPlaces, clearPreview, canMovePhoto, selectPhoto, movePhoto, confirmPhotoMove, pickHome, confirmHomeRelocation, cancelHomePick, startHomePick, openHomeDialog, removeHomeLocation, checkIn, removeVisit, startEdit, selectPlace, pickOnMap, cancelMapPick, movePlace, deletePlace, confirmMove, submit, confirmDelete };
 }

@@ -19,15 +19,14 @@ import { LocaleProvider } from "@/context/LocaleContext";
 import { ToastProvider, showToast } from "@/components/ui";
 import { useLocale } from "@/context/LocaleContext";
 import { MobileSessionReplacedDialog } from "./MobileSessionReplacedDialog";
-import { updateMobilePageTransition, useReturnFromMobilePage } from "./layout/mobilePageNavigation";
+import { updateMobilePageTransition, useMobileBack } from "./layout/mobilePageNavigation";
 
-const loadGallery = () => import("./gallery/MobileGalleryPage");
+const loadAlbums = () => import("./gallery/MobileAlbumsPage").then(({ MobileAlbumsPage }) => ({ Component: MobileAlbumsPage }));
 const ErrorPage = lazy(() => import("./MobileErrorPage").then((module) => ({ default: module.MobileErrorPage })));
 const errorPage = <Suspense fallback={<main role="alert">Page unavailable.</main>}><ErrorPage /></Suspense>;
 const AuthenticatedLayout = lazy(() => import("./MobileLayout").then((module) => ({ default: module.AuthenticatedLayout })));
 const LoginPage = lazy(() => import("./MobileLoginPage").then((module) => ({ default: module.LoginPage })));
 const RegisterPage = lazy(() => import("./MobileRegisterPage").then((module) => ({ default: module.RegisterPage })));
-const TrashPage = lazy(() => import("./trash/MobileTrashPage").then((module) => ({ default: module.MobileTrashPage })));
 const loadUsers = () => import("./users/MobileUsersPage").then(({ MobileUsersPage }) => ({ Component: MobileUsersPage }));
 const LocationsPage = lazy(() => import("./places/MobileTravelPage").then((module) => ({ default: module.MobileTravelPage })));
 
@@ -64,17 +63,17 @@ const router = createBrowserRouter([
           {
             lazy: () => import("./gallery/MobileGalleryLayout").then(({ MobileGalleryLayout }) => ({ Component: MobileGalleryLayout })),
             children: [
-              { path: "/gallery", lazy: () => loadGallery().then(({ MobileGalleryPage }) => ({ element: <MobileGalleryPage view="pictures" /> })) },
-              { path: "/gallery/favorites", lazy: () => loadGallery().then(({ MobileGalleryPage }) => ({ element: <MobileGalleryPage view="favorites" /> })) },
-              { path: "/gallery/trash", element: <RequireAdmin><TrashPage /></RequireAdmin> },
-              { path: "/gallery/album", lazy: () => import("./gallery/MobileAlbumsPage").then(({ MobileAlbumsPage }) => ({ Component: MobileAlbumsPage })) },
+              { path: "/gallery", lazy: loadAlbums },
+              { path: "/gallery/trash", element: <Navigate replace to="/gallery/album" /> },
+              { path: "/gallery/album", lazy: loadAlbums },
             ],
           },
           { path: "/gallery/album/:albumId", lazy: () => import("./gallery/MobileAlbumPage").then(({ MobileAlbumPage }) => ({ Component: MobileAlbumPage })) },
           { path: "/gallery/videos", element: <Navigate replace to="/gallery" /> },
           { path: "/library/gallery", element: <Navigate replace to="/gallery" /> },
           { path: "/library/gallery/videos", element: <Navigate replace to="/gallery" /> },
-          { path: "/library/gallery/favorites", element: <Navigate replace to="/gallery/favorites" /> },
+          { path: "/gallery/favorites", element: <Navigate replace to="/gallery" /> },
+          { path: "/library/gallery/favorites", element: <Navigate replace to="/gallery" /> },
           { path: "/library/gallery/trash", element: <Navigate replace to="/gallery/trash" /> },
           { path: "/library/album", element: <Navigate replace to="/gallery/album" /> },
           { path: "/library/album/:albumId", element: <LegacyAlbumRedirect /> },
@@ -136,7 +135,7 @@ function RequireAuth({ children }: { children: ReactNode }) {
 function RouteNotifications() {
   const location = useLocation();
   const navigate = useNavigate();
-  const returnHome = useReturnFromMobilePage();
+  const goBack = useMobileBack();
   const { t } = useLocale();
   const handledLocation = useRef<string | null>(null);
 
@@ -144,7 +143,7 @@ function RouteNotifications() {
     if (!Capacitor.isNativePlatform()) return;
     const listener = CapacitorApp.addListener("backButton", () => {
       if (useAuthStore.getState().accessToken && location.pathname !== "/login" && location.pathname !== "/register") {
-        returnHome();
+        goBack();
         return;
       }
       const historyIndex = window.history.state?.idx;
@@ -155,7 +154,7 @@ function RouteNotifications() {
       }
     });
     return () => { void listener.then((handle) => handle.remove()); };
-  }, [location.pathname, navigate, returnHome]);
+  }, [location.pathname, navigate, goBack]);
 
   useEffect(() => {
     const state = location.state as { authToast?: { type: "login" | "logout"; username?: string } } | null;

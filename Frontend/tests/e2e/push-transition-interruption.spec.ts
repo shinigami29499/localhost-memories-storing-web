@@ -56,80 +56,6 @@ test("rapid page navigation keeps the first push running", async ({ page }) => {
   await expectSecondPush(page);
 });
 
-test("rapid highlight navigation keeps the first push running", async ({ page }) => {
-  await page.goto("/gallery");
-  await expect(page.locator(".gallery-layout__content")).toBeVisible();
-  await page.locator(".gallery-layout__header").getByRole("link", { name: "Album", exact: true }).click();
-  await expect(page.locator('[data-push-transition="exit"]')).toBeVisible();
-  await page.evaluate(() => {
-    const content = document.querySelector<HTMLElement>(".gallery-layout__content")!;
-    (window as Window & { firstPush: Animation }).firstPush = content.getAnimations().find((animation) => animation.effect instanceof KeyframeEffect && animation.effect.target === content)!;
-    document.querySelector<HTMLAnchorElement>('.gallery-layout__header a[href="/gallery/trash"]')!.click();
-  });
-  await expect(page).toHaveURL(/\/gallery\/trash$/);
-  expect(await page.evaluate(() => (window as Window & { firstPush: Animation }).firstPush.playState)).toBe("running");
-  await expectSecondPush(page);
-});
-
-test("page navigation continues an in-flight highlight push", async ({ page }) => {
-  await page.goto("/gallery");
-  await expect(page.locator(".gallery-layout__content")).toBeVisible();
-  await page.locator(".gallery-layout__header").getByRole("link", { name: "Album", exact: true }).click();
-  await expect(page.locator('[data-push-transition="exit"]')).toBeVisible();
-  await page.evaluate(() => {
-    const content = document.querySelector<HTMLElement>(".gallery-layout__content")!;
-    (window as Window & { firstPush: Animation }).firstPush = content.getAnimations().find((animation) => animation.effect instanceof KeyframeEffect && animation.effect.target === content)!;
-    document.querySelector<HTMLAnchorElement>('.bottom-navigation a[href="/users"]')!.click();
-  });
-  await expect(page).toHaveURL(/\/users$/);
-  const state = await page.evaluate(() => {
-    const animation = (window as Window & { firstPush: Animation }).firstPush;
-    const effect = animation.effect as KeyframeEffect;
-    return { playState: animation.playState, connected: effect.target?.isConnected };
-  });
-  expect(state).toEqual({ playState: "running", connected: true });
-  await expectSecondPush(page);
-});
-
-test("rapid page changes keep a highlight handoff push running", async ({ page }) => {
-  await page.goto("/gallery");
-  await expect(page.locator(".gallery-layout__content")).toBeVisible();
-  await page.goto("/users");
-  await expect(page.locator(".admin-page--users")).toBeVisible();
-  await page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Gallery", exact: true }).click();
-  await expect(page.locator('[data-push-transition="exit"]')).toBeVisible();
-  await page.evaluate(() => {
-    const content = document.querySelector<HTMLElement>(".gallery-layout__content")!;
-    (window as Window & { firstPush: Animation }).firstPush = content.getAnimations().find((animation) => animation.effect instanceof KeyframeEffect && animation.effect.target === content)!;
-    document.querySelector<HTMLAnchorElement>('.bottom-navigation a[href="/users"]')!.click();
-  });
-  await expect(page).toHaveURL(/\/users$/);
-  const state = await page.evaluate(() => {
-    const animation = (window as Window & { firstPush: Animation }).firstPush;
-    const effect = animation.effect as KeyframeEffect;
-    return { playState: animation.playState, connected: effect.target?.isConnected };
-  });
-  expect(state).toEqual({ playState: "running", connected: true });
-  await expectSecondPush(page);
-});
-
-test("highlight navigation does not interrupt an in-flight page push", async ({ page }) => {
-  await page.goto("/gallery");
-  await expect(page.locator(".gallery-layout__header")).toBeVisible();
-  await page.goto("/");
-  await expect(page.locator(".home-page")).toBeVisible();
-  await page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Gallery", exact: true }).click();
-  await expect(page.locator(".gallery-layout__header")).toBeVisible();
-  await page.evaluate(() => {
-    const main = document.querySelector<HTMLElement>("#main-content")!;
-    (window as Window & { firstPush: Animation }).firstPush = main.getAnimations().find((animation) => animation.effect instanceof KeyframeEffect && animation.effect.target === main)!;
-    document.querySelector<HTMLAnchorElement>('.gallery-layout__header a[href="/gallery/album"]')!.click();
-  });
-  await expect(page).toHaveURL(/\/gallery\/album$/);
-  expect(await page.evaluate(() => (window as Window & { firstPush: Animation }).firstPush.playState)).toBe("running");
-  await expectSecondPush(page);
-});
-
 for (const [source, selector, destination] of [
   ["/", ".home-page", "Gallery"],
   ["/gallery", ".gallery-layout", "Home"],
@@ -161,56 +87,6 @@ for (const [source, selector, destination] of [
   expect(Math.abs(bounds.clipLeft)).toBeLessThan(1);
   expect(bounds.width).toBeCloseTo(390, 0);
   expect(Math.abs(bounds.outgoingRight - bounds.incomingLeft)).toBeLessThan(2);
-});
-
-test("four rapid highlight pushes play in order", async ({ page }) => {
-  for (const [path, selector] of [
-    ["/gallery/album", ".album-page"],
-    ["/gallery/trash", ".gallery-page--trash"],
-    ["/gallery", ".gallery-page"],
-  ]) {
-    await page.goto(path);
-    await expect(page.locator(selector)).toBeVisible();
-  }
-  await page.evaluate(() => {
-    const exits: string[] = [];
-    const incoming: string[] = [];
-    const times: number[] = [];
-    (window as Window & { pushExits: string[] }).pushExits = exits;
-    (window as Window & { pushIncoming: string[] }).pushIncoming = incoming;
-    (window as Window & { pushTimes: number[] }).pushTimes = times;
-    new MutationObserver((records) => {
-      for (const record of records) for (const node of record.addedNodes) {
-        if (!(node instanceof HTMLElement) || !node.dataset.pushTransition) continue;
-        const label = node.querySelector(".gallery-page--trash") ? "trash"
-          : node.querySelector(".album-page") ? "album"
-          : node.querySelector(".gallery-page") ? "gallery" : "other";
-        if (node.dataset.pushTransition === "exit") {
-          times.push(performance.now());
-          exits.push(label);
-        } else incoming.push(label);
-      }
-    }).observe(document.body, { childList: true, subtree: true });
-  });
-  for (const [path, selector] of [
-    ["/gallery/album", ".album-page"],
-    ["/gallery/trash", ".gallery-page--trash"],
-    ["/gallery", ".gallery-page"],
-    ["/gallery/album", ".album-page"],
-  ]) {
-    await page.evaluate((href) => {
-      document.querySelector<HTMLAnchorElement>(`.gallery-layout__header a[href="${href}"]`)!.click();
-    }, path);
-    await expect(page).toHaveURL(new RegExp(`${path}$`));
-    await expect(page.locator(`#main-content > .gallery-layout > .gallery-layout__content > ${selector}`)).toBeAttached();
-  }
-  await expect.poll(() => page.evaluate(() => (window as Window & { pushExits: string[] }).pushExits), { timeout: 8000 })
-    .toEqual(["gallery", "album", "trash", "gallery"]);
-  expect(await page.evaluate(() => (window as Window & { pushIncoming: string[] }).pushIncoming))
-    .toEqual(["album", "trash", "gallery", "album"]);
-  const times = await page.evaluate(() => (window as Window & { pushTimes: number[] }).pushTimes);
-  for (let index = 1; index < times.length; index += 1) expect(times[index] - times[index - 1]).toBeGreaterThan(1300);
-  await expect(page.locator("[data-push-transition]")).toHaveCount(0, { timeout: 4000 });
 });
 
 test("four rapid page pushes play in order", async ({ page }) => {

@@ -6,7 +6,6 @@ import { useLocale } from "../../../context/LocaleContext";
 import { useDialogViewportStyle } from "../../../hooks/useDialogViewportStyle";
 import { mediaQueryOptions } from "../hooks/useMedia";
 import { previewService } from "../services/previewService";
-import { uploadService } from "../../uploads/services/uploadService";
 import type { MediaFile } from "../types";
 
 export interface PhotoPickerProps {
@@ -41,7 +40,6 @@ export function usePhotoPicker({
   const [picked, setPicked] = useState<MediaFile | null>(null);
   const [uploaded, setUploaded] = useState<MediaFile[]>([]);
   const [uploadingPreview, setUploadingPreview] = useState(false);
-  const [galleryBatchId, setGalleryBatchId] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(!selectedId);
   const tabId = useId();
   const initialImage = useQuery({
@@ -63,15 +61,7 @@ export function usePhotoPicker({
     enabled: initialized && source === "preview",
   });
   const query = source === "gallery" ? gallery : previews;
-  const batch = useQuery({
-    queryKey: ["uploads", "picker", galleryBatchId],
-    queryFn: () => uploadService.get(galleryBatchId!),
-    enabled: Boolean(galleryBatchId),
-    refetchInterval: (current) => current.state.data
-      && ["Completed", "Failed", "Cancelled"].includes(current.state.data.status) ? false : 2000,
-    retry: false,
-  });
-  const busy = uploadingPreview || galleryBatchId !== null;
+  const busy = uploadingPreview;
   const { dialogProps, close } = useCustomDialog(onClose, { blocked: busy });
   const viewportStyle = useDialogViewportStyle();
   const full = selectedIds.length >= maxImages && !initialImage.data?.isPreviewOnly;
@@ -102,19 +92,6 @@ export function usePhotoPicker({
   }, [initialized, source, query.isPending]);
 
   useEffect(() => {
-    const result = batch.data;
-    if (!galleryBatchId) return;
-    if (batch.isError || (result && ["Completed", "Failed", "Cancelled"].includes(result.status))) {
-      setGalleryBatchId(null);
-      uploadInFlight.current = false;
-      void queryClient.invalidateQueries({ queryKey: ["media"] });
-      void queryClient.invalidateQueries({ queryKey: ["uploads"] });
-      if (batch.isError || result?.status !== "Completed" || result.failedFiles > 0)
-        showToast.error(t("Could not start this upload."));
-    }
-  }, [batch.data, batch.isError, galleryBatchId, queryClient, t]);
-
-  useEffect(() => {
     const drafts = pickerDrafts.current;
     return () => {
       for (const mediaId of drafts) {
@@ -130,7 +107,7 @@ export function usePhotoPicker({
   }, [queryClient]);
 
   const upload = async (file: File | undefined) => {
-    if (!file || uploadInFlight.current) return;
+    if (source !== "preview" || !file || uploadInFlight.current) return;
     if (file.type && !file.type.startsWith("image/")) {
       showToast.error(t("Choose an image file."));
       return;
@@ -138,22 +115,16 @@ export function usePhotoPicker({
     uploadInFlight.current = true;
     setUploadingPreview(true);
     try {
-      if (source === "preview") {
-        const image = await previewService.upload(file);
-        pickerDrafts.current.add(image.id);
-        onUploadedPreview(image.id);
-        setUploaded((current) => [image, ...current]);
-        setPicked(image);
-        void queryClient.invalidateQueries({ queryKey: ["previews"] });
-        uploadInFlight.current = false;
-      } else {
-        const submitted = await uploadService.submit([file]);
-        setGalleryBatchId(submitted.id);
-      }
+      const image = await previewService.upload(file);
+      pickerDrafts.current.add(image.id);
+      onUploadedPreview(image.id);
+      setUploaded((current) => [image, ...current]);
+      setPicked(image);
+      void queryClient.invalidateQueries({ queryKey: ["previews"] });
     } catch (error) {
-      uploadInFlight.current = false;
       showToast.error(t("Could not start this upload."), error instanceof Error ? error.message : undefined);
     } finally {
+      uploadInFlight.current = false;
       setUploadingPreview(false);
     }
   };

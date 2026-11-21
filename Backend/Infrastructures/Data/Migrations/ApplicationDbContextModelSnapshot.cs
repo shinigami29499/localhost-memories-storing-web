@@ -398,6 +398,10 @@ namespace Infrastructures.Data.Migrations
                         .HasColumnType("character varying(500)")
                         .HasColumnName("relative_path");
 
+                    b.Property<bool>("StorageDeletionPending")
+                        .HasColumnType("boolean")
+                        .HasColumnName("storage_deletion_pending");
+
                     b.Property<string>("StoredFilename")
                         .IsRequired()
                         .HasMaxLength(300)
@@ -779,6 +783,10 @@ namespace Infrastructures.Data.Migrations
                         .HasColumnName("id")
                         .HasDefaultValueSql("gen_random_uuid()");
 
+                    b.Property<Guid?>("CollectionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("collection_id");
+
                     b.Property<DateTime?>("CompletedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("completed_at");
@@ -827,6 +835,9 @@ namespace Infrastructures.Data.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_upload_batches");
+
+                    b.HasIndex("CollectionId")
+                        .HasDatabaseName("ix_upload_batches_collection_id");
 
                     b.HasIndex("OwnerId", "CreatedAt")
                         .HasDatabaseName("ix_upload_batches_owner_id_created_at");
@@ -1205,6 +1216,12 @@ namespace Infrastructures.Data.Migrations
 
             modelBuilder.Entity("Domains.Entities.UploadBatch", b =>
                 {
+                    b.HasOne("Domains.Entities.Collection", null)
+                        .WithMany()
+                        .HasForeignKey("CollectionId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .HasConstraintName("fk_upload_batches_collections_collection_id");
+
                     b.HasOne("Domains.Entities.User", "Owner")
                         .WithMany()
                         .HasForeignKey("OwnerId")

@@ -563,3 +563,19 @@ textarea::placeholder {
   color: var(--text-on-accent);
 }
 
+.btn--primary[type="submit"] {
+  transition: background-color var(--mobile-action-color-duration) ease,
+    border-color var(--mobile-action-color-duration) ease, scale 140ms ease-out;
+}
+.btn--primary[type="submit"]:hover:not(:disabled) { filter: none; }
+@media (hover: hover) and (pointer: fine) {
+  .btn--primary[type="submit"]:hover:not(:disabled, :active) {
+    background-color: color-mix(in oklch, var(--accent-strong) 86%, var(--surface));
+    border-color: transparent;
+  }
+}
+.btn--primary[type="submit"]:active:not(:disabled) {
+  background-color: color-mix(in oklch, var(--accent-strong) 72%, var(--surface));
+  border-color: transparent;
+}
+

@@ -46,16 +46,8 @@ export function useSaveToAlbumDialog({ mediaIds, onClose }: SaveToAlbumDialogPro
           ? albumService.removeMedia(album.id, mediaId)
           : albumService.addMedia(album.id, mediaId),
       ));
-      await invalidate();
+      await invalidate(removing);
       const failed = results.filter((result) => result.status === "rejected").length;
-      const undo = async () => {
-        await Promise.all(mediaIdsToChange.map((mediaId) =>
-          removing
-            ? albumService.addMedia(album.id, mediaId)
-            : albumService.removeMedia(album.id, mediaId),
-        ));
-        await invalidate();
-      };
       if (failed > 0) {
         if (removing) {
           const failure = results.find((result) => result.status === "rejected");
@@ -63,9 +55,9 @@ export function useSaveToAlbumDialog({ mediaIds, onClose }: SaveToAlbumDialogPro
         }
         showToast.error(t("{count} media items could not be updated.", { count: failed }));
       } else if (removing) {
-        showToast.delete(t("Removed from album"), { undo });
+        showToast.delete(t("Media deleted from album"));
       } else {
-        showToast.success(t("Successfully saved to album {name}", { name: album.name }), { undo, highlight: [album.name] });
+        showToast.success(t("Successfully saved to album {name}", { name: album.name }), { highlight: [album.name] });
       }
     } catch (err) {
       if (removalIds) throw err;
@@ -91,10 +83,6 @@ export function useSaveToAlbumDialog({ mediaIds, onClose }: SaveToAlbumDialogPro
       } else {
         showToast.success(t("Successfully saved to album {name}", { name: album.name }), {
           highlight: [album.name],
-          undo: async () => {
-            await albumService.remove(album.id);
-            await invalidate();
-          },
         });
       }
     } catch (err) {

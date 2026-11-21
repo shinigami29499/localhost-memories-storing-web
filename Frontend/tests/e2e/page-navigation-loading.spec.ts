@@ -42,7 +42,7 @@ for (const width of [390, 1280]) {
       json: emptyResponse(route.request().url()),
     }));
     await page.goto("/gallery");
-    await expect(page.getByText("No media yet", { exact: true })).toBeVisible();
+    await expect(page.getByText("No albums yet", { exact: true })).toBeVisible();
     let releaseModule!: () => void;
     const moduleGate = new Promise<void>((resolve) => { releaseModule = resolve; });
     await page.route("**/src/pages/users/UsersPage.tsx*", async (route) => {
@@ -60,35 +60,11 @@ for (const width of [390, 1280]) {
     }
   });
 
-  test(`gallery section switches before its module loads at ${width}px`, async ({ page }) => {
-    await page.setViewportSize({ width, height: 900 });
-    await page.route(/^https?:\/\/[^/]+\/api\//, (route) => route.fulfill({ json: emptyResponse(route.request().url()) }));
-    await page.goto("/gallery");
-    await expect(page.getByText("No media yet", { exact: true })).toBeVisible();
-    let releaseModule!: () => void;
-    const moduleGate = new Promise<void>((resolve) => { releaseModule = resolve; });
-    await page.route("**/src/pages/albums/AlbumsPage.tsx*", async (route) => {
-      await moduleGate;
-      await route.continue();
-    });
-    try {
-      const link = page.locator(".gallery-layout__header").getByRole("link", { name: "Album", exact: true });
-      await link.click();
-      await expect(page).toHaveURL(/\/gallery\/album$/);
-      await expect(link).toHaveAttribute("aria-current", "page");
-      await expect(page.locator(".gallery-layout__content > .spinner")).toBeVisible();
-      await expectCenteredLoader(page);
-    } finally {
-      releaseModule();
-    }
-  });
 }
 
 const destinations = [
   { path: "/", selector: ".home-page" },
-  { path: "/gallery", selector: ".gallery-page" },
-  { path: "/gallery/favorites", selector: ".gallery-page" },
-  { path: "/gallery/trash", selector: ".gallery-page" },
+  { path: "/gallery", selector: ".album-page" },
   { path: "/gallery/album", selector: ".album-page" },
   { path: "/gallery/album/example", selector: ".album-page" },
   { path: "/uploads", selector: ".upload-page" },

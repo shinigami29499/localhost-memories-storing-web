@@ -1,5 +1,5 @@
 ﻿:root {
-  --mobile-bg: #f4f3f2;
+  --mobile-bg: #eae7e3;
   --mobile-surface: #ffffff;
   --mobile-surface-muted: #f6f5f3;
   --mobile-surface-raised: #ffffff;
@@ -12,6 +12,9 @@
   --mobile-on-primary: #ffffff;
   --mobile-focus: #1763b0;
   --mobile-danger: #b3261e;
+  --mobile-danger-action: color-mix(in oklch, var(--mobile-surface) 88%, var(--mobile-danger));
+  --mobile-danger-action-hover: #ebaaa2;
+  --mobile-action-color-duration: 0ms;
   --mobile-success: #216c47;
   --mobile-warning: #7c4e00;
   --mobile-info: #175b97;
@@ -24,11 +27,12 @@
 }
 
 :root[data-mobile-theme="dark"] {
-  --mobile-bg: #272727;
+  --mobile-bg: #1c1c1c;
   --mobile-surface: #222222;
   --mobile-surface-muted: #292929;
   --mobile-surface-raised: #303030;
-  --mobile-surface-flat-control: #1c1c1c;
+  --mobile-surface-inset: var(--mobile-surface-raised);
+  --mobile-surface-flat-control: var(--mobile-bg);
   --mobile-text: #f5f5f5;
   --mobile-text-muted: #cdcdcd;
   --mobile-border: #777777;
@@ -43,6 +47,10 @@
   --mobile-shadow-short-color: rgb(0 0 0 / 0.12);
   --mobile-shadow-long-color: rgb(0 0 0 / 0.24);
   color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :root[data-motion="on"] { --mobile-action-color-duration: 320ms; }
 }
 
 .mobile-theme-selector {

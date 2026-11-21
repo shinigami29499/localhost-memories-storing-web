@@ -16,19 +16,19 @@ public interface IMediaRepository
     Task<MediaFile?> FindOwnedMediaAsync(
         Guid mediaId, CancellationToken cancellationToken = default);
     Task<string?> GetOwnerUsernameAsync(Guid ownerId, CancellationToken cancellationToken = default);
-    Task<MediaFile?> FindMediaIncludingDeletedAsync(
-        Guid mediaId, CancellationToken cancellationToken = default);
-    Task PermanentlyDeleteMediaAsync(
+    Task QueueStorageDeletionAsync(
         Guid mediaId, Guid actorId, CancellationToken cancellationToken = default);
+    Task<List<MediaFile>> GetPendingStorageDeletionsAsync(CancellationToken cancellationToken);
+    Task CompleteStorageDeletionAsync(Guid mediaId, CancellationToken cancellationToken);
     Task<IReadOnlyList<(MediaFile Media, string? OwnerUsername)>> GetMediaPageAsync(
-        int offset, int limit, string? mediaKind, Guid? favoriteUserId, bool includeDeleted,
+        int offset, int limit, string? mediaKind, Guid? favoriteUserId,
         CancellationToken cancellationToken = default);
     Task<(IReadOnlyList<(MediaFile Media, string? OwnerUsername)> Items, long Total)> GetLocatedMediaPageAsync(
         int offset, int limit, PlaceMapBounds bounds, CancellationToken cancellationToken = default);
     Task<(IReadOnlyList<(MediaFile Media, string? OwnerUsername)> Items, long Total)> GetUnlocatedMediaPageAsync(
         int offset, int limit, CancellationToken cancellationToken = default);
     Task<long> CountMediaAsync(
-        string? mediaKind, Guid? favoriteUserId, bool includeDeleted,
+        string? mediaKind, Guid? favoriteUserId,
         CancellationToken cancellationToken = default);
     Task<(long Images, long Videos)> GetOwnedMediaCountsAsync(
         Guid ownerId, CancellationToken cancellationToken = default);

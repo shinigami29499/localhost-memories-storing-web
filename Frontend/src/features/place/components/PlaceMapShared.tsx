@@ -71,7 +71,7 @@ export interface Props {
   onConfirmHomeRelocation?: () => void;
   onCancelHomeRelocation?: () => void;
   onCreateAtCurrentLocation: (coordinate: PlaceCoordinate) => void;
-  onAddPhotos: () => void;
+  onBrowseAlbums: () => void;
   onHomeClick: () => void;
   /** `placeName` is set when the click snapped to a basemap place label. */
   onPick: (coordinate: PlaceCoordinate, placeName?: string, source?: "search") => void;
@@ -616,7 +616,7 @@ export function usePlaceMapController({
   PhotoMarkerPreview,
   places, photos = [], selectedPhoto, photoRelocating = false, selectedId, draft, picking, editorOpen, relocatingPlace, homeLocation,
   homeLocationReady, homePicking, homeRelocationDraft, homeActionDisabled, onSelect, onPick, onPickHome, onMoveHome, onConfirmHomeRelocation, onCancelHomeRelocation,
-  onHomeClick, onCreateAtCurrentLocation, onAddPhotos, token,
+  onHomeClick, onCreateAtCurrentLocation, onBrowseAlbums, token,
   canChange, onMove, onDelete, onEdit, onEditDraft, onConfirmRelocation, onCancelRelocation, onCancelSelection, onCancelDraft,
   canMovePhoto, onSelectPhoto, onMovePhoto, onEditPhoto, onConfirmPhotoMove, settingsRef, onBoundsChange, onAddToolbarChange,
 }: Props & { token: string }) {
@@ -659,7 +659,7 @@ export function usePlaceMapController({
   };
   const add = () => {
     if (showMarkers && showPhotoMarkers) setAddChoiceOpen(true);
-    else if (showPhotoMarkers) onAddPhotos();
+    else if (showPhotoMarkers) onBrowseAlbums();
     else if (showMarkers) addPlace();
   };
   const focusCoordinate = (coordinate: PlaceCoordinate) => {

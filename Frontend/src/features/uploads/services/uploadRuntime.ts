@@ -12,15 +12,6 @@ const notifiedBatches = new Set<string>();
 const wakeRunners = new Set<() => void>();
 const ITEM_INACTIVITY_TIMEOUT_MS = 30_000;
 const batchStartAttempts = new Map<string, number>();
-const completionActions = new Map<string, (batch: UploadBatch) => Promise<string | void>>();
-
-export function registerUploadCompletionAction(
-  batchId: string,
-  action: (batch: UploadBatch) => Promise<string | void>,
-): void {
-  completionActions.set(batchId, action);
-}
-
 export function wakeUploadRuntime(): void {
   for (const wake of wakeRunners) wake();
 }
@@ -68,16 +59,6 @@ export function startUploadRuntime(
     if (notifiedBatches.has(key) || localStorage.getItem(key)) return;
     notifiedBatches.add(key);
     localStorage.setItem(key, "1");
-    let completionUrl: string | undefined;
-    const completionAction = completionActions.get(batch.id);
-    completionActions.delete(batch.id);
-    if (batch.successfulFiles > 0 && completionAction) {
-      try {
-        completionUrl = await completionAction(batch) || undefined;
-      } catch (error) {
-        console.error("Could not finish upload completion action.", error);
-      }
-    }
     onBatchCompleted();
     showToast.dismiss(`upload-start:${batch.id}`);
 
@@ -90,22 +71,14 @@ export function startUploadRuntime(
       const images = batch.items.filter((item) => item.status === "Success" && item.contentType.startsWith("image/")).length;
       const videos = batch.items.filter((item) => item.status === "Success" && item.contentType.startsWith("video/")).length;
       const title = uploadMessage(translate, images, videos);
-      const destination = completionUrl ?? "/sync/upload";
+      const destination = batch.albumId ? "/gallery/album/" + batch.albumId : "/sync/upload";
       void showBrowserNotification(title, summary, destination).catch((error: unknown) => {
         console.error("Could not show upload notification.", error);
       });
       showToast.success(title, {
         id: `upload-completed:${batch.id}`,
-        description: completionUrl
-          ? translate("Click to view on the map.")
-          : translate(isGalleryPath(window.location.pathname)
-          ? "Click to refresh."
-          : "Click to go to gallery."),
-        onClick: () => {
-          if (completionUrl) window.location.assign(completionUrl);
-          else if (isGalleryPath(window.location.pathname)) window.location.reload();
-          else window.location.assign("/gallery");
-        },
+        description: translate(batch.albumId ? "Click to open the album." : "Click to view uploads."),
+        onClick: () => { if (window.location.pathname !== destination) window.location.assign(destination); },
       });
     } else if (batch.status === "Cancelled") {
       showToast.info(translate("Upload batch cancelled"), summary);
@@ -338,10 +311,4 @@ export function startUploadRuntime(
       console.error("Could not fail the timed out upload batch.", error);
     }
   }
-}
-
-function isGalleryPath(pathname: string): boolean {
-  return pathname === "/gallery"
-    || pathname === "/gallery/videos"
-    || pathname === "/gallery/favorites";
 }

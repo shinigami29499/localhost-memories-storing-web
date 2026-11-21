@@ -1,7 +1,7 @@
 /* Albums ------------------------------------------------------------- */
 
 .album-save-menu__content {
-  background: var(--surface-card);
+  background: var(--surface-card-raised);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow-lg);

@@ -115,6 +115,10 @@ public class ApplicationDbContext(
 
         modelBuilder.Entity<UploadBatch>(entity =>
         {
+            entity.HasOne<Collection>()
+                .WithMany()
+                .HasForeignKey(batch => batch.CollectionId)
+                .OnDelete(DeleteBehavior.NoAction);
             entity.Property(batch => batch.Status)
                 .HasConversion(
                     status => status.ToString(),

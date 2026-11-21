@@ -15,6 +15,7 @@ export interface UploadItem {
 
 export interface UploadBatch {
   id: string;
+  albumId?: string | null;
   status: UploadBatchStatus;
   username: string | null;
   canManage: boolean;

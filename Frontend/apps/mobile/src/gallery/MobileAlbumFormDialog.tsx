@@ -63,7 +63,7 @@ export function MobileAlbumFormDialog(props: AlbumFormDialogProps) {
             </>}
           </div>
           {confirmingDelete && album && <p className="dialog-actions__note">
-            {t("The album “{name}” will be deleted. Saved media stay in your gallery.", { name: album.name })}
+            {t("The album “{name}” will be deleted. Files owned by the album owner will be permanently deleted from storage and every album.", { name: album.name })}
           </p>}
         </footer>
       </form>

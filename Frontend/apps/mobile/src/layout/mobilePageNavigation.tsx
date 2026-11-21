@@ -3,7 +3,7 @@ import type { Query, QueryCache } from "@tanstack/react-query";
 import { Link, type LinkProps, type Location, useLocation, useNavigate } from "react-router-dom";
 import { useAnimationStore } from "@/store/animationStore";
 
-type PageEntry = { fromKey: string; homeIndex?: number };
+type PageEntry = { fromKey: string; fromPathname?: string; homeIndex?: number };
 type PageState = { mobileEntry?: PageEntry; mobileReturn?: boolean };
 
 export type MobilePageTransition = {
@@ -27,6 +27,9 @@ export function mobileSection(pathname: string) {
   return segment === "gallery" || segment === "location" || segment === "users" ? segment : null;
 }
 
+export const isMobileAlbumDetail = (pathname: string) => /^\/gallery\/album\/[^/]+\/?$/.test(pathname);
+const isGalleryList = (pathname: string) => /^\/gallery(?:\/album)?\/?$/.test(pathname);
+
 export function getMobilePageTransition(locationKey: string) {
   return activeTransition?.locationKey === locationKey ? activeTransition : undefined;
 }
@@ -44,6 +47,9 @@ export function updateMobilePageTransition(
   if (!pop && !nextEntry && previousEntry && samePage) {
     entries.set(next.key, previousEntry);
   }
+
+  if ((isGalleryList(previous.pathname) && isMobileAlbumDetail(next.pathname))
+    || (isMobileAlbumDetail(previous.pathname) && isGalleryList(next.pathname))) return;
 
   const returning = pop
     ? previousEntry?.fromKey === next.key || (next.pathname === "/" && previousEntry?.homeIndex === historyIndex())
@@ -76,7 +82,7 @@ export function useOpenMobilePage() {
     const currentIndex = historyIndex();
     const openingFromHome = location.pathname === "/";
     const homeIndex = openingFromHome ? currentIndex : entryFor(location)?.homeIndex;
-    const mobileEntry = { fromKey: location.key, homeIndex };
+    const mobileEntry = { fromKey: location.key, fromPathname: location.pathname, homeIndex };
     const replace = !openingFromHome && !mobileSection(location.pathname) && homeIndex === currentIndex - 1;
     void navigate(to, { replace, state: { mobileEntry } });
   };
@@ -109,4 +115,19 @@ export function useReturnFromMobilePage() {
       });
     }
   }, [location, navigate]);
+}
+
+export function useMobileBack() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const returnHome = useReturnFromMobilePage();
+  return useCallback(() => {
+    if (!isMobileAlbumDetail(location.pathname)) {
+      returnHome();
+    } else if (isGalleryList(entryFor(location)?.fromPathname ?? "") && historyIndex() > 0) {
+      void navigate(-1);
+    } else {
+      void navigate("/gallery", { replace: true });
+    }
+  }, [location, navigate, returnHome]);
 }

@@ -32,7 +32,7 @@ for (const width of [1280, 390]) {
           { id: "u1", username: "viewer", role: "admin", status: "active", createdAt: "2026-01-01" },
           { id: "u2", username: "pending-user", role: "user", status: "pending_approval", createdAt: "2026-01-01" },
         ] });
-        if (path.startsWith("/api/library/gallery")) return route.fulfill({ json: { offset: 0, limit: 20, total: 0, items: [] } });
+        if (path.startsWith("/api/library/gallery") || path === "/api/library/album/page") return route.fulfill({ json: { offset: 0, limit: 20, total: 0, items: [] } });
         return route.fulfill({ json: [] });
       });
       await page.route("**/hubs/**", (route) => route.abort());
@@ -46,8 +46,7 @@ for (const width of [1280, 390]) {
       await page.goto("/gallery");
       await settled(page);
       const bar = page.locator(".page-action-bar");
-      await expect(bar.getByRole("button", { name: "Upload media", exact: true })).toBeVisible();
-      const primary = await bar.getByRole("button", { name: "Upload media", exact: true }).elementHandle();
+      await expect(bar.getByRole("button", { name: "New album", exact: true })).toBeVisible();
       await page.evaluate(() => {
         const samples: unknown[] = [];
         (window as Window & { actionBarSamples?: unknown[] }).actionBarSamples = samples;
@@ -68,19 +67,9 @@ for (const width of [1280, 390]) {
           requestAnimationFrame(sample);
         }, true);
       });
-      const galleryNav = page.getByRole("navigation", { name: "Gallery", exact: true });
-      await galleryNav.getByRole("link", { name: "Album", exact: true }).click();
-      await expect(bar.getByRole("button", { name: "New album", exact: true })).toBeVisible();
-      expect(await primary!.evaluate((node) => node.isConnected)).toBe(true);
-      await page.screenshot({ path: test.info().outputPath("gallery-album-during.png") });
-      await settled(page);
       await bar.getByRole("button", { name: "New album", exact: true }).click();
       await expect(page.getByRole("dialog")).toBeVisible();
       await page.getByRole("dialog").getByRole("button", { name: "Cancel", exact: true }).click();
-      await galleryNav.getByRole("link", { name: "Trash", exact: true }).click();
-      await settled(page);
-      await expect(bar.locator("button, a")).toHaveCount(0);
-      await page.screenshot({ path: test.info().outputPath("gallery-trash.png") });
 
       await sidebar(page, "/location");
       await page.waitForTimeout(100);
@@ -110,8 +99,7 @@ for (const width of [1280, 390]) {
       // Return to a populated bar after pages with no gallery actions.
       await sidebar(page, "/gallery");
       await settled(page);
-      await expect(bar.getByRole("button", { name: "Upload media", exact: true })).toBeVisible();
-      await expect(bar.getByRole("link", { name: "Favorites", exact: true })).toBeVisible();
+      await expect(bar.getByRole("button", { name: "New album", exact: true })).toBeVisible();
       const samples = await page.evaluate(() => (window as Window & { actionBarSamples?: { nested: boolean; hidden: boolean; pseudoZ: string }[] }).actionBarSamples ?? []);
       await test.info().attach("action-bar-frames", { body: JSON.stringify(samples, null, 2), contentType: "application/json" });
       expect(samples.some((sample) => sample.nested)).toBe(false);

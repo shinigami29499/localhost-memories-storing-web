@@ -148,7 +148,7 @@ test("mobile Users and Locations action bars transition in sequence", async ({ p
   const userBeforeGallery = (await page.locator(".page-action-bar__item > .users__action-bar").boundingBox())!;
   await page.evaluate(() => { (window as Window & { transitions: unknown[] }).transitions = []; (window as Window & { userMotion: unknown[] }).userMotion = []; });
   await nav.getByRole("link", { name: "Gallery" }).click();
-  await expect(page.getByRole("button", { name: "Upload media" })).toBeVisible();
+  await expect(page.locator(".page-action-bar").getByRole("button", { name: "New album" })).toBeVisible();
   await page.waitForTimeout(600);
   transitions = await page.evaluate(() => (window as Window & { transitions: { name: string; time: number; frames: Keyframe[]; delay: number }[] }).transitions);
   expect(transitions.some((item) => item.name === "exit" && item.frames.at(-1)?.transform === "translateY(100%)")).toBe(true);
@@ -157,32 +157,21 @@ test("mobile Users and Locations action bars transition in sequence", async ({ p
   expect(Math.abs(galleryExit.samples[0].baseTop - userBeforeGallery.y)).toBeLessThan(2);
   expect(Math.abs(galleryExit.samples[0].left - userBeforeGallery.x)).toBeLessThan(2);
   await expect(page.locator("[data-user-transition-exit]")).toHaveCount(0);
-  for (const section of ["Gallery", "Album"]) {
-    if (section === "Album") {
-      await page.getByRole("navigation", { name: "Gallery", exact: true }).getByRole("link", { name: "Album", exact: true }).click();
-      await expect(page.getByRole("button", { name: "New album", exact: true }).first()).toBeVisible();
-    }
-    await page.evaluate(() => { (window as Window & { verticalExits: unknown[] }).verticalExits = []; (window as Window & { transitions: unknown[] }).transitions = []; (window as Window & { userMotion: unknown[] }).userMotion = []; });
-    await nav.getByRole("link", { name: "Users" }).click();
-    await expect(page.getByRole("searchbox", { name: "Search users" })).toBeVisible();
-    await page.waitForTimeout(600);
-    const exits = await page.evaluate(() => (window as Window & { verticalExits: { right: number; width: number; height: number }[] }).verticalExits);
-    expect(exits).toHaveLength(1);
-    expect(Math.round(exits[0].right)).toBe(378);
-    expect(exits[0].width).toBeGreaterThan(35);
-    expect(exits[0].height).toBeGreaterThan(35);
-    transitions = await page.evaluate(() => (window as Window & { transitions: { name: string; time: number; frames: Keyframe[]; delay: number }[] }).transitions);
-    expect(transitions.some((item) => item.name === "enter" && item.frames[0]?.transform === "translateY(100%)")).toBe(true);
-    const motion = (await page.evaluate(() => (window as Window & { userMotion: { kind: string; samples: { baseTop: number }[] }[] }).userMotion)).find((item) => item.kind === "enter")!;
-    expect(motion.samples.length).toBeGreaterThan(3);
-    expect(Math.max(...motion.samples.map((sample) => sample.baseTop)) - Math.min(...motion.samples.map((sample) => sample.baseTop))).toBeLessThan(2);
-    await expect(page.locator("[data-user-transition-exit]")).toHaveCount(0);
-    if (section === "Gallery") {
-      await nav.getByRole("link", { name: "Gallery" }).click();
-      await expect(page.getByRole("button", { name: "Upload media" })).toBeVisible();
-      await page.waitForTimeout(300);
-    }
-  }
+  await page.evaluate(() => { (window as Window & { verticalExits: unknown[] }).verticalExits = []; (window as Window & { transitions: unknown[] }).transitions = []; (window as Window & { userMotion: unknown[] }).userMotion = []; });
+  await nav.getByRole("link", { name: "Users" }).click();
+  await expect(page.getByRole("searchbox", { name: "Search users" })).toBeVisible();
+  await page.waitForTimeout(600);
+  const exits = await page.evaluate(() => (window as Window & { verticalExits: { right: number; width: number; height: number }[] }).verticalExits);
+  expect(exits).toHaveLength(1);
+  expect(Math.round(exits[0].right)).toBe(378);
+  expect(exits[0].width).toBeGreaterThan(35);
+  expect(exits[0].height).toBeGreaterThan(35);
+  transitions = await page.evaluate(() => (window as Window & { transitions: { name: string; time: number; frames: Keyframe[]; delay: number }[] }).transitions);
+  expect(transitions.some((item) => item.name === "enter" && item.frames[0]?.transform === "translateY(100%)")).toBe(true);
+  const motion = (await page.evaluate(() => (window as Window & { userMotion: { kind: string; samples: { baseTop: number }[] }[] }).userMotion)).find((item) => item.kind === "enter")!;
+  expect(motion.samples.length).toBeGreaterThan(3);
+  expect(Math.max(...motion.samples.map((sample) => sample.baseTop)) - Math.min(...motion.samples.map((sample) => sample.baseTop))).toBeLessThan(2);
+  await expect(page.locator("[data-user-transition-exit]")).toHaveCount(0);
 });
 
 test("Users exit stays visible while sliding down to Locations and Gallery", async ({ page }) => {
@@ -330,7 +319,7 @@ for (const view of ["saved", "history"]) {
     expect(pixel.slice(0, 3)).toEqual(surface);
     await page.evaluate(() => (window as Window & { pausedSearchExit?: Animation }).pausedSearchExit?.play());
     await expect(exit).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "Upload media" })).toBeVisible();
+    await expect(page.locator(".page-action-bar").getByRole("button", { name: "New album" })).toBeVisible();
     await page.waitForTimeout(300);
     const frames = await page.evaluate(() => (window as Window & { routeFrames: { kind: string; time: number; delay: number; frames: Keyframe[] }[] }).routeFrames);
     const leaving = frames.find((item) => item.kind === "exit" && item.frames.at(-1)?.transform === "translateY(100%)");

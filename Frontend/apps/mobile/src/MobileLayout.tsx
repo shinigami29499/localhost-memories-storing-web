@@ -3,7 +3,7 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { LibraryBig } from "@/components/animate-ui/icons/library-big";
 import { MapPin } from "@/components/animate-ui/icons/map-pin";
 import { Users } from "@/components/animate-ui/icons/users";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, X } from "lucide-react";
 import { Home } from "@/components/animate-ui/icons/home";
 import { Menu } from "@/components/animate-ui/icons/menu";
 import { Settings } from "@/components/animate-ui/icons/settings";
@@ -14,11 +14,10 @@ import { useLogout } from "@/features/auth/hooks/useLogout";
 import { MobilePresenceRuntime } from "./MobilePresenceRuntime";
 import { UploadRuntime } from "@/features/uploads/components/UploadRuntime";
 import { PageActionBarProvider } from "./layout/MobilePageActionBar";
-import { getMobilePageTransition, MobilePageLink, mobileSection, useOpenMobilePage, useReturnFromMobilePage } from "./layout/mobilePageNavigation";
+import { getMobilePageTransition, isMobileAlbumDetail, MobilePageLink, mobileSection, useMobileBack, useOpenMobilePage } from "./layout/mobilePageNavigation";
 import { MobilePageLoadingOverlay } from "./layout/MobilePageLoadingOverlay";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import { IconButton, Spinner } from "@/components/ui";
-import { MobileThemeSelector } from "./theme/MobileThemeSelector";
+import { Button, IconButton, Spinner } from "@/components/ui";
 import { ApprovalNotice } from "@/features/users/components/ApprovalNotice";
 import { UserAvatar } from "@/components/common/UserAvatar";
 import { useAuthStore } from "@/store/authStore";
@@ -51,7 +50,7 @@ export function AuthenticatedLayout() {
   const roleLabel = role === "superadmin" ? "Super admin" : role.charAt(0).toUpperCase() + role.slice(1);
   const section = mobileSection(location.pathname);
   const openPage = useOpenMobilePage();
-  const returnFromPage = useReturnFromMobilePage();
+  const goBack = useMobileBack();
   const logout = useLogout();
   const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
   const animateMenu = useAnimationStore((state) => state.enabled && state.iconsEnabled) && !reducedMotion;
@@ -95,13 +94,15 @@ export function AuthenticatedLayout() {
   const currentTab = isHome ? "home" : section;
   const title = section === "gallery" ? "Gallery" : section === "location" ? "Locations" : section === "users" ? "User" : location.pathname.startsWith("/settings") ? "Settings" : location.pathname.startsWith("/profile") ? "User profile" : location.pathname.startsWith("/uploads") ? "Upload" : "Home";
   const PageIcon = pageIcons[title];
-  const Title = location.pathname.startsWith("/gallery/album/") ? "span" : "h1";
+  const albumDetail = isMobileAlbumDetail(location.pathname);
+  const hasBack = albumDetail || (!isHome && !section);
+  const Title = albumDetail ? "span" : "h1";
   return <div className="app-shell mobile-shell">
     <a className="skip-link" href="#main-content" inert={loading || undefined}>{t("Skip to content")}</a>
     <MobilePresenceRuntime /><UploadRuntime />
     <div ref={page} className="app-shell__main">
       <div inert={loading || undefined}><ApprovalNotice /></div>
-      <header className="mobile-header mobile-shell-header" data-home={isHome}>
+      <header className="mobile-header mobile-shell-header" data-home={isHome} data-back={hasBack} data-gallery={section === "gallery"}>
         <div className="mobile-shell-header__identity">
           {user && <MobilePageLink to="/profile" className="mobile-home-header__identity" inert={!isHome}>
             <UserAvatar user={user} className="mobile-home-header__avatar" />
@@ -111,12 +112,14 @@ export function AuthenticatedLayout() {
             </span>
           </MobilePageLink>}
           <IconButton className="mobile-flat-icon-button mobile-header-back mobile-shell-header__back"
-            aria-label={t("Back")} title={t("Back")} inert={isHome} onClick={returnFromPage}>
+            aria-label={t("Back")} title={t("Back")} inert={!hasBack} onClick={goBack}>
             <ArrowLeft />
           </IconButton>
-          {!isHome && <Title className={section === "users" ? "mobile-header__title mobile-users__title" : "mobile-header__title"}>
-            <span className="mobile-page-title">{t(title)}</span>
-          </Title>}
+          <div className="mobile-shell-header__title-position">
+            {!isHome && <Title className={section === "users" ? "mobile-header__title mobile-users__title" : "mobile-header__title"}>
+              <span className="mobile-page-title">{t(title)}</span>
+            </Title>}
+          </div>
         </div>
         <div id="page-header-actions" inert={loading || undefined} />
         <div className="mobile-shell-header__actions">
@@ -137,19 +140,28 @@ export function AuthenticatedLayout() {
       <span className="mobile-nav__indicator" aria-hidden="true" />
       {mobileTabs.map(({ id, label, to, Icon }) => (
         <MobilePageLink key={id} to={to} aria-current={id === currentTab ? "page" : undefined}>
-          <Icon size={23} aria-hidden="true" /><span>{t(label)}</span>
+          <Icon size={26} aria-hidden="true" /><span>{t(label)}</span>
         </MobilePageLink>
       ))}
     </nav>
-    <dialog ref={dialog} className="mobile-more" aria-label={t("More")} onClose={() => { setOpen(false); trigger.current?.focus(); }}>
-      <header><h2>{t("More")}</h2><button type="button" onClick={() => dialog.current?.close()}>{t("Close")}</button></header>
+    <dialog ref={dialog} className="mobile-more" aria-label={t("More")} closedby="any"
+      onClick={(event) => {
+        const sheet = event.currentTarget;
+        // Older browsers retarget backdrop clicks to the dialog without dismissing it.
+        if ("closedBy" in HTMLDialogElement.prototype || event.target !== sheet) return;
+        const { left, right, top, bottom } = sheet.getBoundingClientRect();
+        if (event.clientX < left || event.clientX >= right || event.clientY < top || event.clientY >= bottom) sheet.close();
+      }}
+      onClose={() => { setOpen(false); trigger.current?.focus(); }}>
       <nav aria-label={t("More")}>
         <NavLink to="/profile" onClick={(event) => openPage("/profile", event, () => dialog.current?.close())}>{t("User profile")}</NavLink>
         <NavLink to="/uploads" onClick={(event) => openPage("/uploads", event, () => dialog.current?.close())}>{t("Upload")}</NavLink>
         <NavLink to="/settings" onClick={(event) => openPage("/settings", event, () => dialog.current?.close())}>{t("Settings")}</NavLink>
       </nav>
-      <MobileThemeSelector labels={{ legend: t("Appearance"), system: t("System"), light: t("Light"), dark: t("Dark") }} />
-      <button className="mobile-more__logout" type="button" onClick={() => { dialog.current?.close(); void logout(); }}>{t("Log out")}</button>
+      <Button variant="danger" className="mobile-more__logout" type="button" onClick={() => { dialog.current?.close(); void logout(); }}>
+        <X size={20} aria-hidden="true" />
+        {t("Log out")}
+      </Button>
     </dialog>
     {loading && <MobilePageLoadingOverlay key={transition.id} transition={transition} title={t(title)}
       icon={<PageIcon size={36} />} pageRef={page} onComplete={setCompletedTransition} />}

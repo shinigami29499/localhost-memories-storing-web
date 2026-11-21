@@ -101,15 +101,16 @@ export function BulkSaveToAlbumDialog(props: BulkSaveToAlbumDialogProps) {
       {removal && (
         <ConfirmationDialog
           title="Remove selected media from album?"
-          confirmLabel="Remove from album"
+          confirmLabel="Delete from album"
           danger
           onClose={() => setRemoval(null)}
           onConfirm={async () => { await toggle(removal.album, removal.mediaIds); }}
         >
-          <p>{t("Remove {count} media items from “{name}”? They will remain in your gallery.", {
+          <p>{t("Delete {count} media items from “{name}”?", {
             count: removal.mediaIds.length,
             name: removal.album.name,
           })}</p>
+          <p>{t("Files owned by the album owner will be permanently deleted from storage and every album. Other files are removed from this album.")}</p>
         </ConfirmationDialog>
       )}
     </AlertDialog.Root>

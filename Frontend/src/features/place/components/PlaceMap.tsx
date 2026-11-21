@@ -58,7 +58,7 @@ function MapContent(props: Props & { token: string }) {
   PhotoMarkerPreview,
   places, photos = [], selectedPhoto, photoRelocating = false, selectedId, draft, picking, editorOpen, relocatingPlace, homeLocation,
   homeLocationReady, homePicking, homeRelocationDraft, homeActionDisabled, onSelect, onPick, onPickHome, onMoveHome, onConfirmHomeRelocation, onCancelHomeRelocation,
-  onHomeClick, onCreateAtCurrentLocation, onAddPhotos, token,
+  onHomeClick, onCreateAtCurrentLocation, onBrowseAlbums, token,
   canChange, onMove, onDelete, onEdit, onEditDraft, onConfirmRelocation, onCancelRelocation, onCancelSelection, onCancelDraft,
   canMovePhoto, onSelectPhoto, onMovePhoto, onEditPhoto, onConfirmPhotoMove, settingsRef, onBoundsChange, onAddToolbarChange,
 } = props;
@@ -238,7 +238,7 @@ function MapContent(props: Props & { token: string }) {
       />
       {addChoiceOpen && <DialogComponent title={t("Add")} onClose={() => setAddChoiceOpen(false)}>
         <div className="place__add-choices">
-          <Button onClick={() => { setAddChoiceOpen(false); onAddPhotos(); }}>{t("Add photos")}</Button>
+          <Button onClick={() => { setAddChoiceOpen(false); onBrowseAlbums(); }}>{t("Go to albums")}</Button>
           <Button onClick={() => { setAddChoiceOpen(false); addPlace(); }}>{t("Add place")}</Button>
         </div>
       </DialogComponent>}

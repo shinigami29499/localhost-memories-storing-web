@@ -65,17 +65,10 @@ public sealed class MediaRepository(ApplicationDbContext db) : IMediaRepository
         => db.Users.AsNoTracking().Where(user => user.Id == ownerId)
             .Select(user => user.Username).FirstOrDefaultAsync(cancellationToken);
 
-    public Task<MediaFile?> FindMediaIncludingDeletedAsync(
-        Guid mediaId, CancellationToken cancellationToken = default)
-        => db.MediaFiles
-            .IgnoreQueryFilters()
-            .FirstOrDefaultAsync(m => m.Id == mediaId, cancellationToken);
-
-    public async Task PermanentlyDeleteMediaAsync(
+    public async Task QueueStorageDeletionAsync(
         Guid mediaId, Guid actorId, CancellationToken cancellationToken = default)
     {
         var utcNow = DateTime.UtcNow;
-        // Only this explicit purge path bypasses the DbContext's physical-delete guard.
         await db.Collections.IgnoreQueryFilters()
             .Where(collection => collection.PreviewMediaFileId == mediaId)
             .ExecuteUpdateAsync(
@@ -93,24 +86,34 @@ public sealed class MediaRepository(ApplicationDbContext db) : IMediaRepository
         await db.PlaceMedia.IgnoreQueryFilters()
             .Where(item => item.MediaFileId == mediaId)
             .ExecuteDeleteAsync(cancellationToken);
-        await db.MediaFiles.IgnoreQueryFilters()
+        await db.MediaFiles
             .Where(media => media.Id == mediaId)
-            .ExecuteDeleteAsync(cancellationToken);
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(media => media.DeletedAt, utcNow)
+                .SetProperty(media => media.DeletedBy, actorId)
+                .SetProperty(media => media.UpdatedAt, utcNow)
+                .SetProperty(media => media.UpdatedBy, actorId)
+                .SetProperty(media => media.StorageDeletionPending, true), cancellationToken);
     }
+
+    public Task<List<MediaFile>> GetPendingStorageDeletionsAsync(CancellationToken cancellationToken)
+        => db.MediaFiles.IgnoreQueryFilters().AsNoTracking()
+            .Where(media => media.StorageDeletionPending)
+            .OrderBy(media => media.DeletedAt).Take(100).ToListAsync(cancellationToken);
+
+    public async Task CompleteStorageDeletionAsync(Guid mediaId, CancellationToken cancellationToken)
+        => await db.MediaFiles.IgnoreQueryFilters().Where(media => media.Id == mediaId)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(media => media.StorageDeletionPending, false), cancellationToken);
 
     public async Task<IReadOnlyList<(MediaFile Media, string? OwnerUsername)>> GetMediaPageAsync(
         int offset,
         int limit,
         string? mediaKind,
         Guid? favoriteUserId,
-        bool includeDeleted,
         CancellationToken cancellationToken = default)
     {
-        var query = BuildMediaQuery(mediaKind, favoriteUserId, includeDeleted);
-        var ordered = includeDeleted
-            ? query.OrderByDescending(media => media.DeletedAt)
-            : query.OrderByDescending(media => media.CreatedAt);
-        var page = await ordered
+        var page = await BuildMediaQuery(mediaKind, favoriteUserId)
+            .OrderByDescending(media => media.CreatedAt)
             .ThenByDescending(media => media.Id)
             .Skip(offset)
             .Take(limit)
@@ -178,14 +181,13 @@ public sealed class MediaRepository(ApplicationDbContext db) : IMediaRepository
     public Task<long> CountMediaAsync(
         string? mediaKind,
         Guid? favoriteUserId,
-        bool includeDeleted,
         CancellationToken cancellationToken = default)
-        => BuildMediaQuery(mediaKind, favoriteUserId, includeDeleted).LongCountAsync(cancellationToken);
+        => BuildMediaQuery(mediaKind, favoriteUserId).LongCountAsync(cancellationToken);
 
     public async Task<(long Images, long Videos)> GetOwnedMediaCountsAsync(
         Guid ownerId, CancellationToken cancellationToken = default)
     {
-        var counts = await BuildMediaQuery(mediaKind: null, favoriteUserId: null, includeDeleted: false)
+        var counts = await BuildMediaQuery(mediaKind: null, favoriteUserId: null)
             .Where(media => media.OwnerId == ownerId)
             .GroupBy(media => media.MediaKind)
             .Select(group => new { MediaKind = group.Key, Count = group.LongCount() })
@@ -254,11 +256,9 @@ public sealed class MediaRepository(ApplicationDbContext db) : IMediaRepository
 
     public void AddMediaFavorite(MediaFavorite favorite) => db.MediaFavorites.Add(favorite);
 
-    private IQueryable<MediaFile> BuildMediaQuery(string? mediaKind, Guid? favoriteUserId, bool includeDeleted)
+    private IQueryable<MediaFile> BuildMediaQuery(string? mediaKind, Guid? favoriteUserId)
     {
         var query = db.MediaFiles.AsNoTracking();
-        if (includeDeleted)
-            query = query.IgnoreQueryFilters().Where(media => media.DeletedAt != null);
         query = query.Where(media => !media.IsPreviewOnly);
         if (mediaKind is not null)
             query = query.Where(media => media.MediaKind == mediaKind);

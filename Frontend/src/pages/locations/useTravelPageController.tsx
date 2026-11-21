@@ -10,9 +10,6 @@ import { useHomeLocation } from "../../features/locations/hooks/useHomeLocation"
 import { useLocations } from "../../features/locations/hooks/useLocations";
 import { useMapBounds } from "../../features/locations/hooks/useMapBounds";
 import { locationService } from "../../features/locations/services/locationService";
-import { locateUploadedBatch } from "../../features/locations/services/locateUploadedBatch";
-import { uploadService } from "../../features/uploads/services/uploadService";
-import { registerUploadCompletionAction } from "../../features/uploads/services/uploadRuntime";
 import type { MediaFile, PickedLocation } from "../../features/media/types";
 import type { HomeLocation } from "../../features/locations/types";
 
@@ -65,11 +62,6 @@ export function useTravelPageController({ allowPhoneEditing = false }: { allowPh
     window.addEventListener("keydown", cancelOnEscape, true);
     return () => window.removeEventListener("keydown", cancelOnEscape, true);
   }, [homeRelocationDraft, home.save.isPending]);
-  const [uploading, setUploading] = useState(false);
-  const [cameraOpen, setCameraOpen] = useState(false);
-  const uploadInFlight = useRef(false);
-  const uploadLocation = useRef<{ latitude: number; longitude: number } | null>(null);
-  const uploadInput = useRef<HTMLInputElement>(null);
   const workspaceRef = useRef<HTMLDivElement>(null);
   const [moveConfirmationOpen, setMoveConfirmationOpen] = useState(false);
   useEffect(() => {
@@ -204,64 +196,5 @@ export function useTravelPageController({ allowPhoneEditing = false }: { allowPh
     showToast.success(t("Home location saved."));
   };
 
-  const startWithCurrentLocation = async (action: () => void) => {
-    if (!navigator.geolocation) {
-      showToast.error(t("Could not determine your current location. Check location permission and try again."));
-      return;
-    }
-    try {
-      uploadLocation.current = await new Promise((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(
-          ({ coords }) => resolve({ latitude: coords.latitude, longitude: coords.longitude }),
-          () => reject(new Error(t("Could not determine your current location. Check location permission and try again."))),
-          { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
-        );
-      });
-      action();
-    } catch (error) {
-      uploadLocation.current = null;
-      showToast.error(error instanceof Error ? error.message : t("Could not determine your current location. Check location permission and try again."));
-    }
-  };
-
-  const uploadPhotos = async (files: File[]) => {
-    if (!files.length || uploadInFlight.current) return;
-    const coordinate = uploadLocation.current;
-    uploadLocation.current = null;
-    if (!coordinate) {
-      showToast.error(t("Could not determine your current location. Check location permission and try again."));
-      return;
-    }
-    uploadInFlight.current = true;
-    setUploading(true);
-    try {
-      const batch = await uploadService.submit(files, (createdBatch) => {
-        registerUploadCompletionAction(createdBatch.id, async (completedBatch) => {
-          if (!completedBatch.successfulFiles) return;
-          let taggedIds: string[];
-          try {
-            taggedIds = await locateUploadedBatch(completedBatch.id, coordinate);
-          } catch {
-            showToast.error(t("Photos uploaded, but could not mark their location."));
-            return;
-          }
-          await queryClient.invalidateQueries({ queryKey: ["media"] });
-          if (!taggedIds.length) {
-            showToast.error(t("Photos uploaded, but could not mark their location."));
-            return;
-          }
-          if (taggedIds.length < completedBatch.successfulFiles) showToast.error(t("Some uploaded photos could not be marked."));
-          return `/location/travel?focusMediaId=${encodeURIComponent(taggedIds[0])}`;
-        });
-      });
-      await queryClient.invalidateQueries({ queryKey: ["uploads"] });
-      showToast.success(t("Begin uploading {count} media", { count: files.length }), { id: `upload-start:${batch.id}` });
-    } catch (error) {
-      showToast.error(t("Could not upload and mark these photos."), error instanceof Error ? error.message : undefined);
-    } finally {
-      uploadInFlight.current = false;
-      setUploading(false);
-    }
-  };
-  return { t, queryClient, isMobile, searchParams, setSearchParams, handleMapBounds, home, selection, setSelection, showUnlocated, setShowUnlocated, unlocated, query, media, scanning, scanProgress, scanResult, scanError, setRelocatingId, homePicking, setHomePicking, homeRelocationDraft, setHomeRelocationDraft, homeMoveConfirmationOpen, setHomeMoveConfirmationOpen, uploading, cameraOpen, setCameraOpen, uploadInput, workspaceRef, moveConfirmationOpen, setMoveConfirmationOpen, selectedId, draft, saving, failedPreviews, setFailedPreviews, selected, focused, relocating, showDetails, canMove, canEdit, clearSelection, select, updateDraft, movePhoto, startRelocating, confirmRelocation, pickHome, confirmHomeRelocation, startWithCurrentLocation, uploadPhotos };
+  return { t, queryClient, isMobile, searchParams, setSearchParams, handleMapBounds, home, selection, setSelection, showUnlocated, setShowUnlocated, unlocated, query, media, scanning, scanProgress, scanResult, scanError, setRelocatingId, homePicking, setHomePicking, homeRelocationDraft, setHomeRelocationDraft, homeMoveConfirmationOpen, setHomeMoveConfirmationOpen, workspaceRef, moveConfirmationOpen, setMoveConfirmationOpen, selectedId, draft, saving, failedPreviews, setFailedPreviews, selected, focused, relocating, showDetails, canMove, canEdit, clearSelection, select, updateDraft, movePhoto, startRelocating, confirmRelocation, pickHome, confirmHomeRelocation };
 }

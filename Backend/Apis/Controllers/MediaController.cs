@@ -1,10 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.SignalR;
-using Apis.Realtime;
 using Apis.Authorization;
 using Apis.Interfaces;
-using Services.Exceptions;
 using Services.Interfaces;
 using Services.Models.Media;
 using Services.Models.Place;
@@ -19,9 +16,7 @@ namespace Apis.Controllers;
 [Authorize]
 public class MediaController(
     IMediaService mediaService,
-    ICurrentUserContext currentUser,
-    IHubContext<NotificationsHub> notificationsHub,
-    ILogger<MediaController> logger) : ControllerBase
+    ICurrentUserContext currentUser) : ControllerBase
 {
     private readonly IMediaService _mediaService = mediaService;
     private readonly ICurrentUserContext _currentUser = currentUser;
@@ -68,7 +63,6 @@ public class MediaController(
             request.Limit,
             request.MediaKind,
             favoritesOnly: false,
-            includeDeleted: false,
             cancellationToken));
 
     [HttpGet("mine/counts")]
@@ -99,31 +93,13 @@ public class MediaController(
         => Ok(await _mediaService.GetMediaChangesAsync(
             _currentUser.RequireUserId(), _currentUser.IsAdmin, since, cancellationToken));
 
-    [RequireAdmin]
-    [HttpGet("deleted")]
-    public async Task<ActionResult<PagedMediaResponse<MediaFileDto>>> GetDeletedMediaAsync(
-        [FromQuery] MediaPageRequest request, CancellationToken cancellationToken)
-        => Ok(await _mediaService.GetMediaPageAsync(
-            _currentUser.RequireUserId(),
-            request.Offset,
-            request.Limit,
-            request.MediaKind,
-            favoritesOnly: false,
-            includeDeleted: true,
-            cancellationToken));
-
-    /// <summary>Streams originals or small JPEG previews; includeDeleted is restricted to admins.</summary>
+    /// <summary>Streams originals or small JPEG previews.</summary>
     [HttpGet("{mediaId:guid}/file")]
     public async Task<IActionResult> GetFileAsync(
-        Guid mediaId, CancellationToken cancellationToken, [FromQuery] bool includeDeleted = false,
-        [FromQuery] bool preview = false,
+        Guid mediaId, CancellationToken cancellationToken, [FromQuery] bool preview = false,
         [FromQuery] int previewSize = 640)
     {
-
-        if (includeDeleted && !_currentUser.IsAdmin)
-            throw new ForbiddenException("Only administrators may preview deleted media.");
-
-        if (includeDeleted || preview)
+        if (preview)
             Response.Headers.CacheControl = "no-store";
 
         if (preview && previewSize is not (320 or 640))
@@ -131,73 +107,11 @@ public class MediaController(
                 "Invalid preview size.", new Dictionary<string, string[]> { ["previewSize"] = ["Choose 320 or 640 pixels."] });
 
         var media = await _mediaService.GetMediaFileAsync(
-            mediaId, includeDeleted, _currentUser.IsAdmin, cancellationToken, preview, _currentUser.RequireUserId(), previewSize);
+            mediaId, cancellationToken, preview, _currentUser.RequireUserId(), previewSize);
         return File(
             media.Content,
             media.MimeType,
             fileDownloadName: media.OriginalFilename,
             enableRangeProcessing: true);
     }
-
-    [RequireAdmin]
-    [HttpDelete("{mediaId:guid}")]
-    public async Task<IActionResult> DeleteMediaAsync(Guid mediaId, CancellationToken cancellationToken)
-    {
-        var media = await _mediaService.GetMediaForNotificationAsync(mediaId, cancellationToken);
-        await _mediaService.DeleteMediaAsync(
-            mediaId, _currentUser.RequireUserId(), _currentUser.IsAdmin, cancellationToken);
-        await NotifyMediaChangedAsync(media, "trashed");
-        return NoContent();
-    }
-
-    [RequireAdmin]
-    [HttpPost("{mediaId:guid}/restore")]
-    public async Task<IActionResult> RestoreMediaAsync(Guid mediaId, CancellationToken cancellationToken)
-    {
-        var media = await _mediaService.GetMediaForNotificationAsync(mediaId, cancellationToken);
-        await _mediaService.RestoreMediaAsync(
-            mediaId, _currentUser.RequireUserId(), _currentUser.IsAdmin, cancellationToken);
-        await NotifyMediaChangedAsync(media, "restored");
-        return NoContent();
-    }
-
-    [RequireAdmin]
-    [HttpDelete("{mediaId:guid}/permanent")]
-    public async Task<IActionResult> PermanentlyDeleteMediaAsync(Guid mediaId, CancellationToken cancellationToken)
-    {
-        var media = await _mediaService.GetMediaForNotificationAsync(mediaId, cancellationToken);
-        await _mediaService.PermanentlyDeleteMediaAsync(
-            mediaId, _currentUser.RequireUserId(), _currentUser.IsAdmin, cancellationToken);
-        await NotifyMediaChangedAsync(media, "deleted");
-        return NoContent();
-    }
-
-    /// <summary>Removes a gallery record and its database links without accessing storage.</summary>
-    [RequireAdmin]
-    [HttpDelete("{mediaId:guid}/record")]
-    public async Task<IActionResult> DeleteMediaRecordAsync(Guid mediaId, CancellationToken cancellationToken)
-    {
-        var media = await _mediaService.GetMediaForNotificationAsync(mediaId, cancellationToken);
-        await _mediaService.DeleteMediaRecordAsync(
-            mediaId, _currentUser.RequireUserId(), _currentUser.IsAdmin, cancellationToken);
-        await NotifyMediaChangedAsync(media, "deleted");
-        return NoContent();
-    }
-
-    private async Task NotifyMediaChangedAsync(MediaFileDto? media, string action)
-    {
-        if (media is null) return;
-        try
-        {
-            await notificationsHub.Clients.All.SendAsync("MediaChanged", new {
-                mediaId = media.Id, name = media.OriginalFilename, ownerId = media.OwnerId,
-                actorId = _currentUser.RequireUserId(), username = _currentUser.RequireUsername(), action
-            });
-        }
-        catch (Exception exception)
-        {
-            logger.LogWarning(exception, "Could not notify users about media {MediaId}", media.Id);
-        }
-    }
-
 }

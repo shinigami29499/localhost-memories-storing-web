@@ -111,7 +111,7 @@ public sealed class PreviewService(
                     {
                         logger.LogError(exception, "Preview {MediaId} cleanup failed; restoring its file", mediaId);
                         if (purgePath is not null)
-                            await storage.RestoreFromTrashAsync(purgePath, media.RelativePath, CancellationToken.None);
+                            await storage.RestoreStagedFileAsync(purgePath, media.RelativePath, CancellationToken.None);
                         throw;
                     }
                 }

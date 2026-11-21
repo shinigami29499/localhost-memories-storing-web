@@ -100,14 +100,11 @@ describe("MediaPreviewDialog resolution loading", () => {
     vi.unstubAllGlobals();
   });
 
-  function render(includeDeleted = false) {
-    const actions = includeDeleted
-      ? { trashActions: { onRestore: vi.fn(), onDelete: vi.fn() } }
-      : { onToggleFavorite: vi.fn() };
+  function render() {
     act(() => root.render(
       <QueryClientProvider client={queryClient}>
         <MemoryRouter>
-          <MediaPreviewDialog media={media} initialMediaId="image" onClose={vi.fn()} {...actions} />
+          <MediaPreviewDialog media={media} initialMediaId="image" onClose={vi.fn()} onToggleFavorite={vi.fn()} />
         </MemoryRouter>
       </QueryClientProvider>,
     ));
@@ -157,32 +154,6 @@ describe("MediaPreviewDialog resolution loading", () => {
     expect(onClose).toHaveBeenCalledExactlyOnceWith(image.id);
   });
 
-  it("does not expose favorite actions for trashed images or videos", () => {
-    const onRestore = vi.fn();
-    const onDelete = vi.fn();
-    act(() => root.render(
-      <QueryClientProvider client={queryClient}>
-        <MemoryRouter>
-          <MediaPreviewDialog
-            media={media}
-            initialMediaId="image"
-            onClose={vi.fn()}
-            trashActions={{ onRestore, onDelete }}
-          />
-        </MemoryRouter>
-      </QueryClientProvider>,
-    ));
-    act(() => container.querySelector(".media-preview-dialog__stage img")!.dispatchEvent(
-      new MouseEvent("dblclick", { bubbles: true }),
-    ));
-    navigate("ArrowRight");
-    act(() => container.querySelector("video")!.dispatchEvent(
-      new MouseEvent("dblclick", { bubbles: true }),
-    ));
-    expect(container.querySelector('[aria-label="Add to favorites"]')).toBeNull();
-    expect(onRestore).not.toHaveBeenCalled();
-    expect(onDelete).not.toHaveBeenCalled();
-  });
 
 
 });

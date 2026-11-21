@@ -96,6 +96,8 @@ public class CollectionsController(
                 actorId = currentUser.RequireUserId(), username = currentUser.RequireUsername(), action };
             var clients = broadcast ? notificationsHub.Clients.All : notificationsHub.Clients.User(album.Owner.Id.ToString());
             await clients.SendAsync("AlbumChanged", payload);
+            if (!broadcast && action is ("deleted" or "media"))
+                await notificationsHub.Clients.All.SendAsync("AlbumMediaRemoved");
         }
         catch (Exception exception)
         {
@@ -165,7 +167,7 @@ public class CollectionsController(
     {
         var album = await collectionService.UpdateMediaBatchAsync(
             collectionId, currentUser.RequireUserId(), request.MediaIds, add, cancellationToken);
-        await NotifyAlbumChangedAsync(album, "updated", album.IsPublic);
+        await NotifyAlbumChangedAsync(album, add ? "updated" : "media", album.IsPublic);
         return Ok(album);
     }
 
@@ -191,7 +193,7 @@ public class CollectionsController(
         Guid collectionId, Guid mediaId, CancellationToken cancellationToken)
     {
         var album = await collectionService.RemoveMediaAsync(collectionId, currentUser.RequireUserId(), mediaId, cancellationToken);
-        await NotifyAlbumChangedAsync(album, "updated", album.IsPublic);
+        await NotifyAlbumChangedAsync(album, "media", album.IsPublic);
         return Ok(album);
     }
 }

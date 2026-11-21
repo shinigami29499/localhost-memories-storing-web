@@ -19,9 +19,6 @@ export const MOBILE_QUERY = "(max-width: 767px)";
 function pageTitle(pathname: string): string {
   if (pathname === "/") return "Home";
   if (pathname.startsWith("/gallery/album/")) return "Album";
-  if (pathname.startsWith("/gallery/favorites")) return "Favorites";
-  if (pathname.startsWith("/gallery/album")) return "Album";
-  if (pathname.startsWith("/gallery/trash")) return "Trash";
   if (pathname.startsWith("/gallery")) return "Gallery";
   if (pathname.startsWith("/location/travel")) return "Travel";
   if (pathname.startsWith("/location/history")) return "History";
@@ -62,7 +59,7 @@ export function AuthenticatedLayout() {
         </header>
         <PageActionBarProvider>
           <div id="main-content" tabIndex={-1} className="app-shell__content">
-            <PushTransition transitionKey={pageKey} matchPageHighlights hasPageHighlight={pageKey === "/gallery" || pageKey === "/location" || pageKey === "/users"} />
+            <PushTransition transitionKey={pageKey} matchPageHighlights hasPageHighlight={pageKey === "/location" || pageKey === "/users"} />
             <Suspense key={pageKey} fallback={<Spinner page />}><Outlet /></Suspense>
           </div>
         </PageActionBarProvider>

@@ -29,7 +29,6 @@ public interface ICollectionRepository
     Task<IReadOnlyList<MediaFile>> GetMediaFilesAsync(
         IReadOnlyCollection<Guid> mediaIds, CancellationToken cancellationToken = default);
     Task<bool> IsCollectionImageAsync(Guid collectionId, Guid mediaId, CancellationToken cancellationToken = default);
-    Task<bool> MediaExistsAsync(Guid mediaId, CancellationToken cancellationToken = default);
     Task<CollectionMedia?> FindCollectionMediaAsync(
         Guid collectionId, Guid mediaId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<CollectionMedia>> GetCollectionMediaEntriesAsync(
@@ -37,6 +36,10 @@ public interface ICollectionRepository
         CancellationToken cancellationToken = default);
     Task DeleteCollectionMediaAsync(
         Guid collectionId, Guid actorId, DateTime utcNow, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<MediaFile>> GetOwnedAlbumMediaAsync(
+        Guid collectionId, Guid ownerId, Guid[]? mediaIds, CancellationToken cancellationToken);
+    Task RemoveCollectionMediaAsync(
+        Guid collectionId, Guid[] mediaIds, Guid actorId, DateTime utcNow, CancellationToken cancellationToken);
     void AddCollection(Collection collection);
     void AddCollectionMedia(CollectionMedia collectionMedia);
 }

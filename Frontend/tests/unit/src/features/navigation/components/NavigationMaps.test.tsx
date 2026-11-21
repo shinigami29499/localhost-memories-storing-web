@@ -95,13 +95,13 @@ describe.each(["travel", "place"] as const)("%s map navigation integration", (ki
         {kind === "travel" ? (
           <LocationMap {...shared} media={[photo]} selected={selected ? photo : undefined}
             draft={coordinate} editable canMove={() => true} onMove={vi.fn()}
-            onEdit={vi.fn()} onCancelSelection={vi.fn()} onAddPhotos={vi.fn()} onOpenCamera={vi.fn()} />
+            onEdit={vi.fn()} onCancelSelection={vi.fn()} onBrowseAlbums={vi.fn()} />
         ) : (
           <PlaceMap {...shared} onAddToolbarChange={vi.fn()} places={[place]} selectedId={selected ? place.id : null}
             draft={null} picking={false} canChange={() => true} onMove={vi.fn()} onDelete={vi.fn()}
             canMovePhoto={() => true} onSelectPhoto={vi.fn()} onMovePhoto={vi.fn()} onEditPhoto={vi.fn()}
             onConfirmPhotoMove={vi.fn()} onEdit={vi.fn()} onEditDraft={vi.fn()} onCancelSelection={vi.fn()}
-            onCancelDraft={vi.fn()} onCreateAtCurrentLocation={vi.fn()} onAddPhotos={vi.fn()} />
+            onCancelDraft={vi.fn()} onCreateAtCurrentLocation={vi.fn()} onBrowseAlbums={vi.fn()} />
         )}
       </QueryClientProvider>,
     ));

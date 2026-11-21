@@ -98,7 +98,7 @@ textarea, select { min-height: 44px; }
   }
   .bottom-navigation__dialog-header button:not(.dialog-action),
   .bottom-navigation__dialog nav a,
-  .bottom-navigation__dialog nav button:not(.dialog-action):not(.mobile-users__actions button):not(.media-tile):not(.album-hero__caption-button):not(.album-hero__delete):not(.album-hero__filter[aria-pressed="true"]) {
+  .bottom-navigation__dialog nav button:not(.dialog-action):not(.media-tile):not(.album-hero__caption-button):not(.album-hero__delete):not(.album-hero__filter[aria-pressed="true"]) {
     display: flex;
     align-items: center;
     gap: 12px;

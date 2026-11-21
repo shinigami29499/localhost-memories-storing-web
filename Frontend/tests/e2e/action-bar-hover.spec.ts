@@ -30,7 +30,7 @@ test("location action hover matches gallery", async ({ page }) => {
     });
   };
   await page.goto("/gallery");
-  const gallery = await colors('.page-action-bar button[aria-label="Upload media"]');
+  const gallery = await colors('.page-action-bar button[aria-label="New album"]');
   await page.goto("/location");
   const location = await colors('.map-navigation__toolbar button[aria-label="Add"]');
   expect(location.background).toBe(gallery.background);

@@ -1,4 +1,4 @@
-.mobile-error { display: grid; min-height: 100dvh; place-items: center; padding: 2rem 1.25rem; background: var(--mobile-surface); color: var(--mobile-text); }
+.mobile-error { display: grid; min-height: 100dvh; place-items: center; padding: 2rem 1.25rem; background: var(--mobile-bg); color: var(--mobile-text); }
 .mobile-error__content { width: min(100%, 25rem); text-align: center; }
 .mobile-error__icon { display: grid; width: 3rem; height: 3rem; margin: 0 auto 1.5rem; place-items: center; border-radius: 50%; background: var(--mobile-surface-muted); font-size: 1.5rem; font-weight: 700; }
 .mobile-error h1 { margin: 0; font-size: 1.5rem; overflow-wrap: anywhere; }

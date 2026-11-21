@@ -15,6 +15,7 @@ public class AuthController(
     IAuthService authService,
     ICurrentUserContext currentUser,
     IHubContext<NotificationsHub> notificationsHub,
+    PresenceConnections presenceConnections,
     IUserService userService,
     ILogger<AuthController> logger) : ControllerBase
 {
@@ -52,9 +53,13 @@ public class AuthController(
     [Authorize]
     public async Task<IActionResult> LogoutAsync(LogoutRequest request, CancellationToken cancellationToken)
     {
-        await _authService.LogoutAsync(_currentUser.RequireUserId(), request.RefreshToken, cancellationToken);
-        var profile = await userService.GetProfileAsync(_currentUser.RequireUserId(), cancellationToken);
-        await notificationsHub.NotifyTransitionAsync(profile.Id, profile.Username, false, DateTime.UtcNow, cancellationToken);
+        var userId = _currentUser.RequireUserId();
+        await _authService.LogoutAsync(userId, request.RefreshToken, cancellationToken);
+        if (!presenceConnections.HasMultipleConnections(userId))
+        {
+            var profile = await userService.GetProfileAsync(userId, cancellationToken);
+            await notificationsHub.NotifyTransitionAsync(profile.Id, profile.Username, false, DateTime.UtcNow, cancellationToken);
+        }
         return NoContent();
     }
 

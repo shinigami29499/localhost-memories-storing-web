@@ -32,6 +32,12 @@ For same-layer items, use a distinct fill and keep the treatment flat and border
 - [Component recipes](references/component-recipes.md): navigation, cards, controls, dashboard, progress, badges, and overlays.
 - [Visual validation](references/visual-validation.md): theme, interaction, accessibility, and visual review.
 
+## Gallery album depth
+
+Mobile dark mode and the dark Gallery use `#1c1c1c` for page backgrounds and `#303030` for raised and inset surfaces. Raised surfaces use translucent black exterior shadows. Inset surfaces use a dark inner shadow and a light inner highlight. Gallery uses exterior shadows for the main frame, idle date tiles, and Move Up, and inset shadows for the selected date. The Send Horizontal control shares the main frame's fill and elevation. Keep both previews flat and passive. Animate the icons when Interface motion and icon motion are enabled and the system allows motion.
+
+For Gallery date tiles and mobile Users search and filters, match raised borders to the component fill at rest. Highlight interactive borders on hover and keep contrasting borders on inset surfaces. Keep keyboard focus indicators visible at every depth.
+
 ## Checklist
 
 - Depth communicates hierarchy or interaction; secondary content remains appropriately quiet.

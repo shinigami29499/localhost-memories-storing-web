@@ -9,4 +9,6 @@ The overlay paints at full opacity as soon as the destination commits. The bar a
 
 Validate with `tests/e2e/mobile-app-accessibility.spec.ts` using a held Gallery response to check progress and completion in both themes and with Interface motion off.
 
+The title scales to the destination header font size during the slide. Translation and scaling share the same timing and easing. The title aligns its left edge and vertical center with the header before the live title appears.
+
 The overlay covers routed content and leaves the persistent header controls and tabs above it. The shell marks covered page content inert. The browser continues to paint the live header and tab bar during navigation.

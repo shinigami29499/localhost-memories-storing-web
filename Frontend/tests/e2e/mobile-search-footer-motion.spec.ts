@@ -18,7 +18,7 @@ for (const [from, to] of [["/users", "/gallery"], ["/gallery", "/users"], ["/loc
     await page.goto(from);
     if (from === "/users") await expect(page.getByRole("searchbox", { name: "Search users" })).toBeVisible();
     if (from === "/location/saved") await expect(page.getByRole("searchbox", { name: "Search saved places" })).toBeVisible();
-    if (from === "/gallery") await expect(page.getByRole("button", { name: "Upload media" })).toBeVisible();
+    if (from === "/gallery") await expect(page.locator(".page-action-bar").getByRole("button", { name: "New album" })).toBeVisible();
     if (from === "/location") await expect(page.getByRole("button", { name: "Add", exact: true })).toBeVisible();
     await page.waitForTimeout(350);
     await page.evaluate(() => {

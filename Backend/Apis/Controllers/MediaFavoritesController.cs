@@ -23,7 +23,6 @@ public sealed class MediaFavoritesController(IMediaService mediaService, ICurren
             request.Limit,
             request.MediaKind,
             favoritesOnly: true,
-            includeDeleted: false,
             cancellationToken));
 
     [HttpPost("{mediaId:guid}/favorite")]

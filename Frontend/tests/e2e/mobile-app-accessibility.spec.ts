@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Locator } from "@playwright/test";
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
@@ -23,7 +23,11 @@ test.beforeEach(async ({ page }) => {
 for (const width of [320, 390]) {
   test(`mobile theme persistence, focus return and overflow at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 844 });
-    await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
+    const reducedMotion = width === 320 ? "no-preference" : "reduce";
+    await page.emulateMedia({ colorScheme: "light", reducedMotion });
+    if (reducedMotion === "reduce") {
+      await page.addInitScript(() => localStorage.setItem("shinigacim.animations-enabled", "true"));
+    }
     await page.goto("/");
     await expect(page.getByRole("main", { name: "Home" })).toBeEmpty();
     const account = page.getByRole("link", { name: "viewer Admin", exact: true });
@@ -36,9 +40,10 @@ for (const width of [320, 390]) {
     const indicator = navigation.locator(".mobile-nav__indicator");
     await expect(homeTab).toHaveAttribute("aria-current", "page");
     await expect(navigation).toHaveCSS("background-color", "rgb(255, 255, 255)");
-    await expect(indicator).toHaveCSS("background-color", "rgb(244, 243, 242)");
+    await expect(indicator).toHaveCSS("background-color", "rgb(34, 34, 34)");
     const notifications = page.getByRole("button", { name: "Notifications" });
-    await expect(page.locator(".mobile-shell")).toHaveCSS("background-color", "rgb(244, 243, 242)");
+    await expect(page.locator(".mobile-shell")).toHaveCSS("background-color", "rgb(234, 231, 227)");
+    await expect(navigation).toHaveCSS("border-top-color", "rgb(232, 230, 227)");
     await expect(notifications).toHaveCSS("background-color", "rgb(255, 255, 255)");
     await expect(notifications).toHaveCSS("border-top-width", "0px");
     await notifications.click();
@@ -46,49 +51,180 @@ for (const width of [320, 390]) {
     await page.keyboard.press("Escape");
     await expect(notifications).toBeFocused();
     const more = page.getByRole("button", { name: "More", exact: true });
+    await expect(more).toHaveCSS("background-color", "rgb(255, 255, 255)");
     await more.click();
     const dialog = page.getByRole("dialog", { name: "More" });
     await expect(dialog).toBeVisible();
     await expect(more.locator("line").nth(1)).toHaveCSS("opacity", "1");
-    await dialog.getByRole("radio", { name: "Dark" }).check();
+    await expect(dialog).toHaveCSS("transition-duration", "0s");
+    await expect(dialog.getByRole("heading")).toHaveCount(0);
+    await expect(dialog.getByRole("button", { name: "Close" })).toHaveCount(0);
+    await expect(dialog.getByRole("radio")).toHaveCount(0);
+    const logout = dialog.getByRole("button", { name: "Log out" });
+    const logoutBounds = await logout.boundingBox();
+    expect(logoutBounds?.x).toBe(24);
+    expect(logoutBounds?.width).toBe(width - 48);
+    const logoutIcon = logout.locator("svg");
+    await expect(logoutIcon).toBeVisible();
+    await expect(logout).toHaveCSS("transition-duration", "0s");
+    await expect(logout).toHaveCSS("color", "rgb(179, 38, 30)");
+    await expect(logoutIcon).toHaveCSS("color", "rgb(179, 38, 30)");
+    await logout.hover();
+    await expect(logout).toHaveCSS("background-color", "rgb(235, 170, 162)");
+    const hoverColor = await logout.evaluate((button) => getComputedStyle(button).color);
+    expect(hoverColor).not.toBe("rgb(179, 38, 30)");
+    await expect(logoutIcon).toHaveCSS("color", hoverColor);
+    await page.mouse.down();
+    await expect(logout).toHaveCSS("background-color", "oklch(0.55 0.18 30)");
+    await expect(logoutIcon).toHaveCSS("color", "rgb(255, 255, 255)");
+    await page.mouse.move(width / 2, 100);
+    await page.mouse.up();
+    await dialog.click({ position: { x: 8, y: 8 } });
+    await expect(dialog).toBeVisible();
+    await page.mouse.click(width / 2, 100);
+    await expect(dialog).toBeHidden();
+    await expect(more).toBeFocused();
+    await more.click();
+    await dialog.getByRole("link", { name: "Settings" }).click();
+    await page.getByRole("radio", { name: "Dark" }).check();
     await expect(page.locator("html")).toHaveAttribute("data-mobile-theme", "dark");
     await page.emulateMedia({ colorScheme: "light" });
     await expect(page.locator("html")).toHaveAttribute("data-mobile-theme", "dark");
-    await dialog.getByRole("button", { name: "Close" }).click();
-    await expect(more).toBeFocused();
     await page.reload();
     await expect(page.locator("html")).toHaveAttribute("data-mobile-theme", "dark");
-    await more.click();
-    await dialog.getByRole("radio", { name: "System" }).check();
+    await page.getByRole("radio", { name: "System" }).check();
     await expect(page.locator("html")).toHaveAttribute("data-mobile-theme", "light");
-    await dialog.getByRole("button", { name: "Close" }).click();
+    await page.getByRole("button", { name: "Back", exact: true }).click();
     await page.emulateMedia({ colorScheme: "dark" });
     await expect(page.locator("html")).toHaveAttribute("data-mobile-theme", "dark");
-    await expect(page.locator(".mobile-shell")).toHaveCSS("background-color", "rgb(39, 39, 39)");
-    await expect(notifications).toHaveCSS("background-color", "rgb(28, 28, 28)");
-    await expect(navigation).toHaveCSS("background-color", "rgb(34, 34, 34)");
-    await expect(indicator).toHaveCSS("background-color", "rgb(39, 39, 39)");
-    await expect(navigation).toHaveCSS("border-top-color", "rgb(72, 72, 72)");
-    await expect(navigation).toHaveCSS("border-bottom-color", "rgb(72, 72, 72)");
+    await expect(page.locator(".mobile-shell")).toHaveCSS("background-color", "rgb(28, 28, 28)");
+    await expect(notifications).toHaveCSS("background-color", "rgb(48, 48, 48)");
+    await expect(more).toHaveCSS("background-color", "rgb(48, 48, 48)");
+    await expect(navigation).toHaveCSS("background-color", "rgb(48, 48, 48)");
+    await expect(navigation).toHaveCSS("box-shadow", /rgba\(0, 0, 0, 0\.12\).*rgba\(0, 0, 0, 0\.24\)/);
+    await expect(indicator).toHaveCSS("background-color", "rgb(255, 255, 255)");
+    await expect(navigation).toHaveCSS("border-top-color", "rgba(0, 0, 0, 0)");
+    await expect(navigation).toHaveCSS("border-bottom-color", "rgba(0, 0, 0, 0)");
+    await notifications.click();
+    await expect(page.getByRole("banner").getByRole("region", { name: "Notifications" }))
+      .toHaveCSS("background-color", "rgb(48, 48, 48)");
+    await page.keyboard.press("Escape");
+    await more.click();
+    await expect(dialog).toHaveCSS("background-color", "rgb(48, 48, 48)");
+    await expect(logout).toHaveCSS("color", "rgb(255, 180, 171)");
+    await expect(logoutIcon).toHaveCSS("color", "rgb(255, 180, 171)");
+    await page.keyboard.press("Escape");
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   });
 }
 
-test("Home menu icon morphs while More is open", async ({ page }) => {
+test("Home menu slides up and down while its icon morphs", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.addInitScript(() => localStorage.setItem("shinigacim.animations-enabled", "true"));
   await page.goto("/");
 
+  await page.locator(".mobile-more").evaluate((sheet) => {
+    const positions: number[][] = [];
+    Reflect.set(window, "menuSlidePositions", positions);
+    sheet.addEventListener("transitionstart", (event) => {
+      if (event.propertyName !== "transform" || event.pseudoElement) return;
+      const slide = sheet.getAnimations().find((animation) =>
+        animation instanceof CSSTransition && animation.transitionProperty === "transform");
+      if (!slide?.effect) return;
+      const originalTime = slide.currentTime;
+      const duration = Number(slide.effect.getTiming().duration);
+      positions.push([0, duration / 2, duration - 1].map((time) => {
+        slide.currentTime = time;
+        return sheet.getBoundingClientRect().top;
+      }));
+      slide.currentTime = originalTime;
+    });
+  });
+
   const more = page.getByRole("button", { name: "More", exact: true });
   const middleLine = more.locator("line").nth(1);
   await expect(middleLine).toHaveCSS("opacity", "1");
   await more.click();
-  await expect(page.getByRole("dialog", { name: "More" })).toBeVisible();
+  const menu = page.getByRole("dialog", { name: "More" });
+  await expect(menu).toBeVisible();
+  await expect(menu.getByRole("button", { name: "Log out" })).toHaveCSS("transition-duration", "0.32s, 0.32s, 0.14s");
   await expect(middleLine).toHaveCSS("opacity", "0");
+  await expect(page.locator(".mobile-more")).toHaveCSS("transform", "matrix(1, 0, 0, 1, 0, 0)");
   await page.keyboard.press("Escape");
   await expect(more).toBeFocused();
   await expect(middleLine).toHaveCSS("opacity", "1");
+  const readPositions = () => page.evaluate((): number[][] => Reflect.get(window, "menuSlidePositions"));
+  await expect.poll(readPositions).toHaveLength(2);
+  const [enter, exit] = await readPositions();
+  expect(enter[0]).toBeCloseTo(844, 0);
+  expect(enter[1]).toBeLessThan(enter[0]);
+  expect(enter[2]).toBeLessThan(enter[1]);
+  expect(exit[0]).toBeCloseTo(enter[2], 0);
+  expect(exit[1]).toBeGreaterThan(exit[0]);
+  expect(exit[2]).toBeGreaterThan(exit[1]);
+  expect(exit[2]).toBeCloseTo(844, 0);
+  await expect(page.locator(".mobile-more")).toBeHidden();
+});
+
+test("album Create and Save changes ease color changes on hover, press, and release", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.clock.setFixedTime(new Date("2026-01-03T12:00:00Z"));
+  await page.addInitScript(() => localStorage.setItem("shinigacim.animations-enabled", "true"));
+  const album = {
+    id: "album-test", name: "Weekend", isPublic: false, mediaCount: 0,
+    createdAt: "2026-01-02T12:00:00", owner: { id: "u1", username: "viewer" },
+  };
+  await page.route("**/api/library/album/page*", (route) => route.fulfill({ json: { items: [album], hasMore: false } }));
+  await page.route("**/api/library/album/album-test", (route) => route.fulfill({ json: album }));
+  await page.route("**/api/library/album/album-test/media*", (route) =>
+    route.fulfill({ json: { items: [], offset: 0, total: 0 } }));
+
+  const sampleColorTransition = async (button: Locator) => {
+    const result = await button.evaluate(async (element) => {
+      const animation = element.getAnimations().find((candidate) =>
+        candidate instanceof CSSTransition && candidate.transitionProperty === "background-color");
+      if (!animation?.effect) return null;
+      const startTime = animation.currentTime;
+      const duration = Number(animation.effect.getTiming().duration);
+      const colors = [0, duration / 2, duration - 1].map((time) => {
+        animation.currentTime = time;
+        return getComputedStyle(element).backgroundColor;
+      });
+      animation.currentTime = startTime;
+      await animation.finished;
+      return { duration, colors };
+    });
+    expect(result?.duration).toBe(320);
+    expect(new Set(result?.colors).size).toBe(3);
+  };
+
+  await page.goto("/gallery");
+  for (const [opener, action] of [["New album", "Create"], ["Edit", "Save changes"]]) {
+    if (action === "Save changes") {
+      await page.locator('[data-date="2026-01-02"]').click();
+      await page.getByRole("link", { name: "Open album Weekend" }).click();
+    }
+    await page.getByRole("button", { name: opener, exact: true }).click();
+    const dialog = page.getByRole("dialog");
+    await dialog.getByRole("textbox", { name: "Name" }).fill("Family weekend");
+    const submit = dialog.getByRole("button", { name: action, exact: true });
+    await page.mouse.move(0, 0);
+    await submit.evaluate((element) => element.addEventListener("click", (event) => event.preventDefault(), { once: true }));
+
+    await submit.hover();
+    await sampleColorTransition(submit);
+    await page.mouse.down();
+    await sampleColorTransition(submit);
+    await page.mouse.up();
+    await sampleColorTransition(submit);
+    await page.mouse.move(0, 0);
+    await sampleColorTransition(submit);
+
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
+  }
 });
 
 for (const [label, path, title] of [
@@ -98,6 +234,7 @@ for (const [label, path, title] of [
 ]) {
   test(`${label} is covered immediately on entry and return with live navigation controls`, async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
+    await page.emulateMedia({ colorScheme: "light" });
     await page.addInitScript(() => {
       localStorage.setItem("shinigacim.animations-enabled", "true");
       const motion = { documentCaptures: 0, opaqueEntries: [] as boolean[], chromeFrames: [] as boolean[] };
@@ -131,8 +268,6 @@ for (const [label, path, title] of [
     });
     await page.goto("/");
     await expect(page.getByRole("link", { name: "viewer" })).toBeVisible();
-    const homeAvatarBox = await page.locator(".mobile-home-header__avatar").boundingBox();
-    const homeAccountBox = await page.locator(".mobile-home-header__account").boundingBox();
     await expect(page.getByRole("button", { name: "Notifications" })).toBeVisible();
     const navigation = page.getByRole("navigation", { name: "Main navigation" });
     const link = navigation.getByRole("link", { name: label });
@@ -142,30 +277,13 @@ for (const [label, path, title] of [
     await expect(page.getByRole("progressbar", { name: `Loading page... ${title}` })).toBeVisible();
     await expect(page.locator(".mobile-page-loading")).toHaveCount(0);
     await expect(page.getByRole("heading", { name: title, exact: true })).toBeVisible();
+    await expect(page.locator(".mobile-shell")).toHaveCSS("background-color", "rgb(234, 231, 227)");
     await expect(navigation).toBeVisible();
     await expect(link).toHaveAttribute("aria-current", "page");
     expect(await motionSamples()).toEqual({ documentCaptures: 0, opaqueEntries: [true], chromeFrames: Array(8).fill(true) });
 
-    if (label === "Gallery") {
-      const galleryScroll = await page.locator(".gallery-page__media-scroll").boundingBox();
-      const tabBar = await navigation.boundingBox();
-      expect(galleryScroll!.y + galleryScroll!.height).toBeGreaterThan(tabBar!.y + tabBar!.height);
-      await page.getByRole("link", { name: "Album", exact: true }).click();
-      await expect(page).toHaveURL(/\/gallery\/album$/);
-    }
-    if (label === "Locations") {
-      await page.goBack();
-    } else {
-      const back = page.getByRole("button", { name: "Back", exact: true });
-      if (label === "Users") {
-        expect(await back.boundingBox()).toEqual(homeAvatarBox);
-        const titleBox = await page.getByRole("heading", { name: title, exact: true }).boundingBox();
-        expect(titleBox).toMatchObject({ x: homeAccountBox?.x, y: homeAccountBox?.y, height: homeAccountBox?.height });
-        await back.hover();
-        await expect(back.locator(".icon-button__icon")).toHaveCSS("transform", "matrix(1, 0, 0, 1, -3, 0)");
-      }
-      await back.click();
-    }
+    await expect(page.getByRole("banner").getByRole("button", { name: "Back", exact: true })).toHaveCount(0);
+    await navigation.getByRole("link", { name: "Home" }).click();
     await expect(page).toHaveURL(/\/$/);
     await expect(page.getByRole("progressbar", { name: "Loading page... Home" })).toBeVisible();
     await expect(page.locator(".mobile-page-loading")).toHaveCount(0);
@@ -216,7 +334,7 @@ for (const [colorScheme, motionEnabled] of [["dark", true], ["light", true], ["l
 
     let releaseGallery!: () => void;
     const galleryResponse = new Promise<void>((resolve) => { releaseGallery = resolve; });
-    await page.route(/\/api\/library\/gallery\?/, async (route) => {
+    await page.route("**/api/library/album/page*", async (route) => {
       await galleryResponse;
       await route.fulfill({ json: { items: [], total: 0, offset: 0, limit: 5, hasMore: false } });
     });
@@ -238,7 +356,7 @@ for (const [colorScheme, motionEnabled] of [["dark", true], ["light", true], ["l
       await expect(bar.locator("span")).toHaveCSS("transform", "matrix(0.5, 0, 0, 1, 0, 0)");
       await expect(overlay.locator(".mobile-page-loading__count")).toHaveCount(0);
       await expect(overlay.locator(".mobile-page-loading__icon svg")).toBeVisible();
-      await expect(background).toHaveCSS("background-color", colorScheme === "dark" ? "rgb(39, 39, 39)" : "rgb(244, 243, 242)");
+      await expect(background).toHaveCSS("background-color", colorScheme === "dark" ? "rgb(28, 28, 28)" : "rgb(234, 231, 227)");
       await expect(destination).toHaveCSS("opacity", "0");
       await expect(overlay).not.toHaveAttribute("data-handoff");
       await expect(gallery).toHaveAttribute("aria-current", "page");
@@ -273,15 +391,56 @@ for (const [colorScheme, motionEnabled] of [["dark", true], ["light", true], ["l
     expect(progressSamples.at(-1)).toBe(100);
     expect(progressSamples.every((percent, index) => Number.isInteger(percent) && percent > (progressSamples[index - 1] ?? 0))).toBe(true);
     await expect(destination).toHaveCSS("opacity", "1");
-    await expect(page.getByText("No media yet")).toBeVisible();
+    await expect(page.getByText("No albums yet")).toBeVisible();
     if (!motionEnabled) {
-      await page.getByRole("button", { name: "Back", exact: true }).click();
+      await navigation.getByRole("link", { name: "Home" }).click();
       await expect(page.getByRole("progressbar", { name: "Loading page... Home" })).toBeVisible();
       await expect(overlay).toHaveCSS("opacity", "1");
       await expect(overlay).toHaveCount(0);
     }
   });
 }
+
+test("Users title grows while sliding into the header", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.addInitScript(() => localStorage.setItem("shinigacim.animations-enabled", "true"));
+  await page.goto("/");
+  await page.evaluate(() => {
+    const observer = new MutationObserver(() => {
+      const title = document.querySelector(".mobile-page-loading[data-handoff] .mobile-page-loading__title");
+      const destination = document.querySelector(".mobile-shell-header .mobile-page-title");
+      if (!title || !destination) return;
+
+      const animation = title.getAnimations().find((candidate) =>
+        candidate.effect instanceof KeyframeEffect && candidate.effect.getKeyframes().some((frame) => frame.transform));
+      if (!animation?.effect) return;
+
+      const duration = Number(animation.effect.getTiming().duration);
+      const originalTime = animation.currentTime;
+      const positions = [0, duration / 3, duration].map((time) => {
+        animation.currentTime = time;
+        return title.getBoundingClientRect().toJSON();
+      });
+      animation.currentTime = originalTime ?? 0;
+      Reflect.set(window, "usersTitleHandoff", { positions, destination: destination.getBoundingClientRect().toJSON() });
+      observer.disconnect();
+    });
+    observer.observe(document, { subtree: true, attributes: true, attributeFilter: ["data-handoff"] });
+  });
+  await page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Users" }).click();
+  await expect(page.locator(".mobile-shell-header .mobile-page-title")).toHaveCSS("opacity", "1");
+  const handoff = await page.evaluate(() => Reflect.get(window, "usersTitleHandoff"));
+  expect(handoff).toBeDefined();
+  const { positions: [start, middle, end], destination } = handoff;
+  expect(middle.width).toBeGreaterThan(start.width);
+  expect(middle.width).toBeLessThan(end.width);
+  expect(middle.y).toBeLessThan(start.y);
+  expect(middle.y).toBeGreaterThan(end.y);
+  expect(end.width).toBeCloseTo(destination.width, 0);
+  expect(end.x).toBeCloseTo(destination.x, 0);
+  expect(end.y + end.height / 2).toBeCloseTo(destination.y + destination.height / 2, 0);
+});
 
 test("page loading and fade respect system reduced motion", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -298,7 +457,7 @@ test("persistent tabs can switch away from a page that is still loading", async 
   await page.setViewportSize({ width: 390, height: 844 });
   let releaseGallery!: () => void;
   const galleryResponse = new Promise<void>((resolve) => { releaseGallery = resolve; });
-  await page.route(/\/api\/library\/gallery\?/, async (route) => {
+  await page.route("**/api/library/album/page*", async (route) => {
     await galleryResponse;
     await route.fulfill({ json: { items: [], total: 0, offset: 0, limit: 5, hasMore: false } });
   });
@@ -322,7 +481,7 @@ test("persistent tabs can switch away from a page that is still loading", async 
   await expect(home).toHaveAttribute("aria-current", "page");
 });
 
-test("Back returns Home after opening More pages and Gallery tabs", async ({ page }) => {
+test("the Home tab returns Home after opening More pages and Gallery", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
@@ -338,14 +497,80 @@ test("Back returns Home after opening More pages and Gallery tabs", async ({ pag
     await expect(back).toBeVisible();
   }
 
-  await page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Gallery" }).click();
-  await page.getByRole("link", { name: "Album", exact: true }).click();
-  await expect(page).toHaveURL(/\/gallery\/album$/);
-  await back.click();
+  const navigation = page.getByRole("navigation", { name: "Main navigation" });
+  await navigation.getByRole("link", { name: "Gallery" }).click();
+  await expect(page).toHaveURL(/\/gallery$/);
+  await expect(back).toHaveCount(0);
+  await navigation.getByRole("link", { name: "Home" }).click();
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByRole("main", { name: "Home" })).toBeEmpty();
   await expect(menu).not.toBeVisible();
 });
+
+for (const preference of ["enabled", "disabled", "reduced"] as const) {
+  test(`album detail header returns to Gallery with motion ${preference}`, async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.clock.setFixedTime(new Date("2026-01-03T12:00:00Z"));
+    await page.emulateMedia({ reducedMotion: preference === "reduced" ? "reduce" : "no-preference" });
+    await page.addInitScript((enabled) => {
+      localStorage.setItem("shinigacim.animations-enabled", String(enabled));
+      const steps: string[] = [];
+      Reflect.set(window, "albumHeaderSteps", steps);
+      document.addEventListener("transitionstart", ({ target, propertyName }) => {
+        if (!(target instanceof Element)) return;
+        if (target.matches(".mobile-shell-header__title-position") && propertyName.startsWith("margin-")) steps.push("title");
+        if (target.matches(".mobile-shell-header__back") && propertyName === "opacity") steps.push("fade");
+        if (target.matches(".mobile-shell-header__back") && propertyName === "translate") steps.push("slide");
+      });
+    }, preference !== "disabled");
+    const album = {
+      id: "album-test", name: "Weekend", createdAt: "2026-01-03T12:00:00", isPublic: false,
+      mediaCount: 0, owner: { id: "u1", username: "viewer" },
+    };
+    await page.route("**/api/library/album/page*", (route) => route.fulfill({ json: { items: [album], hasMore: false } }));
+    await page.route("**/api/library/album/album-test", (route) => route.fulfill({ json: album }));
+
+    await page.goto("/gallery");
+    const header = page.getByRole("banner");
+    const back = header.getByRole("button", { name: "Back", exact: true });
+    const title = header.getByText("Gallery", { exact: true });
+    const position = page.locator(".mobile-shell-header__title-position");
+    const steps = () => page.evaluate((): string[] => Reflect.get(window, "albumHeaderSteps"));
+    await expect(back).toHaveCount(0);
+    const listX = (await title.boundingBox())!.x;
+    await page.getByRole("link", { name: "Open album Weekend" }).click();
+    await expect(page).toHaveURL(/\/gallery\/album\/album-test$/);
+    await expect(page.locator(".mobile-page-loading")).toHaveCount(0);
+    await expect(back).toHaveCSS("opacity", "1");
+    expect((await title.boundingBox())!.x).toBeGreaterThan(listX + 40);
+    if (preference === "enabled") {
+      const openSteps = await steps();
+      expect(openSteps[0]).toBe("title");
+      expect(openSteps.slice(1).sort()).toEqual(["fade", "slide"]);
+    } else {
+      expect(await steps()).toEqual([]);
+    }
+
+    await back.click();
+    await expect(page).toHaveURL(/\/gallery$/);
+    await expect(back).toHaveCount(0);
+    await expect(position).toHaveCSS("margin-inline-start", "0px");
+    expect((await title.boundingBox())!.x).toBe(listX);
+    if (preference === "enabled") {
+      const returnSteps = (await steps()).slice(3);
+      expect(returnSteps.slice(0, 2).sort()).toEqual(["fade", "slide"]);
+      expect(returnSteps[2]).toBe("title");
+    } else {
+      expect(await steps()).toEqual([]);
+    }
+
+    if (preference === "reduced") {
+      await page.goto("/gallery/album/album-test");
+      await back.click();
+      await expect(page).toHaveURL(/\/gallery$/);
+    }
+  });
+}
 
 test("More pages return Home after browser Back or direct entry", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });

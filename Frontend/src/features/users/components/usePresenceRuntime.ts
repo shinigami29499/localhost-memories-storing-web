@@ -9,11 +9,10 @@ import { useUploadNotificationStore } from "../../notifications/uploadNotificati
 import { uploadMessage } from "../../notifications/uploadMessage";
 import { showBrowserNotification } from "../../notifications/browserNotifications";
 import { showToast } from "../../../components/ui/Toast";
-import { userService, type UserPage } from "../services/userService";
+import { userService } from "../services/userService";
 import { api } from "../../../services/api";
 import { useQueryClient } from "@tanstack/react-query";
 import { useUserPresenceStore } from "../store/userPresenceStore";
-import type { AuthUser } from "../../auth";
 
 const PRESENCE_INTERVAL_MS = 25_000;
 const ACTIVITY_WINDOW_MS = 120_000;
@@ -86,20 +85,12 @@ export function usePresenceRuntime() {
           void queryClient.invalidateQueries({ queryKey: ["users"] });
         });
         connection.onreconnected(() => {
+          heartbeat();
           void queryClient.invalidateQueries({ queryKey: ["users"] });
         });
         connection.on("UserPresenceChanged", (event: { userId: string; username: string; online: boolean; lastSeenAt: string | null }) => {
           if (event.userId === useAuthStore.getState().user?.id || !event.username) return;
-          useUserPresenceStore.getState().setOnline(event.userId, event.online);
-          queryClient.setQueryData<AuthUser[]>(["users"], (existing) =>
-            existing?.map((user) => user.id === event.userId
-              ? { ...user, lastSeenAt: event.lastSeenAt ?? user.lastSeenAt } : user));
-          queryClient.setQueriesData<UserPage>({ queryKey: ["users", "page"] }, (existing) =>
-            existing ? {
-              ...existing,
-              items: existing.items.map((user) => user.id === event.userId
-                ? { ...user, lastSeenAt: event.lastSeenAt ?? user.lastSeenAt } : user),
-            } : existing);
+          useUserPresenceStore.getState().setOnline(event.userId, event.online, event.lastSeenAt);
           const previous = presence.get(event.userId);
           presence.set(event.userId, event.online);
           writePresenceCache(presence);
@@ -140,16 +131,29 @@ export function usePresenceRuntime() {
             },
           });
         });
-        connection.on("AlbumChanged", (event: { albumId: string; albumName: string; ownerId: string; actorId: string; username: string; action: "updated" | "deleted" | "private" }) => {
+        const refreshAlbumMedia = () => {
+          void queryClient.invalidateQueries({ queryKey: ["albums"] });
+          void queryClient.invalidateQueries({ queryKey: ["media"] });
+          void queryClient.invalidateQueries({ queryKey: ["places"] });
+          void queryClient.invalidateQueries({ queryKey: ["picker-image"] });
+        };
+        connection.on("AlbumMediaRemoved", refreshAlbumMedia);
+        connection.on("AlbumChanged", (event: { albumId: string; albumName: string; ownerId: string; actorId: string; username: string; action: "updated" | "deleted" | "private" | "media" }) => {
           const userId = useAuthStore.getState().user?.id;
-          if (!userId || userId === event.actorId) return;
+          if (!userId) return;
+          if (event.action === "media") {
+            refreshAlbumMedia();
+            return;
+          }
+          if (userId === event.actorId) return;
           const path = window.location.pathname;
           const detail = path === `/gallery/album/${event.albumId}`;
           if (detail && event.action === "private" && userId !== event.ownerId) {
             window.location.assign("/");
             return;
           }
-          if (path !== "/gallery/album" && !detail) return;
+          if (event.action === "deleted") refreshAlbumMedia();
+          if (path !== "/gallery" && path !== "/gallery/album" && !detail) return;
           const message = event.action === "private"
             ? translate("{username} made public album {album} private.", { username: event.username, album: event.albumName })
             : userId === event.ownerId
@@ -157,19 +161,6 @@ export function usePresenceRuntime() {
               : translate(event.action === "deleted" ? "{username} deleted public album {album}." : "{username} updated public album {album}.", { username: event.username, album: event.albumName });
           showToast.info(message, { id: event.action === "updated" ? `album-update:${event.albumId}:${event.actorId}:${path}` : undefined, description: translate("Click to refresh."), onClick: () => {
             if (window.location.pathname === path) void queryClient.invalidateQueries({ queryKey: detail ? ["albums", "detail", event.albumId] : ["albums"] });
-          } });
-        });
-        connection.on("MediaChanged", (event: { ownerId: string; actorId: string; username: string; name: string; action: "trashed" | "restored" | "deleted" }) => {
-          const userId = useAuthStore.getState().user?.id;
-          if (!userId || userId === event.actorId) return;
-          const path = window.location.pathname;
-          if (path !== "/gallery" && path !== "/gallery/trash") return;
-          if (path === "/gallery" && event.action === "deleted") return;
-          const message = userId === event.ownerId
-            ? translate(event.action === "trashed" ? "{username} moved your item {item} to trash." : event.action === "deleted" ? "{username} permanently deleted your item {item}." : "{username} restored your item {item}.", { username: event.username, item: event.name })
-            : translate("{username} changed the gallery.", { username: event.username });
-          showToast.info(message, { description: translate("Click to refresh."), onClick: () => {
-            if (window.location.pathname === path) void queryClient.invalidateQueries({ queryKey: ["media", path.endsWith("/trash") ? "deleted" : "all"] });
           } });
         });
         connection.on("AccountChanged", (reason: string) => {
@@ -231,5 +222,5 @@ export function usePresenceRuntime() {
 function isGalleryPath(pathname: string): boolean {
   return pathname === "/gallery"
     || pathname === "/gallery/videos"
-    || pathname === "/gallery/favorites";
+    || pathname === "/gallery/album";
 }

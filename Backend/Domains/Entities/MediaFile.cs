@@ -9,10 +9,10 @@ public class MediaFile : AuditableEntity
     public required string OriginalFilename { get; set; }
     public required string StoredFilename { get; set; }
 
-    // Preserved during trash moves for restoration.
     public required string RelativePath { get; set; }
     public string? TrashRelativePath { get; set; }
     public DateTime? TrashedAt { get; set; }
+    public bool StorageDeletionPending { get; set; }
     public required string MimeType { get; set; }
     public required string FileExtension { get; set; }
     public long FileSizeBytes { get; set; }

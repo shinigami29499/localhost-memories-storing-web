@@ -20,7 +20,7 @@
 }
 
 .map-navigation[data-expanded="true"] {
-  background: var(--surface);
+  background: var(--surface-raised);
   border: 0;
   border-radius: var(--radius);
   box-shadow: var(--shadow-md);

@@ -39,7 +39,7 @@ export function useAlbumFeedPost(album: Album) {
   };
   const deleteAlbum = async () => {
     await albumService.remove(album.id);
-    await invalidateAlbums();
+    await invalidateAlbums(true);
   };
   return { deleting, setDeleting, failedPreview, setFailedPreview, attempt, setAttempt, previewRef, swipeStart, suppressClick, inView, imageIndex, slideDirection, media, items, previewId, failed, previousImage, nextImage, deleteAlbum };
 }

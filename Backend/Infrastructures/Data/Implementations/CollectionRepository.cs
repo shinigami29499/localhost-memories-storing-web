@@ -128,9 +128,6 @@ public sealed class CollectionRepository(ApplicationDbContext db) : ICollectionR
                 && item.MediaFile.DeletedAt == null,
             cancellationToken);
 
-    public Task<bool> MediaExistsAsync(Guid mediaId, CancellationToken cancellationToken = default)
-        => db.MediaFiles.AnyAsync(media => media.Id == mediaId && !media.IsPreviewOnly, cancellationToken);
-
     public Task<CollectionMedia?> FindCollectionMediaAsync(
         Guid collectionId, Guid mediaId, CancellationToken cancellationToken = default)
         => db.CollectionMedia.FirstOrDefaultAsync(
@@ -151,10 +148,31 @@ public sealed class CollectionRepository(ApplicationDbContext db) : ICollectionR
             .ToListAsync(cancellationToken);
     }
 
-    public async Task DeleteCollectionMediaAsync(
+    public async Task<IReadOnlyList<MediaFile>> GetOwnedAlbumMediaAsync(
+        Guid collectionId, Guid ownerId, Guid[]? mediaIds, CancellationToken cancellationToken)
+    {
+        var entries = db.CollectionMedia.Where(item => item.CollectionId == collectionId
+            && item.MediaFile.OwnerId == ownerId && !item.MediaFile.IsPreviewOnly);
+        if (mediaIds is not null)
+            entries = entries.Where(item => mediaIds.Contains(item.MediaFileId));
+        return await entries.Select(item => item.MediaFile)
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+    }
+
+    public Task DeleteCollectionMediaAsync(
         Guid collectionId, Guid actorId, DateTime utcNow, CancellationToken cancellationToken = default)
-        => await db.CollectionMedia
-            .Where(item => item.CollectionId == collectionId)
+        => DeleteLinksAsync(db.CollectionMedia.Where(item => item.CollectionId == collectionId),
+            actorId, utcNow, cancellationToken);
+
+    public Task RemoveCollectionMediaAsync(
+        Guid collectionId, Guid[] mediaIds, Guid actorId, DateTime utcNow, CancellationToken cancellationToken)
+        => DeleteLinksAsync(db.CollectionMedia.Where(item => item.CollectionId == collectionId
+            && mediaIds.Contains(item.MediaFileId)), actorId, utcNow, cancellationToken);
+
+    private static async Task DeleteLinksAsync(
+        IQueryable<CollectionMedia> entries, Guid actorId, DateTime utcNow, CancellationToken cancellationToken)
+        => await entries
             .ExecuteUpdateAsync(setters => setters
                 .SetProperty(item => item.DeletedAt, utcNow)
                 .SetProperty(item => item.DeletedBy, actorId)

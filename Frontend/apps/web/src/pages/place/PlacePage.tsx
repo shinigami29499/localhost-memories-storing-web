@@ -30,10 +30,7 @@ import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { HeaderFilters, inDateRange } from "@/components/ui/HeaderFilters";
 import { cityFromAddress } from "@/features/place/cityFromAddress";
-import { uploadService } from "@/features/uploads/services/uploadService";
-import { registerUploadCompletionAction } from "@/features/uploads/services/uploadRuntime";
 import { locationService } from "@/features/locations/services/locationService";
-import { locateUploadedBatch } from "@/features/locations/services/locateUploadedBatch";
 import { LocationEditor } from "@/features/locations/components/LocationEditor";
 import { useAnimationStore } from "@/store/animationStore";
 import { MapLoadingOverlay } from "@/features/locations/components/MapLoadingOverlay";
@@ -101,7 +98,8 @@ import { emptyValues, usePlacePageController } from "@/pages/place/usePlacePageC
 export function PlacePage({ ViewSwitch = PlaceViewSwitch }: {
   ViewSwitch?: ComponentType<PlaceViewSwitchProps>;
 } = {}) {
-  const { t, location, isMobile, user, home, view, animationsEnabled, requestView, mapSettings, saved, mapStartReady, setMapStartReady, setHighlightMotionVersion, addToolbar, setAddToolbar, city, setCity, owner, setOwner, dateFrom, setDateFrom, dateTo, setDateTo, hasLocationFilters, placeSearch, setPlaceSearch, minimumRating, historySearch, setHistorySearch, historyMinimumRating, activeRating, setActiveRating, historySentinel, photoSelection, setPhotoSelection, handleMapBounds, photos, photosQuery, uploading, uploadInput, savedPlaces, mapPlacesQuery, query, save, remove, checkInMutation, removeVisitMutation, editor, setEditor, editorOpen, setEditorOpen, selectedId, setSelectedId, detailsOpen, setDetailsOpen, visitHistory, historyQuery, historyVisits, formError, setFormError, placeToDelete, setPlaceToDelete, confirmingDetailDeleteId, setConfirmingDetailDeleteId, placeToMove, setPlaceToMove, moveConfirmationOpen, setMoveConfirmationOpen, workspaceRef, manualHomePick, setManualHomePick, homeRelocationDraft, setHomeRelocationDraft, homeMoveConfirmationOpen, setHomeMoveConfirmationOpen, homeDialogOpen, setHomeDialogOpen, confirmHomeRemoval, setConfirmHomeRemoval, photoMoveConfirmationOpen, setPhotoMoveConfirmationOpen, startWithCurrentLocation, places, filteredPlaces, cityOptions, ownerOptions, homePicking, selected, selectedVisits, selectedPhoto, photoRelocating, canEdit, canChangeMarker, mapPlaces, clearPreview, canMovePhoto, selectPhoto, movePhoto, confirmPhotoMove, pickHome, confirmHomeRelocation, cancelHomePick, startHomePick, openHomeDialog, removeHomeLocation, checkIn, removeVisit, startEdit, selectPlace, pickOnMap, cancelMapPick, movePlace, deletePlace, confirmMove, submit, confirmDelete } = usePlacePageController();
+  const { t, location, isMobile, user, home, view, animationsEnabled, requestView, mapSettings, saved, mapStartReady, setMapStartReady, setHighlightMotionVersion, addToolbar, setAddToolbar, city, setCity, owner, setOwner, dateFrom, setDateFrom, dateTo, setDateTo, hasLocationFilters, placeSearch, setPlaceSearch, minimumRating, historySearch, setHistorySearch, historyMinimumRating, activeRating, setActiveRating, historySentinel, photoSelection, setPhotoSelection, handleMapBounds, photos, photosQuery, savedPlaces, mapPlacesQuery, query, save, remove, checkInMutation, removeVisitMutation, editor, setEditor, editorOpen, setEditorOpen, selectedId, setSelectedId, detailsOpen, setDetailsOpen, visitHistory, historyQuery, historyVisits, formError, setFormError, placeToDelete, setPlaceToDelete, confirmingDetailDeleteId, setConfirmingDetailDeleteId, placeToMove, setPlaceToMove, moveConfirmationOpen, setMoveConfirmationOpen, workspaceRef, manualHomePick, setManualHomePick, homeRelocationDraft, setHomeRelocationDraft, homeMoveConfirmationOpen, setHomeMoveConfirmationOpen, homeDialogOpen, setHomeDialogOpen, confirmHomeRemoval, setConfirmHomeRemoval, photoMoveConfirmationOpen, setPhotoMoveConfirmationOpen, places, filteredPlaces, cityOptions, ownerOptions, homePicking, selected, selectedVisits, selectedPhoto, photoRelocating, canEdit, canChangeMarker, mapPlaces, clearPreview, canMovePhoto, selectPhoto, movePhoto, confirmPhotoMove, pickHome, confirmHomeRelocation, cancelHomePick, startHomePick, openHomeDialog, removeHomeLocation, checkIn, removeVisit, startEdit, selectPlace, pickOnMap, cancelMapPick, movePlace, deletePlace, confirmMove, submit, confirmDelete } = usePlacePageController();
+  const navigateToAlbums = useNavigate();
 
 
   const headerActions = document.getElementById("page-header-actions");
@@ -205,8 +203,9 @@ export function PlacePage({ ViewSwitch = PlaceViewSwitch }: {
                       editorOpen={editorOpen}
                       homeLocation={home.query.data ?? null}
                       homeLocationReady={home.query.isFetched}
-                      homeActionDisabled={save.isPending || remove.isPending || home.save.isPending || uploading}
-                      onAddPhotos={() => void startWithCurrentLocation(() => uploadInput.current?.click())}
+                      homeActionDisabled={save.isPending || remove.isPending || home.save.isPending}
+                      onBrowseAlbums={() => navigateToAlbums("/gallery/album")}
+
                       homePicking={homePicking}
                       homeRelocationDraft={homeRelocationDraft}
                       onSelect={selectPlace}

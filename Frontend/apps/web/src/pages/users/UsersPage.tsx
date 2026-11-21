@@ -32,7 +32,6 @@ import { useUserPresenceStore } from "@/features/users/store/userPresenceStore";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { HeaderFilters, inDateRange } from "@/components/ui/HeaderFilters";
 
-const ONLINE_WINDOW_MS = 300_000;
 
 
 type UserFilter = "all" | "pending_approval" | "blocked";
@@ -44,7 +43,7 @@ const userFilters: { value: UserFilter; label: string }[] = [
 ];
 
 export function UsersPage() {
-  const { language, t, isMobile, me, isAdmin, action, setAction, navigate, filter, search, setSearch, role, setRole, joinedFrom, setJoinedFrom, joinedTo, setJoinedTo, useList, sentinel, now, offlineUsers, users, activeQuery, approve, remove, disable, activate, updateRole, pagedUsers } = useUsersPage();
+  const { language, t, isMobile, me, isAdmin, action, setAction, navigate, filter, search, setSearch, role, setRole, joinedFrom, setJoinedFrom, joinedTo, setJoinedTo, useList, sentinel, now, isOnline, users, activeQuery, approve, remove, disable, activate, updateRole, pagedUsers } = useUsersPage();
 
   const headerActions = document.getElementById("page-header-actions");
   const searchForm = (
@@ -137,7 +136,7 @@ export function UsersPage() {
                             isActivating={activate.isPending && activate.variables === user.id}
                             isDisabling={disable.isPending && disable.variables === user.id}
                             isDeleting={remove.isPending && remove.variables === user.id}
-                            isOnline={!offlineUsers[user.id] && !!user.lastSeenAt && now - Date.parse(user.lastSeenAt) < ONLINE_WINDOW_MS}
+                            isOnline={isOnline(user)}
                             onApprove={() => setAction({ type: "approve", user })}
                             onActivate={() => setAction({ type: "activate", user })}
                             onDisable={() => setAction({ type: "disable", user })}

@@ -16,14 +16,11 @@ export function useUploadManagement() {
   const unread = useUnreadUploads();
   const queryClient = useQueryClient();
   const user = useAuthStore((state) => state.user);
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [submitting, setSubmitting] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const dateParam = searchParams.get("date") ?? "";
   const selectedDate = /^\d{4}-\d{2}-\d{2}$/.test(dateParam) && !Number.isNaN(new Date(`${dateParam}T00:00:00`).getTime()) ? dateParam : "";
   const [busyItemIds, setBusyItemIds] = useState<Set<string>>(() => new Set());
   const busyTimeouts = useRef(new Map<string, number>());
-  const uploadInput = useRef<HTMLInputElement>(null);
   const sentinel = useRef<HTMLDivElement>(null);
   const query = useInfiniteQuery({
     queryKey: ["uploads", "page", selectedDate, user?.id, user?.role],
@@ -47,28 +44,6 @@ export function useUploadManagement() {
     observer.observe(target);
     return () => observer.disconnect();
   }, [selectedDate, query.hasNextPage, query.isFetchingNextPage, query.isFetchNextPageError, query.fetchNextPage]);
-
-  const clearSelection = () => {
-    setSelectedFiles([]);
-    if (uploadInput.current) uploadInput.current.value = "";
-  };
-
-  const submitFiles = async () => {
-    if (selectedFiles.length === 0 || submitting) return;
-
-    setSubmitting(true);
-    try {
-      const batch = await uploadService.submit(selectedFiles);
-      setSelectedFiles([]);
-      if (uploadInput.current) uploadInput.current.value = "";
-      await queryClient.invalidateQueries({ queryKey: ["uploads"] });
-      showToast.success(t("Begin uploading {count} media", { count: selectedFiles.length }), { id: `upload-start:${batch.id}` });
-    } catch (error) {
-      showToast.error(t("Could not start this upload."), error instanceof Error ? error.message : undefined);
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   useEffect(() => {
     const items = query.data?.pages.flatMap((page) => page.items.flatMap((batch) => batch.items)) ?? [];
@@ -136,5 +111,5 @@ export function useUploadManagement() {
     void unread.syncSeenStatus();
   }, [unread.syncSeenStatus]);
 
-  return { t, unread, user, selectedFiles, setSelectedFiles, submitting, selectedDate, setSearchParams, busyItemIds, uploadInput, sentinel, query, clearSelection, submitFiles, removeRecord, togglePause, batches };
+  return { t, unread, user, selectedDate, setSearchParams, busyItemIds, sentinel, query, removeRecord, togglePause, batches };
 }

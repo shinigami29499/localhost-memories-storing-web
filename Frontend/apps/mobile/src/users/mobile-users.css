@@ -1,10 +1,9 @@
-.mobile-users { --users-bottom-fade:calc(24px + env(safe-area-inset-bottom, 0px)); display:flex; flex:1; min-height:0; height:100%; flex-direction:column; color:var(--mobile-text); }
-.mobile-users__search { display:flex; align-items:center; gap:10px; min-width:0; min-height:56px; margin:0; padding:0 12px; border:1px solid var(--mobile-border-subtle); border-radius:10px; background:var(--mobile-surface); color:var(--mobile-text); box-shadow:var(--mobile-shadow); }
+.mobile-users { --users-search-offset:.5rem; --users-bottom-fade:calc(24px + env(safe-area-inset-bottom, 0px)); display:flex; flex:1; min-height:0; height:100%; flex-direction:column; color:var(--mobile-text); }
+.mobile-users__search { display:flex; align-items:center; gap:10px; min-width:0; min-height:56px; margin:0; padding:0 12px; border:1px solid var(--mobile-surface-raised); border-radius:10px; background:var(--mobile-surface-raised); color:var(--mobile-text); box-shadow:var(--filter-shadow-raised); }
 .mobile-users__search input { flex:1; min-width:0; border:0; outline:0; background:transparent; color:inherit; font:inherit; }
 .mobile-users__search input::-webkit-search-cancel-button { appearance:none; }
 .mobile-users__content { flex:1; min-height:0; overflow:auto; padding:0 20px calc(var(--users-bottom-fade) + var(--mobile-nav-clearance)); }
 .mobile-users__list { list-style:none; margin:0; padding:0; }
-.mobile-users__identity span { color:var(--mobile-text-muted); font-size:.875rem; }
 .mobile-users__avatar { display:grid; place-items:center; width:3rem; height:3rem; flex:none; border-radius:50%; }
 .mobile-users__avatar.user-avatar--fallback { font-size:1.5rem; }
 .mobile-users__avatar .user-avatar__image { width:100%; height:100%; object-fit:cover; }
@@ -24,71 +23,34 @@
 @media (prefers-reduced-motion: reduce) { .users__action-bar .place__search-bar { transition: none; } }
 .mobile-users__item { display:flex; align-items:center; gap:.75rem; padding:.5rem 0; }
 .mobile-users__item + .mobile-users__item { border-top:1px solid var(--mobile-border-subtle); }
+.mobile-users__item[data-status="disabled"] { --user-status-color:var(--mobile-danger); }
+.mobile-users__item[data-status="pending_approval"] { --user-status-color:var(--mobile-warning); }
 .mobile-users__avatar-wrap { position:relative; flex:none; }
+.mobile-users__avatar-mask {
+  position:absolute;
+  inset:.125rem;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:color-mix(in srgb, var(--mobile-surface) 90%, var(--user-status-color));
+  color:#000;
+}
+:root[data-mobile-theme="dark"] .mobile-users__avatar-mask { color:#fff; }
+@media (hover:hover) and (prefers-reduced-motion:no-preference) {
+  :root:not([data-motion="off"]) .mobile-users__avatar-wrap:hover .mobile-users__clock-hand {
+    transform-origin:12px 12px;
+    animation:mobile-users-clock-turn 1800ms linear;
+  }
+}
+@keyframes mobile-users-clock-turn {
+  to { transform:rotate(1turn); }
+}
 .mobile-users__details { min-width:0; flex:1; }
-.mobile-users__identity { display:grid; grid-template-columns:minmax(0, 1fr); gap:.25rem; }
+.mobile-users__identity { position:relative; inset-block-start:.125rem; display:grid; grid-template-columns:minmax(0, 1fr); gap:.125rem; }
+.mobile-users__identity > span { color:var(--mobile-text-muted); font-size:.8125rem; line-height:1.25; }
+.mobile-users__status { color:var(--user-status-color); }
 .mobile-users__presence { position:absolute; right:-4px; bottom:-3px; padding:2px 4px; border-radius:10px; background:var(--mobile-surface); color:#20833e; font-size:11px; font-weight:700; line-height:1; }
 .mobile-users__presence--online { width:13px; height:13px; padding:0; border:2px solid var(--mobile-surface); background:#28a745; }
-.mobile-users__actions { display:flex; gap:8px; margin-top:.5rem; }
-.mobile-users__actions button {
-  --user-action-surface:var(--mobile-surface-flat-control);
-  --user-action-highlight:var(--mobile-text);
-  display:inline-flex;
-  flex:1;
-  align-items:center;
-  justify-content:center;
-  gap:6px;
-  min-width:0;
-  min-height:40px;
-  padding:8px 12px;
-  border:0;
-  border-radius:8px;
-  background:var(--user-action-surface);
-  color:var(--user-action-highlight);
-  box-shadow:none;
-  font-family:inherit;
-  font-size:.875rem;
-  font-weight:600;
-  line-height:1.2;
-}
-.mobile-users__actions button:disabled { opacity:.55; }
-.mobile-users__actions button:not(.icon-button) { position:relative; }
-.mobile-users__actions button:not(.icon-button)::after { content:""; position:absolute; left:0; right:0; top:50%; height:48px; transform:translateY(-50%); }
-.mobile-users__actions button:first-child:not(.mobile-users__role, .mobile-users__delete) {
-  --user-action-surface:var(--accent);
-  --user-action-highlight:var(--text-on-accent);
-}
-.mobile-users__actions button:is(.mobile-users__role, .mobile-users__delete) {
-  flex:0 0 40px;
-  width:40px;
-  height:40px;
-  padding:0;
-}
-.mobile-users__actions button.mobile-users__delete {
-  --user-action-surface:color-mix(in oklch, var(--mobile-surface) 88%, var(--mobile-danger));
-  --user-action-highlight:var(--mobile-danger);
-}
-@media (hover:hover) and (pointer:fine) {
-  .mobile-users__actions button:hover:not(:disabled) {
-    background:color-mix(in srgb, var(--user-action-surface) 92%, var(--user-action-highlight));
-  }
-  .mobile-users__actions button.mobile-users__delete:hover:not(:disabled) {
-    --user-action-surface:var(--users-danger-pale);
-    background:var(--user-action-surface);
-    color:var(--danger-solid);
-  }
-}
-.mobile-users__actions button:active:not(:disabled) {
-  background:color-mix(in srgb, var(--user-action-surface) 84%, var(--user-action-highlight));
-}
-.mobile-users__actions button.mobile-users__delete:active:not(:disabled) {
-  --user-action-surface:var(--dialog-danger-solid);
-  background:var(--user-action-surface);
-  color:var(--text-on-danger);
-}
-@media (prefers-reduced-motion:no-preference) {
-  :root:not([data-motion="off"]) .mobile-users__actions button { transition:background-color 450ms ease, color 450ms ease; }
-}
 .mobile-user-search {
   position:fixed;
   inset:0;
@@ -97,7 +59,7 @@
   max-width:none;
   max-height:none;
   margin:0;
-  padding:calc(72px + env(safe-area-inset-top, 0px)) 0 calc(6.5rem + env(safe-area-inset-bottom, 0px));
+  padding:calc(60px + env(safe-area-inset-top, 0px)) 0 calc(6.5rem + env(safe-area-inset-bottom, 0px));
   border:0;
   background:transparent;
   color:var(--mobile-text);
@@ -106,15 +68,17 @@
 .mobile-user-search__content {
   max-height:100%;
   overflow:auto;
-  padding:0 1rem .75rem;
+  padding:.75rem 1rem;
 }
 .mobile-user-search::backdrop {
-  inset-block-start:calc(60px + env(safe-area-inset-top, 0px));
+  --filter-blur-mask:linear-gradient(to bottom, transparent calc(52px + env(safe-area-inset-top, 0px)), #000 calc(72px + env(safe-area-inset-top, 0px)));
   background:color-mix(in srgb, var(--mobile-bg) 24%, transparent);
   backdrop-filter:blur(12px);
   -webkit-backdrop-filter:blur(12px);
+  -webkit-mask-image:var(--filter-blur-mask);
+  mask-image:var(--filter-blur-mask);
 }
-.mobile-user-search__card, .mobile-user-search__when { border:1px solid var(--mobile-border-subtle); border-radius:24px; background:var(--mobile-surface); box-shadow:var(--mobile-shadow); }
+.mobile-user-search__card, .mobile-user-search__when { border:1px solid var(--mobile-surface-raised); border-radius:24px; background:var(--mobile-surface-raised); box-shadow:var(--mobile-shadow); }
 .mobile-user-search__card { padding:24px; }
 .mobile-user-search__card h2 { margin:0 0 16px; font-size:1.4rem; }
 .mobile-user-search__field { display:flex; align-items:center; gap:10px; min-height:56px; padding:0 14px; border:1px solid var(--mobile-border); border-radius:10px; }
@@ -145,7 +109,7 @@
 @media (hover:hover) and (pointer:fine) {
   .mobile-user-search__footer button:first-child:hover { background:var(--surface-hover); }
 }
-.mobile-user-search__who { margin-top:12px; border:1px solid var(--mobile-border-subtle); border-radius:24px; background:var(--mobile-surface); box-shadow:var(--mobile-shadow); }
+.mobile-user-search__who { margin-top:12px; border:1px solid var(--mobile-surface-raised); border-radius:24px; background:var(--mobile-surface-raised); box-shadow:var(--mobile-shadow); }
 .mobile-user-search__who summary { display:flex; justify-content:space-between; gap:16px; padding:20px 24px; cursor:pointer; list-style:none; }
 .mobile-user-search__who summary::-webkit-details-marker { display:none; }
 .mobile-user-search__who summary span:first-child { color:var(--mobile-text-muted); }
@@ -157,12 +121,13 @@
 
 @media (prefers-reduced-motion:no-preference) {
   :root:not([data-motion="off"]) .mobile-users__search {
-    transition:border-color 180ms ease, box-shadow 320ms ease;
+    transition:border-color 180ms ease, background-color 180ms ease, box-shadow 320ms ease;
   }
 }
 .mobile-users__search:has(input:focus) {
   border-color:var(--mobile-text);
-  background:var(--mobile-surface);
+  background:var(--mobile-surface-inset, var(--mobile-surface));
+  box-shadow:var(--filter-shadow-inset);
 }
 .mobile-users__clear { display:grid; place-items:center; padding:0; }
 .mobile-user-search__filters .select-field { gap:8px; }
@@ -170,7 +135,9 @@
 
 :root .mobile-user-search__filters .select-field__trigger { border-radius:10px; }
 .mobile-user-search .select-field__popup { border-radius:10px; }
-.mobile-user-search {
+.mobile-users, .mobile-user-search {
+  --filter-hover-border: color-mix(in srgb, var(--mobile-surface-raised) 50%, var(--mobile-text));
+  --filter-inset-fill: var(--mobile-surface-inset, color-mix(in srgb, var(--mobile-surface-raised) 93%, black));
   --filter-shadow-inset: inset 0 var(--mobile-shadow-long) var(--mobile-shadow-long-color),
     inset 0 var(--mobile-shadow-short) rgb(255 255 255 / .12),
     0 var(--mobile-shadow-short) transparent, 0 var(--mobile-shadow-long) transparent;
@@ -179,37 +146,54 @@
 }
 :root .mobile-user-search .range-picker .range-picker__selectors .select-field__trigger {
   border:1px solid var(--mobile-border-subtle);
-  background:color-mix(in srgb, var(--mobile-surface) 93%, black);
+  background:var(--filter-inset-fill);
   box-shadow:var(--filter-shadow-inset);
 }
 :root .mobile-user-search .range-picker .range-picker__selectors .select-field__trigger[data-popup-open] {
-  background:color-mix(in srgb, var(--mobile-surface) 90%, white);
+  border-color:var(--mobile-surface-raised);
+  background:var(--mobile-surface-raised);
   box-shadow:var(--filter-shadow-raised);
 }
 :root .mobile-user-search .select-field__popup {
-  border:1px solid var(--mobile-border-subtle);
-  background:color-mix(in srgb, var(--mobile-surface) 90%, white);
+  border:1px solid var(--mobile-surface-raised);
+  background:var(--mobile-surface-raised);
   box-shadow:var(--mobile-shadow);
 }
 :root .mobile-user-search .select-field__list { mask-image:none; -webkit-mask-image:none; }
 :root .mobile-user-search .select-field__item { opacity:1; color:var(--mobile-text); }
 :root .mobile-user-search .select-field__item[data-selected]:not(:hover):not([data-highlighted]) { background:transparent; }
-:root .mobile-user-search .range-picker .range-picker__selectors .select-field__trigger[data-popup-open] { border-color:var(--mobile-text); }
 @media (prefers-reduced-motion:no-preference) {
   :root:not([data-motion="off"]) .mobile-user-search .range-picker .range-picker__selectors .select-field__trigger { transition:box-shadow 320ms ease, border-color 180ms ease; }
 }
 .mobile-user-search__roles { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:.5rem; margin:0; padding:0; border:0; }
 .mobile-user-search__roles legend { margin-bottom:.5rem; padding:0; font-size:.875rem; }
 .mobile-user-search__filters .mobile-user-search__role { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.5rem; position:relative; min-width:0; min-height:5rem; padding:.75rem .25rem; border:1px solid var(--mobile-border); border-radius:10px; text-align:center; cursor:pointer; }
-.mobile-user-search__role:has(input:checked) { border-color:var(--mobile-text); background:var(--surface-hover); }
 .mobile-user-search__role:has(input:focus-visible) { outline:2px solid var(--focus-ring); outline-offset:2px; }
 .mobile-user-search__role input { position:absolute; opacity:0; width:1px; height:1px; }
 
 .mobile-user-search__status-card { margin-top:.75rem; }
 .mobile-user-search__card .mobile-user-search__role { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.5rem; position:relative; min-width:0; min-height:5rem; padding:.75rem .25rem; border:1px solid var(--mobile-border); border-radius:10px; text-align:center; cursor:pointer; font-size:.875rem; }
-.mobile-user-search__status-dot { width:.75rem; height:.75rem; border-radius:50%; background:var(--mobile-success); }
-.mobile-user-search__status-dot--pending { background:var(--warning); }
-.mobile-user-search__status-dot--blocked { background:var(--mobile-danger); }
+.mobile-user-search__status-dot {
+  --status-dot-on-light:#216c47;
+  --status-dot-on-dark:#8ad5a8;
+  width:.75rem;
+  height:.75rem;
+  border-radius:50%;
+  background-color:var(--status-dot-on-light);
+  transition:background-color var(--mobile-action-color-duration) ease;
+}
+.mobile-user-search__status-dot--pending {
+  --status-dot-on-light:#9f8100;
+  --status-dot-on-dark:#ffda24;
+}
+.mobile-user-search__status-dot--blocked {
+  --status-dot-on-light:#b3261e;
+  --status-dot-on-dark:#ffb4ab;
+}
+:root:not([data-mobile-theme="dark"]) .mobile-user-search__role:has(input:checked) .mobile-user-search__status-dot,
+:root[data-mobile-theme="dark"] .mobile-user-search__role:not(:has(input:checked)) .mobile-user-search__status-dot {
+  background-color:var(--status-dot-on-dark);
+}
 .mobile-user-search__card { padding:0; }
 .mobile-user-search__card summary { display:flex; align-items:center; justify-content:space-between; gap:1rem; min-height:4rem; padding:1.25rem 1.5rem; font-size:1rem; font-weight:600; list-style:none; cursor:pointer; }
 .mobile-user-search__card summary::-webkit-details-marker { display:none; }
@@ -217,7 +201,7 @@
 .mobile-user-search__card > .mobile-user-search__roles { padding:0 1.5rem 1.5rem; }
 @supports (interpolate-size: allow-keywords) {
   .mobile-user-search { interpolate-size:allow-keywords; }
-  .mobile-user-search :is(.mobile-user-search__card, .mobile-user-search__when)::details-content { height:0; overflow:clip; opacity:0; transition:height 220ms ease, opacity 180ms ease, content-visibility 220ms allow-discrete; }
+  .mobile-user-search :is(.mobile-user-search__card, .mobile-user-search__when)::details-content { height:0; overflow:clip; overflow-clip-margin:.75rem; opacity:0; transition:height 220ms ease, opacity 180ms ease, content-visibility 220ms allow-discrete; }
   .mobile-user-search :is(.mobile-user-search__card, .mobile-user-search__when)[open]::details-content { height:auto; opacity:1; }
 }
 .mobile-user-search__card summary svg { transition:transform 220ms ease; }
@@ -244,70 +228,60 @@
 .mobile-user-search__card summary, .mobile-user-search__when summary { min-height:3.5rem; padding:1rem 1.25rem; }
 .mobile-user-search__card > .mobile-user-search__roles, .mobile-user-search__dates { padding:0 1.25rem 1.25rem; }
 .mobile-user-search__card summary:focus-visible, .mobile-user-search__when summary:focus-visible { outline:2px solid var(--focus-ring); outline-offset:-4px; border-radius:16px; }
-.mobile-user-search :is(.mobile-user-search__card, .mobile-user-search__when, .mobile-user-search__role, .mobile-user-search__footer button:last-child) {
-  border:1px solid var(--mobile-border-subtle);
+.mobile-user-search :is(.mobile-user-search__card, .mobile-user-search__when, .mobile-user-search__footer button:last-child) {
   box-shadow:var(--mobile-shadow);
 }
 .mobile-user-search .mobile-user-search__card label.mobile-user-search__role {
+  --filter-tile-inset-fill:var(--filter-inset-fill);
+  --filter-tile-selected-fill:var(--mobile-text);
+  --filter-tile-selected-text:var(--mobile-surface-raised);
+  border-color:var(--mobile-border-subtle);
+  background:var(--filter-tile-inset-fill);
+  color:var(--mobile-text-muted);
   box-shadow:var(--filter-shadow-inset);
 }
+:root[data-mobile-theme="dark"] .mobile-user-search .mobile-user-search__card label.mobile-user-search__role {
+  --filter-tile-inset-fill:var(--mobile-bg);
+  --filter-tile-selected-fill:white;
+  --filter-tile-selected-text:var(--mobile-bg);
+}
 .mobile-user-search .mobile-user-search__card label.mobile-user-search__role:has(input:checked) {
-  border-color:var(--mobile-text);
+  border-color:var(--filter-tile-selected-fill);
+  background:var(--filter-tile-selected-fill);
+  color:var(--filter-tile-selected-text);
   box-shadow:var(--filter-shadow-raised);
 }
 
-@media (hover:hover) and (pointer:fine) {
-  .mobile-user-search :is(.mobile-user-search__card, .mobile-user-search__when):hover:not(:has(> div:hover)),
-  .mobile-user-search :is(.mobile-user-search__role, .mobile-user-search__footer button:last-child):hover {
-    border-color:color-mix(in srgb, var(--mobile-surface) 80%, var(--mobile-text));
-  }
-  .mobile-user-search .mobile-user-search__role:has(input:checked):hover { border-color:var(--mobile-text); }
-}
 .mobile-user-search :is(.mobile-user-search__card, .mobile-user-search__when):has(> summary:active),
 .mobile-user-search__footer button:last-child:active {
   box-shadow:0 0 0 rgb(0 0 0 / 0), 0 0 0 rgb(0 0 0 / 0);
-  border-color:var(--mobile-text);
 }
-:root .mobile-user-search .mobile-user-search__card label.mobile-user-search__role:has(input:checked) {
-  border-color:var(--mobile-text);
-  background:color-mix(in srgb, var(--mobile-surface) 90%, white);
-  color:color-mix(in srgb, var(--mobile-text) 95%, black);
-}
-:root[data-mobile-theme="dark"] .mobile-user-search .mobile-user-search__card label.mobile-user-search__role:has(input:checked) { color:white; }
 :root .mobile-user-search .mobile-user-search__footer button:last-child {
+  border:1px solid var(--dialog-danger-solid);
   background:var(--dialog-danger-solid);
 }
 @media (hover:hover) and (pointer:fine) {
-  :root .mobile-user-search .mobile-user-search__card label.mobile-user-search__role:has(input:checked):hover {
-    border-color:var(--mobile-text);
-    background:color-mix(in srgb, var(--mobile-surface) 90%, white);
-  }
-}
-:root .mobile-user-search .mobile-user-search__card label.mobile-user-search__role:not(:has(input:checked)) {
-  background:color-mix(in srgb, var(--mobile-surface) 93%, black);
-  color:var(--mobile-text-muted);
-}
-@media (hover:hover) and (pointer:fine) {
-  :root .mobile-user-search .mobile-user-search__card label.mobile-user-search__role:not(:has(input:checked)):hover {
-    border-color:color-mix(in srgb, var(--mobile-surface) 50%, var(--mobile-text));
-    background:var(--surface-hover);
-  }
-  :root .mobile-users .mobile-users__search:hover,
-  :root .mobile-user-search .mobile-user-search__card label.mobile-user-search__role:hover,
-  :root .mobile-user-search .mobile-user-search__card label.mobile-user-search__role:has(input:checked):hover,
+  .mobile-users__search:not(:has(input:focus)):hover,
+  .mobile-user-search :is(.mobile-user-search__card, .mobile-user-search__when):has(> summary:hover),
+  :root .mobile-user-search .mobile-user-search__footer button:last-child:hover,
   :root .mobile-user-search .mobile-user-search__card label.mobile-user-search__role:not(:has(input:checked)):hover,
-  :root .mobile-user-search .range-picker .range-picker__selectors .select-field__trigger:hover,
-  :root .mobile-user-search :is(.mobile-user-search__card, .mobile-user-search__when):not([hidden]):hover:not(:has(> div:hover)),
-  :root .mobile-user-search .mobile-user-search__footer button:last-child:hover {
-    border-color:color-mix(in srgb, var(--mobile-surface) 50%, var(--mobile-text));
+  :root .mobile-user-search .range-picker .range-picker__selectors .select-field__trigger:not([data-popup-open]):hover {
+    border-color:var(--filter-hover-border);
   }
-  :root .mobile-user-search .mobile-user-search__card label.mobile-user-search__role:has(input:checked):hover,
-  :root .mobile-user-search .range-picker .range-picker__selectors .select-field__trigger[data-popup-open]:hover,
-  :root .mobile-users .mobile-users__search:has(input:focus):hover { border-color:var(--mobile-text); }
+  :root .mobile-user-search .range-picker .range-picker__selectors .select-field__trigger[data-popup-open]:hover {
+    border-color:var(--mobile-text);
+  }
+  .mobile-user-search .mobile-user-search__card label.mobile-user-search__role:has(input:checked):hover {
+    border-color:color-mix(in srgb, var(--filter-tile-selected-fill) 65%, var(--filter-tile-selected-text));
+  }
 }
 @media (prefers-reduced-motion:no-preference) {
-  :root:not([data-motion="off"]) .mobile-user-search :is(.mobile-user-search__card, .mobile-user-search__when, .mobile-user-search__role, .mobile-user-search__footer button:last-child) {
+  :root:not([data-motion="off"]) .mobile-user-search :is(.mobile-user-search__card, .mobile-user-search__when, .mobile-user-search__footer button:last-child) {
     transition:border-color 450ms ease, box-shadow 320ms ease;
+  }
+  :root:not([data-motion="off"]) .mobile-user-search__role {
+    transition:background-color var(--mobile-action-color-duration) ease, color var(--mobile-action-color-duration) ease,
+      border-color var(--mobile-action-color-duration) ease, box-shadow 320ms ease;
   }
   :root:not([data-motion="off"]) .mobile-user-search .mobile-user-search__footer button:last-child {
     transition:opacity 350ms ease, transform 600ms cubic-bezier(.22,1,.36,1), border-color 450ms ease, box-shadow 320ms ease;
@@ -317,7 +291,7 @@
 .mobile-users__search {
   position:absolute;
   z-index:2;
-  top:0;
+  top:var(--users-search-offset);
   inset-inline:20px;
   padding-inline-end:4px;
 }
@@ -340,15 +314,15 @@
 .mobile-users::before { content:""; position:absolute; z-index:1; top:0; right:0; left:0; height:calc(84px + env(safe-area-inset-top, 0px)); background:var(--mobile-bg); backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px); mask-image:linear-gradient(to bottom, #000 65%, transparent 100%); -webkit-mask-image:linear-gradient(to bottom, #000 65%, transparent 100%); pointer-events:none; }
 .mobile-users__content { padding-top:calc(84px + env(safe-area-inset-top, 0px)); }
 .mobile-users__avatar-wrap { padding:0; border:0; background:none; cursor:pointer; }
-.mobile-users__name { max-width:100%; padding:0; border:0; background:none; color:inherit; font:inherit; font-size:1.125rem; font-weight:700; line-height:1.25; overflow-wrap:anywhere; text-align:left; cursor:pointer; }
+.mobile-users__name { display:block; max-width:100%; padding:0; border:0; background:none; color:inherit; font:inherit; font-size:1.125rem; font-weight:700; line-height:1.25; overflow-wrap:anywhere; text-align:left; cursor:pointer; }
 .mobile-users__name:focus-visible, .mobile-users__avatar-wrap:focus-visible { outline:2px solid var(--focus-ring); outline-offset:3px; }
-.mobile-user-profile { position:fixed; inset:auto 0 0; width:100%; max-width:40rem; height:calc(100dvh - env(safe-area-inset-top, 0px) - 1rem); max-height:none; margin:auto auto 0; padding:0; border:0; border-radius:24px 24px 0 0; overflow:auto; background:var(--mobile-surface); color:var(--mobile-text); }
+.mobile-user-profile { position:fixed; inset:auto 0 0; width:100%; max-width:40rem; height:calc(100dvh - env(safe-area-inset-top, 0px) - 1rem); max-height:none; margin:auto auto 0; padding:0; border:0; border-radius:24px 24px 0 0; overflow:auto; background:var(--mobile-surface-raised); color:var(--mobile-text); }
 .mobile-user-profile::backdrop { background:rgb(0 0 0 / .55); }
 .mobile-user-profile__hero { position:relative; height:min(65dvh, 36rem); min-height:24rem; overflow:hidden; background:var(--mobile-surface-muted); }
 .mobile-user-profile__image { position:absolute; inset:0; display:grid; place-items:center; width:100%; height:100%; border-radius:0; font-size:6rem; }
 .mobile-user-profile__image .user-avatar__image { width:100%; height:100%; object-fit:cover; }
 .mobile-user-profile__shade { position:absolute; inset:0; background:linear-gradient(to bottom, rgb(0 0 0 / .15), transparent 35%, rgb(0 0 0 / .8)); pointer-events:none; }
-.mobile-user-profile__close { position:absolute; top:1rem; left:1rem; display:grid; place-items:center; width:44px; height:44px; padding:0; border:0; border-radius:50% !important; background:var(--mobile-surface); color:var(--mobile-text); }
+.mobile-user-profile__close { position:absolute; top:1rem; left:1rem; display:grid; place-items:center; width:44px; height:44px; padding:0; border:0; border-radius:50% !important; background:var(--mobile-surface-raised); color:var(--mobile-text); }
 .mobile-user-profile__identity { position:absolute; right:1.5rem; bottom:1.5rem; left:1.5rem; color:white; text-align:center; }
 .mobile-user-profile__identity h2 { margin:0; overflow-wrap:anywhere; font-size:2rem; line-height:1.15; }
 .mobile-user-profile__identity p { margin:.5rem 0 0; }
@@ -362,7 +336,12 @@
   @starting-style { :root:not([data-motion="off"]) .mobile-user-profile[open] { transform:translateY(100%); } }
 }
 .mobile-user-profile__actions .icon-button { width:40px; height:40px; }
-.mobile-user-profile__actions .mobile-users__delete { background:var(--dialog-danger-solid); color:var(--text-on-danger); }
+.mobile-user-profile__actions .mobile-user-profile__delete {
+  background:var(--mobile-danger-action);
+  color:var(--mobile-danger);
+  transition:background-color var(--mobile-action-color-duration) ease, color var(--mobile-action-color-duration) ease;
+}
+.mobile-user-profile__delete [data-trash-icon] { color:inherit; }
 
 .mobile-user-search__when summary svg { transition:transform 220ms ease; }
 .mobile-user-search__when[open] summary svg { transform:rotate(180deg); }
@@ -386,18 +365,17 @@
   line-height:calc((var(--mobile-account-name-size) + var(--mobile-account-role-size)) * var(--mobile-account-line-height) + var(--mobile-account-line-gap));
 }
 .mobile-users::before { height:96px; }
-.mobile-users__content { padding-top:68px; }
+.mobile-users__content { padding-top:calc(68px + var(--users-search-offset)); }
 
-:is(.mobile-users, .mobile-user-profile) { --users-danger-pale:#ebaaa2; }
 @media (hover:hover) and (pointer:fine) {
-  .mobile-user-profile__actions .mobile-users__delete:hover:not(:disabled) {
-    background:var(--users-danger-pale);
+  .mobile-user-profile__actions .mobile-user-profile__delete:hover:not(:disabled) {
+    background:var(--mobile-danger-action-hover);
     border-color:var(--danger-solid);
     color:var(--danger-solid);
   }
 }
 .mobile-user-profile__close:active,
-.mobile-user-profile__actions .mobile-users__delete:active:not(:disabled) {
+.mobile-user-profile__actions .mobile-user-profile__delete:active:not(:disabled) {
   background:var(--dialog-danger-solid);
   border-color:var(--dialog-danger-solid);
   color:var(--text-on-danger);

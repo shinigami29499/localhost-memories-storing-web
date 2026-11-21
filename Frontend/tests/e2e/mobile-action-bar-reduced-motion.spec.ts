@@ -40,7 +40,7 @@ for (const mode of ["reduced-motion", "animations-disabled"] as const) {
       requestAnimationFrame(sample);
     });
     await page.locator('.bottom-navigation a[href="/gallery"]').click();
-    await expect(page.getByRole("button", { name: "Upload media" })).toBeVisible();
+    await expect(page.locator(".page-action-bar").getByRole("button", { name: "New album" })).toBeVisible();
     await expect.poll(() => page.evaluate(() => (window as Window & { actionSamplingComplete: boolean }).actionSamplingComplete)).toBe(true);
     expect(await page.evaluate(() => (window as Window & { actionMotions: number }).actionMotions)).toBe(0);
     const widths = await page.evaluate(() => (window as Window & { actionWidths: number[] }).actionWidths);

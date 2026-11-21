@@ -12,6 +12,12 @@ import { inDateRange } from "../../utils/dateRange";
 import type { AuthUser } from "../../features/auth";
 
 type UserFilter = "all" | "pending_approval" | "blocked";
+const ONLINE_WINDOW_MS = 300_000;
+
+function timestamp(value: string | null | undefined): number {
+  const parsed = value ? Date.parse(value) : NaN;
+  return Number.isFinite(parsed) ? parsed : 0;
+}
 
 export function useUsersPage(forceMobile = false) {
   const { language, t } = useLocale();
@@ -38,7 +44,7 @@ export function useUsersPage(forceMobile = false) {
   const useList = forceMobile || !!search.trim() || hasFilters;
   const sentinel = useRef<HTMLDivElement>(null);
   const [now, setNow] = useState(() => Date.now());
-  const offlineUsers = useUserPresenceStore((state) => state.offlineUsers);
+  const presenceByUser = useUserPresenceStore((state) => state.presenceByUser);
   const users = useInfiniteQuery({
     queryKey: ["users", "page", filter], initialPageParam: 1,
     queryFn: ({ pageParam, signal }) => userService.page(pageParam, 30, filter === "pending_approval", signal, filter === "blocked"),
@@ -105,18 +111,27 @@ export function useUsersPage(forceMobile = false) {
   const matchedUsers = useList
     ? (searchUsers.data ?? []).filter((user) => (forceMobile || (filter === "blocked" ? user.status === "disabled" : filter === "pending_approval" ? user.status === "pending_approval" : user.status !== "disabled")) && user.username.toLowerCase().includes(search.trim().toLowerCase()) && (!hasFilters || ((forceMobile ? roles.length === 0 || roles.includes(user.role.toLowerCase()) : !role || user.role.toLowerCase() === role) && (!forceMobile || statuses.length === 0 || statuses.includes(user.status)) && inDateRange(user.createdAt, joinedFrom, joinedTo))))
     : users.data?.pages.flatMap((page) => page.items) ?? [];
-  const timestamp = (value: string | null | undefined) => {
-    const parsed = value ? Date.parse(value) : NaN;
-    return Number.isFinite(parsed) ? parsed : 0;
+  const usersWithPresence = matchedUsers.map((user) => {
+    const liveLastSeen = presenceByUser[user.id]?.lastSeenAt;
+    return liveLastSeen && timestamp(liveLastSeen) > timestamp(user.lastSeenAt)
+      ? { ...user, lastSeenAt: liveLastSeen }
+      : user;
+  });
+  const isOnline = (user: AuthUser) => {
+    const lastSeen = timestamp(user.lastSeenAt);
+    const live = presenceByUser[user.id];
+    const explicitlyOffline = live?.online === false &&
+      (!live.lastSeenAt || timestamp(live.lastSeenAt) >= lastSeen);
+    return !explicitlyOffline && lastSeen > 0 && now - lastSeen < ONLINE_WINDOW_MS;
   };
   const pagedUsers = forceMobile
-    ? matchedUsers.filter((user) => user.id !== me?.id && user.status !== "rejected").sort((a, b) =>
+    ? usersWithPresence.filter((user) => user.id !== me?.id && user.status !== "rejected").sort((a, b) =>
       timestamp(b.lastSeenAt) - timestamp(a.lastSeenAt)
       || a.username.localeCompare(b.username, language === "vi" ? "vi-VN" : "en-US", { sensitivity: "base" })
       || timestamp(b.createdAt) - timestamp(a.createdAt))
-    : matchedUsers;
+    : usersWithPresence;
 
-  return { language, t, isMobile, me, isAdmin, action, setAction, navigate, filter, search, setSearch, role, setRole, roles, setRoles, status, setStatus, statuses, setStatuses, joinedFrom, setJoinedFrom, joinedTo, setJoinedTo, useList, sentinel, now, offlineUsers, users, activeQuery, approve, reject, remove, disable, activate, updateRole, pagedUsers };
+  return { language, t, isMobile, me, isAdmin, action, setAction, navigate, filter, search, setSearch, role, setRole, roles, setRoles, status, setStatus, statuses, setStatuses, joinedFrom, setJoinedFrom, joinedTo, setJoinedTo, useList, sentinel, now, isOnline, users, activeQuery, approve, reject, remove, disable, activate, updateRole, pagedUsers };
 }
 
 export function formatLastActive(value: string | null | undefined, language: "en" | "vi", now: number): string {

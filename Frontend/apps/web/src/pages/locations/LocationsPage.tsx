@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useInfiniteQuery, useIsMutating, useQueryClient } from "@tanstack/react-query";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { Button, ConfirmationDialog, ErrorState, showToast, Spinner } from "@/components/ui";
 import { useLocale } from "@/context/LocaleContext";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
@@ -11,12 +11,8 @@ import { useHomeLocation } from "@/features/locations/hooks/useHomeLocation";
 import { useLocations } from "@/features/locations/hooks/useLocations";
 import { useMapBounds } from "@/features/locations/hooks/useMapBounds";
 import { locationService } from "@/features/locations/services/locationService";
-import { locateUploadedBatch } from "@/features/locations/services/locateUploadedBatch";
 import { LocationMap } from "@/features/locations/components/LocationMap";
-import { CameraCaptureDialog } from "@/features/locations/components/CameraCaptureDialog";
 import { LocationEditor } from "@/features/locations/components/LocationEditor";
-import { uploadService } from "@/features/uploads/services/uploadService";
-import { registerUploadCompletionAction } from "@/features/uploads/services/uploadRuntime";
 import type { MediaFile, PickedLocation } from "@/features/media/types";
 import type { HomeLocation } from "@/features/locations/types";
 import "./locations.css";
@@ -24,7 +20,8 @@ import "./locations.css";
 import { useTravelPageController } from "@/pages/locations/useTravelPageController";
 
 export function LocationsPage() {
-  const { t, queryClient, isMobile, searchParams, setSearchParams, handleMapBounds, home, selection, setSelection, showUnlocated, setShowUnlocated, unlocated, query, media, scanning, scanProgress, scanResult, scanError, setRelocatingId, homePicking, setHomePicking, homeRelocationDraft, setHomeRelocationDraft, homeMoveConfirmationOpen, setHomeMoveConfirmationOpen, uploading, cameraOpen, setCameraOpen, uploadInput, workspaceRef, moveConfirmationOpen, setMoveConfirmationOpen, selectedId, draft, saving, failedPreviews, setFailedPreviews, selected, focused, relocating, showDetails, canMove, canEdit, clearSelection, select, updateDraft, movePhoto, startRelocating, confirmRelocation, pickHome, confirmHomeRelocation, startWithCurrentLocation, uploadPhotos } = useTravelPageController();
+  const { t, queryClient, isMobile, searchParams, setSearchParams, handleMapBounds, home, selection, setSelection, showUnlocated, setShowUnlocated, unlocated, query, media, scanning, scanProgress, scanResult, scanError, setRelocatingId, homePicking, setHomePicking, homeRelocationDraft, setHomeRelocationDraft, homeMoveConfirmationOpen, setHomeMoveConfirmationOpen, workspaceRef, moveConfirmationOpen, setMoveConfirmationOpen, selectedId, draft, saving, failedPreviews, setFailedPreviews, selected, focused, relocating, showDetails, canMove, canEdit, clearSelection, select, updateDraft, movePhoto, startRelocating, confirmRelocation, pickHome, confirmHomeRelocation } = useTravelPageController();
+  const navigateToAlbums = useNavigate();
   return (
     <main className="locations">
         <div className="locations__content">
@@ -66,10 +63,11 @@ export function LocationsPage() {
                 editing={!!selection?.editing} relocating={relocating}
                 onConfirmRelocation={() => setMoveConfirmationOpen(true)}
                 homeLocation={home.query.data ?? null} homeLocationReady={home.query.isFetched}
-                homeActionDisabled={saving || home.save.isPending || uploading}
+                homeActionDisabled={saving || home.save.isPending}
+                onBrowseAlbums={() => navigateToAlbums("/gallery/album")}
                 homePicking={homePicking} homeRelocationDraft={homeRelocationDraft} onSelect={select} canMove={canMove} onMove={movePhoto}
-                onAddPhotos={() => void startWithCurrentLocation(() => uploadInput.current?.click())}
-                onOpenCamera={() => void startWithCurrentLocation(() => setCameraOpen(true))}
+
+
                 onEdit={startRelocating}
                 onCancelSelection={clearSelection}
                 onPick={(location) => { if (selected) updateDraft(selected.id, location); }}
@@ -210,15 +208,6 @@ export function LocationsPage() {
         </ConfirmationDialog>
       )}
 
-      <input ref={uploadInput} type="file" accept="image/*" multiple hidden onChange={(event) => {
-        const files = Array.from(event.currentTarget.files ?? []);
-        event.currentTarget.value = "";
-        void uploadPhotos(files);
-      }} />
-      {cameraOpen ? <CameraCaptureDialog
-        onCapture={(file) => void uploadPhotos([file])}
-        onClose={() => setCameraOpen(false)}
-      /> : null}
     </main>
   );
 }

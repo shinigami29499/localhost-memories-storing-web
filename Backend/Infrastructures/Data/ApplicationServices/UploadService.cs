@@ -24,6 +24,8 @@ public sealed class UploadService(
     MediaStorageOptions storageOptions,
     IMapper mapper,
     IUserRepository userRepository,
+    ICollectionRepository collections,
+    IPreviewLifecycle previewLifecycle,
     CityLookup cityLookup,
     ILogger<UploadService> logger) : IUploadService
 {
@@ -92,9 +94,13 @@ public sealed class UploadService(
             });
         }
 
+        await using var transaction = await _unitOfWork.BeginTransactionAsync(cancellationToken);
+        await previewLifecycle.LockAsync(cancellationToken);
+        await RequireOwnedAlbumAsync(request.AlbumId, ownerId, cancellationToken);
         var batch = new UploadBatch
         {
             OwnerId = ownerId,
+            CollectionId = request.AlbumId,
             Status = UploadBatchStatus.Pending,
             Items = items,
         };
@@ -103,6 +109,7 @@ public sealed class UploadService(
 
         _repository.AddBatch(batch);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return MapBatch(batch, ownerId, includeUsername: false);
     }
 
@@ -264,6 +271,9 @@ public sealed class UploadService(
             ownerId, batchId, itemId, cancellationToken, includeBatchItems: false);
         if (registered.Status != UploadItemStatus.Uploading)
             throw new ConflictException("Start this upload before sending its file.");
+        if (registered.Batch.CollectionId is not { } albumId)
+            throw new ConflictException("This upload has no destination album.");
+        await RequireOwnedAlbumAsync(albumId, ownerId, cancellationToken);
 
         var submittedFilename = Path.GetFileName(file.FileName.Replace('\\', '/'));
         if (file.Length != registered.FileSizeBytes
@@ -307,12 +317,15 @@ public sealed class UploadService(
             if (location is not null && await cityLookup.FindAsync(location, cancellationToken) is { } city)
                 media.Metadata = MediaLocationMetadata.Write(media.Metadata, location with { City = city });
             await using var transaction = await _unitOfWork.BeginTransactionAsync(cancellationToken);
+            await previewLifecycle.LockAsync(cancellationToken);
             await _repository.LockBatchAsync(ownerId, batchId, cancellationToken);
             var item = await FindOwnedItemAsync(ownerId, batchId, itemId, cancellationToken);
             if (item.Status != UploadItemStatus.Uploading || item.Revision != registered.Revision)
                 throw new ConflictException("This upload was cancelled or changed before it could finish.");
 
+            var album = await RequireOwnedAlbumAsync(albumId, ownerId, cancellationToken);
             _repository.AddMediaFile(media);
+            collections.AddCollectionMedia(new CollectionMedia { CollectionId = albumId, MediaFileId = media.Id });
             item.StoredFilename = stored.StoredFilename;
             item.RelativePath = stored.RelativePath;
             item.MimeType = stored.MimeType;
@@ -327,7 +340,7 @@ public sealed class UploadService(
             RefreshBatchStatus(item.Batch, item.CompletedAt.Value);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
-            return new UploadFileResult(MapItem(item));
+            return new UploadFileResult(MapItem(item), album.Id, album.Name, album.IsPublic);
         }
         catch (DbUpdateConcurrencyException)
         {
@@ -339,6 +352,14 @@ public sealed class UploadService(
             await _storage.DeleteAsync(stored.RelativePath, CancellationToken.None);
             throw;
         }
+    }
+
+    private async Task<Collection> RequireOwnedAlbumAsync(Guid albumId, Guid ownerId, CancellationToken cancellationToken)
+    {
+        var album = await collections.FindCollectionAsync(albumId, cancellationToken);
+        if (album is null || album.OwnerId != ownerId)
+            throw new NotFoundException("Choose an existing album you own.");
+        return album;
     }
 
     public async Task DeleteRecordsAsync(Guid ownerId, Guid batchId, IReadOnlyCollection<Guid> itemIds, CancellationToken cancellationToken = default)
@@ -519,7 +540,8 @@ public sealed class UploadService(
             files.Count(item => item.Status == UploadItemStatus.Failed),
             files.Count(item => item.Status == UploadItemStatus.Cancelled),
             files.Select(MapItem).ToList(),
-            batch.ViewedAt);
+            batch.ViewedAt,
+            batch.CollectionId);
     }
 
     private static UploadItemDto MapItem(UploadItem item)

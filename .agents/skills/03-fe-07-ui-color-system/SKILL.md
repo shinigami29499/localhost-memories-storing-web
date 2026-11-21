@@ -11,13 +11,16 @@ Build a small, coherent palette with perceptually balanced shades, clear elevati
 
 ## Project defaults
 
-- Use the mobile page backgrounds from `Frontend/apps/mobile/src/theme/mobile-theme.css`: off-white `#f4f3f2` in light mode and charcoal `#272727` in dark mode.
+- Use `--mobile-bg` from `Frontend/apps/mobile/src/theme/mobile-theme.css` for mobile page backgrounds. It is warm gray `#eae7e3` in light mode and shares the raised fill `#1c1c1c` in dark mode.
+- Use `--mobile-surface-raised` for neutral raised surfaces. Its dark-mode fill is `#1c1c1c`.
 - Distinguish same-layer controls by their fill. Home's borderless notification and menu buttons use white in light mode and `#1c1c1c` in dark mode.
 - Use a uniform border lighter than the box fill for bordered boxes in dark mode. On Home, keep the username, icons, and current navigation label prominent. Use readable secondary contrast for the role and inactive tabs.
 
 ## Hover states
 
 - Keep hover interior fills flat. Do not add gradient color or gradient overlays inside controls, cards, or other interactive surfaces on hover. Gradient borders may remain.
+- Ease color changes between default, hover, and pressed states in both directions. Declare the transition on the base control so it also runs when the pointer leaves or the user releases the press. Use 320ms ease on mobile, matching Reject. Set the duration to zero when Interface motion is off or the system requests reduced motion.
+- Transition the background, text, icon, and border colors that actually change. Use the mobile `--mobile-action-color-duration` token and keep hover styles scoped to devices that support hover. Pressed styles must also work on touch.
 
 ## Workflow
 

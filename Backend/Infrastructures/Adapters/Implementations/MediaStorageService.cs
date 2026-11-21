@@ -97,71 +97,49 @@ public sealed partial class MediaStorageService(
         }
     }
 
-    public async Task<string> MoveToTrashAsync(string relativePath, CancellationToken cancellationToken = default)
+    public async Task DeleteWithPreviewsAsync(string relativePath, CancellationToken cancellationToken = default)
     {
-        var (kind, filename) = ValidateOwnedPath(relativePath);
-
-        var source = ResolveAbsolute(relativePath);
-        if (!File.Exists(source))
-            throw new FileNotFoundException("Media file is missing on disk; cannot move it to trash.", source);
-
-        var trashRelative = $"{TrashSubdirectory}/{kind}/{filename}";
-        var destination = ResolveAbsolute(trashRelative);
-        Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
-
-        if (File.Exists(destination))
-            throw new InvalidOperationException(
-                $"Trash collision for '{trashRelative}'. Refusing to overwrite an existing trashed file.");
-
-        await CopyWithRetryAsync(source, destination, cancellationToken, _logger);
-
-        // Verify the copy before deleting the source.
-        var destinationLength = new FileInfo(destination).Length;
-        if (destinationLength != new FileInfo(source).Length)
+        ValidateOwnedPath(relativePath);
+        await _previewGate.WaitAsync(cancellationToken);
+        try
         {
-            TryDeleteQuietly(destination, trashRelative);
-            throw new IOException(
-            $"Trash copy of '{relativePath}' is incomplete ({destinationLength} bytes). Source left untouched.");
+            await DeleteAsync(relativePath, cancellationToken);
+            foreach (var previewSize in new[] { 320, 640 })
+                File.Delete(ResolveAbsolute(PreviewRelativePath(relativePath, previewSize)));
         }
-
-        File.Delete(source);
-
-        _logger.LogInformation("Moved media file {RelativePath} to trash as {TrashRelativePath}",
-            relativePath, trashRelative);
-        return trashRelative;
+        finally
+        {
+            _previewGate.Release();
+        }
     }
 
     public async Task<string?> MoveToPurgeAsync(
-        string trashRelativePath, Guid mediaId, CancellationToken cancellationToken = default)
+        string relativePath, Guid mediaId, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        ValidateOwnedPath(trashRelativePath);
-        if (!trashRelativePath.StartsWith($"{TrashSubdirectory}/", StringComparison.Ordinal)
-            && !trashRelativePath.StartsWith($"{PreviewSubdirectory}/", StringComparison.Ordinal))
-            throw new InvalidMediaFileException(
-                $"Storage path '{trashRelativePath}' is not a trashed media file.");
+        ValidateOwnedPath(relativePath);
 
         await _previewGate.WaitAsync(cancellationToken);
         try
         {
             foreach (var previewSize in new[] { 320, 640 })
-                File.Delete(ResolveAbsolute(PreviewRelativePath(trashRelativePath, previewSize)));
-            var source = ResolveAbsolute(trashRelativePath);
+                File.Delete(ResolveAbsolute(PreviewRelativePath(relativePath, previewSize)));
+            var source = ResolveAbsolute(relativePath);
             if (!File.Exists(source))
             {
                 _logger.LogWarning(
-                    "Trashed media file '{RelativePath}' is missing; permanently deleting its database record",
-                    trashRelativePath);
+                    "Media file '{RelativePath}' is missing; permanently deleting its database record",
+                    relativePath);
                 return null;
             }
 
-            var purgeRelativePath = $"{TrashSubdirectory}/purge/{mediaId:N}";
+            var purgeRelativePath = $"{PreviewSubdirectory}/purge/{mediaId:N}";
             var destination = ResolveAbsolute(purgeRelativePath);
             Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
             File.Move(source, destination);
             _logger.LogInformation(
-                "Staged trashed media file {RelativePath} for permanent deletion as {PurgePath}",
-                trashRelativePath, purgeRelativePath);
+                "Staged media file {RelativePath} for permanent deletion as {PurgePath}",
+                relativePath, purgeRelativePath);
             return purgeRelativePath;
         }
         finally
@@ -170,15 +148,15 @@ public sealed partial class MediaStorageService(
         }
     }
 
-    public async Task RestoreFromTrashAsync(
-        string trashRelativePath, string targetRelativePath, CancellationToken cancellationToken = default)
+    public async Task RestoreStagedFileAsync(
+        string stagedRelativePath, string targetRelativePath, CancellationToken cancellationToken = default)
     {
-        var source = ResolveAbsolute(trashRelativePath);
+        var source = ResolveAbsolute(stagedRelativePath);
         var destination = ResolveAbsolute(targetRelativePath);
 
         if (!File.Exists(source))
             throw new FileNotFoundException(
-                $"Trashed file '{trashRelativePath}' is missing on disk and cannot be restored.");
+                $"Staged file '{stagedRelativePath}' is missing on disk and cannot be restored.");
 
         if (File.Exists(destination))
             throw new InvalidOperationException(
@@ -190,12 +168,12 @@ public sealed partial class MediaStorageService(
         if (new FileInfo(destination).Length != new FileInfo(source).Length)
         {
             TryDeleteQuietly(destination, targetRelativePath);
-            throw new IOException($"Failed to restore '{trashRelativePath}' to '{targetRelativePath}'.");
+            throw new IOException($"Failed to restore '{stagedRelativePath}' to '{targetRelativePath}'.");
         }
 
         File.Delete(source);
-        _logger.LogInformation("Restored media file {TrashRelativePath} -> {TargetRelativePath}",
-            trashRelativePath, targetRelativePath);
+        _logger.LogInformation("Restored media file {StagedRelativePath} -> {TargetRelativePath}",
+            stagedRelativePath, targetRelativePath);
     }
 
     public Task DeleteAsync(string relativePath, CancellationToken cancellationToken = default)

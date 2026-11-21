@@ -89,9 +89,13 @@ export function useInfiniteAlbumMedia(
 /** Refreshes every album list, detail, and media page after a change. */
 export function useInvalidateAlbums() {
   const queryClient = useQueryClient();
-  return useCallback(() => Promise.all([
+  return useCallback((mediaDeleted = false) => Promise.all([
     queryClient.invalidateQueries({ queryKey: albumKeys.all }),
     queryClient.invalidateQueries({ queryKey: ["previews"] }),
     queryClient.invalidateQueries({ queryKey: ["picker-image"] }),
+    ...(mediaDeleted ? [
+      queryClient.invalidateQueries({ queryKey: ["media"] }),
+      queryClient.invalidateQueries({ queryKey: ["places"] }),
+    ] : []),
   ]).then(() => undefined), [queryClient]);
 }

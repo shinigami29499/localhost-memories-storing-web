@@ -7,7 +7,6 @@ namespace Services.Interfaces;
 
 public interface IMediaService
 {
-    Task<MediaFileDto?> GetMediaForNotificationAsync(Guid mediaId, CancellationToken cancellationToken = default);
     Task<MediaFileDto> GetMediaAsync(Guid mediaId, Guid viewerId,
         CancellationToken cancellationToken = default);
     Task<bool> IsMediaFileAvailableAsync(
@@ -22,19 +21,10 @@ public interface IMediaService
     Task<ScanMediaLocationsResponse> ScanLocationsAsync(
         Guid actorId, bool isAdmin, int offset, CancellationToken cancellationToken = default);
     Task<MediaFileContent> GetMediaFileAsync(
-        Guid mediaId, bool includeDeleted, CancellationToken cancellationToken = default, bool preview = false,
+        Guid mediaId, CancellationToken cancellationToken = default, bool preview = false,
         Guid? viewerId = null, int previewSize = 640);
-    Task<MediaFileContent> GetMediaFileAsync(
-        Guid mediaId, bool includeDeleted, bool isAdmin, CancellationToken cancellationToken = default,
-        bool preview = false, Guid? viewerId = null, int previewSize = 640);
-    Task DeleteMediaAsync(Guid mediaId, Guid actorId, bool isAdmin, CancellationToken cancellationToken = default);
-    Task RestoreMediaAsync(Guid mediaId, Guid actorId, bool isAdmin, CancellationToken cancellationToken = default);
-    Task PermanentlyDeleteMediaAsync(
-        Guid mediaId, Guid actorId, bool isAdmin, CancellationToken cancellationToken = default);
-    Task DeleteMediaRecordAsync(
-        Guid mediaId, Guid actorId, bool isAdmin, CancellationToken cancellationToken = default);
     Task<PagedMediaResponse<MediaFileDto>> GetMediaPageAsync(
-        Guid viewerId, int offset, int limit, string? mediaKind, bool favoritesOnly, bool includeDeleted,
+        Guid viewerId, int offset, int limit, string? mediaKind, bool favoritesOnly,
         CancellationToken cancellationToken = default);
     Task<OwnedMediaCountsResponse> GetOwnedMediaCountsAsync(
         Guid ownerId, CancellationToken cancellationToken = default);

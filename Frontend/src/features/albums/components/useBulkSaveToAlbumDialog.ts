@@ -38,9 +38,9 @@ export function useBulkSaveToAlbumDialog({ mediaIds, onSaved, onClose }: BulkSav
   const savedMediaIds = (album: Album) => selectedMediaIds.filter((id) =>
     membershipByMediaId.get(id)?.includes(album.id));
 
-  const reportSaveResults = async (albumName: string, undo: () => Promise<void>) => {
+  const reportSaveResults = async (albumName: string) => {
     await invalidate();
-    showToast.success(t("Successfully saved to album {name}", { name: albumName }), { undo, highlight: [albumName] });
+    showToast.success(t("Successfully saved to album {name}", { name: albumName }), { highlight: [albumName] });
     onSaved?.();
     return true;
   };
@@ -55,15 +55,11 @@ export function useBulkSaveToAlbumDialog({ mediaIds, onSaved, onClose }: BulkSav
         ? removalIds
         : selectedMediaIds.filter((mediaId) => !saved.includes(mediaId));
       await updateAlbumMedia(album.id, mediaIdsToUpdate, remove ? "remove" : "add");
-      await invalidate();
-      const undo = async () => {
-        await updateAlbumMedia(album.id, mediaIdsToUpdate, remove ? "add" : "remove");
-        await invalidate();
-      };
+      await invalidate(remove);
       if (remove) {
-        showToast.delete(t("Removed from album"), { undo });
+        showToast.delete(t("Media deleted from album"));
       } else {
-        showToast.success(t("Successfully saved to album {name}", { name: album.name }), { undo, highlight: [album.name] });
+        showToast.success(t("Successfully saved to album {name}", { name: album.name }), { highlight: [album.name] });
         onSaved?.();
       }
     } catch (error) {
@@ -83,13 +79,7 @@ export function useBulkSaveToAlbumDialog({ mediaIds, onSaved, onClose }: BulkSav
       const album = await albumService.create({ name: trimmed });
       setName("");
       await updateAlbumMedia(album.id, selectedMediaIds, "add");
-      await reportSaveResults(
-        album.name,
-        async () => {
-          await albumService.remove(album.id);
-          await invalidate();
-        },
-      );
+      await reportSaveResults(album.name);
     } catch (error) {
       showToast.error(error instanceof ApiError ? error.message : t("Could not complete this action. Please retry."));
     } finally {

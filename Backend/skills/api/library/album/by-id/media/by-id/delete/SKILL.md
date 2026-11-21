@@ -8,5 +8,5 @@ description: "Current behavior of DELETE /api/library/album/{collectionId:guid}/
 - Routes: `/api/library/album/{collectionId:guid}/media/{mediaId:guid}`, `/api/collections/{collectionId:guid}/media/{mediaId:guid}`.
 - Access: Requires authentication; additional service-level permissions are described below.
 - Inputs: Guid collectionId, Guid mediaId.
-- Flow: The owner soft-deletes an existing media association and clears a matching preview; an absent association is a no-op. Returns the album.
+- Flow: Uses the same flow as batch removal. An album owner removes the link and permanently deletes storage for media they own. A missing link is a no-op. Returns the updated album.
 - Source: `Backend/Apis/Controllers/CollectionsController.cs` (RemoveMediaAsync); `Backend/Infrastructures/Data/ApplicationServices/CollectionService.cs`.

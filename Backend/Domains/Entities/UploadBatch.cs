@@ -6,6 +6,7 @@ public class UploadBatch : AuditableEntity
 {
     public Guid OwnerId { get; set; }
     public User Owner { get; set; } = null!;
+    public Guid? CollectionId { get; set; }
     public UploadBatchStatus Status { get; set; } = UploadBatchStatus.Pending;
     public DateTime? StartedAt { get; set; }
     public DateTime? CompletedAt { get; set; }

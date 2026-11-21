@@ -26,31 +26,16 @@ public partial class MediaService(
     private readonly ILogger<MediaService> _logger = logger;
 
     public async Task<MediaFileContent> GetMediaFileAsync(
-        Guid mediaId, bool includeDeleted, CancellationToken cancellationToken = default, bool preview = false,
-        Guid? viewerId = null, int previewSize = 640)
-        => await GetMediaFileAsync(mediaId, includeDeleted, isAdmin: false, cancellationToken, preview, viewerId, previewSize);
-
-    public async Task<MediaFileContent> GetMediaFileAsync(
-        Guid mediaId, bool includeDeleted, bool isAdmin, CancellationToken cancellationToken = default,
+        Guid mediaId, CancellationToken cancellationToken = default,
         bool preview = false, Guid? viewerId = null, int previewSize = 640)
     {
-        var media = includeDeleted
-            ? await _repository.FindMediaIncludingDeletedAsync(mediaId, cancellationToken)
-            : isAdmin
-                ? await _repository.FindMediaIncludingDeletedAsync(mediaId, cancellationToken)
-                : await _repository.FindOwnedMediaAsync(mediaId, cancellationToken);
-
-        if (media is null || (!includeDeleted && media.IsDeleted))
-            throw new NotFoundException($"Media '{mediaId}' was not found.");
-        if (media.IsPreviewOnly && (media.IsDeleted
-            || (media.OwnerId != viewerId && !await previews.IsReferencedAsync(mediaId, cancellationToken))))
+        var media = await _repository.FindOwnedMediaAsync(mediaId, cancellationToken)
+            ?? throw new NotFoundException($"Media '{mediaId}' was not found.");
+        if (media.IsPreviewOnly && media.OwnerId != viewerId
+            && !await previews.IsReferencedAsync(mediaId, cancellationToken))
             throw new NotFoundException($"Preview '{mediaId}' was not found.");
 
-        var relativePath = media.DeletedAt is null
-            ? media.RelativePath
-            : media.TrashRelativePath
-                ?? throw new NotFoundException($"Media '{mediaId}' has no file in trash.");
-
+        var relativePath = media.RelativePath;
         if (!await _storage.ExistsAsync(relativePath))
             throw new NotFoundException($"Media '{mediaId}' is present in the database but missing on disk.");
 
@@ -63,13 +48,6 @@ public partial class MediaService(
 
         var stream = await _storage.OpenAsync(relativePath);
         return new MediaFileContent(stream, media.MimeType, media.OriginalFilename);
-    }
-
-    public async Task<MediaFileDto?> GetMediaForNotificationAsync(Guid mediaId, CancellationToken cancellationToken = default)
-    {
-        var media = await _repository.FindMediaIncludingDeletedAsync(mediaId, cancellationToken);
-        return media is null ? null : new MediaFileDto(media.Id, media.MediaKind,
-            media.OriginalFilename, media.CreatedAt, false, media.OwnerId);
     }
 
     public async Task<MediaFileDto> GetMediaAsync(Guid mediaId, Guid viewerId,
@@ -131,142 +109,6 @@ public partial class MediaService(
         return await _storage.ExistsAsync(media.RelativePath);
     }
 
-    public async Task DeleteMediaAsync(Guid mediaId, Guid actorId, bool isAdmin, CancellationToken cancellationToken = default)
-    {
-        var media = await LoadOwnedMediaAsync(mediaId, actorId, isAdmin, cancellationToken);
-
-        var utcNow = DateTime.UtcNow;
-        media.TrashRelativePath = await _storage.MoveToTrashAsync(media.RelativePath, cancellationToken);
-        media.TrashedAt = utcNow;
-
-        try
-        {
-            await using var tx = await _unitOfWork.BeginTransactionAsync(cancellationToken);
-            media.DeletedAt = utcNow;
-            media.DeletedBy = actorId;
-            media.UpdatedAt = utcNow;
-            media.UpdatedBy = actorId;
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
-            await tx.CommitAsync(cancellationToken);
-        }
-        catch
-        {
-            _logger.LogError(
-                "Media {MediaId} deletion failed at database stage; restoring file from trash", mediaId);
-            await _storage.RestoreFromTrashAsync(media.TrashRelativePath!, media.RelativePath, cancellationToken);
-            throw;
-        }
-
-        _logger.LogInformation("Media {MediaId} soft-deleted by {ActorId} (file trashed as {TrashPath})",
-            mediaId, actorId, media.TrashRelativePath);
-    }
-
-    public async Task RestoreMediaAsync(Guid mediaId, Guid actorId, bool isAdmin, CancellationToken cancellationToken = default)
-    {
-        var media = await _repository.FindMediaIncludingDeletedAsync(mediaId, cancellationToken)
-            ?? throw new NotFoundException($"Media '{mediaId}' was not found.");
-        if (media.IsPreviewOnly)
-            throw new ForbiddenException("Preview-only images cannot be restored as gallery media.");
-
-        if (!media.IsDeleted)
-            throw new ConflictException("Media is not deleted; nothing to restore.");
-
-        // Restore the file first; compensate if the database update fails.
-        await _storage.RestoreFromTrashAsync(
-            media.TrashRelativePath!, media.RelativePath, cancellationToken);
-
-        try
-        {
-            await using var tx = await _unitOfWork.BeginTransactionAsync(cancellationToken);
-            media.DeletedAt = null;
-            media.DeletedBy = null;
-            media.TrashRelativePath = null;
-            media.TrashedAt = null;
-            media.UpdatedAt = DateTime.UtcNow;
-            media.UpdatedBy = actorId;
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
-            await tx.CommitAsync(cancellationToken);
-        }
-        catch
-        {
-            _logger.LogError(
-                "Media {MediaId} restoration failed at database stage; moving file back to trash", mediaId);
-            await _storage.MoveToTrashAsync(media.RelativePath, cancellationToken);
-            throw;
-        }
-
-        _logger.LogInformation("Media {MediaId} restored by {ActorId}", mediaId, actorId);
-    }
-
-    public async Task DeleteMediaRecordAsync(
-        Guid mediaId, Guid actorId, bool isAdmin, CancellationToken cancellationToken = default)
-    {
-        if (!isAdmin)
-            throw new ForbiddenException("Only administrators may permanently delete media records.");
-
-        var media = await _repository.FindMediaIncludingDeletedAsync(mediaId, cancellationToken);
-        if (media is null) return;
-        if (media.IsPreviewOnly)
-            throw new ForbiddenException("Preview-only images are removed by reference cleanup.");
-
-        await using var tx = await _unitOfWork.BeginTransactionAsync(cancellationToken);
-        await _repository.PermanentlyDeleteMediaAsync(mediaId, actorId, cancellationToken);
-        await tx.CommitAsync(cancellationToken);
-        _logger.LogInformation(
-            "Media {MediaId} database record deleted by {ActorId}; storage left untouched", mediaId, actorId);
-    }
-
-    public async Task PermanentlyDeleteMediaAsync(
-        Guid mediaId, Guid actorId, bool isAdmin, CancellationToken cancellationToken = default)
-    {
-        if (!isAdmin)
-            throw new ForbiddenException("Only administrators may permanently delete media.");
-
-        var media = await _repository.FindMediaIncludingDeletedAsync(mediaId, cancellationToken);
-        if (media is null)
-        {
-            await _storage.DeleteAsync($"trash/purge/{mediaId:N}", cancellationToken);
-            return;
-        }
-        if (media.IsPreviewOnly)
-            throw new ForbiddenException("Preview-only images are removed by reference cleanup.");
-
-        if (!media.IsDeleted)
-            throw new ConflictException("Media must be in trash before permanent deletion.");
-
-        var trashPath = media.TrashRelativePath;
-        if (trashPath is null || !await _storage.ExistsAsync(trashPath))
-        {
-            await DeleteMediaRecordAsync(mediaId, actorId, isAdmin, cancellationToken);
-            return;
-        }
-        var purgePath = await _storage.MoveToPurgeAsync(trashPath, mediaId, cancellationToken);
-
-        try
-        {
-            await using var tx = await _unitOfWork.BeginTransactionAsync(cancellationToken);
-            await _repository.PermanentlyDeleteMediaAsync(mediaId, actorId, cancellationToken);
-            await tx.CommitAsync(cancellationToken);
-        }
-        catch (Exception exception)
-        {
-            if (purgePath is not null)
-            {
-                _logger.LogError(
-                    exception,
-                    "Media {MediaId} permanent deletion failed at database stage; restoring file to trash",
-                    mediaId);
-                await _storage.RestoreFromTrashAsync(purgePath, trashPath, cancellationToken);
-            }
-            throw;
-        }
-
-        if (purgePath is not null)
-            await _storage.DeleteAsync(purgePath, cancellationToken);
-
-        _logger.LogInformation("Media {MediaId} permanently deleted", mediaId);
-    }
-
     private async Task<MediaFile> LoadOwnedMediaAsync(
         Guid mediaId, Guid actorId, bool isAdmin, CancellationToken cancellationToken)
     {
@@ -287,7 +129,6 @@ public partial class MediaService(
         int limit,
         string? mediaKind,
         bool favoritesOnly,
-        bool includeDeleted,
         CancellationToken cancellationToken = default)
     {
         if (offset < 0 || limit < 1 || limit > MediaPageRequest.MaxLimit)
@@ -305,7 +146,7 @@ public partial class MediaService(
 
         Guid? favoriteUserId = favoritesOnly ? viewerId : null;
         var media = await _repository.GetMediaPageAsync(
-            offset, limit, mediaKind, favoriteUserId, includeDeleted, cancellationToken);
+            offset, limit, mediaKind, favoriteUserId, cancellationToken);
         var pendingCities = media.Select(item => (item.Media, Location: MediaLocationMetadata.Read(item.Media.Metadata)))
             .Where(item => item.Location is { City: null }).ToList();
         using var lookupTimeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -322,7 +163,7 @@ public partial class MediaService(
                 item.Media.Metadata = MediaLocationMetadata.Write(item.Media.Metadata, item.Location with { City = item.City });
         }
         var total = await _repository.CountMediaAsync(
-            mediaKind, favoriteUserId, includeDeleted, cancellationToken);
+            mediaKind, favoriteUserId, cancellationToken);
         var favoriteIds = (await _repository.GetFavoritedMediaIdsAsync(
             viewerId, media.Select(item => item.Media.Id).ToArray(), cancellationToken)).ToHashSet();
         return new PagedMediaResponse<MediaFileDto>(
@@ -331,7 +172,6 @@ public partial class MediaService(
             media.Select(item => _mapper.Map(item.Media, favoriteIds.Contains(item.Media.Id)) with
             {
                 OwnerUsername = item.OwnerUsername,
-                DeletedAt = item.Media.DeletedAt,
             }).ToList());
     }
 

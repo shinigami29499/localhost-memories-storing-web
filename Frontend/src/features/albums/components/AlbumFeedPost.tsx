@@ -144,7 +144,7 @@ export function AlbumFeedPost({ album, canDelete }: Props) {
           onClose={() => setDeleting(false)}
           onConfirm={deleteAlbum}
         >
-          {t("The album “{name}” will be deleted. Saved media stay in your gallery.", { name: album.name })}
+          {t("The album “{name}” will be deleted. Files owned by the album owner will be permanently deleted from storage and every album.", { name: album.name })}
         </ConfirmationDialog>
       ) : null}
     </article>

@@ -1,3 +1,4 @@
+import { Camera } from "../../../components/animate-ui/icons/camera";
 import type { PointerEvent as ReactPointerEvent, MouseEvent as ReactMouseEvent } from "react";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type CSSProperties } from "react";
 import { Marker, useMap, type MapRef } from "react-map-gl/mapbox";
@@ -5,7 +6,6 @@ import { useShouldReduceMotion } from "@animate-ui/react/utils/motion";
 import { useAnimationStore } from "../../../store/animationStore";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { showToast } from "../../../components/ui";
-import { Camera } from "../../../components/animate-ui/icons/camera";
 import { useMapAppearance } from "./mapAppearance";
 import { useHomeMarkerHover } from "../hooks/useHomeMarkerHover";
 import type { LocationSearchResult } from "../services/locationSearchService";
@@ -46,8 +46,7 @@ export interface Props {
   onConfirmHomeRelocation?: () => void;
   onCancelHomeRelocation?: () => void;
   onHomeClick: () => void;
-  onAddPhotos: () => void;
-  onOpenCamera: () => void;
+  onBrowseAlbums: () => void;
 }
 
 const MOBILE_PREVIEW_PADDING = { top: 300, bottom: 0, left: 0, right: 0 };
@@ -536,7 +535,7 @@ export function PhotoMarkers({ media, selected, ready, onSelect, canMove, onMove
 export function useLocationMapController({
   MarkerPreview,
   media, selected, focused, draft, editable, editing, relocating, onConfirmRelocation, homeLocation, homeLocationReady, homePicking, homeRelocationDraft, homeActionDisabled,
-  onSelect, onEdit, onCancelSelection, canMove, onMove, onPick, onPickHome, onMoveHome, onConfirmHomeRelocation, onCancelHomeRelocation, onHomeClick, onAddPhotos, onOpenCamera, onBoundsChange, token,
+  onSelect, onEdit, onCancelSelection, canMove, onMove, onPick, onPickHome, onMoveHome, onConfirmHomeRelocation, onCancelHomeRelocation, onHomeClick, onBrowseAlbums, onBoundsChange, token,
 }: Props & { token: string }) {
   const { t } = useLocale();
   const shouldReduceMotion = useShouldReduceMotion();

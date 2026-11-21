@@ -14,6 +14,7 @@ import type { Album } from "../../features/albums/types";
 import { useMediaSelectionDrag } from "../../features/media/hooks/useMediaSelectionDrag";
 import { mediaService } from "../../features/media/services/mediaService";
 import type { MediaFile, MediaKindFilter } from "../../features/media/types";
+import { uploadService } from "../../features/uploads/services/uploadService";
 import { ApiError } from "../../services/api";
 import { useAnimationStore } from "../../store/animationStore";
 import { useAuthStore } from "../../store/authStore";
@@ -39,6 +40,9 @@ export function useAlbumDetail(albumId: string | undefined) {
   const me = useAuthStore((s) => s.user);
   const animationsEnabled = useAnimationStore((state) => state.enabled);
   const filterTransition = useRef<{ positions: Map<string, DOMRect>; copies: Map<string, HTMLElement> } | null>(null);
+  const uploadInput = useRef<HTMLInputElement>(null);
+  const uploadInFlight = useRef(false);
+  const [uploading, setUploading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editingCaption, setEditingCaption] = useState(false);
@@ -194,14 +198,30 @@ export function useAlbumDetail(albumId: string | undefined) {
     return () => window.clearTimeout(timeout);
   }, [copied]);
 
-  const removeSelected = async () => {
-    if (!albumId || !isOwner) return;
+  const uploadFiles = async (files: File[]) => {
+    if (!albumId || !isOwner || files.length === 0 || uploadInFlight.current) return;
+    uploadInFlight.current = true;
+    setUploading(true);
     try {
-      const removedIds = new Set(selectedMedia.map((item) => item.id));
-      await albumService.removeMediaBatch(albumId, [...removedIds]);
-      setSelectedItems((current) => new Map([...current].filter(([id]) => !removedIds.has(id))));
+      const batch = await uploadService.submit(albumId, files);
+      void queryClient.invalidateQueries({ queryKey: ["uploads"] });
+      showToast.success(t("Begin uploading {count} media", { count: files.length }), { id: "upload-start:" + batch.id });
+    } catch (error) {
+      showToast.error(t("Could not start this upload."), error instanceof Error ? error.message : undefined);
     } finally {
-      await invalidate();
+      uploadInFlight.current = false;
+      setUploading(false);
+    }
+  };
+
+  const removeSelected = async () => {
+    if (!albumId || !isOwner || selectedMedia.length === 0) return;
+    try {
+      await albumService.removeMediaBatch(albumId, selectedMedia.map((item) => item.id));
+      cancelSelection();
+      showToast.delete(t("Media deleted from album"));
+    } finally {
+      await invalidate(true);
     }
   };
 
@@ -269,5 +289,5 @@ export function useAlbumDetail(albumId: string | undefined) {
     await invalidate();
   };
 
-  return { t, navigate, copied, editing, setEditing, editingCaption, setEditingCaption, deleting, setDeleting, selectionMode, selectedItems, removingSelection, setRemovingSelection, bulkFavoriteBusy, favoriteBusyMediaId, showImages, showVideos, mediaKind, hasMediaFilter, previewMediaId, setPreviewMediaId, returnToMediaId, returnToIndex, contentRef, sentinelRef, album, media, invalidate, items, total, isOwner, selectedMedia, allSelectedFavorited, cancelSelection, setSelected, selectionDragHandlers, changeFilter, removeSelected, favoriteSelected, toggleFavorite, copyLink, saveCaption };
+  return { t, navigate, copied, editing, setEditing, editingCaption, setEditingCaption, deleting, setDeleting, selectionMode, selectedItems, removingSelection, setRemovingSelection, bulkFavoriteBusy, favoriteBusyMediaId, showImages, showVideos, mediaKind, hasMediaFilter, previewMediaId, setPreviewMediaId, returnToMediaId, returnToIndex, contentRef, sentinelRef, album, media, invalidate, items, total, isOwner, selectedMedia, allSelectedFavorited, cancelSelection, setSelected, selectionDragHandlers, changeFilter, removeSelected, uploadInput, uploading, uploadFiles, favoriteSelected, toggleFavorite, copyLink, saveCaption };
 }

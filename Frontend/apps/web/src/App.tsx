@@ -20,7 +20,6 @@ import { ToastProvider, showToast } from "@/components/ui";
 import { useLocale } from "@/context/LocaleContext";
 import { SessionReplacedDialog } from "@/features/auth/SessionReplacedDialog";
 
-const GalleryPage = lazy(() => import("./pages/gallery/GalleryPage").then((module) => ({ default: module.GalleryPage })));
 const ErrorPage = lazy(() => import("./pages/ErrorPage").then((module) => ({ default: module.ErrorPage })));
 const errorPage = <Suspense fallback={<main role="alert">Page unavailable.</main>}><ErrorPage /></Suspense>;
 const AuthenticatedLayout = lazy(() => import("./components/AuthenticatedLayout").then((module) => ({ default: module.AuthenticatedLayout })));
@@ -28,7 +27,6 @@ const GalleryLayout = lazy(() => import("./pages/gallery/GalleryLayout").then((m
 const HomePage = lazy(() => import("./pages/home/HomePage").then((module) => ({ default: module.HomePage })));
 const LoginPage = lazy(() => import("./pages/login/LoginPage").then((module) => ({ default: module.LoginPage })));
 const RegisterPage = lazy(() => import("./pages/register/RegisterPage").then((module) => ({ default: module.RegisterPage })));
-const TrashPage = lazy(() => import("./pages/gallery/TrashPage").then((module) => ({ default: module.TrashPage })));
 const AlbumsPage = lazy(() => import("./pages/albums/AlbumsPage").then((module) => ({ default: module.AlbumsPage })));
 const AlbumPage = lazy(() => import("./pages/albums/AlbumPage").then((module) => ({ default: module.AlbumPage })));
 const UsersPage = lazy(() => import("./pages/users/UsersPage").then((module) => ({ default: module.UsersPage })));
@@ -71,9 +69,8 @@ const router = createBrowserRouter([
           {
             element: <GalleryLayout />,
             children: [
-              { path: "/gallery", element: <GalleryPage view="pictures" /> },
-              { path: "/gallery/favorites", element: <GalleryPage view="favorites" /> },
-              { path: "/gallery/trash", element: <RequireAdmin><TrashPage /></RequireAdmin> },
+              { path: "/gallery", element: <AlbumsPage /> },
+              { path: "/gallery/trash", element: <Navigate replace to="/gallery/album" /> },
               { path: "/gallery/album", element: <AlbumsPage /> },
             ],
           },
@@ -81,7 +78,8 @@ const router = createBrowserRouter([
           { path: "/gallery/videos", element: <Navigate replace to="/gallery" /> },
           { path: "/library/gallery", element: <Navigate replace to="/gallery" /> },
           { path: "/library/gallery/videos", element: <Navigate replace to="/gallery" /> },
-          { path: "/library/gallery/favorites", element: <Navigate replace to="/gallery/favorites" /> },
+          { path: "/gallery/favorites", element: <Navigate replace to="/gallery" /> },
+          { path: "/library/gallery/favorites", element: <Navigate replace to="/gallery" /> },
           { path: "/library/gallery/trash", element: <Navigate replace to="/gallery/trash" /> },
           { path: "/library/album", element: <Navigate replace to="/gallery/album" /> },
           { path: "/library/album/:albumId", element: <LegacyAlbumRedirect /> },

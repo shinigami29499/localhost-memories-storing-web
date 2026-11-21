@@ -12,4 +12,5 @@ public sealed record UploadBatchDto(
     int FailedFiles,
     int CancelledFiles,
     IReadOnlyList<UploadItemDto> Items,
-    DateTime? ViewedAt = null);
+    DateTime? ViewedAt = null,
+    Guid? AlbumId = null);

@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { showToast } from "../../../../../../src/components/ui";
 import { getUploadFile, removeUploadFile } from "../../../../../../src/features/uploads/services/uploadFileStore";
 import { uploadService } from "../../../../../../src/features/uploads/services/uploadService";
-import { registerUploadCompletionAction, setUploadPaused, startUploadRuntime, wakeUploadRuntime } from "../../../../../../src/features/uploads/services/uploadRuntime";
+import { setUploadPaused, startUploadRuntime, wakeUploadRuntime } from "../../../../../../src/features/uploads/services/uploadRuntime";
 import type { UploadBatch, UploadItem } from "../../../../../../src/features/uploads/types";
 import { useUploadNotificationStore } from "../../../../../../src/features/notifications/uploadNotificationStore";
 
@@ -201,56 +201,15 @@ describe("media upload runtime", () => {
       .toEqual(files.map((file) => ["batch", file.id]));
     expect(uploadService.reportProgress).toHaveBeenCalledTimes(10);
     expect(vi.mocked(uploadService.reportProgress).mock.calls.every((call) => call[2] === 99)).toBe(true);
-    expect(changed).toHaveBeenCalledTimes(10);
+    expect(changed).toHaveBeenCalledOnce();
     expect(removeUploadFile).toHaveBeenCalledTimes(10);
     expect(showToast.success).toHaveBeenCalledOnce();
     await vi.advanceTimersByTimeAsync(4500);
     expect(showToast.success).toHaveBeenCalledOnce();
   });
 
-  it.each([
-    ["/library/gallery/trash", "/"],
-    ["/", "/sync/upload"],
-    ["/", "/library/album/example"],
-  ])("uses the completion route after navigating from %s to %s", async (initialPath, completionPath) => {
-    window.history.replaceState(null, "", initialPath);
-    const pending = item("route-file");
-    const completed = batch([pending], true);
-    vi.mocked(uploadService.active).mockResolvedValueOnce([batch([pending])]);
-    vi.mocked(uploadService.queue).mockResolvedValueOnce([pending]);
-    vi.mocked(uploadService.get).mockResolvedValue(completed);
-    vi.mocked(uploadService.upload).mockImplementation(async () => {
-      window.history.replaceState(null, "", completionPath);
-      return { ...pending, status: "Success" };
-    });
-    const userId = `route-user-${completionPath}`;
-    stop = startUploadRuntime(userId, (key) => key, vi.fn());
-    await vi.advanceTimersByTimeAsync(0);
-    await vi.advanceTimersByTimeAsync(4500);
-
-    expect(window.location.pathname).toBe(completionPath);
-    if (completionPath === "/") {
-      expect(showToast.success).toHaveBeenCalledOnce();
-      expect(useUploadNotificationStore.getState().items).toHaveLength(0);
-    } else {
-      expect(showToast.success).not.toHaveBeenCalled();
-      expect(useUploadNotificationStore.getState().items).toEqual([
-        expect.objectContaining({ userId, notificationType: "UploadCompleted", readAt: null }),
-      ]);
-      const persisted = localStorage.getItem("shinigacim-upload-notifications")!;
-      useUploadNotificationStore.setState({ items: [] });
-      localStorage.setItem("shinigacim-upload-notifications", persisted);
-      await useUploadNotificationStore.persist.rehydrate();
-      expect(useUploadNotificationStore.getState().items).toEqual([
-        expect.objectContaining({ userId, notificationType: "UploadCompleted", readAt: null }),
-      ]);
-    }
-  });
-
   it("reports a failed batch instead of announcing a successful upload", async () => {
     const pending = item("failed-file");
-    const completion = vi.fn(async () => undefined);
-    registerUploadCompletionAction("batch", completion);
     vi.mocked(uploadService.get).mockResolvedValue({
       ...batch([item("success-file"), pending], true),
       status: "Failed",
@@ -266,7 +225,6 @@ describe("media upload runtime", () => {
     expect(showToast.error).toHaveBeenCalledExactlyOnceWith(
       "Upload batch finished with issues", "{success} success, {failed} failed.",
     );
-    expect(completion).toHaveBeenCalledOnce();
     expect(uploadService.upload).toHaveBeenCalledOnce();
     expect(uploadService.fail).toHaveBeenCalledOnce();
   });

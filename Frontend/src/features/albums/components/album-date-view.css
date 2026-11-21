@@ -1,0 +1,390 @@
+.album-date-view {
+  --album-date-width: 40rem;
+  --album-date-gutter: clamp(1rem, 5vw, 1.5rem);
+  --album-date-gap: clamp(.25rem, 1vw, .5rem);
+  --album-page-fill: var(--mobile-bg, #1c1c1c);
+  --album-layer-fill: var(--mobile-surface-raised, #303030);
+  --album-contrast-fill: #f5f5f5;
+  --album-contrast-ink: #222222;
+  --album-date-shadow: 0 -1px 4px rgb(0 0 0 / .12), 0 3px 8px rgb(0 0 0 / .24);
+  --album-selected-date-shadow: 0 -1px 5px rgb(0 0 0 / .24), 0 4px 8px rgb(0 0 0 / .55);
+  --album-frame-shadow: var(--mobile-shadow, 0 -1px 6px rgb(0 0 0 / .12), 0 5px 12px rgb(0 0 0 / .24));
+  background-color: var(--album-page-fill);
+}
+
+:root[data-mobile-theme="light"] .album-date-view {
+  --album-layer-fill: #faf9f7;
+  --album-contrast-fill: #222222;
+  --album-contrast-ink: #f5f5f5;
+  --album-date-shadow: 0 -1px 4px rgb(0 0 0 / .06), 0 3px 8px rgb(0 0 0 / .14);
+  --album-selected-date-shadow: 0 -1px 5px rgb(0 0 0 / .11), 0 4px 8px rgb(0 0 0 / .28);
+  --album-frame-shadow: var(--shadow-lg);
+}
+
+.album-date-view__month,
+.album-date-view__body {
+  box-sizing: border-box;
+  inline-size: min(100%, var(--album-date-width));
+  margin-inline: auto;
+  padding-inline: var(--album-date-gutter);
+}
+
+.album-date-view__bar {
+  flex: none;
+  inline-size: 100%;
+  padding-block: .75rem .25rem;
+}
+
+.album-date-view__month {
+  padding-block-end: .25rem;
+  color: var(--text-muted);
+  font-size: .875rem;
+  font-weight: 600;
+}
+
+.album-date-view__days {
+  display: flex;
+  gap: var(--album-date-gap);
+  padding-block: .375rem .625rem;
+  padding-inline: var(--album-date-gutter);
+  scroll-padding-inline: var(--album-date-gutter);
+  overflow-x: auto;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x pinch-zoom;
+}
+
+.album-date-view__days[data-dragging],
+.album-date-view__days[data-dragging] .album-date-view__day {
+  cursor: grabbing;
+  user-select: none;
+}
+
+.album-date-view__day {
+  display: grid;
+  flex: 0 0 min(4rem, calc((100% - 7 * var(--album-date-gap)) / 8.1));
+  min-block-size: 3.5rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: .75rem;
+  line-height: 1.2;
+  scale: none;
+  cursor: pointer;
+}
+
+.album-date-view__day-tile {
+  position: relative;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: .125rem;
+  padding: .875rem .125rem .625rem;
+  border: 1px solid var(--album-layer-fill);
+  border-radius: .75rem;
+  background: var(--album-layer-fill);
+  box-shadow: var(--album-date-shadow);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :root[data-motion="on"] .album-date-view__day-tile {
+    scale: var(--album-date-scale, 1);
+    transition: border-color 320ms ease, background-color 320ms ease, color 320ms ease;
+  }
+}
+
+.album-date-view__day[data-has-albums] .album-date-view__day-tile::before {
+  content: "";
+  position: absolute;
+  inset-block-start: .375rem;
+  inset-inline-start: 50%;
+  translate: -50%;
+  inline-size: .25rem;
+  block-size: .25rem;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.album-date-view__day-number {
+  font-size: .9375rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.album-date-view__day[aria-pressed="true"] .album-date-view__day-tile {
+  z-index: 1;
+  background: var(--album-contrast-fill);
+  border-color: var(--album-contrast-fill);
+  box-shadow: var(--album-selected-date-shadow);
+  color: var(--album-contrast-ink);
+  font-weight: 700;
+}
+
+.album-date-view__day:active .album-date-view__day-tile {
+  border-color: currentColor;
+}
+
+.album-date-view__day:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.album-date-view__viewport {
+  container-type: inline-size;
+  flex: 1;
+  min-block-size: 0;
+  overflow: clip;
+  overscroll-behavior: none;
+}
+
+.album-date-view__body {
+  --album-preview-ratio: 4 / 3;
+  --album-queue-thumb: clamp(3.75rem, 25vw, 6rem);
+  --album-slot-gap: .75rem;
+  --album-frame-padding: 1rem;
+  --album-stage-padding: .75rem;
+  --album-title-size: clamp(1.75rem, 5.5vw, 2.5rem);
+  --album-queue-title-height: 1.25rem;
+  --album-queue-gap: .5rem;
+  --album-queue-height: calc(max(3rem, var(--album-queue-thumb) / (var(--album-preview-ratio))) +
+    var(--album-queue-title-height) + var(--album-queue-gap));
+  position: relative;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  block-size: 100%;
+  max-block-size: calc(39rem + var(--mobile-nav-clearance, 0px));
+  gap: var(--album-slot-gap);
+  padding-block: var(--album-stage-padding) calc(var(--album-stage-padding) + var(--mobile-nav-clearance, 0px));
+  touch-action: pinch-zoom;
+}
+
+.album-date-view__body[data-has-queue] {
+  --album-preview-width: calc(min(100cqw, var(--album-date-width)) - 2 * (var(--album-date-gutter) + var(--album-frame-padding)));
+  --album-header-height: max(3rem, calc(var(--album-title-size) * 1.15 + .25rem + .875rem * 1.35));
+  grid-template-rows: minmax(0, 1fr) var(--album-queue-height);
+  max-block-size: calc(var(--album-preview-width) / (var(--album-preview-ratio)) + var(--album-header-height) +
+    2 * (var(--album-stage-padding) + var(--album-frame-padding) + var(--album-slot-gap)) +
+    var(--album-queue-height) + var(--mobile-nav-clearance, 0px));
+}
+
+.album-date-view__queue {
+  display: grid;
+  grid-template-rows: var(--album-queue-title-height) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--album-queue-gap) var(--album-slot-gap);
+}
+
+.album-date-view__queue-title {
+  grid-area: 1 / 1 / 2 / -1;
+  margin: 0;
+  color: var(--text);
+  font-size: .875rem;
+  font-weight: 600;
+  line-height: var(--album-queue-title-height);
+}
+
+.album-date-view__advance {
+  grid-area: 2 / 2;
+  background: var(--album-layer-fill);
+  box-shadow: var(--album-date-shadow);
+}
+
+.album-date-card__open {
+  background: var(--album-contrast-fill);
+  color: var(--album-contrast-ink);
+  text-decoration: none;
+  scale: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :root[data-motion="on"] [data-icon-motion] :is(.album-date-card__open, .album-date-view__advance) .icon-button__icon {
+    transition: translate 200ms ease;
+  }
+
+  :root[data-motion="on"] [data-icon-motion] .album-date-card__open:is(:active, :focus-visible) .icon-button__icon {
+    translate: .25rem 0;
+  }
+
+  :root[data-motion="on"] [data-icon-motion] .album-date-view__advance:is(:active, :focus-visible) .icon-button__icon {
+    translate: 0 -.25rem;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) and (hover: hover) {
+  :root[data-motion="on"] [data-icon-motion] .album-date-card__open:hover .icon-button__icon {
+    translate: .25rem 0;
+  }
+
+  :root[data-motion="on"] [data-icon-motion] .album-date-view__advance:hover .icon-button__icon {
+    translate: 0 -.25rem;
+  }
+}
+
+.album-date-view__motion {
+  position: absolute;
+  z-index: 2;
+  inset: 0 0 var(--mobile-nav-clearance, 0px);
+  pointer-events: none;
+  overflow: clip;
+}
+
+.album-date-view__motion > .album-date-card__text .album-date-card__name {
+  font-size: 1rem;
+}
+
+.album-date-card {
+  display: grid;
+  min-inline-size: 0;
+  border-radius: 1rem;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.album-date-card--featured {
+  grid-template-rows: auto minmax(0, 1fr);
+  min-block-size: 0;
+  gap: var(--album-slot-gap);
+  padding: var(--album-frame-padding);
+  border-radius: 1.5rem;
+  background: var(--album-layer-fill);
+  box-shadow: var(--album-frame-shadow);
+}
+
+.album-date-card--featured .album-date-card__heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 3rem;
+  align-items: start;
+  gap: var(--album-slot-gap);
+  min-block-size: 3rem;
+}
+
+.album-date-card--featured .album-date-card__open {
+  justify-self: end;
+  margin: .25rem;
+}
+
+.album-date-card__text {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+.album-date-card__name {
+  margin: 0 0 .25rem;
+  font-weight: 700;
+  line-height: 1.15;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.album-date-card--featured .album-date-card__name {
+  font-size: var(--album-title-size);
+  letter-spacing: -.025em;
+}
+
+.album-date-card__owner {
+  display: block;
+  color: var(--text-muted);
+  font-size: .875rem;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.album-date-card__preview {
+  display: block;
+  box-sizing: border-box;
+  overflow: hidden;
+  aspect-ratio: var(--album-preview-ratio);
+  border-radius: 1rem;
+  background: var(--album-page-fill);
+}
+
+.album-date-card--featured .album-date-card__preview-slot {
+  container-type: size;
+  display: grid;
+  place-items: start center;
+  min-block-size: 0;
+}
+
+.album-date-card--featured .album-date-card__preview {
+  inline-size: min(100%, calc(100cqh * (var(--album-preview-ratio))));
+  background: var(--album-layer-fill);
+}
+
+.album-date-card__preview img {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+
+.album-date-card--compact {
+  grid-area: 2 / 1;
+  grid-template-columns: var(--album-queue-thumb) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--album-slot-gap);
+}
+
+.album-date-card--compact .album-date-card__preview-slot {
+  grid-area: 1 / 1;
+}
+
+.album-date-card--compact .album-date-card__preview {
+  border-radius: .75rem;
+}
+
+.album-date-card--compact .album-date-card__heading {
+  grid-area: 1 / 2;
+  min-inline-size: 0;
+}
+
+.album-date-card--compact .album-date-card__name {
+  font-size: 1rem;
+}
+
+@media (hover: hover) {
+  .album-date-view__day:not(:active):hover .album-date-view__day-tile {
+    border-color: color-mix(in srgb, var(--surface) 50%, var(--text));
+  }
+
+  .album-date-view__day[aria-pressed="false"]:not(:active):hover .album-date-view__day-tile {
+    background-color: color-mix(in srgb, var(--album-layer-fill) 92%, var(--text));
+  }
+}
+
+@media (max-height: 480px) {
+  .album-date-view__body {
+    --album-queue-thumb: 3.75rem;
+    --album-frame-padding: .75rem;
+    --album-slot-gap: .5rem;
+    --album-title-size: 1.25rem;
+  }
+
+  .album-date-card--featured .album-date-card__name {
+    -webkit-line-clamp: 1;
+  }
+}
+
+@media (max-height: 420px) {
+  .album-date-view__body {
+    --album-queue-thumb: 3rem;
+    --album-frame-padding: .5rem;
+    --album-stage-padding: .375rem;
+  }
+
+  .album-date-card--featured {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    grid-template-rows: minmax(0, 1fr);
+    align-items: center;
+    padding: .5rem;
+  }
+
+  .album-date-card--featured .album-date-card__preview-slot {
+    block-size: 100%;
+  }
+}

@@ -1,61 +1,65 @@
-import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useMemo, useState } from "react";
+import { format, isFuture, isSameDay, isValid, parseISO } from "date-fns";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useInfiniteAlbums, useInvalidateAlbums } from "../../features/albums/hooks/useAlbums";
 import { albumService } from "../../features/albums/services/albumService";
-import type { Album } from "../../features/albums/types";
-import { useMediaSelectionDrag } from "../../features/media/hooks/useMediaSelectionDrag";
-import { useAuthStore } from "../../store/authStore";
 
 export function useAlbumsPage() {
   const navigate = useNavigate();
-  const me = useAuthStore((state) => state.user);
+  const { key } = useLocation();
+  const storageKey = `gallery-album-position:${key}`;
   const [creating, setCreating] = useState(false);
-  const [editing, setEditing] = useState<Album | null>(null);
-  const [selectionMode, setSelectionMode] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
-  const [deleting, setDeleting] = useState(false);
+  const [position, setPosition] = useState(() => readAlbumPosition(storageKey));
+  const { date: selectedDate } = position;
+  const today = new Date();
   const albumsQuery = useInfiniteAlbums("feed");
-  const sentinelRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const sentinel = sentinelRef.current;
-    if (!sentinel || !albumsQuery.hasNextPage || albumsQuery.isFetching || albumsQuery.isFetchNextPageError) return;
-    const observer = new IntersectionObserver((entries) => {
-      if (entries.some((entry) => entry.isIntersecting)) { observer.disconnect(); void albumsQuery.fetchNextPage(); }
-    }, { rootMargin: "0px 0px 2000px 0px" });
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [albumsQuery.hasNextPage, albumsQuery.isFetching, albumsQuery.isFetchNextPageError, albumsQuery.fetchNextPage]);
   const invalidate = useInvalidateAlbums();
-  const items = albumsQuery.data?.pages.flatMap((page) => page.items) ?? [];
-  const selectedAlbums = items.filter((album) => selectedIds.has(album.id));
-  const canDelete = selectedAlbums.length > 0 && selectedAlbums.every((album) => album.owner.id === me?.id);
-  const cancelSelection = () => { setSelectionMode(false); setSelectedIds(new Set()); };
-  const setSelected = (id: string, selected: boolean) => {
-    setSelectionMode(true);
-    setSelectedIds((current) => { const next = new Set(current); if (selected) next.add(id); else next.delete(id); return next; });
+  const loadedAlbums = useMemo(() => albumsQuery.data?.pages.flatMap((page) => page.items) ?? [], [albumsQuery.data]);
+  const albumDates = useMemo(() => [...new Set(loadedAlbums.map((album) => new Date(album.createdAt))
+    .filter(isValid).map((date) => format(date, "yyyy-MM-dd")))].sort(), [loadedAlbums]);
+  const items = useMemo(() => loadedAlbums.filter((album) => isSameDay(new Date(album.createdAt), selectedDate)),
+    [loadedAlbums, selectedDate]);
+  const matchingIndex = position.albumId ? items.findIndex((album) => album.id === position.albumId) : -1;
+  const albumIndex = matchingIndex >= 0 ? matchingIndex : Math.max(0, Math.min(position.index, items.length - 1));
+  const selectDate = (date: Date) => {
+    if (!isSameDay(date, selectedDate)) setPosition({ date, index: 0 });
   };
-  const selectionDragHandlers = useMediaSelectionDrag(!creating && !editing && !deleting, selectionMode, (id) => selectedIds.has(id), setSelected);
-  useEffect(() => {
-    if (!selectionMode || deleting) return;
-    const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") { event.preventDefault(); cancelSelection(); } };
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [selectionMode, deleting]);
-  const deleteSelected = async () => {
+  const selectAlbumIndex = (index: number) => setPosition({
+    date: selectedDate, index, albumId: items[index]?.id,
+  });
+  const rememberOpenedAlbum = (index: number) => {
     try {
-      for (const album of selectedAlbums) {
-        await albumService.remove(album.id);
-        setSelectedIds((current) => { const next = new Set(current); next.delete(album.id); return next; });
-      }
-      cancelSelection();
-    } finally { await invalidate(); }
+      sessionStorage.setItem(storageKey, JSON.stringify({
+        date: format(selectedDate, "yyyy-MM-dd"), index, albumId: items[index]?.id,
+      }));
+    } catch {
+      // Gallery still works when session storage is unavailable.
+    }
   };
-  const deleteEditing = async () => { if (editing) { await albumService.remove(editing.id); await invalidate(); } };
-  const updateEditing = async (input: Parameters<typeof albumService.update>[1]) => { if (editing) { await albumService.update(editing.id, input); await invalidate(); } };
   const createAlbum = async ({ name, isPublic }: { name: string; isPublic?: boolean }) => {
     const created = await albumService.create({ name, isPublic });
     await invalidate();
     return () => navigate(`/gallery/album/${created.id}`);
   };
-  return { me, creating, setCreating, editing, setEditing, selectionMode, selectedIds, deleting, setDeleting, albumsQuery, sentinelRef, items, selectedAlbums, canDelete, cancelSelection, setSelected, selectionDragHandlers, deleteSelected, deleteEditing, updateEditing, createAlbum };
+  return { creating, setCreating, today, selectedDate, selectDate, albumsQuery, albumDates, items, albumIndex,
+    selectAlbumIndex, rememberOpenedAlbum, createAlbum };
+}
+
+function readAlbumPosition(key: string): { date: Date; index: number; albumId?: string } {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(key) ?? "null");
+    if (typeof saved?.date === "string") {
+      const date = parseISO(saved.date);
+      if (isValid(date) && !isFuture(date)) {
+        return {
+          date,
+          index: Number.isSafeInteger(saved.index) ? Math.max(0, saved.index) : 0,
+          albumId: typeof saved.albumId === "string" ? saved.albumId : undefined,
+        };
+      }
+    }
+  } catch {
+    // Ignore unavailable storage or malformed history data.
+  }
+  return { date: new Date(), index: 0 };
 }

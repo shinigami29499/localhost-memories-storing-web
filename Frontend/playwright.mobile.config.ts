@@ -2,7 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./tests/e2e",
-  testMatch: ["mobile-app-accessibility.spec.ts", "mobile-app-map.spec.ts", "mobile-app-travel-location.spec.ts", "mobile-app-user-search.spec.ts"],
+  testMatch: ["album-date-view.spec.ts", "album-only-gallery.spec.ts", "mobile-app-accessibility.spec.ts", "mobile-app-map.spec.ts", "mobile-app-travel-location.spec.ts", "mobile-app-user-search.spec.ts"],
   reporter: "list",
   use: { baseURL: "http://127.0.0.1:34301", trace: "retain-on-failure", ...devices["Desktop Chrome"] },
   webServer: {

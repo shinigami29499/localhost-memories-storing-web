@@ -167,6 +167,15 @@ public sealed class UploadsController(
         }
         try
         {
+            var username = User.FindFirstValue(Constants.Auth.UsernameClaim) ?? "User";
+            var albumClients = result.IsPublic
+                ? notificationsHub.Clients.All
+                : notificationsHub.Clients.User(ownerId.ToString());
+            await albumClients.SendAsync("AlbumChanged", new
+            {
+                albumId = result.AlbumId, albumName = result.AlbumName, ownerId,
+                actorId = ownerId, username, action = "media",
+            }, CancellationToken.None);
             var batch = await _uploadService.GetBatchAsync(ownerId, false, batchId, CancellationToken.None);
             if (batch.Status == "Completed")
             {
@@ -174,7 +183,7 @@ public sealed class UploadsController(
                 var videos = batch.Items.Count(item => item.Status == "Success" && item.ContentType.StartsWith("video/", StringComparison.OrdinalIgnoreCase));
                 await notificationsHub.Clients.All.SendAsync("UploadCompleted", new
                 {
-                    batchId, ownerId, username = User.FindFirstValue(Constants.Auth.UsernameClaim) ?? "User", images, videos, createdAt = batch.CompletedAt,
+                    batchId, ownerId, username, images, videos, createdAt = batch.CompletedAt,
                 }, cancellationToken);
             }
         }

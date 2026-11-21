@@ -28,10 +28,6 @@ export const mediaService = {
     return api(`/api/library/gallery/favorites?${mediaQuery(offset, limit, mediaKind)}`, { signal });
   },
 
-  deleted(offset = 0, limit = 20, mediaKind?: MediaKindFilter): Promise<PagedMedia> {
-    return api(`/api/library/gallery/deleted?${mediaQuery(offset, limit, mediaKind)}`);
-  },
-
   favorite(mediaId: string): Promise<void> {
     return api(`/api/library/gallery/${mediaId}/favorite`, { method: "POST" });
   },
@@ -45,21 +41,5 @@ export const mediaService = {
       method: "PUT",
       body: { mediaIds, isFavorite },
     });
-  },
-
-  remove(mediaId: string): Promise<void> {
-    return api(`/api/library/gallery/${mediaId}`, { method: "DELETE" });
-  },
-
-  restore(mediaId: string): Promise<void> {
-    return api(`/api/library/gallery/${mediaId}/restore`, { method: "POST" });
-  },
-
-  permanentlyDelete(mediaId: string): Promise<void> {
-    return api(`/api/library/gallery/${mediaId}/permanent`, { method: "DELETE" });
-  },
-
-  deleteRecord(mediaId: string): Promise<void> {
-    return api(`/api/library/gallery/${encodeURIComponent(mediaId)}/record`, { method: "DELETE" });
   },
 };

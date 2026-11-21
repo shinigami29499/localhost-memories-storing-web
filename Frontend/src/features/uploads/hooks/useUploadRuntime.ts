@@ -14,6 +14,8 @@ export function useUploadRuntime(): void {
     if (!userId || status !== "active") return;
     return startUploadRuntime(userId, t, () => {
       void queryClient.invalidateQueries({ queryKey: ["uploads"] });
+      void queryClient.invalidateQueries({ queryKey: ["albums"] });
+      void queryClient.invalidateQueries({ queryKey: ["media"] });
     });
   }, [userId, status, t, queryClient]);
 }

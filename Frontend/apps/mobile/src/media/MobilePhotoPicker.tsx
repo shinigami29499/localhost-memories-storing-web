@@ -50,12 +50,12 @@ export function MobilePhotoPicker(props: PhotoPickerProps) {
                       event.currentTarget.value = "";
                     }} />
                     <div className="place-picker__grid" role="group" aria-label={t("Choose photos")}>
-                      <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
+                      {source === "preview" && <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
                         <button type="button" className="place-picker__item place-picker__upload"
                           disabled={busy || full} onClick={() => inputRef.current?.click()}>
                           {busy ? <Spinner label={t("Uploading...")} /> : <><UploadLift size={28} aria-hidden="true" />{t("Upload")}</>}
                         </button>
-                      </AnimateIcon>
+                      </AnimateIcon>}
                       {images.map((image) => (
                         <button key={image.id} ref={picked?.id === image.id ? selectedRef : undefined} type="button"
                           className="place-picker__item" aria-pressed={picked?.id === image.id}

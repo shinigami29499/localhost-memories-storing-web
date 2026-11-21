@@ -26,6 +26,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<IUserIdProvider, SubClaimUserIdProvider>();
+builder.Services.AddSingleton<PresenceConnections>();
 
 builder.Services.AddOptions<JwtOptions>()
     .Bind(builder.Configuration.GetSection(JwtOptions.SectionName))

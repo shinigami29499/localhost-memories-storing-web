@@ -1,0 +1,12 @@
+---
+name: use-albums-page
+description: "Filter the loaded album feed by date and create albums."
+---
+
+Frontend/src/pages/albums/useAlbumsPage.ts powers the web and mobile gallery lists. The selected date starts at the browser's current local date. The hook matches loaded feed albums by local creation day and exposes the current index for the two visible slots. Changing the date resets the index. Advancing uses only loaded feed data. The Send Horizontal link opens the main album and records its date, index, and ID in session storage for that Gallery history entry. Returning to the entry restores the opened album as the main preview, preferring the ID when the feed order changes and clamping the index when it does not exist.
+
+The shared AlbumDateView gives the date strip the full gallery width and shows only days in the displayed month through today. It centers the selected date where scroll bounds allow. The first and last dates stop at the gallery gutters at their respective scroll limits. Users browse by mouse drag or touch swipe. Only date activation changes the filter. Dots indicate dates in the loaded feed with albums. The empty state offers New album. Creation invalidates album queries and opens the new album.
+
+The fixed carousel reserves space for the Next Album section. Its title, album, and Move Up control fade out when there is no next album. Move Up, an upward swipe or drag, or Arrow Up advances one slot. A downward gesture or Arrow Down reverses it. Both previews are passive, flat, and use the same 4:3 crop. The animation helper fades the outgoing preview and moves the shared preview between slots. Stable card slots use Animate UI SwappingText for the album title and owner. Gesture handling suppresses control activation on a swipe. Carousel and icon animation respect Interface motion and system reduced motion. Icon motion also respects the icon setting.
+
+In dark mode the Gallery page uses `#1c1c1c` and neutral raised surfaces use `#303030`. The main frame, date tiles, and Move Up use exterior shadows. The selected date uses a stronger exterior shadow and paints above neighboring dates. Date borders match their fill at rest and highlight on hover or press. The selected date and Send Horizontal share a near-white fill with near-black content in dark mode. Light mode reverses those colors. Date tiles shrink as they cross the gallery gutters. Animated feedback respects Interface motion and reduced motion.

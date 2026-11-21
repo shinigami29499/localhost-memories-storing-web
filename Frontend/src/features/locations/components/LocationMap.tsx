@@ -7,10 +7,9 @@ import "./mapControls.css";
 import { ErrorState, showToast } from "../../../components/ui";
 import { AnimateIcon } from "../../../components/animate-ui/icons/icon";
 import { MapPin } from "../../../components/animate-ui/icons/map-pin";
-import { Camera } from "../../../components/animate-ui/icons/camera";
 import { Globe } from "../../../components/animate-ui/icons/globe";
 import { Home } from "../../../components/animate-ui/icons/home";
-import { Plus } from "../../../components/animate-ui/icons/plus";
+import { LibraryBig } from "lucide-react";
 import { Settings } from "../../../components/animate-ui/icons/settings";
 import { SlidersHorizontal } from "../../../components/animate-ui/icons/sliders-horizontal";
 import { ChevronDown } from "../../../components/animate-ui/icons/chevron-down";
@@ -45,7 +44,7 @@ function MapContent(props: Props & { token: string }) {
   const {
   MarkerPreview,
   media, selected, focused, draft, editable, editing, relocating, onConfirmRelocation, homeLocation, homeLocationReady, homePicking, homeRelocationDraft, homeActionDisabled,
-  onSelect, onEdit, onCancelSelection, canMove, onMove, onPick, onPickHome, onMoveHome, onConfirmHomeRelocation, onCancelHomeRelocation, onHomeClick, onAddPhotos, onOpenCamera, onBoundsChange, token,
+  onSelect, onEdit, onCancelSelection, canMove, onMove, onPick, onPickHome, onMoveHome, onConfirmHomeRelocation, onCancelHomeRelocation, onHomeClick, onBrowseAlbums, onBoundsChange, token,
 } = props;
   const { t, shouldReduceMotion, isMobile, mapRef, scenesRef, appearanceRef, loaded, setLoaded, failed, setFailed, navigationOpen, setNavigationOpen, mapboxPreview, setMapboxPreview, mapStyle, setMapStyle, showMarkers, setShowMarkers, mapAppearance, appearanceOpen, setAppearanceOpen, homeRequest, setHomeRequest, homeHovered, onHomeHoverChange, homeSelected, setHomeSelected, markerDragging, setMarkerDragging, focusRequest, setFocusRequest, initialLocationResolved, hasInitialCenter, setHasInitialCenter, markerMedia, draftDiffers, cameraTarget, resolveInitialLocation, selectSearchResult } = useLocationMapController(props);
 
@@ -176,34 +175,18 @@ function MapContent(props: Props & { token: string }) {
         <button
           type="button"
           className="locations__add-marker-control"
-          aria-label={t("Upload photos")}
-          title={t("Upload photos")}
+          aria-label={t("Go to albums")}
+          title={t("Go to albums")}
           disabled={!loaded || homeActionDisabled}
           onClick={() => {
             if (scenesRef.current) scenesRef.current.open = false;
             if (appearanceRef.current) appearanceRef.current.open = false;
-            onAddPhotos();
+            onBrowseAlbums();
           }}
         >
-          <Plus size={20} aria-hidden="true" />
+          <LibraryBig size={20} aria-hidden="true" />
         </button>
       </AnimateIcon>
-      {isMobile && <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
-        <button
-          type="button"
-          className="locations__camera-control"
-          aria-label={t("Capture photo")}
-          title={t("Capture photo")}
-          disabled={!loaded || homeActionDisabled}
-          onClick={() => {
-            if (scenesRef.current) scenesRef.current.open = false;
-            if (appearanceRef.current) appearanceRef.current.open = false;
-            onOpenCamera();
-          }}
-        >
-          <Camera size={20} aria-hidden="true" />
-        </button>
-      </AnimateIcon>}
       <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
         <button
           type="button"

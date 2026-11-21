@@ -29,12 +29,13 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<CityLookup>();
         services.AddScoped<IUploadService, UploadService>();
         services.AddScoped<ICollectionService, CollectionService>();
+        services.AddScoped<AlbumMediaCleanup>();
         services.AddScoped<IPlaceService, PlaceService>();
         services.AddScoped<IPreviewRepository, PreviewRepository>();
         services.AddScoped<PreviewService>();
         services.AddScoped<IPreviewService>(provider => provider.GetRequiredService<PreviewService>());
         services.AddScoped<IPreviewLifecycle>(provider => provider.GetRequiredService<PreviewService>());
-        services.AddHostedService<PreviewCleanupWorker>();
+        services.AddHostedService<MediaCleanupWorker>();
 
         return services;
     }

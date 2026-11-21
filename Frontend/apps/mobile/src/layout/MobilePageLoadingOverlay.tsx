@@ -52,16 +52,19 @@ export function MobilePageLoadingOverlay({ transition, title, icon, pageRef, onC
         return;
       }
       overlay.dataset.handoff = "";
-      const target = page.querySelector<HTMLElement>(".mobile-page-title");
-      const from = heading.getBoundingClientRect();
-      const to = target?.getBoundingClientRect();
+      const target = page.querySelector<HTMLElement>(".mobile-shell-header .mobile-page-title");
       animations = [background.animate([{ opacity: 1 }, { opacity: 0 }], {
         duration: handoffDuration, easing: handoffEase, fill: "forwards",
       })];
-      if (to) {
+      if (target) {
+        const from = heading.getBoundingClientRect();
+        const to = target.getBoundingClientRect();
+        const scale = parseFloat(getComputedStyle(target).fontSize) / parseFloat(getComputedStyle(heading).fontSize);
+        const x = to.left - from.left;
+        const y = (to.top + to.height / 2) - (from.top + from.height / 2);
         animations.push(heading.animate([
-          { transform: "translate(0, 0)" },
-          { transform: `translate(${to.left - from.left}px, ${to.top - from.top}px)` },
+          { transform: "translate(0, 0) scale(1)" },
+          { transform: `translate(${x}px, ${y}px) scale(${scale})` },
         ], { duration: handoffDuration, easing: handoffEase, fill: "forwards" }));
       }
       void Promise.allSettled(animations.map((animation) => animation.finished)).then(() => {
