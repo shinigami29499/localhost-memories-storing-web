@@ -225,7 +225,7 @@ function MapContent(props: Props & { token: string }) {
         {homeRelocationDraft && <MapDraftMarker location={homeRelocationDraft} label={t("Change home location")}
           draggable={!navigationOpen} onPick={(coordinate) => onMoveHome?.(coordinate)} />}
       </Map>
-      <MapLoadingOverlay ready={loaded} closeDelay={250} className="map-loading-overlay" />
+      <MapLoadingOverlay ready={loaded} closeDelay={300} className="map-loading-overlay" />
       <LocationSearch
         disabled={!loaded || navigationOpen}
         onFocus={() => {

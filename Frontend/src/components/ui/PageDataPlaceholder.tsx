@@ -1,14 +1,19 @@
 import { Image, MapPin } from "lucide-react";
+import { useDelayedPlaceholder } from "@/hooks/useDelayedPlaceholder";
 import "./page-data-placeholder.css";
 
 type PlaceholderLayout = "rows" | "users" | "cards" | "media" | "map" | "value";
 const defaultCounts: Record<PlaceholderLayout, number> = { rows: 4, users: 5, cards: 3, media: 9, map: 1, value: 1 };
 
-export function PageDataPlaceholder({ label, layout = "rows", count = defaultCounts[layout] }: {
+export function PageDataPlaceholder({ label, layout = "rows", count = defaultCounts[layout], showImmediately = false }: {
   label: string;
   layout?: PlaceholderLayout;
   count?: number;
+  showImmediately?: boolean;
 }) {
+  const visible = useDelayedPlaceholder(!showImmediately, `${layout}:${label}`);
+  if (!showImmediately && !visible) return null;
+
   return (
     <span className="mobile-content-placeholder" data-layout={layout} role="status">
       <span className="sr-only">{label}</span>

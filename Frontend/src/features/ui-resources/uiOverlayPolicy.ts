@@ -1,4 +1,5 @@
-export const minimumUiOverlayMs = 250;
+export const minimumUiOverlayMs = 300;
+export const loadingPlaceholderDelayMs = 300;
 
 export function isReturningToMainPage(from: string, to: string) {
   const mainPage = /^\/(?:album|location|users?)?\/?$/;

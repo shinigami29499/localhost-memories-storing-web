@@ -514,13 +514,13 @@
   inset: 0;
 }
 
-.album-date-card__text[data-cover-loading] > :is(.album-date-card__name, .album-date-card__owner),
-.album-date-card__preview[data-cover-loading] > img {
+.album-date-card__text[data-cover-pending] > :is(.album-date-card__name, .album-date-card__owner),
+.album-date-card__preview[data-cover-pending] > img {
   opacity: 0;
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  :root[data-motion="on"] .album-date-view :is(.album-date-card__text, .album-date-card__preview):not([data-cover-loading])
+  :root[data-motion="on"] .album-date-view :is(.album-date-card__text, .album-date-card__preview):not([data-cover-pending])
     > :is(.album-date-card__name, .album-date-card__owner, img) {
     transition: opacity 200ms ease-in-out;
   }

@@ -338,9 +338,22 @@ test("album Create and Save changes ease color changes on hover, press, and rele
   }
 });
 
-test("page overlay waits for Album code and hands off to skeletons while the API is pending", async ({ page }) => {
+test("the Album API waits for the page overlay to finish", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.addInitScript(() => localStorage.setItem("shinigacim.animations-enabled", "true"));
   await page.goto("/");
+  await page.evaluate(() => {
+    const fetchRequest = window.fetch;
+    window.fetch = (input, init) => {
+      const url = input instanceof Request ? input.url : String(input);
+      if (new URL(url, location.href).pathname === "/api/library/album/page") {
+        const overlay = document.querySelector(".mobile-page-body > .mobile-page-loading");
+        document.documentElement.dataset.albumFetchStarted = overlay ? "during-overlay" : "after-overlay";
+      }
+      return fetchRequest(input, init);
+    };
+  });
   const moduleResponse = holdResponse();
   const feedResponse = holdResponse();
   let feedRequested = false;
@@ -371,6 +384,7 @@ test("page overlay waits for Album code and hands off to skeletons while the API
     await expect(overlay).toHaveCount(0);
     await expect(placeholders).toHaveCount(2);
     await expect.poll(() => feedRequested).toBe(true);
+    await expect(page.locator("html")).toHaveAttribute("data-album-fetch-started", "after-overlay");
     await expect(page.getByRole("heading", { name: "Album", exact: true })).toBeVisible();
     await expect(navigation.getByRole("link", { name: "Album" })).toHaveAttribute("aria-current", "page");
     await page.getByRole("button", { name: "More", exact: true }).click();
@@ -387,7 +401,31 @@ test("page overlay waits for Album code and hands off to skeletons while the API
   }
 });
 
-test("cached pages hold the loading overlay for a quarter second", async ({ page }) => {
+test("leaving during the title handoff skips the abandoned page request", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.addInitScript(() => localStorage.setItem("shinigacim.animations-enabled", "true"));
+  await page.goto("/");
+  let albumRequests = 0;
+  await page.route("**/api/library/album/page*", (route) => {
+    albumRequests += 1;
+    return route.fulfill({ json: { items: [], hasMore: false } });
+  });
+
+  await page.evaluate(() => {
+    const observer = new MutationObserver(() => {
+      if (!document.querySelector("body > .mobile-page-title")) return;
+      observer.disconnect();
+      document.querySelector<HTMLAnchorElement>(".mobile-menu-bar [data-menu-item='user']")?.click();
+    });
+    observer.observe(document.body, { childList: true });
+  });
+  const navigation = page.getByRole("navigation", { name: "Main navigation" });
+  await navigation.getByRole("link", { name: "Album" }).click();
+  await expect(page.getByRole("searchbox", { name: "Search users" })).toBeVisible();
+  expect(albumRequests).toBe(0);
+});
+
+test("cached pages hold the loading overlay for 300 ms", async ({ page }) => {
   await page.goto("/");
   const navigation = page.getByRole("navigation", { name: "Main navigation" });
   await navigation.getByRole("link", { name: "Album" }).click();
@@ -410,7 +448,7 @@ test("cached pages hold the loading overlay for a quarter second", async ({ page
   await expect(page.getByRole("progressbar", { name: "Loading page... Home" })).toBeVisible();
   await expect(page).toHaveURL(/\/$/);
   await expect.poll(async () =>
-    Number(await page.locator("html").getAttribute("data-overlay-duration"))).toBeGreaterThanOrEqual(245);
+    Number(await page.locator("html").getAttribute("data-overlay-duration"))).toBeGreaterThanOrEqual(295);
   expect(Number(await page.locator("html").getAttribute("data-overlay-duration"))).toBeLessThan(500);
 });
 
@@ -424,13 +462,15 @@ test("Album loading advances in percentages and slides the title into the header
     new MutationObserver(() => {
       const bar = document.querySelector<HTMLProgressElement>(".mobile-page-body .mobile-page-loading:not([data-handoff]) progress");
       if (bar && values.at(-1) !== bar.value) values.push(bar.value);
+      const title = document.querySelector("body > .mobile-page-title");
+      const handoffBar = document.querySelector<HTMLProgressElement>(".mobile-page-loading[data-handoff] progress");
+      if (title && handoffBar?.value === 100) document.body.dataset.completedTitle = title.textContent ?? "";
     }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["value"] });
   });
   await page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Album" }).click();
   await expect(page.getByRole("progressbar", { name: "Loading page... Album" })).toHaveAttribute("max", "100");
   await expect(page.locator(".mobile-shell-header__identity")).toBeHidden();
-  await expect(page.locator("body > .mobile-page-title")).toHaveText("Album");
-  await expect(page.locator(".mobile-page-loading progress")).toHaveAttribute("value", "100");
+  await expect(page.locator("body")).toHaveAttribute("data-completed-title", "Album");
   await expect(page.locator(".mobile-page-loading")).toHaveCount(0);
   const values = await page.evaluate(() => Reflect.get(window, "albumProgress") as number[]);
   expect(values.length).toBeGreaterThan(3);
@@ -497,6 +537,25 @@ test("changing tabs abandons the pending component load", async ({ page }) => {
   } finally {
     moduleResponse.release();
   }
+});
+
+test("fast page data skips the loading placeholder", async ({ page }) => {
+  await page.addInitScript(() => {
+    const selector = ".mobile-content-placeholder[data-layout='users']";
+    new MutationObserver((records) => {
+      for (const record of records) {
+        for (const node of record.addedNodes) {
+          if (node instanceof Element && (node.matches(selector) || node.querySelector(selector))) {
+            document.documentElement.setAttribute("data-placeholder-shown", "true");
+          }
+        }
+      }
+    }).observe(document, { childList: true, subtree: true });
+  });
+
+  await page.goto("/user");
+  await expect(page.getByText("No users yet", { exact: true })).toBeVisible();
+  await expect(page.locator("html")).not.toHaveAttribute("data-placeholder-shown");
 });
 
 for (const [path, endpoint, layout, empty, data] of [

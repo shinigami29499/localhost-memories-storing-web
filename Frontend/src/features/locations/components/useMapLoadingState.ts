@@ -1,8 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useDelayedPlaceholder } from "../../../hooks/useDelayedPlaceholder";
 import { useMediaQuery } from "../../../hooks/useMediaQuery";
 import { useAnimationStore } from "../../../store/animationStore";
 
 export function useMapLoadingState(ready: boolean, closeDelay: number) {
+  const visible = useDelayedPlaceholder(!ready);
+  const wasVisible = useRef(false);
+  useLayoutEffect(() => { if (visible) wasVisible.current = true; }, [visible]);
   const [delayElapsed, setDelayElapsed] = useState(false);
   const [finished, setFinished] = useState(ready && closeDelay === 0);
   const animationsEnabled = useAnimationStore((state) => state.enabled);
@@ -20,5 +24,7 @@ export function useMapLoadingState(ready: boolean, closeDelay: number) {
     return () => window.clearTimeout(timeout);
   }, [ready, closeDelay]);
 
-  return { exiting, setFinished, hidden: ready && (finished || (exiting && (!animationsEnabled || reducedMotion))) };
+  const hidden = (!visible && !wasVisible.current) ||
+    (ready && (finished || (exiting && (!animationsEnabled || reducedMotion))));
+  return { exiting, setFinished, hidden };
 }

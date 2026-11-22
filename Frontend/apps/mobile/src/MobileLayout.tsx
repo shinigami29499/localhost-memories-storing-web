@@ -76,13 +76,23 @@ export function AuthenticatedLayout() {
   const motionEnabled = useAnimationStore((state) => state.enabled) && !reducedMotion;
   const animateMenu = useAnimationStore((state) => state.iconsEnabled) && motionEnabled;
   const [overlayPath, setOverlayPath] = useState<string>();
+  const [deferredPageKey, setDeferredPageKey] = useState<string>();
   const headerTitle = useRef<HTMLSpanElement>(null);
-  const finishHandoff = useCallback(() => setOverlayPath(undefined), []);
+  const finishHandoff = useCallback(() => {
+    setOverlayPath(undefined);
+    setDeferredPageKey(undefined);
+  }, []);
   useLayoutEffect(() => {
     if (pendingPath) setOverlayPath(loading ? pendingPath : undefined);
     else if (!motionEnabled || overlayPath !== location.pathname) setOverlayPath(undefined);
   }, [loading, location.pathname, motionEnabled, overlayPath, pendingPath]);
   const handoff = !pendingPath && motionEnabled && overlayPath === location.pathname;
+  useLayoutEffect(() => {
+    if (handoff) setDeferredPageKey(location.key);
+    else if (!pendingPath) setDeferredPageKey(undefined);
+  }, [handoff, location.key, pendingPath]);
+  // Keep a deferred destination unmounted if its handoff is interrupted by another navigation.
+  const deferPage = handoff || Boolean(pendingPath && deferredPageKey === location.key);
   const visibleOverlay = loading ? pendingPath : handoff ? overlayPath : undefined;
   const [open, setOpen] = useState(false);
   const [menuPreview, setMenuPreview] = useState<MenuPreview>();
@@ -216,7 +226,7 @@ export function AuthenticatedLayout() {
       <div className="mobile-page-body">
         <div className="mobile-page-route" inert={loading}>
           <PageActionBarProvider><div id="main-content" tabIndex={-1} className="app-shell__content">
-            <Outlet />
+            {!deferPage && <Outlet />}
           </div></PageActionBarProvider>
         </div>
         {visibleOverlay && <MobilePageLoadingOverlay key={visibleOverlay} pathname={visibleOverlay} title={pendingTitle}

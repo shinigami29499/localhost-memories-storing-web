@@ -7,7 +7,7 @@ Gallery opens Albums. The shared album date view shows only dates through today 
 
 The empty state has no create button; the existing page action opens the New album dialog. Creating an album or activating the main card's Send Horizontal link opens its detail. Titles and owner labels are static. Owners edit or delete an album from its detail page. Creation invalidates album queries.
 
-The main card has a circular heart action left of Send Horizontal. It toggles the caller's persisted album favorite and shows a single spinning arc for at least 250ms and until the request and album-list refresh finish. The selected heart is filled with a tinted circle. Loading ends with a direct swap to the heart, without zoom. Hovering the button pulses the heart when interface and icon motion are enabled and reduced motion is not requested. The busy indicator remains visible with motion disabled.
+The main card has a circular heart action left of Send Horizontal. It toggles the caller's persisted album favorite and shows a single spinning arc for at least 300 ms and until the request and album-list refresh finish. The selected heart is filled with a tinted circle. Loading ends with a direct swap to the heart, without zoom. Hovering the button pulses the heart when interface and icon motion are enabled and reduced motion is not requested. The busy indicator remains visible with motion disabled.
 
 Legacy Favorites URLs redirect to the album list.
 

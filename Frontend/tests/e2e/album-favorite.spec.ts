@@ -122,7 +122,7 @@ test(`album favorite hover, minimum loading and no completion zoom (${motion})`,
   const favoriteButton = page.locator(".album-date-card__favorite");
   await expect(favoriteButton).toBeDisabled();
   await expect(favoriteButton.locator(".spinner__wheel")).toBeVisible();
-  await page.clock.runFor(249);
+  await page.clock.runFor(299);
   await expect(favoriteButton).toBeDisabled();
   await expect(favoriteButton.locator(".spinner__wheel")).toBeVisible();
   await page.clock.runFor(1);

@@ -19,6 +19,6 @@ During initial album loading, the shared date view shows skeletons for the featu
 
 Each populated frame shows an image placeholder and title and username skeletons while its cover loads. Both slots resolve independently. A missing or failed cover reveals the text and shows the no-cover treatment.
 
-The main card has a circular heart action left of Send Horizontal. It toggles the caller's persisted album favorite and shows a single spinning arc for at least 250ms and until the request and album-list refresh finish. The selected heart is filled with a tinted circle. Loading ends with a direct swap to the heart, without zoom. Hovering the button pulses the heart when interface and icon motion are enabled and reduced motion is not requested. The busy indicator remains visible with motion disabled.
+The main card has a circular heart action left of Send Horizontal. It toggles the caller's persisted album favorite and shows a single spinning arc for at least 300 ms and until the request and album-list refresh finish. The selected heart is filled with a tinted circle. Loading ends with a direct swap to the heart, without zoom. Hovering the button pulses the heart when interface and icon motion are enabled and reduced motion is not requested. The busy indicator remains visible with motion disabled.
 
 Legacy Favorites URLs redirect to the album list.

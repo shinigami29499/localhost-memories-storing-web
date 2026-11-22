@@ -17,7 +17,7 @@ The shell and its page-loading overlay share the mobile theme background. The no
 
 `layout/mobilePageNavigation.tsx` records the source entry and carries Home's history index across page links, menu items, and filter URL changes. The Home item and Back from More pages return to that Home entry or replace the current entry with Home after a direct visit. Back on album detail, including on Android, returns to the previous Album entry when opened from Album. Direct entry and other origins replace album detail with `/album`. Page links from a More destination immediately above Home replace that destination's entry, so browser Back can go directly to Home.
 
-Mobile page navigation shows the component-loading overlay inside the page body while React Router resolves the destination module. Header controls and tabs remain available. Covered route content and its action bar are inert until the destination commits. API loading is rendered by the mounted page.
+Mobile page navigation shows the component-loading overlay inside the page body while React Router resolves the destination module. Header controls and tabs remain available. Covered route content and its action bar are inert until the destination commits. The destination mounts after the overlay and title animation finish. If another navigation interrupts that animation, the deferred page stays unmounted while the next destination loads.
 
 Bottom controls hide when an editable field is focused and the viewport shrinks for the keyboard. They return when the viewport or focus returns.
 

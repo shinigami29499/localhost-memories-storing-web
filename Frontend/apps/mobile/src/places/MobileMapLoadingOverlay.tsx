@@ -8,5 +8,5 @@ export function MobileMapLoadingOverlay({ ready, className, closeDelay = 0 }: { 
   if (hidden) return null;
   return <div className={className} aria-hidden={ready || undefined} data-exiting={exiting || undefined} onAnimationEnd={(event) => {
     if (event.target === event.currentTarget && exiting) setFinished(true);
-  }}><PageDataPlaceholder layout="map" label={t("Loading map...")} /></div>;
+  }}><PageDataPlaceholder layout="map" label={t("Loading map...")} showImmediately /></div>;
 }

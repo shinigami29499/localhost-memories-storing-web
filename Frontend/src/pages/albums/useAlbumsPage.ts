@@ -74,7 +74,7 @@ export function useAlbumsPage({ onAlbumCreated, listLocationKey }: {
     } catch (error) {
       showToast.error(error instanceof ApiError ? error.message : t("Could not update favorites."));
     } finally {
-      const remaining = 250 - (performance.now() - loadingStarted);
+      const remaining = 300 - (performance.now() - loadingStarted);
       if (remaining > 0) await new Promise<void>((resolve) => window.setTimeout(resolve, remaining));
       setFavoriteBusyAlbumId(null);
     }

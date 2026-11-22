@@ -8,6 +8,7 @@ import { Heart } from "@/components/animate-ui/icons/heart";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import { EmptyState, ErrorState, IconButton } from "../../../components/ui";
 import { useLocale } from "../../../context/LocaleContext";
+import { useDelayedPlaceholder } from "../../../hooks/useDelayedPlaceholder";
 import { useMediaQuery } from "../../../hooks/useMediaQuery";
 import { mediaPreviewUrl } from "../../../utils/media";
 import { useAnimationStore } from "../../../store/animationStore";
@@ -260,7 +261,8 @@ function DatedAlbumCard({ album, action, onAdvance, swapText, showCoverLoading }
   const src = album.previewMediaId ? mediaPreviewUrl(album.previewMediaId) : undefined;
   const status = result?.src === src ? result?.status : undefined;
   const hasPreview = Boolean(src && status !== "failed");
-  const loading = Boolean(showCoverLoading && hasPreview && status !== "loaded");
+  const waitingForCover = Boolean(showCoverLoading && hasPreview && status !== "loaded");
+  const loading = useDelayedPlaceholder(waitingForCover, src);
   const Title = action ? "h2" : "span";
 
   useLayoutEffect(() => {
@@ -273,7 +275,7 @@ function DatedAlbumCard({ album, action, onAdvance, swapText, showCoverLoading }
   const content = (
     <>
       <div className="album-date-card__heading">
-        <div className="album-date-card__text" data-cover-loading={loading || undefined}>
+        <div className="album-date-card__text" data-cover-pending={waitingForCover || undefined}>
           {loading && <AlbumTextPlaceholder />}
           <Title className="album-date-card__name">
             {swapText ? <SwappingText text={album.name} stagger={0.025} /> : album.name}
@@ -316,7 +318,7 @@ function DatedAlbumCard({ album, action, onAdvance, swapText, showCoverLoading }
       </div>
       <div className="album-date-card__preview-slot">
         <div className="album-date-card__preview" data-press-motion-target={!action || undefined}
-          data-cover-loading={loading || undefined} data-empty={!hasPreview || undefined}>
+          data-cover-loading={loading || undefined} data-cover-pending={waitingForCover || undefined} data-empty={!hasPreview || undefined}>
           {src && hasPreview && (
             <img key={src} ref={imageRef} src={src} alt="" decoding="async" draggable={false}
               onLoad={showCoverLoading ? () => setResult({ src, status: "loaded" }) : undefined}
@@ -363,7 +365,7 @@ export function AlbumDateView({
   const suppressClick = useRef(false);
   const featured = albums[albumIndex];
   const next = albums[albumIndex + 1];
-  const showPlaceholders = pending;
+  const showPlaceholders = useDelayedPlaceholder(pending);
   const showMoveUp = Boolean(featured && albumIndex > 0 && !pending);
 
   useLayoutEffect(() => {
@@ -427,8 +429,8 @@ export function AlbumDateView({
           else onDateChange(date);
         }} />
       {showPlaceholders && <span className="sr-only" role="status">{t("Loading albums...")}</span>}
-      <div className="album-date-view__viewport" aria-busy={pending || fetching} data-frame-loading={showPlaceholders || undefined}>
-        <div className="album-date-view__body" ref={stageRef} data-has-queue={Boolean(mobileNavigation || featured || footerAction) || undefined}
+      <div className="album-date-view__viewport" aria-busy={pending || fetching} data-frame-loading={pending || undefined}>
+        <div className="album-date-view__body" ref={stageRef} data-has-queue={Boolean(mobileNavigation || pending || featured || footerAction) || undefined}
           data-icon-motion={iconsEnabled || undefined}
           onKeyDown={(event) => {
             if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
@@ -476,7 +478,7 @@ export function AlbumDateView({
               {showPlaceholders ? <AlbumFramePlaceholder /> : featuredCard}
             </AlbumFrame>
           )}
-          {pending ? !mobileNavigation && <AlbumFramePlaceholder /> : failed && !featured ? (
+          {pending ? !mobileNavigation && showPlaceholders && <AlbumFramePlaceholder /> : failed && !featured ? (
             <ErrorState message={t("Could not load albums.")} onRetry={onRetry} />
           ) : !featured ? (
             <EmptyState title="No albums yet" hint={mobileNavigation
@@ -494,7 +496,7 @@ export function AlbumDateView({
                   </>
                 ) : nextCard}
               </AlbumFrame>
-            ) : pending ? <AlbumFramePlaceholder compact /> : nextCard}
+            ) : pending ? showPlaceholders && <AlbumFramePlaceholder compact /> : nextCard}
             {mobileNavigation && <IconButton className="album-date-view__move-up"
               data-visible={showMoveUp || undefined} disabled={!showMoveUp} aria-hidden={!showMoveUp || undefined}
               aria-label={t("Move up")} title={t("Move up")}
