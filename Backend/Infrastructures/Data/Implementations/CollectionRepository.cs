@@ -31,7 +31,7 @@ public sealed class CollectionRepository(ApplicationDbContext db) : ICollectionR
             query = query.Where(collection => EF.Functions.LessThan(
                 ValueTuple.Create(collection.CreatedAt, collection.Id), ValueTuple.Create(date, id)));
         return await Project(query.OrderByDescending(collection => collection.CreatedAt)
-                .ThenByDescending(collection => collection.Id).Take(limit + 1), mediaId)
+                .ThenByDescending(collection => collection.Id).Take(limit + 1), mediaId, viewerId)
             .ToListAsync(cancellationToken);
     }
 
@@ -55,7 +55,7 @@ public sealed class CollectionRepository(ApplicationDbContext db) : ICollectionR
                     .Where(collection => collection.OwnerId == ownerId)
                     .OrderByDescending(collection => collection.CreatedAt)
                     .ThenByDescending(collection => collection.Id),
-                mediaId)
+                mediaId, ownerId)
             .ToListAsync(cancellationToken);
 
     public async Task<IReadOnlyList<CollectionSource>> GetPublicCollectionsAsync(
@@ -65,26 +65,37 @@ public sealed class CollectionRepository(ApplicationDbContext db) : ICollectionR
                     .Where(collection => collection.IsPublic && collection.OwnerId != excludedOwnerId)
                     .OrderByDescending(collection => collection.CreatedAt)
                     .ThenByDescending(collection => collection.Id),
-                mediaId)
+                mediaId, excludedOwnerId)
             .ToListAsync(cancellationToken);
 
     public async Task<IReadOnlyList<CollectionSource>> GetAllCollectionsAsync(
-        Guid? mediaId, CancellationToken cancellationToken = default)
+        Guid viewerId, Guid? mediaId, CancellationToken cancellationToken = default)
         => await Project(
                 db.Collections.AsNoTracking()
                     .OrderByDescending(collection => collection.CreatedAt)
                     .ThenByDescending(collection => collection.Id),
-                mediaId)
+                mediaId, viewerId)
             .ToListAsync(cancellationToken);
 
     public Task<CollectionSource?> GetCollectionSourceAsync(
-        Guid collectionId, CancellationToken cancellationToken = default)
-        => Project(db.Collections.AsNoTracking().Where(collection => collection.Id == collectionId), null)
+        Guid collectionId, Guid? viewerId, CancellationToken cancellationToken = default)
+        => Project(db.Collections.AsNoTracking().Where(collection => collection.Id == collectionId), null, viewerId)
             .FirstOrDefaultAsync(cancellationToken);
 
     public Task<Collection?> FindCollectionAsync(
         Guid collectionId, CancellationToken cancellationToken = default)
         => db.Collections.FirstOrDefaultAsync(collection => collection.Id == collectionId, cancellationToken);
+
+    public async Task<CollectionFavorite?> FindCollectionFavoriteAsync(
+        Guid userId, Guid collectionId, bool includeDeleted, CancellationToken cancellationToken = default)
+    {
+        var query = db.CollectionFavorites.AsQueryable();
+        if (includeDeleted)
+            query = query.IgnoreQueryFilters();
+        return await query.FirstOrDefaultAsync(
+            favorite => favorite.UserId == userId && favorite.CollectionId == collectionId,
+            cancellationToken);
+    }
 
     public Task<IReadOnlyList<Guid>> GetCollectionMediaIdsPageAsync(
         Guid collectionId, int offset, int limit, CancellationToken cancellationToken = default)
@@ -183,9 +194,11 @@ public sealed class CollectionRepository(ApplicationDbContext db) : ICollectionR
 
     public void AddCollectionMedia(CollectionMedia collectionMedia) => db.CollectionMedia.Add(collectionMedia);
 
-    // Custom previews may come from gallery media or the shared preview pool.
-    private static IQueryable<CollectionSource> Project(
-        IQueryable<Collection> query, Guid? mediaId)
+    public void AddCollectionFavorite(CollectionFavorite favorite) => db.CollectionFavorites.Add(favorite);
+
+    // Custom previews may come from library media or the shared preview pool.
+    private IQueryable<CollectionSource> Project(
+        IQueryable<Collection> query, Guid? mediaId, Guid? viewerId)
         => query.Select(collection => new CollectionSource(
             collection,
             collection.Owner,
@@ -204,5 +217,7 @@ public sealed class CollectionRepository(ApplicationDbContext db) : ICollectionR
                 .Select(item => (Guid?)item.MediaFileId)
                 .FirstOrDefault(),
             mediaId != null && collection.MediaItems.Any(item =>
-                item.MediaFileId == mediaId && item.MediaFile.DeletedAt == null)));
+                item.MediaFileId == mediaId && item.MediaFile.DeletedAt == null),
+            viewerId.HasValue && db.CollectionFavorites.Any(favorite =>
+                favorite.CollectionId == collection.Id && favorite.UserId == viewerId.Value)));
 }

@@ -1,7 +1,10 @@
 import { SwappingText } from "@animate-ui/react/primitives/texts/swapping";
 import { useAnimationStore } from "@/store/animationStore";
 import { Suspense, useState } from "react";
-import { Outlet, useLocation } from "react-router-dom";
+import { Outlet, useLocation, useNavigation } from "react-router-dom";
+import { useUiRouteProgress } from "@/features/ui-resources/uiRoute";
+import { isReturningToMainPage } from "@/features/ui-resources/uiOverlayPolicy";
+import { UiResourceProgress } from "@/features/ui-resources/UiResourceProgress";
 import { PushTransition } from "@/hooks/PushTransition";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -18,8 +21,7 @@ export const MOBILE_QUERY = "(max-width: 767px)";
 
 function pageTitle(pathname: string): string {
   if (pathname === "/") return "Home";
-  if (pathname.startsWith("/gallery/album/")) return "Album";
-  if (pathname.startsWith("/gallery")) return "Gallery";
+  if (pathname === "/album" || pathname.startsWith("/album/")) return "Album";
   if (pathname.startsWith("/location/travel")) return "Travel";
   if (pathname.startsWith("/location/history")) return "History";
   if (pathname.startsWith("/location/saved")) return "Saved";
@@ -33,11 +35,15 @@ function pageTitle(pathname: string): string {
 export function AuthenticatedLayout() {
   const { t } = useLocale();
   const location = useLocation();
+  const navigation = useNavigation();
+  const destination = navigation.location?.pathname;
+  const loading = Boolean(destination && destination !== location.pathname && !isReturningToMainPage(location.pathname, destination));
+  const progress = useUiRouteProgress(loading ? destination : undefined);
   const isMobile = useMediaQuery(MOBILE_QUERY);
   const motionEnabled = useAnimationStore((state) => state.enabled);
   const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
-  const showHeading = location.pathname !== "/" && !location.pathname.startsWith("/gallery/album/");
-  const pageKey = /^\/gallery(?:\/favorites|\/trash|\/album)?\/?$/.test(location.pathname) ? "/gallery"
+  const showHeading = location.pathname !== "/" && !location.pathname.startsWith("/album/");
+  const pageKey = /^\/album\/?$/.test(location.pathname) ? "/album"
     : /^\/location(?:\/saved|\/history)?\/?$/.test(location.pathname) ? "/location"
     : /^\/users(?:\/pending|\/blocked)?\/?$/.test(location.pathname) ? "/users" : location.pathname;
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -45,14 +51,16 @@ export function AuthenticatedLayout() {
   return (
     <div className={`app-shell${sidebarCollapsed && !isMobile ? " app-shell--sidebar-collapsed" : ""}`} data-state={sidebarCollapsed && !isMobile ? "collapsed" : "expanded"}>
       <a className="skip-link" href="#main-content">{t("Skip to content")}</a>
-      {!isMobile && <Sidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed((value) => !value)} />}
+      {!isMobile && <Sidebar collapsed={sidebarCollapsed} pendingPath={destination} onToggle={() => setSidebarCollapsed((value) => !value)} />}
       <div className="app-shell__main">
         <ApprovalNotice />
         <PresenceRuntime />
         <UploadRuntime />
         <header className="app-topbar">
-          <span className="app-topbar__title" role={showHeading ? "heading" : undefined} aria-level={showHeading ? 1 : undefined}>
-            {motionEnabled && !reducedMotion ? <SwappingText text={t(pageTitle(location.pathname))} stagger={0.025} /> : t(pageTitle(location.pathname))}
+          <span className="app-topbar__title" data-overlay={loading || undefined} role={showHeading ? "heading" : undefined} aria-level={showHeading ? 1 : undefined}>
+            {!loading && (motionEnabled && !reducedMotion
+              ? <SwappingText text={t(pageTitle(location.pathname))} stagger={0.025} />
+              : t(pageTitle(location.pathname)))}
           </span>
           <div id="page-header-actions" className="app-topbar__actions" />
           <NotificationBell />
@@ -60,11 +68,16 @@ export function AuthenticatedLayout() {
         <PageActionBarProvider>
           <div id="main-content" tabIndex={-1} className="app-shell__content">
             <PushTransition transitionKey={pageKey} matchPageHighlights hasPageHighlight={pageKey === "/location" || pageKey === "/users"} />
-            <Suspense key={pageKey} fallback={<Spinner page />}><Outlet /></Suspense>
+            <div className="web-route-content" inert={loading}>
+              <Suspense key={pageKey} fallback={<Spinner page />}><Outlet /></Suspense>
+            </div>
+            {loading && destination && <div className="ui-resource-loading ui-resource-loading--route">
+              <UiResourceProgress key={destination} label={`${t("Loading page...")} ${t(pageTitle(destination))}`} loaded={progress?.loaded} total={progress?.total} stepped />
+            </div>}
           </div>
         </PageActionBarProvider>
       </div>
-      {isMobile && <BottomNavigation />}
+      {isMobile && <BottomNavigation pendingPath={destination} />}
     </div>
   );
 }

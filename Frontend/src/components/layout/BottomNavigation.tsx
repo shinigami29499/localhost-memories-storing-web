@@ -13,18 +13,19 @@ import { Button } from "../ui/Button";
 import { useLogout } from "../../features/auth/hooks/useLogout";
 import { useAnimationStore } from "../../store/animationStore";
 
-export function BottomNavigation() {
+export function BottomNavigation({ pendingPath }: { pendingPath?: string } = {}) {
   const { t } = useLocale();
   const location = useLocation();
+  const pathname = pendingPath ?? location.pathname;
   const logout = useLogout();
   const animationsEnabled = useAnimationStore((state) => state.enabled);
   const [moreOpen, setMoreOpen] = useState(false);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const moreRef = useRef<HTMLButtonElement>(null);
-  const library = location.pathname.startsWith("/gallery");
-  const places = location.pathname.startsWith("/location");
-  const users = location.pathname.startsWith("/users");
-  const more = ["/profile", "/settings"].includes(location.pathname);
+  const library = pathname.startsWith("/album");
+  const places = pathname.startsWith("/location");
+  const users = pathname.startsWith("/users");
+  const more = ["/profile", "/settings"].includes(pathname);
 
   useEffect(() => { setMoreOpen(false); }, [location.key]);
   useEffect(() => {
@@ -35,21 +36,23 @@ export function BottomNavigation() {
   }, [moreOpen]);
 
   return <>
-    <nav className="bottom-navigation" aria-label={t("Main navigation")}>
-      <NavLink to="/" end className="bottom-navigation__item" aria-current={location.pathname === "/" ? "page" : undefined}>
+    <nav className="bottom-navigation" aria-label={t("Main navigation")} data-pending={Boolean(pendingPath) || undefined}>
+      <NavLink to="/" end className="bottom-navigation__item" data-highlighted={pathname === "/" || undefined}
+        aria-current={location.pathname === "/" ? "page" : undefined}>
         <Home size={22} aria-hidden="true" /><span>{t("Home")}</span>
       </NavLink>
-      <NavLink to="/gallery" className="bottom-navigation__item" aria-current={library ? "page" : undefined}>
-        <LibraryBig size={22} aria-hidden="true" /><span>{t("Gallery")}</span>
+      <NavLink to="/album" className="bottom-navigation__item" data-highlighted={library || undefined}>
+        <LibraryBig size={22} aria-hidden="true" /><span>{t("Album")}</span>
       </NavLink>
-      <NavLink to="/location" className="bottom-navigation__item" aria-current={places ? "page" : undefined}>
+      <NavLink to="/location" className="bottom-navigation__item" data-highlighted={places || undefined}>
         <MapPin size={22} aria-hidden="true" /><span>{t("Locations")}</span>
       </NavLink>
-      <NavLink to="/users" className="bottom-navigation__item" aria-current={users ? "page" : undefined}>
+      <NavLink to="/users" className="bottom-navigation__item" data-highlighted={users || undefined}>
         <Users size={22} aria-hidden="true" /><span>{t("Users")}</span>
       </NavLink>
       <button ref={moreRef} type="button" className="bottom-navigation__item" aria-expanded={moreOpen}
-        aria-haspopup="dialog" aria-current={more ? "page" : undefined} onClick={() => setMoreOpen(true)}>
+        aria-haspopup="dialog" data-highlighted={more || undefined}
+        aria-current={["/profile", "/settings"].includes(location.pathname) ? "page" : undefined} onClick={() => setMoreOpen(true)}>
         <Ellipsis size={22} aria-hidden="true" /><span>{t("More")}</span>
       </button>
     </nav>

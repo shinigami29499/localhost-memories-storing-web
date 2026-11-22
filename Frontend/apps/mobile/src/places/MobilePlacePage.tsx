@@ -1,3 +1,4 @@
+import { registerUiModule } from "@/features/ui-resources/uiModules";
 import { PushTransition } from "@/hooks/PushTransition";
 import { useLocation, useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
@@ -32,6 +33,7 @@ import { locationService } from "@/features/locations/services/locationService";
 import { MobileLocationEditor as LocationEditor } from "./MobileLocationEditor";
 import { useAnimationStore } from "@/store/animationStore";
 import { MobileMapLoadingOverlay as MapLoadingOverlay } from "./MobileMapLoadingOverlay";
+import { PageDataPlaceholder } from "@/components/ui/PageDataPlaceholder";
 import "./mobile-map-controls.css";
 import type { PlaceMapSettings } from "@/features/place/components/PlaceMap";
 import { MobileAddNavigationToolbar as AddNavigationToolbar } from "./MobileAddNavigationToolbar";
@@ -69,7 +71,7 @@ import "./mobile-places.css";
 import "../layout/mobile-highlight-navigation.css";
 
 
-const PlaceMap = lazy(() => import("./MobilePlaceMap").then((module) => ({ default: module.MobilePlaceMap })));
+const PlaceMap = lazy(registerUiModule("Place map", () => import("./MobilePlaceMap").then((module) => ({ default: module.MobilePlaceMap }))));
 import { emptyValues, usePlacePageController, type PlaceViewSwitchProps } from "@/pages/place/usePlacePageController";
 import { MobileSavedPlacesList } from "./MobileSavedPlacesList";
 import { MobilePlaceMarkerPreview } from "./MobilePlaceMarkerPreview";
@@ -197,7 +199,7 @@ export function MobilePlacePage() {
                       homeLocation={home.query.data ?? null}
                       homeLocationReady={home.query.isFetched}
                       homeActionDisabled={save.isPending || remove.isPending || home.save.isPending}
-                      onBrowseAlbums={() => navigateToAlbums("/gallery/album")}
+                      onBrowseAlbums={() => navigateToAlbums("/album")}
 
                       homePicking={homePicking}
                       homeRelocationDraft={homeRelocationDraft}
@@ -247,6 +249,8 @@ export function MobilePlacePage() {
                     /></Suspense>}
                   </div>
                 </div>
+                {(mapPlacesQuery.isLoading || photosQuery.isLoading) &&
+                  <PageDataPlaceholder count={1} label={t(mapPlacesQuery.isLoading ? "Loading places..." : "Loading photos...")} />}
                 {mapPlacesQuery.isFetchNextPageError ? (
                   <ErrorState message={t("Could not load more places.")} onRetry={() => void mapPlacesQuery.fetchNextPage()} />
                 ) : mapPlacesQuery.hasNextPage ? (
@@ -287,7 +291,7 @@ export function MobilePlacePage() {
                     message={t("Could not load visit history.")}
                     onRetry={() => void historyQuery.refetch()}
                   />
-                ) : historyQuery.isPending ? <Spinner page /> : historyVisits.length ? (
+                ) : historyQuery.isPending ? <PageDataPlaceholder label={t("Loading...")} /> : historyVisits.length ? (
                   <PlaceVisitHistory
                     DialogComponent={PlaceDialog}
                     visits={historyVisits}
@@ -303,7 +307,7 @@ export function MobilePlacePage() {
                 {!historySearch.trim() && !historyMinimumRating && !hasLocationFilters && visitHistory.isFetchNextPageError && <ErrorState message={t("Could not load more visits.")} onRetry={() => void visitHistory.fetchNextPage()} />}
                 {!historySearch.trim() && !historyMinimumRating && !hasLocationFilters && visitHistory.hasNextPage && <div ref={historySentinel}>{visitHistory.isFetchingNextPage && <Spinner />}</div>}
               </div>
-            ) : query.isLoading ? <Spinner page /> : query.isError && !places.length ? (
+            ) : query.isLoading ? <PageDataPlaceholder label={t("Loading places...")} /> : query.isError && !places.length ? (
               <ErrorState message="Could not load places." onRetry={() => void query.refetch()} />
             ) : (
               <>

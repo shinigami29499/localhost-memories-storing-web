@@ -5,6 +5,7 @@ import { useSettingsState } from "@/pages/settings/useSettingsState";
 import "./mobile-settings.css";
 import { SoundEffectsSettings } from "./SoundEffectsSettings";
 import { MobileThemeSelector } from "../theme/MobileThemeSelector";
+import { UiPreloadSetting } from "@/features/ui-resources/UiPreloadSetting";
 
 export function SettingsPage() {
   const { t, toastsEnabled, setToastsEnabled, animationsEnabled, setAnimationsEnabled, notificationsEnabled, notificationRequestPending, notificationMessage, locationPermission, locationPending, locationMessage, setLocationMessage, cameraPermission, cameraPending, cameraMessage, setCameraMessage, requestCamera, requestLocation, updateNotifications } = useSettingsState();
@@ -19,6 +20,7 @@ export function SettingsPage() {
           <h2 id="settings-preferences-title">{t("Preferences")}</h2>
           <div className="mobile-settings__fields">
             <SoundEffectsSettings />
+            <UiPreloadSetting classPrefix="mobile-settings" />
             <div className="mobile-settings__field">
               <div className="mobile-settings__field-copy">
                 <label htmlFor="settings-toasts">{t("Toast notifications")}</label>

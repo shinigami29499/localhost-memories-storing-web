@@ -1,3 +1,5 @@
+import { registerUiModule } from "@/features/ui-resources/uiModules";
+import { PageDataPlaceholder } from "@/components/ui/PageDataPlaceholder";
 import { PushTransition } from "@/hooks/PushTransition";
 import { useLocation, useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
@@ -69,7 +71,7 @@ import {
 import type { MediaFile, PickedLocation } from "@/features/media/types";
 import "./place.css";
 
-const PlaceMap = lazy(() => import("@/features/place/components/PlaceMap").then((module) => ({ default: module.PlaceMap })));
+const PlaceMap = lazy(registerUiModule("Place map", () => import("@/features/place/components/PlaceMap").then((module) => ({ default: module.PlaceMap }))));
 
 export type PlaceView = "map" | "saved" | "history";
 export interface PlaceViewSwitchProps { view: PlaceView; onChange: (view: PlaceView) => void }
@@ -204,7 +206,7 @@ export function PlacePage({ ViewSwitch = PlaceViewSwitch }: {
                       homeLocation={home.query.data ?? null}
                       homeLocationReady={home.query.isFetched}
                       homeActionDisabled={save.isPending || remove.isPending || home.save.isPending}
-                      onBrowseAlbums={() => navigateToAlbums("/gallery/album")}
+                      onBrowseAlbums={() => navigateToAlbums("/album")}
 
                       homePicking={homePicking}
                       homeRelocationDraft={homeRelocationDraft}
@@ -294,7 +296,7 @@ export function PlacePage({ ViewSwitch = PlaceViewSwitch }: {
                     message={t("Could not load visit history.")}
                     onRetry={() => void historyQuery.refetch()}
                   />
-                ) : historyQuery.isPending ? <Spinner page /> : historyVisits.length ? (
+                ) : historyQuery.isPending ? <PageDataPlaceholder label={t("Loading...")} /> : historyVisits.length ? (
                   <PlaceVisitHistory
                     visits={historyVisits}
                     onShowOnMap={(visit) => { setSelectedId(visit.placeId); setDetailsOpen(false); requestView("map"); }}
@@ -309,7 +311,7 @@ export function PlacePage({ ViewSwitch = PlaceViewSwitch }: {
                 {!historySearch.trim() && !historyMinimumRating && !hasLocationFilters && visitHistory.isFetchNextPageError && <ErrorState message={t("Could not load more visits.")} onRetry={() => void visitHistory.fetchNextPage()} />}
                 {!historySearch.trim() && !historyMinimumRating && !hasLocationFilters && visitHistory.hasNextPage && <div ref={historySentinel}>{visitHistory.isFetchingNextPage && <Spinner />}</div>}
               </div>
-            ) : query.isLoading ? <Spinner page /> : query.isError && !places.length ? (
+            ) : query.isLoading ? <PageDataPlaceholder label={t("Loading places...")} /> : query.isError && !places.length ? (
               <ErrorState message="Could not load places." onRetry={() => void query.refetch()} />
             ) : (
               <>

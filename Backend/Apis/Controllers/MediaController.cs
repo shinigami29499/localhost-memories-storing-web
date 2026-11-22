@@ -11,6 +11,7 @@ using Services.Responses.Media;
 namespace Apis.Controllers;
 
 [ApiController]
+[Route("api/library/album/media")]
 [Route("api/library/gallery")]
 [Route("api/media")]
 [Authorize]
@@ -22,6 +23,7 @@ public class MediaController(
     private readonly ICurrentUserContext _currentUser = currentUser;
 
     /// <summary>Changes or clears a photo location; restricted to its owner or an administrator.</summary>
+    [HttpPut("~/api/place/travel/{mediaId:guid}")]
     [HttpPut("~/api/location/travel/{mediaId:guid}")]
     [HttpPut("~/api/media/{mediaId:guid}/location")]
     public async Task<IActionResult> SetLocationAsync(
@@ -33,6 +35,7 @@ public class MediaController(
     }
 
     /// <summary>Extracts GPS from up to 25 unscanned photos owned by the caller (all photos for admins).</summary>
+    [HttpPost("~/api/place/travel/scan")]
     [HttpPost("~/api/location/travel/scan")]
     [HttpPost("~/api/media/locations/scan")]
     public async Task<ActionResult<ScanMediaLocationsResponse>> ScanLocationsAsync(
@@ -40,6 +43,7 @@ public class MediaController(
         => Ok(await _mediaService.ScanLocationsAsync(
             _currentUser.RequireUserId(), _currentUser.IsAdmin, offset, cancellationToken));
 
+    [HttpGet("~/api/place/travel/map")]
     [HttpGet("~/api/location/travel/map")]
     public async Task<ActionResult<PagedMediaResponse<MediaFileDto>>> GetLocatedMediaPageAsync(
         CancellationToken cancellationToken, [FromQuery] int offset = 0, [FromQuery] int limit = 100,
@@ -48,6 +52,7 @@ public class MediaController(
         => Ok(await _mediaService.GetLocatedMediaPageAsync(_currentUser.RequireUserId(), offset, limit,
             new PlaceMapBounds(west, south, east, north), cancellationToken));
 
+    [HttpGet("~/api/place/travel/unlocated")]
     [HttpGet("~/api/location/travel/unlocated")]
     public async Task<ActionResult<PagedMediaResponse<MediaFileDto>>> GetUnlocatedMediaPageAsync(
         CancellationToken cancellationToken, [FromQuery] int offset = 0, [FromQuery] int limit = 50)
@@ -65,6 +70,7 @@ public class MediaController(
             favoritesOnly: false,
             cancellationToken));
 
+    [HttpGet("mine/count")]
     [HttpGet("mine/counts")]
     public async Task<ActionResult<OwnedMediaCountsResponse>> GetOwnedMediaCountsAsync(
         CancellationToken cancellationToken)
@@ -76,7 +82,7 @@ public class MediaController(
         Guid mediaId, CancellationToken cancellationToken)
         => Ok(await _mediaService.GetMediaAsync(mediaId, _currentUser.RequireUserId(), cancellationToken));
 
-    /// <summary>Returns whether an active gallery media file exists on disk; restricted to admins.</summary>
+    /// <summary>Returns whether an active album media file exists on disk; restricted to admins.</summary>
     [RequireAdmin]
     [HttpGet("{mediaId:guid}/availability")]
     public async Task<ActionResult<bool>> GetMediaAvailabilityAsync(Guid mediaId, CancellationToken cancellationToken)
@@ -86,7 +92,8 @@ public class MediaController(
             mediaId, _currentUser.RequireUserId(), _currentUser.IsAdmin, cancellationToken));
     }
 
-    /// <summary>Returns compact media change markers for local gallery reconciliation.</summary>
+    /// <summary>Returns compact change markers for reconciling the local album media cache.</summary>
+    [HttpGet("change")]
     [HttpGet("changes")]
     public async Task<ActionResult<MediaChangesResponse>> GetMediaChangesAsync(
         [FromQuery] DateTime? since, CancellationToken cancellationToken)

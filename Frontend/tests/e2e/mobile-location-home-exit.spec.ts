@@ -8,8 +8,8 @@ test("location action bar exits continuously when opening Home", async ({ page }
   });
   await page.route(/^https?:\/\/[^/]+\/api\//, (route) => {
     const path = new URL(route.request().url()).pathname;
-    if (path === "/api/location/home-location") return route.fulfill({ json: null });
-    if (path.endsWith("/page") || path === "/api/location/travel/map") return route.fulfill({ json: { page: 1, offset: 0, limit: 30, total: 0, items: [], hasMore: false } });
+    if (path === "/api/place/home-location") return route.fulfill({ json: null });
+    if (path.endsWith("/page") || path === "/api/place/travel/map") return route.fulfill({ json: { page: 1, offset: 0, limit: 30, total: 0, items: [], hasMore: false } });
     return route.fulfill({ json: [] });
   });
   await page.route("**/hubs/**", (route) => route.abort());

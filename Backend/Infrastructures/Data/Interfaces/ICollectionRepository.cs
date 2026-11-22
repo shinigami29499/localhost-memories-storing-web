@@ -16,9 +16,12 @@ public interface ICollectionRepository
     Task<IReadOnlyList<CollectionSource>> GetPublicCollectionsAsync(
         Guid excludedOwnerId, Guid? mediaId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<CollectionSource>> GetAllCollectionsAsync(
-        Guid? mediaId, CancellationToken cancellationToken = default);
-    Task<CollectionSource?> GetCollectionSourceAsync(Guid collectionId, CancellationToken cancellationToken = default);
+        Guid viewerId, Guid? mediaId, CancellationToken cancellationToken = default);
+    Task<CollectionSource?> GetCollectionSourceAsync(
+        Guid collectionId, Guid? viewerId, CancellationToken cancellationToken = default);
     Task<Collection?> FindCollectionAsync(Guid collectionId, CancellationToken cancellationToken = default);
+    Task<CollectionFavorite?> FindCollectionFavoriteAsync(
+        Guid userId, Guid collectionId, bool includeDeleted, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Guid>> GetCollectionMediaIdsPageAsync(
         Guid collectionId, int offset, int limit, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Guid>> GetCollectionMediaIdsPageAsync(
@@ -42,4 +45,5 @@ public interface ICollectionRepository
         Guid collectionId, Guid[] mediaIds, Guid actorId, DateTime utcNow, CancellationToken cancellationToken);
     void AddCollection(Collection collection);
     void AddCollectionMedia(CollectionMedia collectionMedia);
+    void AddCollectionFavorite(CollectionFavorite favorite);
 }

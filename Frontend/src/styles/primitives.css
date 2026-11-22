@@ -6,7 +6,7 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  :where(button:not(:disabled):not(.dialog-action), a[href], [role="button"]:not(.dialog-action)):active {
+  :where(a[href]:not([role="button"])):active {
     scale: 0.97;
   }
 }

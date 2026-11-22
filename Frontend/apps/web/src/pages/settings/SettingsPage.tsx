@@ -4,6 +4,7 @@ import { toastManager } from "@/components/ui/Toast";
 import { useSettingsState } from "@/pages/settings/useSettingsState";
 import "./settings.css";
 import { SoundEffectsSettings } from "@/pages/settings/SoundEffectsSettings";
+import { UiPreloadSetting } from "@/features/ui-resources/UiPreloadSetting";
 
 export function SettingsPage() {
   const { t, toastsEnabled, setToastsEnabled, animationsEnabled, setAnimationsEnabled, notificationsEnabled, notificationRequestPending, notificationMessage, locationPermission, locationPending, locationMessage, setLocationMessage, cameraPermission, cameraPending, cameraMessage, setCameraMessage, requestCamera, requestLocation, updateNotifications } = useSettingsState();
@@ -16,6 +17,7 @@ export function SettingsPage() {
           <h2 id="settings-preferences-title">{t("Preferences")}</h2>
           <div className="settings-page__fields">
             <SoundEffectsSettings />
+            <UiPreloadSetting classPrefix="settings-page" />
             <div className="settings-page__field">
               <div className="settings-page__field-copy">
                 <label htmlFor="settings-toasts">{t("Toast notifications")}</label>

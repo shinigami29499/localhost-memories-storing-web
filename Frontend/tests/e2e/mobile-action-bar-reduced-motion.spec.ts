@@ -10,8 +10,8 @@ for (const mode of ["reduced-motion", "animations-disabled"] as const) {
     }, mode === "reduced-motion");
     await page.route(/^https?:\/\/[^/]+\/api\//, (route) => {
       const path = new URL(route.request().url()).pathname;
-      if (path === "/api/location/home-location") return route.fulfill({ json: null });
-      if (path.endsWith("/page") || path.startsWith("/api/library/gallery")) return route.fulfill({ json: { page: 1, offset: 0, total: 0, limit: 30, items: [], allCount: 0, pendingCount: 0 } });
+      if (path === "/api/place/home-location") return route.fulfill({ json: null });
+      if (path.endsWith("/page") || path.startsWith("/api/library/album/media")) return route.fulfill({ json: { page: 1, offset: 0, total: 0, limit: 30, items: [], allCount: 0, pendingCount: 0 } });
       return route.fulfill({ json: [] });
     });
     await page.route("**/hubs/**", (route) => route.abort());
@@ -39,7 +39,7 @@ for (const mode of ["reduced-motion", "animations-disabled"] as const) {
       };
       requestAnimationFrame(sample);
     });
-    await page.locator('.bottom-navigation a[href="/gallery"]').click();
+    await page.locator('.bottom-navigation a[href="/album"]').click();
     await expect(page.locator(".page-action-bar").getByRole("button", { name: "New album" })).toBeVisible();
     await expect.poll(() => page.evaluate(() => (window as Window & { actionSamplingComplete: boolean }).actionSamplingComplete)).toBe(true);
     expect(await page.evaluate(() => (window as Window & { actionMotions: number }).actionMotions)).toBe(0);

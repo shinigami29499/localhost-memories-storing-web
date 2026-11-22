@@ -1,80 +1,54 @@
 import { useCallback, type KeyboardEvent, type MouseEvent } from "react";
-import type { Query, QueryCache } from "@tanstack/react-query";
-import { Link, type LinkProps, type Location, useLocation, useNavigate } from "react-router-dom";
-import { useAnimationStore } from "@/store/animationStore";
+import { Link, type LinkProps, type Location, useLocation, useNavigate, useNavigation } from "react-router-dom";
 
 type PageEntry = { fromKey: string; fromPathname?: string; homeIndex?: number };
-type PageState = { mobileEntry?: PageEntry; mobileReturn?: boolean };
-
-export type MobilePageTransition = {
-  locationKey: string;
-  id: number;
-  animateHandoff: boolean;
-  queries: Set<Query>;
-  stopTracking: () => void;
-};
+export type MobileAlbumCreateEntry = { albumDate: string; listLocationKey: string };
+type PageState = { mobileEntry?: PageEntry; mobileAlbumCreate?: MobileAlbumCreateEntry };
+type OpenPageOptions = { beforeNavigate?: () => void; replace?: boolean };
 
 const entries = new Map<string, PageEntry>();
-let activeTransition: MobilePageTransition | undefined;
-let transitionId = 0;
 const historyIndex = () => Number(window.history.state?.idx ?? 0);
-const prefersReducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const pageState = (location: Location) => location.state as PageState | null;
 const entryFor = (location: Location) => pageState(location)?.mobileEntry ?? entries.get(location.key);
 
 export function mobileSection(pathname: string) {
   const segment = pathname.split("/")[1];
-  return segment === "gallery" || segment === "location" || segment === "users" ? segment : null;
+  if (segment === "album") return "gallery";
+  if (segment === "user" || segment === "users") return "users";
+  return segment === "location" ? segment : null;
 }
 
-export const isMobileAlbumDetail = (pathname: string) => /^\/gallery\/album\/[^/]+\/?$/.test(pathname);
-const isGalleryList = (pathname: string) => /^\/gallery(?:\/album)?\/?$/.test(pathname);
+export const isMobileAlbumDetail = (pathname: string) => /^\/album\/[^/]+\/?$/.test(pathname);
+const isGalleryList = (pathname: string) => /^\/album\/?$/.test(pathname);
+export const isAlbumDetailHandoff = (from: string, to: string) => isGalleryList(from) && isMobileAlbumDetail(to);
 
-export function getMobilePageTransition(locationKey: string) {
-  return activeTransition?.locationKey === locationKey ? activeTransition : undefined;
-}
-
-export function updateMobilePageTransition(
-  previous: Location, next: Location, pop: boolean, cache: QueryCache,
-) {
-  activeTransition?.stopTracking();
-  activeTransition = undefined;
+export function rememberMobilePageEntry(previous: Location, next: Location, pop: boolean) {
+  if (pop || (previous.pathname === next.pathname &&
+    (pageState(previous)?.mobileAlbumCreate || pageState(next)?.mobileAlbumCreate))) return;
   const previousEntry = entryFor(previous);
   const nextEntry = pageState(next)?.mobileEntry;
   const section = mobileSection(next.pathname);
   const samePage = next.pathname === previous.pathname || (section && section === mobileSection(previous.pathname));
 
-  if (!pop && !nextEntry && previousEntry && samePage) {
+  if (!nextEntry && previousEntry && samePage) {
     entries.set(next.key, previousEntry);
   }
-
-  if ((isGalleryList(previous.pathname) && isMobileAlbumDetail(next.pathname))
-    || (isMobileAlbumDetail(previous.pathname) && isGalleryList(next.pathname))) return;
-
-  const returning = pop
-    ? previousEntry?.fromKey === next.key || (next.pathname === "/" && previousEntry?.homeIndex === historyIndex())
-    : pageState(next)?.mobileReturn;
-  const opening = nextEntry?.fromKey === previous.key;
-  if ((!opening && !returning) || prefersReducedMotion()) return;
-
-  const animateHandoff = useAnimationStore.getState().enabled;
-  const queries = new Set<Query>();
-  const stopTracking = cache.subscribe(({ type, query }) => {
-    if (type === "observerAdded") queries.add(query);
-  });
-  activeTransition = { locationKey: next.key, id: ++transitionId, animateHandoff, queries, stopTracking };
 }
 
 export function useOpenMobilePage() {
   const location = useLocation();
+  const navigation = useNavigation();
   const navigate = useNavigate();
   const returnHome = useReturnFromMobilePage();
-  return (to: string, event?: MouseEvent<HTMLElement> | KeyboardEvent<HTMLElement>, beforeNavigate?: () => void) => {
+  return (to: string, event?: MouseEvent<HTMLElement> | KeyboardEvent<HTMLElement>, options?: OpenPageOptions) => {
     if (event && (event.defaultPrevented || ("button" in event && event.button !== 0)
       || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)) return;
     event?.preventDefault();
-    beforeNavigate?.();
-    if (to === location.pathname + location.search + location.hash) return;
+    options?.beforeNavigate?.();
+    if (to === location.pathname + location.search + location.hash) {
+      if (navigation.state === "loading") void navigate(to, { replace: true, state: location.state });
+      return;
+    }
     if (to === "/" && location.pathname !== "/") {
       returnHome();
       return;
@@ -83,7 +57,7 @@ export function useOpenMobilePage() {
     const openingFromHome = location.pathname === "/";
     const homeIndex = openingFromHome ? currentIndex : entryFor(location)?.homeIndex;
     const mobileEntry = { fromKey: location.key, fromPathname: location.pathname, homeIndex };
-    const replace = !openingFromHome && !mobileSection(location.pathname) && homeIndex === currentIndex - 1;
+    const replace = options?.replace ?? (!openingFromHome && !mobileSection(location.pathname) && homeIndex === currentIndex - 1);
     void navigate(to, { replace, state: { mobileEntry } });
   };
 }
@@ -109,10 +83,7 @@ export function useReturnFromMobilePage() {
     if (delta < 0) {
       void navigate(delta);
     } else {
-      void navigate("/", {
-        replace: true,
-        state: { mobileReturn: true },
-      });
+      void navigate("/", { replace: true });
     }
   }, [location, navigate]);
 }
@@ -122,12 +93,14 @@ export function useMobileBack() {
   const navigate = useNavigate();
   const returnHome = useReturnFromMobilePage();
   return useCallback(() => {
-    if (!isMobileAlbumDetail(location.pathname)) {
+    if (pageState(location)?.mobileAlbumCreate) {
+      void navigate(-1);
+    } else if (!isMobileAlbumDetail(location.pathname)) {
       returnHome();
     } else if (isGalleryList(entryFor(location)?.fromPathname ?? "") && historyIndex() > 0) {
       void navigate(-1);
     } else {
-      void navigate("/gallery", { replace: true });
+      void navigate("/album", { replace: true });
     }
   }, [location, navigate, returnHome]);
 }

@@ -10,8 +10,8 @@ test("mobile Users and Locations action bars transition in sequence", async ({ p
   });
   await page.route(/^https?:\/\/[^/]+\/api\//, (route) => {
     const path = new URL(route.request().url()).pathname;
-    if (path === "/api/location/home-location") return route.fulfill({ json: null });
-    if (path.endsWith("/page") || path.startsWith("/api/library/gallery") || path === "/api/location/travel/map") {
+    if (path === "/api/place/home-location") return route.fulfill({ json: null });
+    if (path.endsWith("/page") || path.startsWith("/api/library/album/media") || path === "/api/place/travel/map") {
       return route.fulfill({ json: { page: 1, offset: 0, total: 0, limit: 30, items: [], allCount: 0, pendingCount: 0, hasMore: false } });
     }
     return route.fulfill({ json: [] });
@@ -184,8 +184,8 @@ test("Users exit stays visible while sliding down to Locations and Gallery", asy
   });
   await page.route(/^https?:\/\/[^/]+\/api\//, (route) => {
     const path = new URL(route.request().url()).pathname;
-    if (path === "/api/location/home-location") return route.fulfill({ json: null });
-    if (path.endsWith("/page") || path.startsWith("/api/library/gallery") || path === "/api/location/travel/map") {
+    if (path === "/api/place/home-location") return route.fulfill({ json: null });
+    if (path.endsWith("/page") || path.startsWith("/api/library/album/media") || path === "/api/place/travel/map") {
       return route.fulfill({ json: { page: 1, offset: 0, total: 0, limit: 30, items: [], allCount: 0, pendingCount: 0, hasMore: false } });
     }
     return route.fulfill({ json: [] });
@@ -260,8 +260,8 @@ for (const view of ["saved", "history"]) {
     });
     await page.route(/^https?:\/\/[^/]+\/api\//, (route) => {
       const path = new URL(route.request().url()).pathname;
-      if (path === "/api/location/home-location") return route.fulfill({ json: null });
-      if (path.endsWith("/page") || path.startsWith("/api/library/gallery") || path === "/api/location/travel/map") {
+      if (path === "/api/place/home-location") return route.fulfill({ json: null });
+      if (path.endsWith("/page") || path.startsWith("/api/library/album/media") || path === "/api/place/travel/map") {
         return route.fulfill({ json: { page: 1, offset: 0, total: 0, limit: 30, items: [], allCount: 0, pendingCount: 0, hasMore: false } });
       }
       return route.fulfill({ json: [] });
@@ -290,7 +290,7 @@ for (const view of ["saved", "history"]) {
     });
     const before = (await page.locator(".page-action-bar__item > .place__action-bar").boundingBox())!;
     await page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Gallery" }).click();
-    await expect(page).toHaveURL(/\/gallery$/);
+    await expect(page).toHaveURL(/\/album$/);
     const exit = page.locator("[data-user-transition-exit] .place__action-bar");
     await expect(exit).toBeVisible();
     const bounds = (await exit.boundingBox())!;

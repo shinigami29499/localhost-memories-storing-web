@@ -15,9 +15,10 @@ import { UserAvatar } from "@/components/common/UserAvatar";
 import { Search } from "@/components/animate-ui/icons/search";
 import { SlidersHorizontal } from "@/components/animate-ui/icons/sliders-horizontal";
 import { IconButton, EmptyState, ErrorState, Spinner } from "@/components/ui";
+import { PageDataPlaceholder } from "@/components/ui/PageDataPlaceholder";
 import { MobileConfirmationDialog as ConfirmationDialog } from "../gallery/MobileConfirmationDialog";
 import { formatLastActive, useUsersPage } from "@/pages/users/useUsersPage";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import "./mobile-users.css";
 
@@ -56,6 +57,7 @@ export function MobileUsersPage() {
   const searchDialog = useRef<HTMLDialogElement>(null);
   const searchInput = useRef<HTMLInputElement>(null);
   const filterTrigger = useRef<HTMLButtonElement>(null);
+  const dismissStart = useRef<{ id: number; x: number; y: number } | null>(null);
   useEffect(() => {
     const query = debouncedSearch.trim();
     setSearch(query.length >= 3 ? query : "");
@@ -88,6 +90,24 @@ export function MobileUsersPage() {
     searchDialog.current?.close();
   }
 
+  function startFilterDismiss(event: PointerEvent<HTMLDivElement>) {
+    if (event.isPrimary && event.button === 0) {
+      dismissStart.current = { id: event.pointerId, x: event.clientX, y: event.clientY };
+    }
+  }
+
+  function finishFilterDismiss(event: PointerEvent<HTMLDivElement>) {
+    const start = dismissStart.current;
+    if (start?.id !== event.pointerId) return;
+    dismissStart.current = null;
+
+    const horizontalDistance = Math.abs(event.clientX - start.x);
+    const upwardDistance = start.y - event.clientY;
+    const tapped = horizontalDistance <= 8 && Math.abs(upwardDistance) <= 8;
+    const swipedUp = event.pointerType === "touch" && upwardDistance >= 48 && upwardDistance > horizontalDistance;
+    if (tapped || swipedUp) searchDialog.current?.close();
+  }
+
   const busy = approve.isPending || reject.isPending || activate.isPending || disable.isPending || updateRole.isPending || remove.isPending || action !== null;
   return <>
     <main className="mobile-users" aria-label={t("Users")}>
@@ -100,13 +120,17 @@ export function MobileUsersPage() {
         </IconButton>
       </form>
       <div className="mobile-users__content admin-users__content">
-        {activeQuery.isLoading && <Spinner label={t("Loading users...")} />}
+        {activeQuery.isLoading && <PageDataPlaceholder layout="users" label={t("Loading users...")} />}
         {activeQuery.isError && !pagedUsers.length && <ErrorState message={t("Could not load users.")} onRetry={() => void activeQuery.refetch()} />}
         {activeQuery.data && (pagedUsers.length === 0 ? <EmptyState title={search.trim() || roles.length > 0 || statuses.length > 0 || joinedFrom || joinedTo ? "No matching users" : "No users yet"} hint={search.trim() || roles.length > 0 || statuses.length > 0 || joinedFrom || joinedTo ? "Try a different search." : "User accounts will appear here."} /> :
           <ul className="mobile-users__list">{pagedUsers.map((user) => {
             const online = isOnline(user);
             const joinedDate = new Date(user.createdAt);
-            const joined = Number.isNaN(joinedDate.getTime()) ? "" : joinedDate.toLocaleDateString(language === "vi" ? "vi-VN" : "en-US");
+            const joined = Number.isNaN(joinedDate.getTime()) ? "" : joinedDate.toLocaleDateString(language === "vi" ? "vi-VN" : "en-US", {
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+            });
             const statusLabel = user.status === "disabled" ? t("Paused") : user.status === "pending_approval" ? t("Pending") : null;
             const elapsed = user.lastSeenAt ? Math.max(0, now - Date.parse(user.lastSeenAt)) : NaN;
             const recent = user.status === "active" && Number.isFinite(elapsed) && elapsed >= 0 && elapsed <= 6 * 60 * 60 * 1000;
@@ -151,6 +175,14 @@ export function MobileUsersPage() {
       <details className="mobile-user-search__card mobile-user-search__status-card"><summary id="status-filter-heading">{t("Status")}<ChevronDown size={18} aria-hidden="true" /></summary><div className="mobile-user-search__roles" role="group" aria-labelledby="status-filter-heading">{([{ value: "active", label: t("Active"), color: "active" }, { value: "pending_approval", label: t("Pending"), color: "pending" }, ...(isAdmin ? [{ value: "disabled", label: t("Paused"), color: "blocked" }] : [])]).map(({ value, label, color }) => <label key={value} className="mobile-user-search__role"><input type="checkbox" checked={filterDraft.statuses.includes(value)} onChange={() => toggleDraftFilter("statuses", value)} /><span className={`mobile-user-search__status-dot mobile-user-search__status-dot--${color}`} aria-hidden="true" /><span>{label}</span></label>)}</div></details>
       <details className="mobile-user-search__when" onToggle={(event) => { if (event.currentTarget.open) searchDialog.current?.querySelectorAll<HTMLDetailsElement>(".mobile-user-search__card[open]").forEach((section) => { section.open = false; }); }}><summary><span>{t("Joined date")}</span><ChevronDown size={18} aria-hidden="true" /></summary><div className="mobile-user-search__dates"><DropdownRangeDatePicker from={filterDraft.joinedFrom} to={filterDraft.joinedTo} container={searchDialog} onChange={(from, to) => setFilterDraft((current) => ({ ...current, joinedFrom: from, joinedTo: to }))} /></div></details>
       </div>
+      <div
+        aria-hidden="true"
+        className="mobile-user-search__dismiss-area"
+        onPointerDown={startFilterDismiss}
+        onPointerUp={finishFilterDismiss}
+        onPointerCancel={() => { dismissStart.current = null; }}
+        onPointerLeave={() => { dismissStart.current = null; }}
+      />
       <div className="mobile-user-search__footer"><button type="button" onClick={() => setFilterDraft(emptyFilters)}>{t("Clear all")}</button><button type="button" onClick={applyFilters}><Search size={18} aria-hidden="true" />{t("Search")}</button></div>
     </dialog>
     <dialog ref={profileDialog} className="mobile-user-profile" aria-label={selectedUser?.username} onClose={() => setSelectedId(null)}>

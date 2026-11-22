@@ -26,19 +26,19 @@
 .mobile-home-header__username,
 .mobile-home-header__role {
   overflow: hidden;
-  line-height: var(--mobile-account-line-height);
+  line-height: var(--mobile-item-line-height);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .mobile-home-header__username {
-  font-size: var(--mobile-account-name-size);
-  font-weight: 700;
+  font-size: var(--mobile-item-title-size);
+  font-weight: var(--mobile-item-title-weight);
 }
 
 .mobile-home-header__role {
   color: var(--mobile-text-muted);
-  font-size: var(--mobile-account-role-size);
+  font-size: var(--mobile-item-support-size);
   font-weight: 400;
 }
 

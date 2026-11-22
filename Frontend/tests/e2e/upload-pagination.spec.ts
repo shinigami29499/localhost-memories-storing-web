@@ -10,8 +10,8 @@ for (const width of [390, 1280]) {
     });
     await page.route(/^https?:\/\/[^/]+\/api\//, (route) => {
       const url = new URL(route.request().url());
-      if (url.pathname === "/api/users/me") return route.fulfill({ json: { id: "u1", username: "viewer", role: "user", status: "active", createdAt: "2026-01-01" } });
-      if (url.pathname.endsWith("/batches")) {
+      if (url.pathname === "/api/user/me") return route.fulfill({ json: { id: "u1", username: "viewer", role: "user", status: "active", createdAt: "2026-01-01" } });
+      if (url.pathname.endsWith("/batch")) {
         const offset = Number(url.searchParams.get("offset") ?? 0);
         return route.fulfill({ json: { totalItems: 100, items: [{ id: `batch-${offset}`, status: "Completed", username: null, canManage: true, createdAt: "2026-10-28T00:00:00Z", completedAt: null, totalFiles: 0, successfulFiles: 0, failedFiles: 0, cancelledFiles: 0, items: [] }] } });
       }

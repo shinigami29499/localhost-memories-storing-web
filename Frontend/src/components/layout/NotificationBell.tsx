@@ -62,7 +62,7 @@ export function NotificationBell() {
                 return (
                 <li key={notification.kind === "album" ? notification.eventId : notification.id}>
                   <Link
-                    to={notification.kind === "album" ? `/gallery/album/${notification.albumId}` : "/gallery"}
+                    to={notification.kind === "album" ? `/album/${notification.albumId}` : "/album"}
                     className={`notification-bar__item${notification.readAt ? "" : " notification-bar__item--unread"}`}
                     onClick={(event) => openNotification(event, notification)}
                   >

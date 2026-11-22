@@ -24,7 +24,7 @@ test("keeps the album selection and highlight stable when removing selected favo
       await route.fulfill({ json: { offset: 0, limit: 20, total: media.length, items: media } });
       return;
     }
-    if (pathname === "/api/library/gallery/favorites/batch") {
+    if (pathname === "/api/library/album/media/favorite/batch") {
       media.forEach((item) => { item.isFavorited = false; });
       await route.fulfill({ status: 204, body: "" });
       return;

@@ -12,16 +12,16 @@ test("owner can remove a located photo's location from its desktop deep link", a
   await page.route(/^https?:\/\/[^/]+\/api\//, async (route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname;
-    if (path === "/api/location/travel/photo" && request.method() === "PUT") {
+    if (path === "/api/place/travel/photo" && request.method() === "PUT") {
       writes.push(request.postDataJSON());
       await new Promise<void>((resolve) => { releaseWrite = resolve; });
       photo.location = null;
       return route.fulfill({ status: 204 });
     }
-    if (path === "/api/location/home-location") return route.fulfill({ json: null });
-    if (path === "/api/library/gallery/photo") return route.fulfill({ json: photo });
-    if (path === "/api/location/travel/map") return route.fulfill({ json: { offset: 0, total: 1, items: [photo] } });
-    if (path.endsWith("/page") || path.startsWith("/api/library/gallery")) return route.fulfill({ json: { offset: 0, total: 0, items: [] } });
+    if (path === "/api/place/home-location") return route.fulfill({ json: null });
+    if (path === "/api/library/album/media/photo") return route.fulfill({ json: photo });
+    if (path === "/api/place/travel/map") return route.fulfill({ json: { offset: 0, total: 1, items: [photo] } });
+    if (path.endsWith("/page") || path.startsWith("/api/library/album/media")) return route.fulfill({ json: { offset: 0, total: 0, items: [] } });
     return route.fulfill({ json: [] });
   });
   await page.route("**/hubs/**", (route) => route.abort());
@@ -58,10 +58,10 @@ test("other users cannot remove a photo location", async ({ page }) => {
   }, version: 0 })));
   await page.route(/^https?:\/\/[^/]+\/api\//, (route) => {
     const path = new URL(route.request().url()).pathname;
-    if (path === "/api/location/home-location") return route.fulfill({ json: null });
-    if (path === "/api/library/gallery/photo") return route.fulfill({ json: photo });
-    if (path === "/api/location/travel/map") return route.fulfill({ json: { offset: 0, total: 1, items: [photo] } });
-    if (path.endsWith("/page") || path.startsWith("/api/library/gallery")) return route.fulfill({ json: { offset: 0, total: 0, items: [] } });
+    if (path === "/api/place/home-location") return route.fulfill({ json: null });
+    if (path === "/api/library/album/media/photo") return route.fulfill({ json: photo });
+    if (path === "/api/place/travel/map") return route.fulfill({ json: { offset: 0, total: 1, items: [photo] } });
+    if (path.endsWith("/page") || path.startsWith("/api/library/album/media")) return route.fulfill({ json: { offset: 0, total: 0, items: [] } });
     return route.fulfill({ json: [] });
   });
   await page.route("**/hubs/**", (route) => route.abort());
@@ -83,10 +83,10 @@ test("owner can reach the editor from a focused photo marker", async ({ page }) 
   }, version: 0 })));
   await page.route(/^https?:\/\/[^/]+\/api\//, (route) => {
     const path = new URL(route.request().url()).pathname;
-    if (path === "/api/location/home-location") return route.fulfill({ json: null });
-    if (path === "/api/library/gallery/photo") return route.fulfill({ json: photo });
-    if (path === "/api/location/travel/map") return route.fulfill({ json: { offset: 0, total: 1, items: [photo] } });
-    if (path.endsWith("/page") || path.startsWith("/api/library/gallery")) return route.fulfill({ json: { offset: 0, total: 0, items: [] } });
+    if (path === "/api/place/home-location") return route.fulfill({ json: null });
+    if (path === "/api/library/album/media/photo") return route.fulfill({ json: photo });
+    if (path === "/api/place/travel/map") return route.fulfill({ json: { offset: 0, total: 1, items: [photo] } });
+    if (path.endsWith("/page") || path.startsWith("/api/library/album/media")) return route.fulfill({ json: { offset: 0, total: 0, items: [] } });
     return route.fulfill({ json: [] });
   });
   await page.route("**/hubs/**", (route) => route.abort());
@@ -109,10 +109,10 @@ test("web phone retains read-only photo locations", async ({ page }) => {
   }, version: 0 })));
   await page.route(/^https?:\/\/[^/]+\/api\//, (route) => {
     const path = new URL(route.request().url()).pathname;
-    if (path === "/api/location/home-location") return route.fulfill({ json: null });
-    if (path === "/api/library/gallery/photo") return route.fulfill({ json: photo });
-    if (path === "/api/location/travel/map") return route.fulfill({ json: { offset: 0, total: 1, items: [photo] } });
-    if (path.endsWith("/page") || path.startsWith("/api/library/gallery")) return route.fulfill({ json: { offset: 0, total: 0, items: [] } });
+    if (path === "/api/place/home-location") return route.fulfill({ json: null });
+    if (path === "/api/library/album/media/photo") return route.fulfill({ json: photo });
+    if (path === "/api/place/travel/map") return route.fulfill({ json: { offset: 0, total: 1, items: [photo] } });
+    if (path.endsWith("/page") || path.startsWith("/api/library/album/media")) return route.fulfill({ json: { offset: 0, total: 0, items: [] } });
     return route.fulfill({ json: [] });
   });
   await page.route("**/hubs/**", (route) => route.abort());
@@ -137,16 +137,16 @@ test("owner can retry a failed move to a changed map coordinate", async ({ page 
   await page.route(/^https?:\/\/[^/]+\/api\//, (route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname;
-    if (path === "/api/location/travel/photo" && request.method() === "PUT") {
+    if (path === "/api/place/travel/photo" && request.method() === "PUT") {
       writes.push(request.postDataJSON());
       if (writes.length === 1) return route.fulfill({ status: 500, contentType: "application/problem+json", body: JSON.stringify({ title: "Write failed", detail: "Please retry the location change." }) });
       photo.location = writes.at(-1)!;
       return route.fulfill({ status: 204 });
     }
-    if (path === "/api/location/home-location") return route.fulfill({ json: null });
-    if (path === "/api/library/gallery/photo") return route.fulfill({ json: photo });
-    if (path === "/api/location/travel/map") return route.fulfill({ json: { offset: 0, total: 1, items: [photo] } });
-    if (path.endsWith("/page") || path.startsWith("/api/library/gallery")) return route.fulfill({ json: { offset: 0, total: 0, items: [] } });
+    if (path === "/api/place/home-location") return route.fulfill({ json: null });
+    if (path === "/api/library/album/media/photo") return route.fulfill({ json: photo });
+    if (path === "/api/place/travel/map") return route.fulfill({ json: { offset: 0, total: 1, items: [photo] } });
+    if (path.endsWith("/page") || path.startsWith("/api/library/album/media")) return route.fulfill({ json: { offset: 0, total: 0, items: [] } });
     return route.fulfill({ json: [] });
   });
   await page.route("**/hubs/**", (route) => route.abort());

@@ -1,147 +1,74 @@
-import { useLayoutEffect, useRef, type ReactNode, type RefObject } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useCallback, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { useLocale } from "@/context/LocaleContext";
-import { useAnimationStore } from "@/store/animationStore";
-import type { MobilePageTransition } from "./mobilePageNavigation";
+import { UiResourceProgress } from "@/features/ui-resources/UiResourceProgress";
+import { useUiRouteProgress } from "@/features/ui-resources/uiRoute";
 import "./mobile-page-loading.css";
 
-const minimumVisibleMs = 300;
-const progressStepMs = minimumVisibleMs / 100;
-const handoffDuration = 420;
-const handoffEase = "cubic-bezier(.4,0,.1,1)";
-
-type Props = {
-  transition: MobilePageTransition;
-  title: string;
-  icon: ReactNode;
-  pageRef: RefObject<HTMLDivElement | null>;
-  onComplete: (id: number) => void;
-};
-
-export function MobilePageLoadingOverlay({ transition, title, icon, pageRef, onComplete }: Props) {
+export function MobilePageLoadingOverlay({ pathname, title, icon, handoff, headerTitle, onHandoffComplete }: {
+  pathname?: string;
+  title?: string;
+  icon?: ReactNode;
+  handoff?: boolean;
+  headerTitle?: RefObject<HTMLSpanElement | null>;
+  onHandoffComplete?: () => void;
+}) {
   const { t } = useLocale();
-  const cache = useQueryClient().getQueryCache();
+  const progress = useUiRouteProgress(pathname ?? window.location.pathname);
   const overlayRef = useRef<HTMLDivElement>(null);
-  const backgroundRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLSpanElement>(null);
-  const progressRef = useRef<HTMLDivElement>(null);
+  const [barComplete, setBarComplete] = useState(false);
+  const finishBar = useCallback(() => setBarComplete(true), []);
 
   useLayoutEffect(() => {
-    const page = pageRef.current;
     const overlay = overlayRef.current;
-    const background = backgroundRef.current;
-    const heading = titleRef.current;
-    const progressBar = progressRef.current;
-    if (!page || !overlay || !background || !heading || !progressBar) return;
-
-    let frame = 0;
-    let minTimer = 0;
-    let visible = false;
-    let minimumElapsed = false;
-    let shownPercent = 0;
-    let lastStepAt: number | undefined;
-    let disposed = false;
-    let leaving = false;
-    let animations: Animation[] = [];
-
-    const handoff = () => {
-      leaving = true;
-      transition.stopTracking();
-      if (!transition.animateHandoff || !useAnimationStore.getState().enabled) {
-        onComplete(transition.id);
-        return;
-      }
-      overlay.dataset.handoff = "";
-      const target = page.querySelector<HTMLElement>(".mobile-shell-header .mobile-page-title");
-      animations = [background.animate([{ opacity: 1 }, { opacity: 0 }], {
-        duration: handoffDuration, easing: handoffEase, fill: "forwards",
-      })];
-      if (target) {
-        const from = heading.getBoundingClientRect();
-        const to = target.getBoundingClientRect();
-        const scale = parseFloat(getComputedStyle(target).fontSize) / parseFloat(getComputedStyle(heading).fontSize);
+    if (!handoff || !barComplete || !overlay) return;
+    const duration = 320;
+    const animations = [overlay.animate([{ opacity: 1 }, { opacity: 0 }], { duration, easing: "ease-out", fill: "forwards" })];
+    const source = titleRef.current;
+    const target = headerTitle?.current;
+    let clone: HTMLSpanElement | undefined;
+    if (source && target) {
+      const from = source.getBoundingClientRect();
+      const to = target.getBoundingClientRect();
+      if (from.width && from.height && to.width && to.height) {
+        clone = source.cloneNode(true) as HTMLSpanElement;
+        clone.setAttribute("aria-hidden", "true");
+        const style = getComputedStyle(source);
+        Object.assign(clone.style, {
+          position: "fixed", zIndex: "100001", left: `${from.left}px`, top: `${from.top}px`,
+          pointerEvents: "none", whiteSpace: "nowrap", transformOrigin: "left center",
+          fontSize: style.fontSize, fontWeight: style.fontWeight, lineHeight: style.lineHeight,
+        });
+        document.body.append(clone);
+        source.style.visibility = "hidden";
         const x = to.left - from.left;
-        const y = (to.top + to.height / 2) - (from.top + from.height / 2);
-        animations.push(heading.animate([
+        const y = to.top + to.height / 2 - (from.top + from.height / 2);
+        animations.push(clone.animate([
           { transform: "translate(0, 0) scale(1)" },
-          { transform: `translate(${x}px, ${y}px) scale(${scale})` },
-        ], { duration: handoffDuration, easing: handoffEase, fill: "forwards" }));
+          { transform: `translate(${x}px, ${y}px) scale(${to.width / from.width})` },
+        ], { duration, easing: "cubic-bezier(.22, 1, .36, 1)", fill: "forwards" }));
+        animations.push(target.animate([{ opacity: 0 }, { opacity: 0 }], { duration, fill: "forwards" }));
       }
-      void Promise.allSettled(animations.map((animation) => animation.finished)).then(() => {
-        if (!disposed) onComplete(transition.id);
-      });
-    };
-
-    const update = (now: number) => {
-      frame = 0;
-      const pageReady = !page.querySelector("[data-mobile-page-pending]");
-      let total = 1;
-      let settled = pageReady ? 1 : 0;
-      for (const query of transition.queries) {
-        if (!query.isActive()) continue;
-        total += 1;
-        if (query.state.status !== "pending" || query.state.fetchStatus === "paused") settled += 1;
-      }
-      const ready = settled === total && minimumElapsed;
-      const target = Math.min(ready ? 100 : 99, Math.floor(settled * 100 / total));
-      if (shownPercent < target) {
-        lastStepAt ??= now;
-        const steps = Math.floor((now - lastStepAt) / progressStepMs);
-        if (steps > 0) {
-          shownPercent = Math.min(target, shownPercent + steps);
-          progressBar.setAttribute("aria-valuenow", String(shownPercent));
-          progressBar.style.setProperty("--mobile-page-progress", String(shownPercent / 100));
-          lastStepAt = shownPercent === target ? undefined : lastStepAt + steps * progressStepMs;
-        }
-        schedule();
-      } else if (ready && shownPercent === 100) {
-        handoff();
-      } else {
-        lastStepAt = undefined;
-      }
-    };
-
-    function schedule() {
-      if (visible && !frame && !leaving) frame = requestAnimationFrame(update);
     }
 
-    const unsubscribe = cache.subscribe((event) => {
-      if (transition.queries.has(event.query)) schedule();
+    let cancelled = false;
+    void Promise.allSettled(animations.map((animation) => animation.finished)).then(() => {
+      if (!cancelled) onHandoffComplete?.();
     });
-    const observer = new MutationObserver(schedule);
-    observer.observe(page, { subtree: true, childList: true, attributeFilter: ["data-mobile-page-pending"] });
-
-    const firstFrame = requestAnimationFrame(() => {
-      visible = true;
-      schedule();
-      minTimer = window.setTimeout(() => {
-        minimumElapsed = true;
-        schedule();
-      }, minimumVisibleMs);
-    });
-
     return () => {
-      disposed = true;
-      unsubscribe();
-      observer.disconnect();
-      cancelAnimationFrame(frame);
-      cancelAnimationFrame(firstFrame);
-      window.clearTimeout(minTimer);
+      cancelled = true;
       animations.forEach((animation) => animation.cancel());
+      if (source) source.style.removeProperty("visibility");
+      clone?.remove();
     };
-  }, [cache, transition, onComplete, pageRef]);
+  }, [handoff, barComplete, headerTitle, onHandoffComplete]);
 
-  return (
-    <div ref={overlayRef} className="mobile-page-loading">
-      <div ref={backgroundRef} className="mobile-page-loading__background" aria-hidden="true" />
-      <div className="mobile-page-loading__content">
-        <div className="mobile-page-loading__icon" aria-hidden="true">{icon}</div>
-        <span ref={titleRef} className="mobile-page-loading__title mobile-page-title" aria-hidden="true">{title}</span>
-        <div ref={progressRef} className="mobile-page-loading__progress" role="progressbar"
-          aria-label={`${t("Loading page...")} ${title}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={0}>
-          <span />
-        </div>
-      </div>
+  return <div className="mobile-page-loading" ref={overlayRef} data-handoff={handoff || undefined} aria-hidden={(handoff && barComplete) || undefined}>
+    <div className="mobile-page-loading__content">
+      {icon && <span className="mobile-page-loading__icon" aria-hidden="true">{icon}</span>}
+      <UiResourceProgress label={title ? `${t("Loading page...")} ${t(title)}` : t("Loading page...")}
+        heading={title && <span ref={titleRef} className="mobile-page-title">{t(title)}</span>}
+        loaded={progress?.loaded} total={progress?.total} stepped complete={handoff} onCompleted={finishBar} />
     </div>
-  );
+  </div>;
 }

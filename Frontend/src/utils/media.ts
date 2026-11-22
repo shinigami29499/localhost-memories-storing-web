@@ -15,7 +15,7 @@ export function mediaUrl(mediaId: string, includeDeleted = false): string {
   const useSameOrigin = localApiHost && browserHost && !["localhost", "127.0.0.1", "[::1]"].includes(browserHost);
   const base = (useSameOrigin ? "" : configuredBase ?? "http://localhost:8000").replace(/\/$/, "");
   const token = useAuthStore.getState().accessToken ?? "";
-  return `${base}/api/library/gallery/${mediaId}/file?accessToken=${encodeURIComponent(token)}${includeDeleted ? "&includeDeleted=true" : ""}`;
+  return `${base}/api/library/album/media/${mediaId}/file?accessToken=${encodeURIComponent(token)}${includeDeleted ? "&includeDeleted=true" : ""}`;
 }
 
 export function mediaPreviewUrl(mediaId: string, includeDeleted = false, previewSize = 640): string {

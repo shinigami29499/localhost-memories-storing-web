@@ -1,7 +1,8 @@
+import { PageDataPlaceholder } from "@/components/ui/PageDataPlaceholder";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useInfiniteQuery, useIsMutating, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { Button, ConfirmationDialog, ErrorState, showToast, Spinner } from "@/components/ui";
+import { Button, ConfirmationDialog, ErrorState, showToast } from "@/components/ui";
 import { useLocale } from "@/context/LocaleContext";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useAuthStore } from "@/store/authStore";
@@ -52,7 +53,7 @@ export function LocationsPage() {
                 ))}</ul>
               </div>
             )}
-          {query.isLoading ? <Spinner page /> : query.isError && !media.length ? (
+          {query.isLoading ? <div className="locations__map-panel"><PageDataPlaceholder layout="map" label={t("Loading photos...")} /></div> : query.isError && !media.length ? (
             <ErrorState message="Could not load photos." onRetry={() => void query.refetch()} />
           ) : (
             <>
@@ -64,7 +65,7 @@ export function LocationsPage() {
                 onConfirmRelocation={() => setMoveConfirmationOpen(true)}
                 homeLocation={home.query.data ?? null} homeLocationReady={home.query.isFetched}
                 homeActionDisabled={saving || home.save.isPending}
-                onBrowseAlbums={() => navigateToAlbums("/gallery/album")}
+                onBrowseAlbums={() => navigateToAlbums("/album")}
                 homePicking={homePicking} homeRelocationDraft={homeRelocationDraft} onSelect={select} canMove={canMove} onMove={movePhoto}
 
 
@@ -145,7 +146,7 @@ export function LocationsPage() {
           )}
               <details className="locations__unlocated" onToggle={(event) => setShowUnlocated(event.currentTarget.open)}>
                 <summary>{t("Photos without a location")}</summary>
-                {unlocated.isPending && showUnlocated ? <Spinner label={t("Loading photos...")} /> : null}
+                {unlocated.isPending && showUnlocated ? <PageDataPlaceholder layout="media" label={t("Loading photos...")} /> : null}
                 {unlocated.isError && !unlocated.data ? (
                   <ErrorState message={t("Could not load photos.")} onRetry={() => void unlocated.refetch()} />
                 ) : unlocated.data ? (

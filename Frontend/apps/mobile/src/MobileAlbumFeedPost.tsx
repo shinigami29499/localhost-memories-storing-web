@@ -67,11 +67,11 @@ export function MobileAlbumFeedPost({ album, canDelete }: Props) {
         onKeyDown={(event) => {
           if (event.key === "ArrowRight") { event.preventDefault(); void nextImage(); }
           if (event.key === "ArrowLeft") { event.preventDefault(); previousImage(); }
-          if (event.key === "Enter") openPage(`/gallery/album/${album.id}`, event);
+          if (event.key === "Enter") openPage(`/album/${album.id}`, event);
         }}
         onClick={(event) => {
           if (suppressClick.current) { suppressClick.current = false; return; }
-          openPage(`/gallery/album/${album.id}`, event);
+          openPage(`/album/${album.id}`, event);
         }}
         onPointerDown={(event) => { suppressClick.current = false; swipeStart.current = { x: event.clientX, y: event.clientY }; }}
         onPointerUp={(event) => {

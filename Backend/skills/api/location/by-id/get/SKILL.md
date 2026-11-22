@@ -10,3 +10,5 @@ description: "Current behavior of GET /api/location/{placeId:guid}."
 - Inputs: Guid placeId.
 - Flow: Returns a place by ID, or not found if absent.
 - Source: `Backend/Apis/Controllers/PlacesController.cs` (GetPlaceAsync); `Backend/Infrastructures/Data/ApplicationServices/PlaceService.cs`.
+
+Canonical route: `/api/place/{placeId:guid}`. Previous routes remain aliases.

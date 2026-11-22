@@ -1,3 +1,4 @@
+import { PageDataPlaceholder } from "@/components/ui/PageDataPlaceholder";
 import { formatLastActive, useUsersPage } from "@/pages/users/useUsersPage";
 import { PushTransition } from "@/hooks/PushTransition";
 import { AnimateIcon } from "@/components/animate-ui/icons/icon";
@@ -95,7 +96,7 @@ export function UsersPage() {
               </div>
               <div data-push-page-content>
               <PushTransition transitionKey={filter} />
-              {activeQuery.isLoading ? <Spinner page label={t("Loading users...")} /> : null}
+              {activeQuery.isLoading ? <PageDataPlaceholder layout="users" label={t("Loading users...")} /> : null}
               {activeQuery.isError && !pagedUsers.length ? (
                 <ErrorState message={t("Could not load users.")} onRetry={() => void activeQuery.refetch()} />
               ) : null}

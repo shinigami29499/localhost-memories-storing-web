@@ -1,3 +1,4 @@
+import { registerUiModule } from "@/features/ui-resources/uiModules";
 import { lazy, Suspense, useRef, useState } from "react";
 import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
@@ -6,9 +7,7 @@ import { Ellipsis } from "@/components/animate-ui/icons/ellipsis";
 import { useLocale } from "../../../context/LocaleContext";
 
 // Loaded on demand so media controls do not pull dialog code until needed.
-const SaveToAlbumDialog = lazy(() =>
-  import("./SaveToAlbumDialog").then((module) => ({ default: module.SaveToAlbumDialog })),
-);
+const SaveToAlbumDialog = lazy(registerUiModule("Save to album menu dialog", () => import("./SaveToAlbumDialog").then((module) => ({ default: module.SaveToAlbumDialog }))));
 
 export function SaveToAlbumMenu({ mediaIds }: { mediaIds: string[] }) {
   const { t } = useLocale();

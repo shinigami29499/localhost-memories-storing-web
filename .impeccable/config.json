@@ -21,6 +21,33 @@
         ],
         "createdAt": "2026-11-20T14:55:12.694Z",
         "reason": "The user confirmed the gradient User title as the reference for mobile page headers."
+      },
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          "Frontend/android/app/src/main/assets/public/index.html"
+        ],
+        "createdAt": "2026-11-22T11:52:55.400Z",
+        "reason": "Reviewed: generated Android bundle reports the warm gray mobile background specified by the project color skill."
+      },
+      {
+        "rule": "ai-color-palette",
+        "value": "*",
+        "files": [
+          "Frontend/android/app/src/main/assets/public/index.html"
+        ],
+        "createdAt": "2026-11-22T11:52:55.471Z",
+        "reason": "Reviewed: generated Android bundle reports the established violet accent, including the documented gradient New album action."
+      },
+      {
+        "rule": "gradient-text",
+        "value": "*",
+        "files": [
+          "Frontend/android/app/src/main/assets/public/index.html"
+        ],
+        "createdAt": "2026-11-22T11:52:55.536Z",
+        "reason": "Reviewed: generated Android bundle repeats the mobile header gradient already covered by the source-file exception."
       }
     ]
   }

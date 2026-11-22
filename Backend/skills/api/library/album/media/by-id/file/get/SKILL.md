@@ -1,0 +1,12 @@
+---
+name: api-library-album-media-by-id-file-get
+description: "Current behavior of GET /api/library/album/media/{mediaId:guid}/file."
+---
+
+# GET /api/library/album/media/{mediaId:guid}/file
+
+- Routes: `/api/library/album/media/{mediaId:guid}/file`, `/api/library/gallery/{mediaId:guid}/file`, `/api/media/{mediaId:guid}/file`.
+- Access: Requires authentication; additional service-level permissions are described below.
+- Inputs: Guid mediaId, [FromQuery] bool preview = false, [FromQuery] int previewSize = 640.
+- Flow: Streams the original or a preview with range support. Active media only. Preview sizes must be 320 or 640. Preview responses use no-store.
+- Source: `Backend/Apis/Controllers/MediaController.cs` (GetFileAsync); `Backend/Infrastructures/Data/ApplicationServices/MediaService.cs` and its partial files.

@@ -32,7 +32,7 @@ for (const width of [320, 390, 640, 641, 767]) {
         ? { offset: 0, limit: 20, total: 1, items: [path === "/api/library/album/page" ? album : media], hasMore: false }
         : [] });
     });
-    for (const path of ["/gallery", "/gallery/album/a1"]) {
+    for (const path of ["/album", "/album/a1"]) {
       await page.goto(path);
       const bar = page.locator(".page-action-bar__item > .gallery-page__actions");
       await expect(bar).toBeVisible();

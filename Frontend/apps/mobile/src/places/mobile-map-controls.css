@@ -40,8 +40,9 @@
   from { clip-path: circle(150% at center); }
   to { clip-path: circle(0 at center); }
 }
-.map-loading-overlay .spinner__wheel {
-  color: var(--text-muted);
+.map-loading-overlay .mobile-content-placeholder {
+  inline-size: 100%;
+  block-size: 100%;
 }
 
 @keyframes map-marker-bounce {

@@ -71,7 +71,7 @@ export function startUploadRuntime(
       const images = batch.items.filter((item) => item.status === "Success" && item.contentType.startsWith("image/")).length;
       const videos = batch.items.filter((item) => item.status === "Success" && item.contentType.startsWith("video/")).length;
       const title = uploadMessage(translate, images, videos);
-      const destination = batch.albumId ? "/gallery/album/" + batch.albumId : "/sync/upload";
+      const destination = batch.albumId ? "/album/" + batch.albumId : "/sync/upload";
       void showBrowserNotification(title, summary, destination).catch((error: unknown) => {
         console.error("Could not show upload notification.", error);
       });

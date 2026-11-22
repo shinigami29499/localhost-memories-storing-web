@@ -17,8 +17,8 @@ Use this skill as the primary project guidance for spacing and grouping alongsid
 
 ## Typography baseline
 
-- Use `1rem` (16px at the default root size) for new UI body text and primary account labels. Use bold weight for emphasis, as in the Home username.
-- Use the Home reference sizes for equivalent supporting roles: 12px for the account role and 11px for compact bottom-navigation labels.
+- Use `1rem` (16px at the default root size) for standalone body copy.
+- Use the [frontend UI standard](../../../Instructions/frontend-ui-standard.md) for paired mobile text. Set titles to 18px bold and supporting text to 13px. Reuse the mobile item typography tokens for account labels, directory rows, card bylines, and empty states. Compact bottom-navigation labels keep their own scale.
 - Keep existing font sizes as authored. Change or reduce an established size only when the user requests it.
 
 ## Workflow

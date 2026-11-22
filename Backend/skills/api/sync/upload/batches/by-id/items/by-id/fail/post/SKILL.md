@@ -10,3 +10,5 @@ description: "Current behavior of POST /api/sync/upload/batches/{batchId:guid}/i
 - Inputs: Guid batchId, Guid itemId, FailUploadItemRequest request.
 - Flow: Marks a pending or uploading caller-owned item failed and records bounded error details. Other states produce conflict.
 - Source: `Backend/Apis/Controllers/UploadsController.cs` (FailItemAsync); `Backend/Infrastructures/Data/ApplicationServices/UploadService.cs`.
+
+Canonical route: `/api/sync/upload/batch/{batchId:guid}/item/{itemId:guid}/fail`. Previous routes remain aliases.

@@ -7,12 +7,14 @@ using Services.Requests.Users;
 namespace Apis.Controllers;
 
 [ApiController]
+[Route("api/user/directory")]
 [Route("api/users/directory")]
 [Route("api/user-directory")]
 [Authorize]
 public class UserDirectoryController(IUserService userService) : ControllerBase
 {
     [HttpGet("mentions")]
+    [HttpGet("mention")]
     public async Task<ActionResult<IReadOnlyList<UserMentionCandidateDto>>> SearchMentionCandidatesAsync(
         [FromQuery] UserMentionSearchRequest request,
         CancellationToken cancellationToken)

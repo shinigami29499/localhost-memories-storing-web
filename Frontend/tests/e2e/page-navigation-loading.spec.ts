@@ -14,8 +14,8 @@ async function expectCenteredLoader(page: Page) {
 
 function emptyResponse(url: string) {
   const path = new URL(url).pathname;
-  if (path === "/api/users/page") return { page: 1, limit: 30, total: 0, items: [] };
-  if (path.startsWith("/api/library/gallery")) return { offset: 0, limit: 20, total: 0, items: [] };
+  if (path === "/api/user/page") return { page: 1, limit: 30, total: 0, items: [] };
+  if (path.startsWith("/api/library/album/media")) return { offset: 0, limit: 20, total: 0, items: [] };
   return [];
 }
 
@@ -41,7 +41,7 @@ for (const width of [390, 1280]) {
     await page.route(/^https?:\/\/[^/]+\/api\//, (route) => route.fulfill({
       json: emptyResponse(route.request().url()),
     }));
-    await page.goto("/gallery");
+    await page.goto("/album");
     await expect(page.getByText("No albums yet", { exact: true })).toBeVisible();
     let releaseModule!: () => void;
     const moduleGate = new Promise<void>((resolve) => { releaseModule = resolve; });
@@ -64,9 +64,9 @@ for (const width of [390, 1280]) {
 
 const destinations = [
   { path: "/", selector: ".home-page" },
-  { path: "/gallery", selector: ".album-page" },
-  { path: "/gallery/album", selector: ".album-page" },
-  { path: "/gallery/album/example", selector: ".album-page" },
+  { path: "/album", selector: ".album-page" },
+  { path: "/album", selector: ".album-page" },
+  { path: "/album/example", selector: ".album-page" },
   { path: "/uploads", selector: ".upload-page" },
   { path: "/location", selector: ".place" },
   { path: "/location/saved", selector: ".place" },
@@ -86,7 +86,7 @@ for (const width of [390, 1280]) {
       await page.route(/^https?:\/\/[^/]+\/api\//, (route) => route.fulfill({
         json: emptyResponse(route.request().url()),
       }));
-      const source = destination.path.startsWith("/gallery") ? "/users" : "/gallery";
+      const source = destination.path.startsWith("/album") ? "/users" : "/album";
       await page.goto(source);
       await expect(page.locator(source === "/users" ? ".admin-page--users" : ".gallery-page")).toBeVisible();
       let releaseResponses!: () => void;
@@ -143,7 +143,7 @@ for (const width of [390, 1280]) {
       await route.fulfill({ json: emptyResponse(route.request().url()) });
     });
     try {
-      await page.goto("/gallery/album/example");
+      await page.goto("/album/example");
       await expect(page.getByRole("heading", { name: "Example album." })).toBeVisible();
       await expect(page.getByText("Loading media...", { exact: true })).toBeHidden();
       await page.getByRole("button", { name: "Videos", exact: true }).click();

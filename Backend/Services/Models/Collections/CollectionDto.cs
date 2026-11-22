@@ -14,5 +14,7 @@ public record CollectionDto(
     bool ContainsMedia,
     DateTime CreatedAt)
 {
+    public DateOnly? AlbumDate { get; init; }
     public bool PreviewIsFavorited { get; init; }
+    public bool IsFavorited { get; init; }
 }

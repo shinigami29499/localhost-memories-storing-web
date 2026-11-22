@@ -105,10 +105,10 @@ export function usePresenceRuntime() {
           if (!userId || userId === event.ownerId) return;
           useAlbumNotificationStore.getState().add(userId, event);
           const message = translate(event.created ? "{username} created public album {album}." : "{username} made album {album} public.", { username: event.username, album: event.albumName });
-          void showBrowserNotification(translate("Public album"), message, `/gallery/album/${event.albumId}`).catch(() => undefined);
-          if (window.location.pathname === "/gallery/album") {
+          void showBrowserNotification(translate("Public album"), message, `/album/${event.albumId}`).catch(() => undefined);
+          if (window.location.pathname === "/album") {
             showToast.info(message, { description: translate("Click to refresh."), onClick: () => {
-              if (window.location.pathname === "/gallery/album") void queryClient.invalidateQueries({ queryKey: ["albums"] });
+              if (window.location.pathname === "/album") void queryClient.invalidateQueries({ queryKey: ["albums"] });
             } });
           }
         });
@@ -117,16 +117,16 @@ export function usePresenceRuntime() {
           if (!userId || userId === event.ownerId || !event.username) return;
           useUploadNotificationStore.getState().addRemote(userId, event);
           const message = uploadMessage(translate, event.images, event.videos, event.username);
-          void showBrowserNotification(translate("New uploads"), message, "/gallery").catch(() => undefined);
-          const onGallery = isGalleryPath(window.location.pathname);
+          void showBrowserNotification(translate("New uploads"), message, "/album").catch(() => undefined);
+          const onAlbum = isAlbumPath(window.location.pathname);
           showToast.info(message, {
-            description: translate(onGallery ? "Click to refresh." : "Click to go to gallery."),
+            description: translate(onAlbum ? "Click to refresh." : "Click to go to album."),
             highlight: [event.username],
             onClick: () => {
-              if (isGalleryPath(window.location.pathname)) {
+              if (isAlbumPath(window.location.pathname)) {
                 void queryClient.invalidateQueries({ queryKey: ["media"] });
               } else {
-                window.location.assign("/gallery");
+                window.location.assign("/album");
               }
             },
           });
@@ -147,13 +147,13 @@ export function usePresenceRuntime() {
           }
           if (userId === event.actorId) return;
           const path = window.location.pathname;
-          const detail = path === `/gallery/album/${event.albumId}`;
+          const detail = path === `/album/${event.albumId}`;
           if (detail && event.action === "private" && userId !== event.ownerId) {
             window.location.assign("/");
             return;
           }
           if (event.action === "deleted") refreshAlbumMedia();
-          if (path !== "/gallery" && path !== "/gallery/album" && !detail) return;
+          if (path !== "/album" && !detail) return;
           const message = event.action === "private"
             ? translate("{username} made public album {album} private.", { username: event.username, album: event.albumName })
             : userId === event.ownerId
@@ -219,8 +219,6 @@ export function usePresenceRuntime() {
   return { accountChange, dialogProps, reload, t };
 }
 
-function isGalleryPath(pathname: string): boolean {
-  return pathname === "/gallery"
-    || pathname === "/gallery/videos"
-    || pathname === "/gallery/album";
+function isAlbumPath(pathname: string): boolean {
+  return pathname === "/album";
 }

@@ -8,61 +8,61 @@ export interface UserPage {
   total: number;
 }
 
-/** Account profiles and user management endpoints under /api/users. */
+/** Account profiles and user management endpoints under /api/user. */
 export const userService = {
   profile(): Promise<AuthUser> {
-    return api("/api/users/me");
+    return api("/api/user/me");
   },
 
   changePassword(currentPassword: string, newPassword: string): Promise<void> {
-    return api("/api/users/me/password", { method: "PUT", body: { currentPassword, newPassword } });
+    return api("/api/user/me/password", { method: "PUT", body: { currentPassword, newPassword } });
   },
 
   setAvatar(seed: string): Promise<AuthUser> {
-    return api("/api/users/me/avatar", { method: "PUT", body: { seed } });
+    return api("/api/user/me/avatar", { method: "PUT", body: { seed } });
   },
 
   list(): Promise<AuthUser[]> {
-    return api("/api/users");
+    return api("/api/user");
   },
 
   page(page: number, limit: number, pendingOnly = false, signal?: AbortSignal, blockedOnly = false): Promise<UserPage> {
-    return api(`/api/users/page?page=${page}&limit=${limit}&pendingOnly=${pendingOnly}&blockedOnly=${blockedOnly}`, { signal });
+    return api(`/api/user/page?page=${page}&limit=${limit}&pendingOnly=${pendingOnly}&blockedOnly=${blockedOnly}`, { signal });
   },
 
   heartbeat(): Promise<{ lastSeenAt: string }> {
-    return api("/api/users/me/heartbeat", { method: "POST" });
+    return api("/api/user/me/heartbeat", { method: "POST" });
   },
 
   offline(): Promise<void> {
-    return api("/api/users/me/offline", { method: "POST" });
+    return api("/api/user/me/offline", { method: "POST" });
   },
 
   approve(userId: string): Promise<AuthUser> {
-    return api<AuthUser>(`/api/users/${userId}/approve`, { method: "POST" });
+    return api<AuthUser>(`/api/user/${userId}/approve`, { method: "POST" });
   },
 
   reject(userId: string): Promise<AuthUser> {
-    return api<AuthUser>(`/api/users/${userId}/reject`, { method: "POST" });
+    return api<AuthUser>(`/api/user/${userId}/reject`, { method: "POST" });
   },
 
   requestApproval(): Promise<AuthUser> {
-    return api<AuthUser>("/api/users/me/request-approval", { method: "POST" });
+    return api<AuthUser>("/api/user/me/request-approval", { method: "POST" });
   },
 
   disable(userId: string): Promise<AuthUser> {
-    return api<AuthUser>(`/api/users/${userId}/disable`, { method: "POST" });
+    return api<AuthUser>(`/api/user/${userId}/disable`, { method: "POST" });
   },
 
   activate(userId: string): Promise<AuthUser> {
-    return api<AuthUser>(`/api/users/${userId}/activate`, { method: "POST" });
+    return api<AuthUser>(`/api/user/${userId}/activate`, { method: "POST" });
   },
 
   updateRole(userId: string, role: "admin" | "user"): Promise<AuthUser> {
-    return api<AuthUser>(`/api/users/${userId}/role`, { method: "PUT", body: { role } });
+    return api<AuthUser>(`/api/user/${userId}/role`, { method: "PUT", body: { role } });
   },
 
   remove(userId: string): Promise<void> {
-    return api<void>(`/api/users/${userId}`, { method: "DELETE" });
+    return api<void>(`/api/user/${userId}`, { method: "DELETE" });
   },
 };

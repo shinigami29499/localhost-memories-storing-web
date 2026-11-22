@@ -21,6 +21,8 @@ public interface ICollectionService
         Guid collectionId, Guid viewerId, CancellationToken cancellationToken = default);
     Task<CollectionDto> GetCollectionAsync(
         Guid collectionId, Guid viewerId, bool isAdmin, CancellationToken cancellationToken = default);
+    Task SetCollectionFavoriteAsync(
+        Guid collectionId, Guid userId, bool isFavorite, CancellationToken cancellationToken = default);
     Task<PagedMediaResponse<MediaFileDto>> GetCollectionMediaAsync(
         Guid collectionId, Guid viewerId, int offset, int limit, CancellationToken cancellationToken = default);
     Task<PagedMediaResponse<MediaFileDto>> GetCollectionMediaAsync(

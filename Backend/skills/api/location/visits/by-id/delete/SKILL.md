@@ -10,3 +10,5 @@ description: "Current behavior of DELETE /api/location/visits/{visitId:guid}."
 - Inputs: Guid visitId.
 - Flow: Only the visit owner can soft-delete a visit. Returns no content and sends a best-effort PlacesChanged event.
 - Source: `Backend/Apis/Controllers/PlacesController.cs` (DeletePlaceVisitAsync); `Backend/Infrastructures/Data/ApplicationServices/PlaceService.cs`.
+
+Canonical route: `/api/place/visit/{visitId:guid}`. Previous routes remain aliases.

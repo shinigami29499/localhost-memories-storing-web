@@ -1,9 +1,12 @@
-import { eachDayOfInterval, endOfMonth, format, min, startOfDay, startOfMonth } from "date-fns";
+import { addDays, eachDayOfInterval, endOfMonth, format, min, startOfDay, startOfMonth } from "date-fns";
 import { SwappingText } from "@animate-ui/react/primitives/texts/swapping";
-import { MoveUp, SendHorizontal } from "lucide-react";
-import { useLayoutEffect, useMemo, useRef, useState, type ComponentType, type PointerEvent } from "react";
+import { ArrowUpToLine, Image, SendHorizontal } from "lucide-react";
+import { AnimatePresence, motion, usePresence } from "motion/react";
+import { forwardRef, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type ComponentType, type PointerEvent, type ReactNode } from "react";
 import type { LinkProps } from "react-router-dom";
-import { EmptyState, ErrorState, IconButton, Spinner } from "../../../components/ui";
+import { Heart } from "@/components/animate-ui/icons/heart";
+import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
+import { EmptyState, ErrorState, IconButton } from "../../../components/ui";
 import { useLocale } from "../../../context/LocaleContext";
 import { useMediaQuery } from "../../../hooks/useMediaQuery";
 import { mediaPreviewUrl } from "../../../utils/media";
@@ -22,17 +25,23 @@ type AlbumDateViewProps = {
   albumIndex: number;
   onAlbumIndexChange: (index: number) => void;
   onAlbumOpen: (index: number) => void;
+  favoriteBusyAlbumId: string | null;
+  onFavorite: (albumId: string, isFavorited: boolean) => void;
+  mobileNavigation?: boolean;
+  footerAction?: ReactNode;
   pending: boolean;
   failed: boolean;
   fetching: boolean;
   onRetry: () => void;
-  onCreate: () => void;
 };
 
-function AlbumDateBar({ today, selectedDate, onDateChange, albumDates }: Pick<AlbumDateViewProps, "today" | "selectedDate" | "onDateChange" | "albumDates">) {
+function AlbumDateBar({ today, selectedDate, onDateChange, albumDates, onDateStep }:
+  Pick<AlbumDateViewProps, "today" | "selectedDate" | "onDateChange" | "albumDates"> & {
+    onDateStep?: (direction: 1 | -1) => void;
+  }) {
   const { t, language } = useLocale();
   const stripRef = useRef<HTMLDivElement>(null);
-  const drag = useRef<{ pointerId: number; x: number; left: number } | null>(null);
+  const drag = useRef<{ pointerId: number; x: number; y: number; left: number } | null>(null);
   const dragged = useRef(false);
   const month = new Intl.DateTimeFormat(language, { month: "long", year: "numeric" });
   const weekday = new Intl.DateTimeFormat(language, { weekday: "short" });
@@ -103,13 +112,15 @@ function AlbumDateBar({ today, selectedDate, onDateChange, albumDates }: Pick<Al
           next.focus();
         }}
         onPointerDown={(event) => {
+          if (!event.isPrimary || event.button !== 0) return;
           dragged.current = false;
-          if (event.pointerType === "touch" || event.button !== 0) return;
-          drag.current = { pointerId: event.pointerId, x: event.clientX, left: event.currentTarget.scrollLeft };
+          if (event.pointerType === "touch" && !onDateStep) return;
+          drag.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, left: event.currentTarget.scrollLeft };
         }}
         onPointerMove={(event) => {
           const start = drag.current;
           if (!start || start.pointerId !== event.pointerId) return;
+          if (event.pointerType === "touch") return;
           const delta = event.clientX - start.x;
           if (!dragged.current) {
             if (Math.abs(delta) < 6) return;
@@ -120,7 +131,16 @@ function AlbumDateBar({ today, selectedDate, onDateChange, albumDates }: Pick<Al
           event.preventDefault();
           event.currentTarget.scrollLeft = start.left - delta;
         }}
-        onPointerUp={endDrag} onPointerCancel={endDrag} onLostPointerCapture={endDrag}
+        onPointerUp={(event) => {
+          const start = drag.current;
+          endDrag(event);
+          if (event.pointerType !== "touch" || start?.pointerId !== event.pointerId) return;
+          const dx = event.clientX - start.x;
+          const dy = event.clientY - start.y;
+          dragged.current = Math.hypot(dx, dy) > 10;
+          if (Math.abs(dx) >= 40 && Math.abs(dx) > Math.abs(dy)) onDateStep?.(dx < 0 ? 1 : -1);
+        }}
+        onPointerCancel={endDrag} onLostPointerCapture={endDrag}
         onPointerLeave={(event) => { if (!dragged.current) endDrag(event); }}
         onClickCapture={(event) => {
           if (!dragged.current || event.detail === 0) return;
@@ -147,90 +167,204 @@ function AlbumDateBar({ today, selectedDate, onDateChange, albumDates }: Pick<Al
   );
 }
 
-function AlbumSwapText({ text, direction, animate, wrap = false }: {
-  text: string;
-  direction: "up" | "down";
-  animate: boolean;
-  wrap?: boolean;
-}) {
-  if (!animate) return text;
-  const words = wrap ? text.split(/(\s+)/) : [text];
+const AlbumFrameFade = forwardRef<HTMLDivElement, { className: string; children: ReactNode }>(
+  function AlbumFrameFade({ className, children }, ref) {
+    const element = useRef<HTMLDivElement>(null);
+    const [present, remove] = usePresence();
+    useImperativeHandle(ref, () => element.current!, []);
+
+    useLayoutEffect(() => {
+      const frame = element.current;
+      if (present || !frame) return;
+      const fade = frame.animate([{ opacity: getComputedStyle(frame).opacity }, { opacity: 0 }], {
+        duration: 200,
+        easing: "ease-in-out",
+        fill: "forwards",
+      });
+      void fade.finished.then(() => remove?.(), () => {});
+      return () => fade.cancel();
+    }, [present, remove]);
+
+    return (
+      <motion.div ref={element} className={className} inert={!present} aria-hidden={!present || undefined}
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+        transition={{ duration: 0.2, ease: "easeInOut" }}>
+        {children}
+      </motion.div>
+    );
+  },
+);
+
+function AlbumTextPlaceholder() {
   return (
-    <>
-      <span aria-hidden="true">{words.map((word, index) => word.trim()
-        ? <SwappingText key={index} text={word} direction={direction} stagger={0.025} />
-        : word)}</span>
-      <span className="sr-only">{text}</span>
-    </>
+    <span className="album-date-card__text-placeholder" aria-hidden="true">
+      <span className="album-date-card__placeholder-name" />
+      <span className="album-date-card__placeholder-owner" />
+    </span>
   );
 }
 
-function DatedAlbumCard({ album, action, direction, animateText }: {
-  album: Album;
-  action?: { Link: AlbumDateViewProps["AlbumLink"]; onOpen: () => void };
-  direction: "up" | "down";
-  animateText: boolean;
-}) {
-  const { t } = useLocale();
-  const [failedPreview, setFailedPreview] = useState<string | null>(null);
-  const preview = album.previewMediaId;
-  const Title = action ? "h2" : "h3";
-
+function AlbumFramePlaceholder({ compact = false }: { compact?: boolean }) {
   return (
-    <article className={`album-date-card album-date-card--${action ? "featured" : "compact"}`}>
+    <div className={`album-date-card album-date-card--${compact ? "compact" : "featured"} album-date-card--placeholder`} aria-hidden="true">
       <div className="album-date-card__heading">
-        <div className="album-date-card__text">
-          <Title className="album-date-card__name">
-            <AlbumSwapText text={album.name} direction={direction} animate={animateText} wrap />
-          </Title>
-          <span className="album-date-card__owner">
-            <AlbumSwapText text={t("by {owner}", { owner: album.owner.username })} direction={direction} animate={animateText} />
-          </span>
-        </div>
-        {action && (
-          <action.Link to={`/gallery/album/${album.id}`}
-            className="icon-button icon-button--button icon-button--circle album-date-card__open"
-            aria-label={t("Open album {name}", { name: album.name })}
-            title={t("Open album {name}", { name: album.name })} draggable={false}
-            onClick={(event) => {
-              if (!event.defaultPrevented && event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) {
-                action.onOpen();
-              }
-            }}>
-            <span className="icon-button__icon" aria-hidden="true"><SendHorizontal /></span>
-          </action.Link>
+        <AlbumTextPlaceholder />
+        {!compact && (
+          <div className="album-date-card__actions">
+            <span className="album-date-card__placeholder-action" />
+            <span className="album-date-card__placeholder-action" />
+          </div>
         )}
       </div>
       <div className="album-date-card__preview-slot">
-        <div className="album-date-card__preview">
-          {preview && preview !== failedPreview && (
-            <img src={mediaPreviewUrl(preview)} alt="" decoding="async" draggable={false} onError={() => setFailedPreview(preview)} />
+        <div className="album-date-card__preview" data-cover-loading>
+          <span className="album-date-card__cover-placeholder">
+            <Image className="album-date-card__cover-icon" />
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AlbumFrame({ animate, className, frame, children }: {
+  animate: boolean;
+  className: string;
+  frame: "placeholder" | "album" | null;
+  children: ReactNode;
+}) {
+  if (!animate) return frame && <div className={className}>{children}</div>;
+
+  return (
+    <AnimatePresence initial={false} mode="popLayout">
+      {frame && <AlbumFrameFade key={frame} className={className}>{children}</AlbumFrameFade>}
+    </AnimatePresence>
+  );
+}
+
+function DatedAlbumCard({ album, action, onAdvance, swapText, showCoverLoading }: {
+  album: Album;
+  swapText: boolean;
+  showCoverLoading?: boolean;
+  action?: {
+    Link: AlbumDateViewProps["AlbumLink"];
+    onOpen: () => void;
+    onFavorite: () => void;
+    favoriteBusy: boolean;
+  };
+  onAdvance?: () => void;
+}) {
+  const { t } = useLocale();
+  const imageRef = useRef<HTMLImageElement>(null);
+  const [result, setResult] = useState<{ src: string; status: "loaded" | "failed" }>();
+  const src = album.previewMediaId ? mediaPreviewUrl(album.previewMediaId) : undefined;
+  const status = result?.src === src ? result?.status : undefined;
+  const hasPreview = Boolean(src && status !== "failed");
+  const loading = Boolean(showCoverLoading && hasPreview && status !== "loaded");
+  const Title = action ? "h2" : "span";
+
+  useLayoutEffect(() => {
+    const image = imageRef.current;
+    if (showCoverLoading && src && image?.complete && image.naturalWidth > 0) {
+      setResult({ src, status: "loaded" });
+    }
+  }, [showCoverLoading, src]);
+
+  const content = (
+    <>
+      <div className="album-date-card__heading">
+        <div className="album-date-card__text" data-cover-loading={loading || undefined}>
+          {loading && <AlbumTextPlaceholder />}
+          <Title className="album-date-card__name">
+            {swapText ? <SwappingText text={album.name} stagger={0.025} /> : album.name}
+          </Title>
+          <span className="album-date-card__owner">
+            {swapText ? <SwappingText text={album.owner.username} stagger={0.025} /> : album.owner.username}
+          </span>
+        </div>
+        {action && (
+          <div className="album-date-card__actions">
+            <IconButton
+              className="album-date-card__favorite"
+              shape="circle"
+              aria-label={t(album.isFavorited ? "Remove from favorites" : "Add to favorites")}
+              title={t(album.isFavorited ? "Remove from favorites" : "Add to favorites")}
+              aria-pressed={album.isFavorited}
+              aria-busy={action.favoriteBusy || undefined}
+              disabled={action.favoriteBusy}
+              onClick={action.onFavorite}
+            >
+              {action.favoriteBusy
+                ? <LoaderCircle className="spinner__wheel" color="inherit" animate={false} />
+                : <Heart size={20} className="album-date-card__favorite-heart"
+                    color="inherit" fill={album.isFavorited ? "currentColor" : "none"}
+                    animateOnHover animateOnTap={false} animateOnView={false} />}
+            </IconButton>
+            <action.Link to={`/album/${album.id}`}
+              className="icon-button icon-button--button icon-button--circle album-date-card__open"
+              aria-label={t("Open album {name}", { name: album.name })}
+              title={t("Open album {name}", { name: album.name })} draggable={false}
+              onClick={(event) => {
+                if (!event.defaultPrevented && event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) {
+                  action.onOpen();
+                }
+              }}>
+              <span className="icon-button__icon" aria-hidden="true"><SendHorizontal /></span>
+            </action.Link>
+          </div>
+        )}
+      </div>
+      <div className="album-date-card__preview-slot">
+        <div className="album-date-card__preview" data-press-motion-target={!action || undefined}
+          data-cover-loading={loading || undefined} data-empty={!hasPreview || undefined}>
+          {src && hasPreview && (
+            <img key={src} ref={imageRef} src={src} alt="" decoding="async" draggable={false}
+              onLoad={showCoverLoading ? () => setResult({ src, status: "loaded" }) : undefined}
+              onError={() => setResult({ src, status: "failed" })} />
+          )}
+          {(loading || !hasPreview) && (
+            <span className="album-date-card__cover-placeholder">
+              <Image className="album-date-card__cover-icon" aria-hidden="true" />
+              {action && !hasPreview && <span>{t("No cover available")}</span>}
+            </span>
           )}
         </div>
       </div>
-    </article>
+    </>
+  );
+
+  if (action) return <article className="album-date-card album-date-card--featured">{content}</article>;
+  return (
+    <button type="button" className="album-date-card album-date-card--compact"
+      aria-label={`${t("Next album")}: ${album.name}`} title={`${t("Next album")}: ${album.name}`}
+      onClick={onAdvance}>
+      {content}
+    </button>
   );
 }
 
 export function AlbumDateView({
   AlbumLink, today, selectedDate, onDateChange, albumDates, albums, albumIndex, onAlbumIndexChange, onAlbumOpen,
-  pending, failed, fetching, onRetry, onCreate,
+  favoriteBusyAlbumId, onFavorite, mobileNavigation, footerAction,
+  pending, failed, fetching, onRetry,
 }: AlbumDateViewProps) {
   const { t } = useLocale();
   const motionEnabled = useAnimationStore((state) => state.enabled);
   const iconsEnabled = useAnimationStore((state) => state.iconsEnabled);
   const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
   const animate = motionEnabled && !reducedMotion;
-  const [swapDirection, setSwapDirection] = useState<"up" | "down">("up");
+  const swapText = Boolean(mobileNavigation && animate);
+  const cardKey = mobileNavigation ? undefined : selectedDate.getTime();
   const stageRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
-  const advanceIcon = useRef<SVGSVGElement>(null);
   const pendingMotion = useRef<AlbumCarouselMotion | null>(null);
   const cancelMotion = useRef<(() => void) | null>(null);
   const pointerStart = useRef<{ id: number; x: number; y: number } | null>(null);
   const suppressClick = useRef(false);
   const featured = albums[albumIndex];
   const next = albums[albumIndex + 1];
+  const showPlaceholders = pending;
+  const showMoveUp = Boolean(featured && albumIndex > 0 && !pending);
 
   useLayoutEffect(() => {
     const previous = pendingMotion.current;
@@ -243,34 +377,58 @@ export function AlbumDateView({
         cancelMotion.current = null;
       };
     }
-  }, [albumIndex, selectedDate, featured?.id, next?.id]);
+  }, [albumIndex, selectedDate, featured?.id, next?.id, animate]);
 
-  const move = (direction: 1 | -1) => {
-    const index = albumIndex + direction;
-    if (index < 0 || index >= albums.length) return;
+  const moveTo = (index: number) => {
+    if (index === albumIndex || index < 0 || index >= albums.length) return;
     const stage = stageRef.current;
-    if (stage && animate) {
+    const hasNextAtTarget = Boolean(albums[index + 1]);
+    if (stage && animate && Math.abs(index - albumIndex) === 1 &&
+      (!mobileNavigation || Boolean(next) === hasNextAtTarget)) {
       cancelMotion.current?.();
-      pendingMotion.current = captureAlbumCarousel(stage, direction, !albums[index + 1]);
-      if (direction === 1 && iconsEnabled) {
-        advanceIcon.current?.animate(
-          [{ transform: "none" }, { transform: "translateY(-4px)" }, { transform: "none" }],
-          { duration: 260, easing: "ease-out" },
-        );
-      }
+      pendingMotion.current = captureAlbumCarousel(stage, index > albumIndex ? 1 : -1, {
+        hideQueue: !hasNextAtTarget,
+        fadeCaptions: !mobileNavigation,
+      });
     }
-    if (!albums[index + 1] && advanceIcon.current?.closest("button") === document.activeElement) {
+    if (!hasNextAtTarget &&
+      stage?.querySelector("button.album-date-card--compact:not([inert] *)") === document.activeElement) {
       stage?.querySelector<HTMLElement>(".album-date-card__open")?.focus({ preventScroll: true });
     }
-    setSwapDirection(direction === 1 ? "up" : "down");
     onAlbumIndexChange(index);
   };
 
+  const move = (direction: 1 | -1) => moveTo(albumIndex + direction);
+  const stepDate = (direction: 1 | -1) => {
+    const date = addDays(startOfDay(selectedDate), direction);
+    if (date <= startOfDay(today)) onDateChange(date);
+  };
+  const featuredCard = featured && (
+    <DatedAlbumCard key={cardKey} album={featured} swapText={swapText} showCoverLoading action={{
+      Link: AlbumLink,
+      onOpen: () => onAlbumOpen(albumIndex),
+      onFavorite: () => onFavorite(featured.id, featured.isFavorited),
+      favoriteBusy: favoriteBusyAlbumId === featured.id,
+    }} />
+  );
+  const nextCard = next && (
+    <>
+      <h2 className="album-date-view__queue-title">{t("Next Album")}</h2>
+      <DatedAlbumCard key={cardKey} album={next} swapText={swapText} showCoverLoading onAdvance={() => move(1)} />
+    </>
+  );
+
   return (
     <>
-      <AlbumDateBar today={today} selectedDate={selectedDate} albumDates={albumDates} onDateChange={onDateChange} />
-      <div className="album-date-view__viewport" aria-busy={fetching}>
-        <div className="album-date-view__body" ref={stageRef} data-has-queue={Boolean(featured) || undefined}
+      <AlbumDateBar today={today} selectedDate={selectedDate} albumDates={albumDates}
+        onDateStep={mobileNavigation ? stepDate : undefined}
+        onDateChange={(date) => {
+          if (mobileNavigation && date.getTime() === startOfDay(selectedDate).getTime()) moveTo(0);
+          else onDateChange(date);
+        }} />
+      {showPlaceholders && <span className="sr-only" role="status">{t("Loading albums...")}</span>}
+      <div className="album-date-view__viewport" aria-busy={pending || fetching} data-frame-loading={showPlaceholders || undefined}>
+        <div className="album-date-view__body" ref={stageRef} data-has-queue={Boolean(mobileNavigation || featured || footerAction) || undefined}
           data-icon-motion={iconsEnabled || undefined}
           onKeyDown={(event) => {
             if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
@@ -278,15 +436,17 @@ export function AlbumDateView({
             move(event.key === "ArrowUp" ? 1 : -1);
           }}
           onPointerDown={(event) => {
-            if (!event.isPrimary || event.button !== 0 || !featured) return;
+            if (!event.isPrimary || event.button !== 0 || (!featured && !mobileNavigation)) return;
             suppressClick.current = false;
             pointerStart.current = { id: event.pointerId, x: event.clientX, y: event.clientY };
           }}
           onPointerMove={(event) => {
             const start = pointerStart.current;
             if (start?.id !== event.pointerId) return;
+            const dx = Math.abs(event.clientX - start.x);
             const dy = Math.abs(event.clientY - start.y);
-            if (dy > 10 && dy > Math.abs(event.clientX - start.x) && !event.currentTarget.hasPointerCapture(event.pointerId)) {
+            if (Math.max(dx, dy) > 10 && (mobileNavigation || dy > dx) &&
+              !event.currentTarget.hasPointerCapture(event.pointerId)) {
               event.currentTarget.setPointerCapture(event.pointerId);
             }
           }}
@@ -297,6 +457,10 @@ export function AlbumDateView({
             const dy = event.clientY - start.y;
             const dx = event.clientX - start.x;
             suppressClick.current = Math.hypot(dx, dy) > 10;
+            if (mobileNavigation && Math.abs(dx) >= 40 && Math.abs(dx) > Math.abs(dy)) {
+              stepDate(dx < 0 ? 1 : -1);
+              return;
+            }
             if (Math.abs(dy) < 40 || Math.abs(dy) <= Math.abs(dx)) return;
             move(dy < 0 ? 1 : -1);
           }}
@@ -306,31 +470,44 @@ export function AlbumDateView({
             event.preventDefault();
             event.stopPropagation();
           }}>
-          {pending ? <Spinner page label={t("Loading albums...")} /> : failed && !featured ? (
+          {mobileNavigation && (
+            <AlbumFrame animate={animate} className="album-date-view__main-frame"
+              frame={showPlaceholders ? "placeholder" : featured ? "album" : null}>
+              {showPlaceholders ? <AlbumFramePlaceholder /> : featuredCard}
+            </AlbumFrame>
+          )}
+          {pending ? !mobileNavigation && <AlbumFramePlaceholder /> : failed && !featured ? (
             <ErrorState message={t("Could not load albums.")} onRetry={onRetry} />
           ) : !featured ? (
-            <EmptyState title="No albums yet" hint="Use New album to organize your media into collections."
-              action={<button type="button" className="btn btn--primary" onClick={onCreate}>{t("New album")}</button>} />
-          ) : (
-            <>
-              <DatedAlbumCard key={selectedDate.getTime()} album={featured}
-                direction={swapDirection} animateText={animate} action={{ Link: AlbumLink, onOpen: () => onAlbumOpen(albumIndex) }} />
-              <div className="album-date-view__queue">
-                {next && (
+            <EmptyState title="No albums yet" hint={mobileNavigation
+              ? "Choose Add album to get started."
+              : "Use New album to organize your media into collections."} />
+          ) : !mobileNavigation && featuredCard}
+          {(mobileNavigation || pending || featured) && <div className="album-date-view__queue">
+            {mobileNavigation ? (
+              <AlbumFrame animate={animate} className="album-date-view__sub-frame"
+                frame={showPlaceholders ? "placeholder" : next ? "album" : null}>
+                {showPlaceholders ? (
                   <>
-                    <h2 className="album-date-view__queue-title">{t("Next Album")}</h2>
-                    <DatedAlbumCard key={selectedDate.getTime()} album={next} direction={swapDirection} animateText={animate} />
-                    <IconButton className="album-date-view__advance" aria-label={t("Next album")} title={t("Next album")}
-                      onClick={() => move(1)}>
-                      <MoveUp ref={advanceIcon} size={20} />
-                    </IconButton>
+                    <span className="album-date-view__queue-title album-date-view__placeholder-label" aria-hidden="true" />
+                    <AlbumFramePlaceholder compact />
                   </>
-                )}
-              </div>
-            </>
-          )}
+                ) : nextCard}
+              </AlbumFrame>
+            ) : pending ? <AlbumFramePlaceholder compact /> : nextCard}
+            {mobileNavigation && <IconButton className="album-date-view__move-up"
+              data-visible={showMoveUp || undefined} disabled={!showMoveUp} aria-hidden={!showMoveUp || undefined}
+              aria-label={t("Move up")} title={t("Move up")}
+              onClick={() => {
+                stageRef.current?.querySelector<HTMLElement>(".album-date-card__open")?.focus({ preventScroll: true });
+                moveTo(0);
+              }}>
+              <ArrowUpToLine size={20} />
+            </IconButton>}
+          </div>}
           <div ref={overlayRef} className="album-date-view__motion" aria-hidden="true" inert />
         </div>
+        {footerAction}
       </div>
     </>
   );

@@ -20,31 +20,31 @@ function uploadListQuery(offset: number, limit: number, date?: string): string {
 
 export const uploadService = {
   list(offset = 0, limit = 20, date?: string): Promise<PagedUploadBatches> {
-    return api(`${BASE_PATH}/batches?${uploadListQuery(offset, limit, date)}`);
+    return api(`${BASE_PATH}/batch?${uploadListQuery(offset, limit, date)}`);
   },
 
   listAll(offset = 0, limit = 20, date?: string): Promise<PagedUploadBatches> {
-    return api(`${BASE_PATH}/admin/batches?${uploadListQuery(offset, limit, date)}`);
+    return api(`${BASE_PATH}/admin/batch?${uploadListQuery(offset, limit, date)}`);
   },
 
   get(batchId: string): Promise<UploadBatch> {
-    return api(`${BASE_PATH}/batches/${batchId}`);
+    return api(`${BASE_PATH}/batch/${batchId}`);
   },
 
   imageIds(batchId: string): Promise<string[]> {
-    return api(`${BASE_PATH}/batches/${encodeURIComponent(batchId)}/images`);
+    return api(`${BASE_PATH}/batch/${encodeURIComponent(batchId)}/image`);
   },
 
   markBatchViewed(batchId: string): Promise<void> {
-    return api(`${BASE_PATH}/batches/${batchId}/viewed`, { method: "PUT" });
+    return api(`${BASE_PATH}/batch/${batchId}/viewed`, { method: "PUT" });
   },
 
   markBatchesViewed(batchIds: string[]): Promise<void> {
-    return api(`${BASE_PATH}/batches/viewed/selected`, { method: "PUT", body: { batchIds } });
+    return api(`${BASE_PATH}/batch/viewed/selected`, { method: "PUT", body: { batchIds } });
   },
 
   markAllBatchesViewed(): Promise<void> {
-    return api(`${BASE_PATH}/batches/viewed`, { method: "PUT" });
+    return api(`${BASE_PATH}/batch/viewed`, { method: "PUT" });
   },
 
   active(): Promise<UploadBatch[]> {
@@ -70,7 +70,7 @@ export const uploadService = {
       for (let index = 0; index < items.length; index++) {
         await saveUploadFile(items[index].id, files[index]);
       }
-      const batch = await api<UploadBatch>(`${BASE_PATH}/batches`, {
+      const batch = await api<UploadBatch>(`${BASE_PATH}/batch`, {
         method: "POST",
         body: { albumId, items },
       });
@@ -89,11 +89,11 @@ export const uploadService = {
   },
 
   start(batchId: string, itemId: string, signal?: AbortSignal): Promise<UploadItem> {
-    return api(`${BASE_PATH}/batches/${batchId}/items/${itemId}/start`, { method: "POST", signal });
+    return api(`${BASE_PATH}/batch/${batchId}/item/${itemId}/start`, { method: "POST", signal });
   },
 
   reportProgress(batchId: string, itemId: string, progressPercent: number): Promise<UploadItem> {
-    return api(`${BASE_PATH}/batches/${batchId}/items/${itemId}/progress`, {
+    return api(`${BASE_PATH}/batch/${batchId}/item/${itemId}/progress`, {
       method: "POST",
       body: { progressPercent },
     });
@@ -107,7 +107,7 @@ export const uploadService = {
     signal: AbortSignal,
   ): Promise<UploadItem> {
     return uploadWithProgress(
-      `${BASE_PATH}/batches/${batchId}/items/${itemId}/file`,
+      `${BASE_PATH}/batch/${batchId}/item/${itemId}/file`,
       file,
       onProgress,
       signal,
@@ -115,16 +115,16 @@ export const uploadService = {
   },
 
   deleteRecords(batchId: string, itemIds: string[]): Promise<void> {
-    return api(`${BASE_PATH}/batches/${batchId}/items/delete`, { method: "POST", body: itemIds });
+    return api(`${BASE_PATH}/batch/${batchId}/item/delete`, { method: "POST", body: itemIds });
   },
   deleteRecord(batchId: string, itemId?: string): Promise<void> {
-    return api(`${BASE_PATH}/batches/${batchId}${itemId ? `/items/${itemId}` : ""}`, { method: "DELETE" });
+    return api(`${BASE_PATH}/batch/${batchId}${itemId ? `/item/${itemId}` : ""}`, { method: "DELETE" });
   },
   setPaused(batchId: string, itemId: string | undefined, paused: boolean): Promise<UploadBatch> {
-    return api(`${BASE_PATH}/batches/${batchId}${itemId ? `/items/${itemId}` : ""}/${paused ? "pause" : "resume"}`, { method: "POST" });
+    return api(`${BASE_PATH}/batch/${batchId}${itemId ? `/item/${itemId}` : ""}/${paused ? "pause" : "resume"}`, { method: "POST" });
   },
   fail(batchId: string, itemId: string, errorDetails: string): Promise<UploadItem> {
-    return api(`${BASE_PATH}/batches/${batchId}/items/${itemId}/fail`, {
+    return api(`${BASE_PATH}/batch/${batchId}/item/${itemId}/fail`, {
       method: "POST",
       body: { errorDetails },
     });

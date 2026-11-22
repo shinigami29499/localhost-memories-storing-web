@@ -31,8 +31,8 @@ test.beforeEach(async ({ page }) => {
   });
   await page.route(/^https?:\/\/[^/]+\/api\//, (route) => {
     const path = new URL(route.request().url()).pathname;
-    if (path === "/api/location/home-location") return route.fulfill({ json: null });
-    if (path === "/api/location/saved" || path === "/api/location/history/all") return route.fulfill({ json: [] });
+    if (path === "/api/place/home-location") return route.fulfill({ json: null });
+    if (path === "/api/place/saved" || path === "/api/place/history/all") return route.fulfill({ json: [] });
     return route.fulfill({ json: {
       page: 1, offset: 0, limit: 30, total: 0, items: [], allCount: 0, pendingCount: 0, hasMore: false,
     } });
@@ -58,7 +58,7 @@ test("rapid page navigation keeps the first push running", async ({ page }) => {
 
 for (const [source, selector, destination] of [
   ["/", ".home-page", "Gallery"],
-  ["/gallery", ".gallery-layout", "Home"],
+  ["/album", ".gallery-layout", "Home"],
 ]) test(`mobile push from ${source} keeps outgoing and incoming pages aligned`, async ({ page }) => {
   await page.goto(source);
   await expect(page.locator(selector)).toBeVisible();
@@ -92,7 +92,7 @@ for (const [source, selector, destination] of [
 test("four rapid page pushes play in order", async ({ page }) => {
   for (const [path, selector] of [
     ["/users", ".admin-page--users"],
-    ["/gallery", ".gallery-layout"],
+    ["/album", ".gallery-layout"],
     ["/", ".home-page"],
   ]) {
     await page.goto(path);
@@ -119,9 +119,9 @@ test("four rapid page pushes play in order", async ({ page }) => {
     }).observe(document.body, { childList: true, subtree: true });
   });
   for (const [path, selector] of [
-    ["/gallery", ".gallery-layout"],
+    ["/album", ".gallery-layout"],
     ["/users", ".admin-page--users"],
-    ["/gallery", ".gallery-layout"],
+    ["/album", ".gallery-layout"],
     ["/", ".home-page"],
   ]) {
     await page.evaluate((href) => {
@@ -144,7 +144,7 @@ test("reduced motion skips push animations", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator(".home-page")).toBeVisible();
   await page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Gallery", exact: true }).click();
-  await expect(page).toHaveURL(/\/gallery$/);
+  await expect(page).toHaveURL(/\/album$/);
   await expect(page.locator("[data-push-transition]")).toHaveCount(0);
 });
 

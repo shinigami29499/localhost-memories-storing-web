@@ -16,9 +16,10 @@ test("inline user search and separate role, status, and date filters", async ({ 
     { id: "c", username: "Bob", createdAt: "2026-08-01", role: "user", status: "disabled" },
     { id: "d", username: "Alison", createdAt: "2026-06-01", role: "user", status: "rejected" },
   ].map((user) => ({ ...user, lastSeenAt: null }));
-  await page.route(/^https?:\/\/[^/]+\/api\//, route => route.fulfill({ json: new URL(route.request().url()).pathname === "/api/users" ? users : [] }));
+  await page.route(/^https?:\/\/[^/]+\/api\//, route => route.fulfill({ json: new URL(route.request().url()).pathname === "/api/user" ? users : [] }));
   await page.route("**/hubs/**", route => route.abort());
-  await page.goto("/users");
+  await page.goto("/users?source=bookmark#directory");
+  await expect(page).toHaveURL(/\/user\?source=bookmark#directory$/);
   const rows = page.locator(".mobile-users__item");
   await expect(rows).toHaveCount(3);
   await page.setViewportSize({ width: 390, height: 420 });
@@ -80,7 +81,10 @@ test("inline user search and separate role, status, and date filters", async ({ 
   await profileClose.hover();
   await expect(profileClose).toHaveCSS("background-color", closeBackground);
   await expect(profileClose).toHaveCSS("color", closeColor);
-  await profileClose.click();
+  await page.mouse.down();
+  await expect(profileClose).toHaveCSS("background-color", closeBackground);
+  await expect(profileClose).toHaveCSS("color", closeColor);
+  await page.mouse.up();
   await expect(profile).not.toBeVisible();
   await input.click();
   await expect(input).toBeFocused();
@@ -109,7 +113,7 @@ test("inline user search and separate role, status, and date filters", async ({ 
   await expect(panels.first()).not.toHaveCSS("border-top-color", await readFill(panels.first()));
   expect(await dialog.evaluate((element) => getComputedStyle(element, "::backdrop").backdropFilter)).toBe("blur(12px)");
   await dialog.getByRole("button", { name: "Back", exact: true }).click();
-  await expect(page).toHaveURL(/\/users$/);
+  await expect(page).toHaveURL(/\/user$/);
   await expect(trigger).toBeFocused();
   await expectFillBorder(search);
   await trigger.click();
@@ -129,9 +133,9 @@ test("inline user search and separate role, status, and date filters", async ({ 
   await dialog.getByText("Status", { exact: true }).click();
   await expect(dialog.getByRole("checkbox", { name: "Rejected" })).toHaveCount(0);
   const pendingDot = dialog.locator(".mobile-user-search__status-dot--pending");
-  await expect(pendingDot).toHaveCSS("background-color", "rgb(255, 218, 36)");
+  await expect(pendingDot).toHaveCSS("background-color", "rgb(255, 177, 36)");
   await dialog.getByText("Pending", { exact: true }).click();
-  await expect(pendingDot).toHaveCSS("background-color", "rgb(159, 129, 0)");
+  await expect(pendingDot).toHaveCSS("background-color", "rgb(246, 162, 26)");
   await dialog.getByText("Joined date", { exact: true }).click();
   const year = dialog.locator(".range-picker__selectors .select-field__trigger").first();
   await expect(year).toHaveCSS("background-color", elevatedFill);
@@ -165,14 +169,76 @@ test("inline user search and separate role, status, and date filters", async ({ 
   await page.emulateMedia({ colorScheme: "light" });
   await expect(userTile).toHaveCSS("background-color", "rgb(34, 34, 34)");
   await expect(userTile).toHaveCSS("color", "rgb(255, 255, 255)");
-  await expect(pendingDot).toHaveCSS("background-color", "rgb(255, 218, 36)");
+  await expect(pendingDot).toHaveCSS("background-color", "rgb(255, 177, 36)");
   await dialog.getByRole("button", { name: "Clear all" }).click();
   await expect(dialog.getByRole("checkbox", { name: "Pending" })).not.toBeChecked();
-  await expect(pendingDot).toHaveCSS("background-color", "rgb(159, 129, 0)");
+  await expect(pendingDot).toHaveCSS("background-color", "rgb(246, 162, 26)");
   await dialog.getByRole("button", { name: "Search", exact: true }).click();
   await expect(rows).toHaveCount(2);
   await navigation.getByRole("link", { name: "Home", exact: true }).click();
   await expect(page).toHaveURL(/\/$/);
+});
+
+test("dismisses filters from blank space while leaving the side gutters and calendar scrollable", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.addInitScript(() => localStorage.setItem("shinigacim-auth", JSON.stringify({
+    state: {
+      user: { id: "admin", username: "admin", role: "admin", status: "active", createdAt: "2026-01-01" },
+      accessToken: "test",
+      refreshToken: "test",
+    },
+    version: 0,
+  })));
+  await page.route(/^https?:\/\/[^/]+\/api\//, route => route.fulfill({ json: [] }));
+  await page.route("**/hubs/**", route => route.abort());
+  await page.goto("/user");
+
+  const trigger = page.getByRole("button", { name: "Filters" });
+  const dialog = page.getByRole("dialog", { name: "Filters" });
+  const blank = dialog.locator(".mobile-user-search__dismiss-area");
+  await trigger.click();
+  await dialog.getByText("S-Admin", { exact: true }).click();
+  const area = (await blank.boundingBox())!;
+  const centerX = Math.round(area.x + area.width / 2);
+  const centerY = Math.round(area.y + area.height / 2);
+  await page.mouse.click(area.x - 4, centerY);
+  await page.mouse.click(area.x + area.width + 4, centerY);
+  await expect(dialog).toBeVisible();
+  await page.mouse.click(centerX, centerY);
+  await expect(dialog).toBeHidden();
+  await expect(trigger).toBeFocused();
+
+  await trigger.click();
+  await expect(dialog.getByRole("checkbox", { name: "S-Admin" })).not.toBeChecked();
+  const touch = await page.context().newCDPSession(page);
+  await touch.send("Emulation.setTouchEmulationEnabled", { enabled: true });
+  async function gesture(x: number, y: number, distance: number) {
+    await touch.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
+    if (distance) {
+      await touch.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x, y: y + distance / 2 }] });
+      await touch.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x, y: y + distance }] });
+    }
+    await touch.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  }
+
+  await gesture(area.x - 4, centerY, -72);
+  await gesture(centerX, centerY, 72);
+  await expect(dialog).toBeVisible();
+  await gesture(centerX, centerY, -72);
+  await expect(dialog).toBeHidden();
+  await trigger.click();
+  await gesture(centerX, centerY, 0);
+  await expect(dialog).toBeHidden();
+
+  await page.setViewportSize({ width: 390, height: 440 });
+  await trigger.click();
+  await dialog.getByText("Joined date", { exact: true }).click();
+  const scroll = dialog.locator(".mobile-user-search__content");
+  const scrollBox = (await scroll.boundingBox())!;
+  await gesture(centerX, Math.round(scrollBox.y + scrollBox.height - 24), -96);
+  await expect.poll(() => scroll.evaluate(el => el.scrollTop)).toBeGreaterThan(0);
+  await expect(dialog).toBeVisible();
 });
 
 test("updates a user's online dot from SignalR without reloading the directory", async ({ page }) => {
@@ -184,7 +250,7 @@ test("updates a user's online dot from SignalR without reloading the directory",
     version: 0,
   })));
   await page.route(/^https?:\/\/[^/]+\/api\//, route => route.fulfill({
-    json: new URL(route.request().url()).pathname === "/api/users"
+    json: new URL(route.request().url()).pathname === "/api/user"
       ? [{ id: "alice", username: "Alice", role: "user", status: "active", createdAt: "2026-01-01", lastSeenAt: null }]
       : {},
   }));
@@ -207,7 +273,7 @@ test("updates a user's online dot from SignalR without reloading the directory",
       }
     });
   });
-  await page.goto("/users");
+  await page.goto("/user");
   const alice = page.getByRole("listitem").filter({ hasText: "Alice" });
   const dot = alice.getByRole("img", { name: "Online" });
   await expect(alice).toBeVisible();

@@ -9,9 +9,9 @@ test(`location transition includes the bottom controls at ${viewport.width}px`, 
   });
   await page.route(/^https?:\/\/[^/]+\/api\//, async (route) => {
     const path = new URL(route.request().url()).pathname;
-    if (path === "/api/location/home-location") return route.fulfill({ json: null });
-    if (path === "/api/location") return route.fulfill({ json: [{ id: "p1", name: "Place", markerColor: "#00AA00", markerIcon: "P", rating: 2, mediaIds: [], address: "", note: "", createdAt: "2026-01-01", owner: { id: "u1", username: "viewer" }, latitude: 10, longitude: 106 }] });
-    if (path === "/api/library/gallery") return route.fulfill({ json: { offset: 0, limit: 20, total: 0, items: [] } });
+    if (path === "/api/place/home-location") return route.fulfill({ json: null });
+    if (path === "/api/place") return route.fulfill({ json: [{ id: "p1", name: "Place", markerColor: "#00AA00", markerIcon: "P", rating: 2, mediaIds: [], address: "", note: "", createdAt: "2026-01-01", owner: { id: "u1", username: "viewer" }, latitude: 10, longitude: 106 }] });
+    if (path === "/api/library/album/media") return route.fulfill({ json: { offset: 0, limit: 20, total: 0, items: [] } });
     return route.fulfill({ json: [] });
   });
   await page.goto("/location");
@@ -35,12 +35,12 @@ test("location tabs respond immediately while history loads", async ({ page }) =
   });
   await page.route(/^https?:\/\/[^/]+\/api\//, async (route) => {
     const path = new URL(route.request().url()).pathname;
-    if (path === "/api/location/visits/all") {
+    if (path === "/api/place/visit/all") {
       await new Promise((resolve) => setTimeout(resolve, 1200));
       return route.fulfill({ json: [] });
     }
-    if (path === "/api/location/home-location") return route.fulfill({ json: null });
-    if (path === "/api/library/gallery") return route.fulfill({ json: { offset: 0, limit: 20, total: 0, items: [] } });
+    if (path === "/api/place/home-location") return route.fulfill({ json: null });
+    if (path === "/api/library/album/media") return route.fulfill({ json: { offset: 0, limit: 20, total: 0, items: [] } });
     return route.fulfill({ json: [] });
   });
   await page.goto("/location");
@@ -76,8 +76,8 @@ test("location empty-state descriptions align with their titles", async ({ page 
   });
   await page.route(/^https?:\/\/[^/]+\/api\//, async (route) => {
     const path = new URL(route.request().url()).pathname;
-    if (path === "/api/location/home-location") return route.fulfill({ json: null });
-    if (path === "/api/library/gallery") return route.fulfill({ json: { offset: 0, limit: 20, total: 0, items: [] } });
+    if (path === "/api/place/home-location") return route.fulfill({ json: null });
+    if (path === "/api/library/album/media") return route.fulfill({ json: { offset: 0, limit: 20, total: 0, items: [] } });
     return route.fulfill({ json: [] });
   });
   await page.goto("/location");

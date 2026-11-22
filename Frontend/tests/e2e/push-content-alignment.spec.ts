@@ -7,12 +7,12 @@ test("outgoing gallery stays vertically aligned when the page push starts", asyn
   });
   await page.route(/^https?:\/\/[^/]+\/api\//, route => {
     const path = new URL(route.request().url()).pathname;
-    if (path === "/api/library/gallery") return route.fulfill({ json: { offset: 0, limit: 20, total: 1, items: [{ id: "m1", createdAt: "2026-11-07T12:00:00Z", mediaKind: "image", mimeType: "image/png", originalFilename: "photo.png", fileSizeBytes: 100, isFavorited: false }] } });
+    if (path === "/api/library/album/media") return route.fulfill({ json: { offset: 0, limit: 20, total: 1, items: [{ id: "m1", createdAt: "2026-11-07T12:00:00Z", mediaKind: "image", mimeType: "image/png", originalFilename: "photo.png", fileSizeBytes: 100, isFavorited: false }] } });
     if (path.endsWith("/page")) return route.fulfill({ json: { page: 1, total: 0, limit: 30, items: [], allCount: 0, pendingCount: 0 } });
     return route.fulfill({ json: [] });
   });
   await page.route("**/hubs/**", route => route.abort());
-  await page.goto("/gallery");
+  await page.goto("/album");
   const heading = page.locator(".gallery-group__title").first();
   await expect(heading).toBeVisible();
   await page.waitForTimeout(500);
@@ -41,9 +41,9 @@ for (const [source, selector] of [["/users", ".admin-users__table"], ["/location
     });
     await page.route(/^https?:\/\/[^/]+\/api\//, route => {
       const path = new URL(route.request().url()).pathname;
-      if (path === "/api/location/home-location") return route.fulfill({ json: null });
-      if (path === "/api/users/page") return route.fulfill({ json: { page: 1, total: 1, limit: 30, items: [{ id: "u1", username: "viewer", role: "admin", status: "active", createdAt: "2026-01-01" }], allCount: 1, pendingCount: 0 } });
-      if (path.endsWith("/page") || path.startsWith("/api/library/gallery") || path === "/api/location/travel/map") return route.fulfill({ json: { page: 1, total: 0, limit: 30, items: [] } });
+      if (path === "/api/place/home-location") return route.fulfill({ json: null });
+      if (path === "/api/user/page") return route.fulfill({ json: { page: 1, total: 1, limit: 30, items: [{ id: "u1", username: "viewer", role: "admin", status: "active", createdAt: "2026-01-01" }], allCount: 1, pendingCount: 0 } });
+      if (path.endsWith("/page") || path.startsWith("/api/library/album/media") || path === "/api/place/travel/map") return route.fulfill({ json: { page: 1, total: 0, limit: 30, items: [] } });
       return route.fulfill({ json: [] });
     });
     await page.route("**/hubs/**", route => route.abort());
@@ -78,14 +78,14 @@ for (const width of [390, 1280]) test(`gallery day tiles retain their positions 
   });
   await page.route(/^https?:\/\/[^/]+\/api\//, route => {
     const path = new URL(route.request().url()).pathname;
-    if (path === "/api/library/gallery") return route.fulfill({ json: { offset: 0, limit: 20, total: 3, items: ["2026-11-07", "2026-11-06", "2026-11-05"].map((date, i) => ({ id: `m${i}`, createdAt: `${date}T12:00:00Z`, mediaKind: "image", mimeType: "image/png", originalFilename: "photo.png", fileSizeBytes: 100, isFavorited: false })) } });
-    if (path === "/api/location/home-location") return route.fulfill({ json: null });
-    if (path.endsWith("/page") || path === "/api/location/travel/map") return route.fulfill({ json: { page: 1, total: 0, limit: 30, items: [] } });
+    if (path === "/api/library/album/media") return route.fulfill({ json: { offset: 0, limit: 20, total: 3, items: ["2026-11-07", "2026-11-06", "2026-11-05"].map((date, i) => ({ id: `m${i}`, createdAt: `${date}T12:00:00Z`, mediaKind: "image", mimeType: "image/png", originalFilename: "photo.png", fileSizeBytes: 100, isFavorited: false })) } });
+    if (path === "/api/place/home-location") return route.fulfill({ json: null });
+    if (path.endsWith("/page") || path === "/api/place/travel/map") return route.fulfill({ json: { page: 1, total: 0, limit: 30, items: [] } });
     return route.fulfill({ json: [] });
   });
   await page.route("**/hubs/**", route => route.abort());
   await page.route(/https:\/\/[^/]*mapbox\.com\//, route => route.fulfill({ json: route.request().url().includes("/styles/v1/") ? { version: 8, sources: {}, layers: [] } : {} }));
-  await page.goto("/gallery");
+  await page.goto("/album");
   const tiles = page.locator("[data-gallery-window-id]");
   await expect(tiles).toHaveCount(3);
   await page.waitForTimeout(600);

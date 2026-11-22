@@ -115,13 +115,13 @@ describe("AuthenticatedLayout sidebar", () => {
       user: { id: "admin", username: "Admin", role: "admin", status: "active", createdAt: "2026-01-01T00:00:00Z" },
     });
     await renderLayout();
-    expect(container.querySelector<HTMLAnchorElement>('[aria-label="Gallery"]')?.getAttribute("href")).toBe("/gallery");
+    expect(container.querySelector<HTMLAnchorElement>('[aria-label="Gallery"]')?.getAttribute("href")).toBe("/album");
   });
 
   it("uses bottom navigation with a top bar on phones", async () => {
     narrowScreen = true;
     mobileScreen = true;
-    await renderLayout("/gallery");
+    await renderLayout("/album");
     expect(container.querySelector(".sidebar")).toBeNull();
     expect(container.querySelector(".sidebar__toggle")).toBeNull();
     expect(container.querySelectorAll(".bottom-navigation a")).toHaveLength(4);
@@ -169,7 +169,7 @@ describe("AuthenticatedLayout sidebar", () => {
   it("shows the page title and notifications in the mobile header", async () => {
     narrowScreen = true;
     mobileScreen = true;
-    await renderLayout("/gallery/album");
+    await renderLayout("/album");
     const header = container.querySelector(".app-topbar");
     expect(header?.textContent).toContain("Album");
     expect(header?.querySelector(".notification-bar")).not.toBeNull();

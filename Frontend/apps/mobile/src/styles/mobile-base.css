@@ -23,6 +23,10 @@
   --text-muted: oklch(0.76 0 20);
   --text-strong: var(--text);
   --text-disabled: oklch(0.6 0 20);
+  --mobile-item-title-size: 1.125rem;
+  --mobile-item-title-weight: 700;
+  --mobile-item-support-size: .8125rem;
+  --mobile-item-line-height: 1.25;
   --highlight: oklch(0.5 0 20);
   --primary: oklch(0.96 0 0);
   --secondary: oklch(0.76 0 0);
@@ -165,7 +169,7 @@ button:focus-visible {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  :where(button:not(:disabled):not(.dialog-action), a[href], [role="button"]:not(.dialog-action)):active {
+  :where(a[href]:not([role="button"])):active {
     scale: 0.97;
   }
 }
@@ -346,13 +350,16 @@ textarea::placeholder {
 .empty-state__title {
   margin: 0 0 8px;
   color: var(--text-strong);
-  font-size: 1.0625rem;
-  font-weight: 650;
+  font-size: var(--mobile-item-title-size);
+  font-weight: var(--mobile-item-title-weight);
+  line-height: var(--mobile-item-line-height);
   overflow-wrap: anywhere;
 }
 
 .empty-state__hint {
   color: var(--text-muted);
+  font-size: var(--mobile-item-support-size);
+  line-height: var(--mobile-item-line-height);
   max-width: 48ch;
   margin: 4px auto 0;
   overflow-wrap: anywhere;

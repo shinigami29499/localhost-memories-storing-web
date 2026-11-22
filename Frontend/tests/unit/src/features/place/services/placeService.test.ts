@@ -11,10 +11,10 @@ describe("placeService", () => {
   it("loads map summaries separately from place details", async () => {
     vi.mocked(api).mockResolvedValueOnce([{ id: "place-1", markerColor: "#7048e8" }]);
     await expect(placeService.map()).resolves.toEqual([{ id: "place-1", markerColor: "#7048e8", mediaIds: [] }]);
-    expect(api).toHaveBeenCalledWith("/api/location/map");
+    expect(api).toHaveBeenCalledWith("/api/place/map");
     vi.mocked(api).mockResolvedValueOnce({ id: "place-1", mediaIds: ["image-1"] });
     await expect(placeService.get("place-1")).resolves.toEqual({ id: "place-1", mediaIds: ["image-1"] });
-    expect(api).toHaveBeenCalledWith("/api/location/place-1");
+    expect(api).toHaveBeenCalledWith("/api/place/place-1");
   });
 
   it("preserves saved marker colors", async () => {
@@ -36,7 +36,7 @@ describe("placeService", () => {
     await expect(placeService.list()).resolves.toEqual([
       place,
     ]);
-    expect(api).toHaveBeenCalledWith("/api/location/saved");
+    expect(api).toHaveBeenCalledWith("/api/place/saved");
   });
 
   it("requests a bounded map page across the antimeridian", async () => {
@@ -44,7 +44,7 @@ describe("placeService", () => {
     const result = await placeService.mapPage(1, { west: 170, south: -20, east: -170, north: 30 });
     expect(result.items[0]).toEqual({ id: "place-1", markerColor: "#7048e8", mediaIds: [] });
     expect(api).toHaveBeenCalledWith(
-      "/api/location/map/page?page=1&limit=100&west=170&south=-20&east=-170&north=30", { signal: undefined },
+      "/api/place/map/page?page=1&limit=100&west=170&south=-20&east=-170&north=30", { signal: undefined },
     );
   });
 
@@ -66,7 +66,7 @@ describe("placeService", () => {
     vi.mocked(api).mockResolvedValue(visits);
 
     await expect(placeService.visitHistory()).resolves.toEqual(visits);
-    expect(api).toHaveBeenCalledWith("/api/location/history");
+    expect(api).toHaveBeenCalledWith("/api/place/history");
   });
 
   it("creates a visit for the selected place", async () => {
@@ -74,6 +74,6 @@ describe("placeService", () => {
 
     await placeService.checkIn("place-1");
 
-    expect(api).toHaveBeenCalledWith("/api/location/place-1/visits", { method: "POST" });
+    expect(api).toHaveBeenCalledWith("/api/place/place-1/visit", { method: "POST" });
   });
 });

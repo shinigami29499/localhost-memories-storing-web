@@ -1,3 +1,4 @@
+import { PageDataPlaceholder } from "@/components/ui/PageDataPlaceholder";
 import { Link } from "react-router-dom";
 import { EmptyState, ErrorState, Spinner } from "@/components/ui/Status";
 import { Button, DatePicker } from "@/components/ui";
@@ -14,7 +15,7 @@ export function UploadManagementPage() {
     <main className="upload-page" aria-label={t("Upload")}>
       <div className="upload-page__content">
         <div className="upload-page__toolbar">
-          <Link className="btn btn--secondary" to="/gallery/album">{t("Go to albums")}</Link>
+          <Link className="btn btn--secondary" to="/album">{t("Go to albums")}</Link>
           <div className="upload-page__filters">
             <AnimateIcon animateOnHover animateOnTap completeOnStop asChild><Button type="button" variant="ghost" className="upload-page__activity-button" aria-label={t("Mark all as read")} title={t("Mark all as read")} disabled={!unread.success && !unread.pending && !unread.failed && !unread.hasUnseenBatches(batches)} onClick={() => unread.markAllRead(batches)}>
               <CheckCheckIcon size={18} aria-hidden="true" /><span className="upload-page__button-label">{t("Mark all as read")}</span>
@@ -36,7 +37,7 @@ export function UploadManagementPage() {
           </div>
         </div>
 
-        {query.isPending ? <Spinner page label="Loading uploads..." /> : query.isError && !query.data ? (
+        {query.isPending ? <PageDataPlaceholder layout="cards" label={t("Loading uploads...")} /> : query.isError && !query.data ? (
           <ErrorState message="Could not load uploads." onRetry={() => void query.refetch()} />
         ) : batches.length === 0 ? (
           <EmptyState

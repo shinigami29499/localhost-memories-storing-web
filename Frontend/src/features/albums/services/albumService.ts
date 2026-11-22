@@ -39,6 +39,14 @@ export const albumService = {
     return api(`/api/library/album/${albumId}`);
   },
 
+  favorite(albumId: string): Promise<void> {
+    return api(`/api/library/album/${albumId}/favorite`, { method: "POST" });
+  },
+
+  unfavorite(albumId: string): Promise<void> {
+    return api(`/api/library/album/${albumId}/favorite`, { method: "DELETE" });
+  },
+
   media(albumId: string, offset = 0, limit = 20, mediaKind?: MediaKindFilter): Promise<PagedMedia> {
     const params = new URLSearchParams({ offset: String(offset), limit: String(limit) });
     if (mediaKind) params.set("mediaKind", mediaKind);

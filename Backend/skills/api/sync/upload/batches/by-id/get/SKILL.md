@@ -10,3 +10,5 @@ description: "Current behavior of GET /api/sync/upload/batches/{batchId:guid}."
 - Inputs: Guid batchId.
 - Flow: Returns a batch only when it belongs to the caller; other or missing batches are reported as not found.
 - Source: `Backend/Apis/Controllers/UploadsController.cs` (GetBatchAsync); `Backend/Infrastructures/Data/ApplicationServices/UploadService.cs`.
+
+Canonical route: `/api/sync/upload/batch/{batchId:guid}`. Previous routes remain aliases.

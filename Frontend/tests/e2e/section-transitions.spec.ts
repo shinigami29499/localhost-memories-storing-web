@@ -10,9 +10,9 @@ test.beforeEach(async ({ page }, testInfo) => {
   }, effect);
   await page.route(/^https?:\/\/[^/]+\/api\//, async (route) => {
     const path = new URL(route.request().url()).pathname;
-    if (path === "/api/location/home-location") return route.fulfill({ json: null });
-    if (path === "/api/location") return route.fulfill({ json: [{ id: "p1", name: "Place", markerColor: "#00AA00", markerIcon: "P", rating: 2, mediaIds: [], address: "", note: "", createdAt: "2026-01-01", owner: { id: "u1", username: "viewer" }, latitude: 10, longitude: 106 }] });
-    if (path.startsWith("/api/library/gallery")) return route.fulfill({ json: { offset: 0, limit: 20, total: 0, items: [] } });
+    if (path === "/api/place/home-location") return route.fulfill({ json: null });
+    if (path === "/api/place") return route.fulfill({ json: [{ id: "p1", name: "Place", markerColor: "#00AA00", markerIcon: "P", rating: 2, mediaIds: [], address: "", note: "", createdAt: "2026-01-01", owner: { id: "u1", username: "viewer" }, latitude: 10, longitude: 106 }] });
+    if (path.startsWith("/api/library/album/media")) return route.fulfill({ json: { offset: 0, limit: 20, total: 0, items: [] } });
     return route.fulfill({ json: [] });
   });
 });
@@ -62,7 +62,7 @@ test(`location tabs do not restart the page loading overlay at ${width}px`, asyn
 }
 
 test("gallery navigation retains its highlight while content changes", async ({ page }) => {
-  await page.goto("/gallery");
+  await page.goto("/album");
   const bar = page.locator(".gallery-page__media-toolbar");
   const highlight = bar.locator('[data-slot="motion-highlight"]');
   await expect(highlight).toHaveCount(1);
@@ -88,7 +88,7 @@ for (const width of [1571, 390]) {
   for (const effect of ["push", "iris", "bands", "chop"]) {
     test(`gallery content at ${width}px visibly transitions with ${effect}`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
-      await page.goto("/gallery");
+      await page.goto("/album");
       await expect(page.getByText("No media yet", { exact: true })).toBeVisible();
       for (const [tab, title] of [["Album", "No albums yet"], ["Trash", "Trash is empty"], ["Gallery", "No media yet"]]) {
         await page.evaluate(() => {

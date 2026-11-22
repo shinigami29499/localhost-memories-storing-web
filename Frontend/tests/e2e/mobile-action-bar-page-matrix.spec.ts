@@ -1,36 +1,36 @@
 import { expect, test } from "@playwright/test";
 
 const scenarios = [
-  { from: "/", to: "/gallery", enter: "vertical" },
-  { from: "/gallery", to: "/", exit: "vertical" },
-  { from: "/gallery", to: "/location", resize: "collapse" },
-  { from: "/location", to: "/gallery", resize: "expand" },
-  { from: "/gallery", to: "/location/saved", exit: "vertical", enter: "search" },
-  { from: "/location/saved", to: "/gallery", exit: "search", enter: "vertical" },
-  { from: "/gallery", to: "/location/history", exit: "vertical", enter: "search" },
-  { from: "/location/history", to: "/gallery", exit: "search", enter: "vertical" },
+  { from: "/", to: "/album", enter: "vertical" },
+  { from: "/album", to: "/", exit: "vertical" },
+  { from: "/album", to: "/location", resize: "collapse" },
+  { from: "/location", to: "/album", resize: "expand" },
+  { from: "/album", to: "/location/saved", exit: "vertical", enter: "search" },
+  { from: "/location/saved", to: "/album", exit: "search", enter: "vertical" },
+  { from: "/album", to: "/location/history", exit: "vertical", enter: "search" },
+  { from: "/location/history", to: "/album", exit: "search", enter: "vertical" },
   { from: "/", to: "/users", enter: "search" },
   { from: "/users", to: "/", exit: "search" },
   { from: "/location/saved", to: "/", exit: "search" },
   { from: "/", to: "/location/saved", enter: "search" },
   { from: "/location/history", to: "/", exit: "search" },
   { from: "/", to: "/location/history", enter: "search" },
-  { from: "/gallery/album", to: "/", exit: "vertical" },
-  { from: "/", to: "/gallery/album", enter: "vertical" },
-  { from: "/", to: "/gallery/album/a1", enter: "vertical" },
-  { from: "/gallery/album/a1", to: "/", exit: "vertical" },
-  { from: "/uploads", to: "/gallery", enter: "vertical" },
-  { from: "/gallery", to: "/uploads", exit: "vertical" },
+  { from: "/album", to: "/", exit: "vertical" },
+  { from: "/", to: "/album", enter: "vertical" },
+  { from: "/", to: "/album/a1", enter: "vertical" },
+  { from: "/album/a1", to: "/", exit: "vertical" },
+  { from: "/uploads", to: "/album", enter: "vertical" },
+  { from: "/album", to: "/uploads", exit: "vertical" },
   { from: "/settings", to: "/users", enter: "search" },
   { from: "/users", to: "/settings", exit: "search" },
-  { from: "/profile", to: "/gallery", enter: "vertical" },
-  { from: "/gallery", to: "/profile", exit: "vertical" },
+  { from: "/profile", to: "/album", enter: "vertical" },
+  { from: "/album", to: "/profile", exit: "vertical" },
   { from: "/uploads", to: "/users", enter: "search" },
   { from: "/users", to: "/uploads", exit: "search" },
   { from: "/profile", to: "/users", enter: "search" },
   { from: "/users", to: "/profile", exit: "search" },
-  { from: "/settings", to: "/gallery", enter: "vertical" },
-  { from: "/gallery", to: "/settings", exit: "vertical" },
+  { from: "/settings", to: "/album", enter: "vertical" },
+  { from: "/album", to: "/settings", exit: "vertical" },
   { from: "/location/saved", to: "/users", same: true },
   { from: "/location/history", to: "/users", same: true },
   { from: "/users", to: "/location/saved", same: true },
@@ -50,11 +50,11 @@ for (const scenario of scenarios) {
     });
     await page.route(/^https?:\/\/[^/]+\/api\//, (route) => {
       const path = new URL(route.request().url()).pathname;
-      if (path === "/api/location/home-location") return route.fulfill({ json: null });
-      if (path === "/api/users/me") return route.fulfill({ json: { id: "u1", username: "viewer", role: "admin", status: "active", createdAt: "2026-01-01" } });
+      if (path === "/api/place/home-location") return route.fulfill({ json: null });
+      if (path === "/api/user/me") return route.fulfill({ json: { id: "u1", username: "viewer", role: "admin", status: "active", createdAt: "2026-01-01" } });
       if (path === "/api/library/album/a1") return route.fulfill({ json: { id: "a1", name: "Album", caption: "", isPublic: false, owner: { id: "u1", username: "viewer" }, mediaCount: 0, previewMediaId: null, previewIsFavorited: false, customPreviewMediaId: null, containsMedia: false, createdAt: "2026-01-01T00:00:00Z", updatedAt: null } });
-      if (path.startsWith("/api/sync/upload") && path.endsWith("/batches")) return route.fulfill({ json: { offset: 0, limit: 30, totalItems: 0, items: [] } });
-      if (path.endsWith("/page") || path.startsWith("/api/library/gallery") || path.startsWith("/api/library/album") || path === "/api/location/travel/map") {
+      if (path.startsWith("/api/sync/upload") && path.endsWith("/batch")) return route.fulfill({ json: { offset: 0, limit: 30, totalItems: 0, items: [] } });
+      if (path.endsWith("/page") || path.startsWith("/api/library/album/media") || path.startsWith("/api/library/album") || path === "/api/place/travel/map") {
         return route.fulfill({ json: { page: 1, offset: 0, total: 0, limit: 30, items: [], allCount: 0, pendingCount: 0, hasMore: false } });
       }
       return route.fulfill({ json: [] });
@@ -62,12 +62,12 @@ for (const scenario of scenarios) {
     await page.route("**/hubs/**", (route) => route.abort());
     await page.route(/https:\/\/[^/]*mapbox\.com\//, (route) => route.fulfill({ json: route.request().url().includes("/styles/v1/") ? { version: 8, sources: {}, layers: [] } : {} }));
     await page.goto(scenario.from);
-    if (scenario.from === "/gallery") await expect(page.locator(".page-action-bar").getByRole("button", { name: "New album" })).toBeVisible();
+    if (scenario.from === "/album") await expect(page.locator(".page-action-bar").getByRole("button", { name: "New album" })).toBeVisible();
     if (scenario.from === "/location") await expect(page.getByRole("button", { name: "Add", exact: true })).toBeVisible();
     if (scenario.from === "/users") await expect(page.getByRole("searchbox", { name: "Search users" })).toBeVisible();
     if (scenario.from === "/location/saved") await expect(page.getByRole("searchbox", { name: "Search saved places" })).toBeVisible();
     if (scenario.from === "/location/history") await expect(page.getByRole("searchbox", { name: "Search visit history" })).toBeVisible();
-    if (scenario.from === "/gallery/album") await expect(page.locator(".page-action-bar").getByRole("button", { name: "New album" })).toBeVisible();
+    if (scenario.from === "/album") await expect(page.locator(".page-action-bar").getByRole("button", { name: "New album" })).toBeVisible();
     if (scenario.from === "/location/travel") await expect(page.locator(".page-action-bar .map-navigation__toolbar")).toBeVisible();
     await page.waitForTimeout(350);
     await page.evaluate(() => {

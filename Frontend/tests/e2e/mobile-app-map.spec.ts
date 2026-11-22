@@ -10,9 +10,9 @@ test.beforeEach(async ({ page }) => {
   });
   await page.route(/^https?:\/\/[^/]+\/api\//, (route) => {
     const path = new URL(route.request().url()).pathname;
-    const json = path === "/api/location/home-location" ? null
-      : path.includes("/batches") ? []
-        : path.endsWith("/page") || path === "/api/location/travel/map" || path.startsWith("/api/library/gallery")
+    const json = path === "/api/place/home-location" ? null
+      : path.includes("/batch") ? []
+        : path.endsWith("/page") || path === "/api/place/travel/map" || path.startsWith("/api/library/album/media")
           ? { page: 1, offset: 0, total: 0, limit: 30, items: [], hasMore: false }
           : [];
     return route.fulfill({ json });
@@ -168,8 +168,8 @@ test("mobile place marker opens its removal confirmation on a long press", async
   await page.setViewportSize({ width: 390, height: 844 });
   const place = { id: "p1", name: "Test place", address: "", note: "", rating: 0, latitude: 0, longitude: 0,
     markerIcon: "P", markerColor: "#168bd0", owner: { id: "u1", username: "viewer" }, mediaIds: [] };
-  await page.route("**/api/location/map/page?**", (route) => route.fulfill({ json: { items: [place], page: 1, limit: 100, total: 1 } }));
-  await page.route("**/api/location/p1", (route) => route.fulfill({ json: place }));
+  await page.route("**/api/place/map/page?**", (route) => route.fulfill({ json: { items: [place], page: 1, limit: 100, total: 1 } }));
+  await page.route("**/api/place/p1", (route) => route.fulfill({ json: place }));
   await page.goto("/location");
   const pin = page.getByRole("button", { name: "Test place", exact: true }).first();
   await expect(pin).toBeVisible();

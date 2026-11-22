@@ -10,10 +10,10 @@ test("mobile location map action stays inset from the main area and exits toward
   });
   await page.route(/^https?:\/\/[^/]+\/api\//, (route) => {
     const path = new URL(route.request().url()).pathname;
-    if (path === "/api/location/home-location") return route.fulfill({ json: null });
-    if (path === "/api/location/map/page") return route.fulfill({ json: { page: 1, limit: 30, total: 1, items: [{ id: "p1", name: "Test place", markerColor: "#00AA00", markerIcon: "P", rating: 2, address: "", note: "", createdAt: "2026-01-01", owner: { id: "u1", username: "viewer" }, latitude: 10.8, longitude: 106.7 }] } });
-    if (path === "/api/location/p1") return route.fulfill({ json: { id: "p1", name: "Test place", markerColor: "#00AA00", markerIcon: "P", rating: 2, mediaIds: [], owner: { id: "u1", username: "viewer" }, latitude: 10.8, longitude: 106.7 } });
-    if (path.endsWith("/page") || path === "/api/location/travel/map" || path.startsWith("/api/library/gallery")) {
+    if (path === "/api/place/home-location") return route.fulfill({ json: null });
+    if (path === "/api/place/map/page") return route.fulfill({ json: { page: 1, limit: 30, total: 1, items: [{ id: "p1", name: "Test place", markerColor: "#00AA00", markerIcon: "P", rating: 2, address: "", note: "", createdAt: "2026-01-01", owner: { id: "u1", username: "viewer" }, latitude: 10.8, longitude: 106.7 }] } });
+    if (path === "/api/place/p1") return route.fulfill({ json: { id: "p1", name: "Test place", markerColor: "#00AA00", markerIcon: "P", rating: 2, mediaIds: [], owner: { id: "u1", username: "viewer" }, latitude: 10.8, longitude: 106.7 } });
+    if (path.endsWith("/page") || path === "/api/place/travel/map" || path.startsWith("/api/library/album/media")) {
       return route.fulfill({ json: { page: 1, offset: 0, limit: 30, total: 0, items: [], hasMore: false } });
     }
     return route.fulfill({ json: [] });
@@ -147,7 +147,7 @@ test("mobile map waits for highlight motion and matches action sizing to map con
   });
   await page.route(/^https?:\/\/[^/]+\/api\//, (route) => {
     const path = new URL(route.request().url()).pathname;
-    return route.fulfill({ json: path === "/api/location/home-location" ? null : path.endsWith("/page") || path === "/api/location/travel/map" || path.startsWith("/api/library/gallery") ? { page: 1, offset: 0, limit: 30, total: 0, items: [], hasMore: false } : [] });
+    return route.fulfill({ json: path === "/api/place/home-location" ? null : path.endsWith("/page") || path === "/api/place/travel/map" || path.startsWith("/api/library/album/media") ? { page: 1, offset: 0, limit: 30, total: 0, items: [], hasMore: false } : [] });
   });
   await page.route("**/hubs/**", (route) => route.abort());
   await page.route(/https:\/\/[^/]*mapbox\.com\//, (route) => route.fulfill({ json: route.request().url().includes("/styles/v1/") ? { version: 8, sources: {}, layers: [] } : {} }));

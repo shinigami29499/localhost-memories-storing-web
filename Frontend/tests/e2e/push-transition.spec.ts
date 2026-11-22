@@ -7,7 +7,7 @@ async function setup(page: import("@playwright/test").Page) {
   });
   await page.route(/^https?:\/\/[^/]+\/api\//, (route) => {
     const url = new URL(route.request().url());
-    if (url.pathname === "/api/users/page") {
+    if (url.pathname === "/api/user/page") {
       const pending = url.searchParams.get("pendingOnly") === "true";
       return route.fulfill({ json: { page: 1, limit: 30, total: 1, allCount: 1, pendingCount: 1, items: [{ id: pending ? "pending" : "active", username: pending ? "Pending Person" : "Active Person", role: "user", status: pending ? "pending_approval" : "active", createdAt: "2026-01-01" }] } });
     }

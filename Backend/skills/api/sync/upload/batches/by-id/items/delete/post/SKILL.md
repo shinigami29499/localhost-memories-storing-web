@@ -10,3 +10,5 @@ description: "Current behavior of POST /api/sync/upload/batches/{batchId:guid}/i
 - Inputs: Guid batchId, [FromBody] Guid[] itemIds.
 - Flow: Soft-deletes 1 to 1,000 distinct selected item IDs in a caller-owned batch. Successful item records cannot be deleted; missing items or concurrent changes fail.
 - Source: `Backend/Apis/Controllers/UploadsController.cs` (DeleteRecordsAsync); `Backend/Infrastructures/Data/ApplicationServices/UploadService.cs`.
+
+Canonical route: `/api/sync/upload/batch/{batchId:guid}/item/delete`. Previous routes remain aliases.

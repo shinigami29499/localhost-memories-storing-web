@@ -57,6 +57,24 @@ public class CollectionsController(
         => Ok(await collectionService.GetCollectionAsync(
             collectionId, currentUser.RequireUserId(), currentUser.IsAdmin, cancellationToken));
 
+    [HttpPost("{collectionId:guid}/favorite")]
+    public async Task<IActionResult> FavoriteCollectionAsync(
+        Guid collectionId, CancellationToken cancellationToken)
+    {
+        await collectionService.SetCollectionFavoriteAsync(
+            collectionId, currentUser.RequireUserId(), true, cancellationToken);
+        return NoContent();
+    }
+
+    [HttpDelete("{collectionId:guid}/favorite")]
+    public async Task<IActionResult> UnfavoriteCollectionAsync(
+        Guid collectionId, CancellationToken cancellationToken)
+    {
+        await collectionService.SetCollectionFavoriteAsync(
+            collectionId, currentUser.RequireUserId(), false, cancellationToken);
+        return NoContent();
+    }
+
     [HttpGet("{collectionId:guid}/media")]
     public async Task<ActionResult<PagedMediaResponse<MediaFileDto>>> GetCollectionMediaAsync(
         Guid collectionId, [FromQuery] MediaPageRequest request, CancellationToken cancellationToken)

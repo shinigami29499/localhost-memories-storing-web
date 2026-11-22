@@ -20,15 +20,15 @@ test("mobile inner highlights preserve action-bar behavior", async ({ page }) =>
   });
   await page.route(/^https?:\/\/[^/]+\/api\//, (route) => {
     const path = new URL(route.request().url()).pathname;
-    if (path === "/api/location/home-location") return route.fulfill({ json: null });
+    if (path === "/api/place/home-location") return route.fulfill({ json: null });
     if (path === "/api/library/album/a1") return route.fulfill({ json: { id: "a1", name: "Album", caption: "", isPublic: false, owner: { id: "u1", username: "viewer" }, mediaCount: 0, previewMediaId: null, previewIsFavorited: false, customPreviewMediaId: null, containsMedia: false, createdAt: "2026-01-01T00:00:00Z", updatedAt: null } });
-    if (path.endsWith("/page") || path.startsWith("/api/library/gallery") || path.startsWith("/api/library/album") || path === "/api/location/travel/map") return route.fulfill({ json: { page: 1, offset: 0, total: 0, limit: 30, items: [], allCount: 0, pendingCount: 0, hasMore: false } });
+    if (path.endsWith("/page") || path.startsWith("/api/library/album/media") || path.startsWith("/api/library/album") || path === "/api/place/travel/map") return route.fulfill({ json: { page: 1, offset: 0, total: 0, limit: 30, items: [], allCount: 0, pendingCount: 0, hasMore: false } });
     return route.fulfill({ json: [] });
   });
   await page.route("**/hubs/**", (route) => route.abort());
   await page.route(/https:\/\/[^/]*mapbox\.com\//, (route) => route.fulfill({ json: route.request().url().includes("/styles/v1/") ? { version: 8, sources: {}, layers: [] } : {} }));
 
-  await page.goto("/gallery");
+  await page.goto("/album");
   const gallery = page.getByRole("navigation", { name: "Gallery", exact: true });
   await checkHighlight(page, gallery, gallery.getByRole("link", { name: "Album", exact: true }));
   await checkHighlight(page, gallery, gallery.getByRole("link", { name: "Trash", exact: true }));
@@ -52,7 +52,7 @@ test("mobile inner highlights preserve action-bar behavior", async ({ page }) =>
   await checkHighlight(page, userTabs, userTabs.getByRole("tab", { name: "All users" }));
   await expect(userSearch).toHaveAttribute("data-original-search", "true");
 
-  await page.goto("/gallery/album/a1");
+  await page.goto("/album/a1");
   const mediaTabs = page.getByRole("tablist", { name: "Filter by media type" });
   await checkHighlight(page, mediaTabs, mediaTabs.getByRole("tab", { name: "Videos" }));
   await checkHighlight(page, mediaTabs, mediaTabs.getByRole("tab", { name: "Images" }));

@@ -124,7 +124,7 @@ describe("MediaPreviewDialog resolution loading", () => {
 
     navigate("ArrowRight");
     expect(sources().map((url) => url.searchParams.has("preview"))).toEqual([true, false, true]);
-    expect(container.querySelector("video")?.src).toContain("/api/library/gallery/video/file?");
+    expect(container.querySelector("video")?.src).toContain("/api/library/album/media/video/file?");
     expect(container.querySelector('[aria-label="Video progress"]')).not.toBeNull();
     expect(container.querySelector('[aria-label="Toggle fullscreen"]')).not.toBeNull();
 

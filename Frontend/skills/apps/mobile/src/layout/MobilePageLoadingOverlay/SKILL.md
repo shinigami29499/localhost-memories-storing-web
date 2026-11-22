@@ -1,14 +1,10 @@
 ---
 name: mobile-page-loading-overlay
-description: Track initial page readiness during mobile navigation and move its title into the destination header.
+description: Show a route-component loading indicator while the router resolves mobile page code.
 ---
 
-`MobilePageLoadingOverlay.tsx` receives the destination title, icon, and shell content reference. Navigation starts collecting query observers before the router commits, independently of Interface motion. Progress counts one render unit and each distinct active TanStack Query that gains a destination observer. Initial data, terminal errors, and paused work settle a query unit. Lazy content and the map report render readiness through `data-mobile-page-pending`. Background refreshes with usable data settle immediately. Deferred media and map tiles continue loading through the destination's own UI.
+`MobilePageLoadingOverlay.tsx` shows a localized progress bar while the router resolves the destination. It counts cached or fetched static assets and the resolved route module. The menu highlights the pending destination as soon as loading starts. Header controls and tabs stay usable. A new navigation aborts the previous asset fetches and prevents the abandoned page from mounting. API queries and map readiness use in-page placeholders.
 
-The overlay paints at full opacity as soon as the destination commits. The bar advances in whole percentage points toward the settled share of work. It uses elapsed time so the 0–100% fill takes about 300 ms when work is ready, independent of display refresh rate. It pauses while awaiting more work and keeps its current value when late requests expand the total. The overlay remains fully visible for at least 300 ms. After initial work settles and the bar reaches 100%, the overlay clears. The interface motion setting determines whether it clears immediately or through a backdrop fade and a title move into the header. Navigation and system reduced-motion changes clean up the overlay's listeners, timers, and animations. System reduced motion bypasses the overlay.
+`tests/e2e/mobile-app-accessibility.spec.ts` holds the route module and album response independently to verify the handoff.
 
-Validate with `tests/e2e/mobile-app-accessibility.spec.ts` using a held Gallery response to check progress and completion in both themes and with Interface motion off.
-
-The title scales to the destination header font size during the slide. Translation and scaling share the same timing and easing. The title aligns its left edge and vertical center with the header before the live title appears.
-
-The overlay covers routed content and leaves the persistent header controls and tabs above it. The shell marks covered page content inert. The browser continues to paint the live header and tab bar during navigation.
+Route progress uses whole percentage points and stays below 100% during component loading. The minimum display time is 250 ms. During navigation the shell hides its previous title and Home identity. The icon and title stay visible until the progress bar reaches 100%, then the overlay fades and the title slides into the committed header. Reduced motion and disabled Interface motion skip the handoff animation. Opening an album from the Album list or returning from an inner page to a main tab skips the overlay. Album list and detail share the mounted header title.

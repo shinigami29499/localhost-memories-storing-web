@@ -18,7 +18,7 @@ public sealed class PreviewService(
         if (!await repository.IsSelectableImageAsync(mediaId, actorId, cancellationToken))
             throw new ValidationException("Invalid preview image.", new Dictionary<string, string[]>
             {
-                ["mediaIds"] = ["Choose an available gallery image or preview."],
+                ["mediaIds"] = ["Choose an available library image or preview."],
             });
         var media = await repository.FindAsync(mediaId, cancellationToken);
         if (media is { IsPreviewOnly: true })

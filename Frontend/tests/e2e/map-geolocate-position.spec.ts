@@ -11,8 +11,8 @@ for (const path of ["/location", "/location/travel"]) {
       }, version: 0 })));
       await page.route(/^https?:\/\/[^/]+\/api\//, (route) => {
         const url = new URL(route.request().url());
-        if (url.pathname === "/api/location/home-location") return route.fulfill({ json: null });
-        if (url.pathname.endsWith("/page") || url.pathname === "/api/location/travel/map") return route.fulfill({ json: { page: 1, offset: 0, total: 0, limit: 30, items: [] } });
+        if (url.pathname === "/api/place/home-location") return route.fulfill({ json: null });
+        if (url.pathname.endsWith("/page") || url.pathname === "/api/place/travel/map") return route.fulfill({ json: { page: 1, offset: 0, total: 0, limit: 30, items: [] } });
         return route.fulfill({ json: [] });
       });
       await page.route("**/hubs/**", (route) => route.abort());

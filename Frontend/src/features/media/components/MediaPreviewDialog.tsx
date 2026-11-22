@@ -1,3 +1,4 @@
+import { registerUiModule } from "@/features/ui-resources/uiModules";
 import { Bookmark } from "@/components/animate-ui/icons/bookmark";
 import { Check } from "@/components/animate-ui/icons/check";
 import { Copy } from "@/components/animate-ui/icons/copy";
@@ -19,9 +20,7 @@ import type { MediaFile } from "../types";
 import { MediaFavoriteButton } from "./MediaFavoriteButton";
 import { VideoPlayer } from "./VideoPlayer";
 
-const SaveToAlbumDialog = lazy(() =>
-  import("../../albums/components/SaveToAlbumDialog").then((module) => ({ default: module.SaveToAlbumDialog })),
-);
+const SaveToAlbumDialog = lazy(registerUiModule("Save to album dialog", () => import("../../albums/components/SaveToAlbumDialog").then((module) => ({ default: module.SaveToAlbumDialog }))));
 
 const MAX_DOTS = 20;
 

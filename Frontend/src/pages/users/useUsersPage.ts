@@ -31,8 +31,8 @@ export function useUsersPage(forceMobile = false) {
   const navigate = useNavigate();
   const filter: UserFilter = forceMobile ? "all" : pathname.endsWith("/pending") ? "pending_approval" : pathname.endsWith("/blocked") && isAdmin ? "blocked" : "all";
   useEffect(() => {
-    if (!isAdmin && pathname.endsWith("/blocked")) navigate("/users", { replace: true });
-  }, [isAdmin, pathname, navigate]);
+    if (!isAdmin && pathname.endsWith("/blocked")) navigate(forceMobile ? "/user" : "/users", { replace: true });
+  }, [forceMobile, isAdmin, pathname, navigate]);
   const [search, setSearch] = useState("");
   const [role, setRole] = useState("");
   const [roles, setRoles] = useState<string[]>([]);

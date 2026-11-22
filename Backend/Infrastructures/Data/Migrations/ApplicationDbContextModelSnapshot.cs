@@ -30,6 +30,10 @@ namespace Infrastructures.Data.Migrations
                         .HasColumnName("id")
                         .HasDefaultValueSql("gen_random_uuid()");
 
+                    b.Property<DateOnly?>("AlbumDate")
+                        .HasColumnType("date")
+                        .HasColumnName("album_date");
+
                     b.Property<string>("Caption")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -93,6 +97,60 @@ namespace Infrastructures.Data.Migrations
                         .HasDatabaseName("ix_collections_owner_id_created_at");
 
                     b.ToTable("collections", (string)null);
+                });
+
+            modelBuilder.Entity("Domains.Entities.CollectionFavorite", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<Guid>("CollectionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("collection_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("deleted_by");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_collection_favorites");
+
+                    b.HasIndex("CollectionId", "UserId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_collection_favorites_collection_id_user_id")
+                        .HasFilter("deleted_at IS NULL");
+
+                    b.HasIndex("UserId", "CreatedAt")
+                        .HasDatabaseName("ix_collection_favorites_user_id_created_at");
+
+                    b.ToTable("collection_favorites", (string)null);
                 });
 
             modelBuilder.Entity("Domains.Entities.CollectionMedia", b =>
@@ -1068,6 +1126,27 @@ namespace Infrastructures.Data.Migrations
                     b.Navigation("Owner");
 
                     b.Navigation("PreviewMediaFile");
+                });
+
+            modelBuilder.Entity("Domains.Entities.CollectionFavorite", b =>
+                {
+                    b.HasOne("Domains.Entities.Collection", "Collection")
+                        .WithMany()
+                        .HasForeignKey("CollectionId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired()
+                        .HasConstraintName("fk_collection_favorites_collections_collection_id");
+
+                    b.HasOne("Domains.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired()
+                        .HasConstraintName("fk_collection_favorites_users_user_id");
+
+                    b.Navigation("Collection");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Domains.Entities.CollectionMedia", b =>

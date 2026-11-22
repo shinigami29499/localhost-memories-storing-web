@@ -1,9 +1,13 @@
 # Android build
 
-Install Node.js 22 or newer, JDK 21, Android SDK 36, and frontend dependencies once with `npm ci`.
+Install Node.js 22 or newer, JDK 21, and Android SDK 36. From `Frontend/`, install dependencies with `npm ci --include=dev`. Vite and the Capacitor CLI are development dependencies required for the APK build.
+
+If Windows reports `'vite' is not recognized` and `npm ci` fails with `EPERM` on a file in use, restore the missing packages from `Frontend/` with `npm install --include=dev --no-save`.
+
+From `Frontend/` on Windows, run `npm run android:apk` to build the debug APK. The command builds `apps/mobile`, copies its output into Android with Capacitor, then assembles the APK. The script below also exports a copy to `E:\Project\APK`.
 
 ```powershell
-$env:VITE_API_URL = "https://trainers-equations-signature-church.trycloudflare.com "
+$env:VITE_API_URL = "https://browser-arms-java-arrivals.trycloudflare.com"
 $env:ANDROID_HOME = "E:\JDK-SDK\Android\SDK"
 $env:JAVA_HOME = "E:\JDK-SDK\Java\jdk-21"
 if (-not (Test-Path (Join-Path $env:JAVA_HOME "bin\javac.exe"))) { throw "JDK 21 is required. Install it or update JAVA_HOME to its installation folder." }
@@ -13,18 +17,11 @@ $frontend = (Get-Location).Path
 if ((Split-Path $frontend -Leaf) -ieq "android") { $frontend = Split-Path $frontend -Parent }
 Push-Location $frontend
 try {
-    npm.cmd run android:sync
-    if ($LASTEXITCODE -ne 0) { throw "Frontend build or Android sync failed" }
-    Push-Location (Join-Path $frontend "android")
-    try {
-        .\gradlew.bat :app:assembleDebug
-        if ($LASTEXITCODE -ne 0) { throw "APK build failed" }
-        $apkDirectory = "E:\Project\APK"
-        New-Item -ItemType Directory -Path $apkDirectory -Force -ErrorAction Stop | Out-Null
-        Copy-Item -LiteralPath "app\build\outputs\apk\debug\app-debug.apk" -Destination (Join-Path $apkDirectory "app-debug.apk") -Force -ErrorAction Stop
-    } finally {
-        Pop-Location
-    }
+    npm.cmd run android:apk
+    if ($LASTEXITCODE -ne 0) { throw "APK build failed" }
+    $apkDirectory = "E:\Project\APK"
+    New-Item -ItemType Directory -Path $apkDirectory -Force -ErrorAction Stop | Out-Null
+    Copy-Item -LiteralPath "android\app\build\outputs\apk\debug\app-debug.apk" -Destination (Join-Path $apkDirectory "app-debug.apk") -Force -ErrorAction Stop
 } finally {
     Pop-Location
 }

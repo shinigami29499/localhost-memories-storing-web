@@ -18,13 +18,16 @@ import { Brand } from "./Brand";
 import { useLocale } from "../../context/LocaleContext";
 import { UserAvatar } from "../common/UserAvatar";
 
-export function Sidebar({ collapsed = false, onToggle = () => {} }: { collapsed?: boolean; onToggle?: () => void }) {
+export function Sidebar({ collapsed = false, onToggle = () => {}, pendingPath }: {
+  collapsed?: boolean; onToggle?: () => void; pendingPath?: string;
+}) {
   const logout = useLogout();
   const { t } = useLocale();
   const user = useAuthStore((s) => s.user);
   const location = useLocation();
-  const locationsActive = location.pathname === "/location" || location.pathname.startsWith("/location/");
-  const libraryActive = location.pathname === "/gallery" || location.pathname.startsWith("/gallery/");
+  const pathname = pendingPath ?? location.pathname;
+  const locationsActive = pathname === "/location" || pathname.startsWith("/location/");
+  const libraryActive = pathname === "/album" || pathname.startsWith("/album/");
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const accountRef = useRef<HTMLDivElement>(null);
   const accountTriggerRef = useRef<HTMLButtonElement>(null);
@@ -66,7 +69,7 @@ export function Sidebar({ collapsed = false, onToggle = () => {} }: { collapsed?
           <nav id="sidebar-navigation" className="sidebar__nav" aria-label={t("Main navigation")}>
               <NavLink
                 to="/"
-                className={`sidebar__link${location.pathname === "/" ? " sidebar__link--active" : ""}`}
+                className={`sidebar__link${pathname === "/" ? " sidebar__link--active" : ""}`}
                 end
                 data-sidebar="menu-button"
                 aria-label={t("Home")}
@@ -75,9 +78,9 @@ export function Sidebar({ collapsed = false, onToggle = () => {} }: { collapsed?
                 <Home size={18} aria-hidden="true" />
                 <span>{t("Home")}</span>
               </NavLink>
-              <NavLink to="/gallery" className={`sidebar__link${libraryActive ? " sidebar__link--active" : ""}`}
-                data-sidebar="menu-button" aria-label={t("Gallery")} title={t("Gallery")}>
-                <LibraryBig size={18} aria-hidden="true" /><span>{t("Gallery")}</span>
+              <NavLink to="/album" className={`sidebar__link${libraryActive ? " sidebar__link--active" : ""}`}
+                data-sidebar="menu-button" aria-label={t("Album")} title={t("Album")}>
+                <LibraryBig size={18} aria-hidden="true" /><span>{t("Album")}</span>
               </NavLink>
               <NavLink to="/location" className={`sidebar__link${locationsActive ? " sidebar__link--active" : ""}`}
                 data-sidebar="menu-button" aria-label={t("Locations")} title={t("Locations")}>
@@ -86,7 +89,7 @@ export function Sidebar({ collapsed = false, onToggle = () => {} }: { collapsed?
               </NavLink>
               <NavLink
                 to="/users"
-                className={`sidebar__link${(location.pathname === "/users" || location.pathname.startsWith("/users/")) ? " sidebar__link--active" : ""}`}
+                className={`sidebar__link${(pathname === "/users" || pathname.startsWith("/users/")) ? " sidebar__link--active" : ""}`}
                 data-sidebar="menu-button"
                 aria-label={t("Users")}
                 title={t("Users")}
@@ -94,7 +97,7 @@ export function Sidebar({ collapsed = false, onToggle = () => {} }: { collapsed?
                 <Users size={18} aria-hidden="true" />
                 <span>{t("Users")}</span>
               </NavLink>
-              <NavLink to="/uploads" className={`sidebar__link${location.pathname.startsWith("/uploads") ? " sidebar__link--active" : ""}`} data-sidebar="menu-button" aria-label={t("Upload")} title={t("Upload")}>
+              <NavLink to="/uploads" className={`sidebar__link${pathname.startsWith("/uploads") ? " sidebar__link--active" : ""}`} data-sidebar="menu-button" aria-label={t("Upload")} title={t("Upload")}>
                 <Upload size={18} aria-hidden="true" /><span>{t("Upload")}</span>
               </NavLink>
             {
@@ -156,7 +159,7 @@ export function Sidebar({ collapsed = false, onToggle = () => {} }: { collapsed?
                   </div>
                           <NavLink
                       to="/profile"
-                      className={`sidebar__link${location.pathname === "/profile" ? " sidebar__link--active" : ""}`}
+                      className={`sidebar__link${pathname === "/profile" ? " sidebar__link--active" : ""}`}
                       onClick={() => setAccountMenuOpen(false)}
                       aria-label={t("User profile")}
                       title={t("User profile")}
@@ -166,7 +169,7 @@ export function Sidebar({ collapsed = false, onToggle = () => {} }: { collapsed?
                     </NavLink>
                                 <NavLink
                       to="/settings"
-                      className={`sidebar__link${location.pathname === "/settings" ? " sidebar__link--active" : ""}`}
+                      className={`sidebar__link${pathname === "/settings" ? " sidebar__link--active" : ""}`}
                       onClick={() => setAccountMenuOpen(false)}
                       aria-label={t("Settings")}
                       title={t("Settings")}

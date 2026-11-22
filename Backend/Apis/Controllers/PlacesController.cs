@@ -11,6 +11,7 @@ using Services.Responses.Place;
 namespace Apis.Controllers;
 
 [ApiController]
+[Route("api/place")]
 [Route("api/location")]
 [Route("api/location/place")]
 [Route("api/places")]
@@ -54,6 +55,7 @@ public class PlacesController(
         => Ok(await placeService.GetPlaceAsync(placeId, cancellationToken));
 
     [HttpGet("visits")]
+    [HttpGet("visit")]
     [HttpGet("history")]
     public async Task<ActionResult<IReadOnlyList<PlaceVisitDto>>> GetPlaceVisitHistoryAsync(
         CancellationToken cancellationToken)
@@ -61,6 +63,7 @@ public class PlacesController(
             currentUser.RequireUserId(), cancellationToken));
 
     [HttpGet("visits/all")]
+    [HttpGet("visit/all")]
     [HttpGet("history/all")]
     public async Task<ActionResult<IReadOnlyList<PlaceVisitDto>>> GetAllPlaceVisitHistoryAsync(
         CancellationToken cancellationToken)
@@ -74,11 +77,13 @@ public class PlacesController(
             all ? null : currentUser.RequireUserId(), placeId, cancellationToken));
 
     [HttpGet("{placeId:guid}/visits")]
+    [HttpGet("{placeId:guid}/visit")]
     public async Task<ActionResult<IReadOnlyList<PlaceVisitDto>>> GetPlaceVisitHistoryForPlaceAsync(
         Guid placeId, CancellationToken cancellationToken)
         => Ok(await placeService.GetPlaceVisitHistoryForPlaceAsync(placeId, cancellationToken));
 
     [HttpPost("{placeId:guid}/visits")]
+    [HttpPost("{placeId:guid}/visit")]
     public async Task<IActionResult> CheckInPlaceAsync(
         Guid placeId, CancellationToken cancellationToken)
     {
@@ -91,6 +96,7 @@ public class PlacesController(
     }
 
     [HttpDelete("visits/{visitId:guid}")]
+    [HttpDelete("visit/{visitId:guid}")]
     public async Task<IActionResult> DeletePlaceVisitAsync(
         Guid visitId, CancellationToken cancellationToken)
     {
@@ -104,6 +110,7 @@ public class PlacesController(
     public sealed record UpdatePlaceVisitRequest(string? Note, int Rating);
 
     [HttpPut("visits/{visitId:guid}")]
+    [HttpPut("visit/{visitId:guid}")]
     public async Task<ActionResult<PlaceVisitDto>> UpdatePlaceVisitAsync(
         Guid visitId, UpdatePlaceVisitRequest request, CancellationToken cancellationToken)
     {
@@ -121,7 +128,8 @@ public class PlacesController(
         var created = await placeService.CreatePlaceAsync(
             userId, request, cancellationToken);
         await NotifyPlacesChangedAsync(userId, created.Id, cancellationToken);
-        return Created($"/api/location/{created.Id}", created);
+        var path = Request.Path.StartsWithSegments("/api/place") ? "/api/place" : "/api/location";
+        return Created($"{path}/{created.Id}", created);
     }
 
     [HttpPut("{placeId:guid}")]

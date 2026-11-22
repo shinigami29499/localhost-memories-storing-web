@@ -1,3 +1,4 @@
+import { registerUiModule } from "@/features/ui-resources/uiModules";
 import { lazy, Suspense, useEffect, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { Settings } from "@/components/animate-ui/icons/settings";
@@ -7,7 +8,7 @@ import { useLocale } from "@/context/LocaleContext";
 import { authService } from "@/features/auth";
 import "./mobile-register.css";
 
-const SettingsPage = lazy(() => import("./settings/MobileSettingsPage").then((module) => ({ default: module.SettingsPage })));
+const SettingsPage = lazy(registerUiModule("Registration settings", () => import("./settings/MobileSettingsPage").then((module) => ({ default: module.SettingsPage }))));
 
 export function RegisterPage() {
   const { t } = useLocale();

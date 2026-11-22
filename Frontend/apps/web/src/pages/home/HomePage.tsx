@@ -1,4 +1,5 @@
-import { EmptyState, ErrorState, Spinner } from "@/components/ui";
+import { PageDataPlaceholder } from "@/components/ui/PageDataPlaceholder";
+import { EmptyState, ErrorState } from "@/components/ui";
 import { Link } from "react-router-dom";
 import { useLocale } from "@/context/LocaleContext";
 import { useInfiniteAlbums, type Album } from "@/features/albums";
@@ -23,7 +24,7 @@ export function HomePage() {
               <p>{t(isAdmin ? "Browse all albums, including private albums." : "Browse albums you own and albums shared publicly.")}</p>
             </header>
 
-            {albumsQuery.isPending ? <Spinner page label={t("Loading albums...")} /> : albumsQuery.isError && albums.length === 0 ? (
+            {albumsQuery.isPending ? <PageDataPlaceholder layout="cards" label={t("Loading albums...")} /> : albumsQuery.isError && albums.length === 0 ? (
               <ErrorState
                 message={t("Could not load albums.")}
                 onRetry={() => void albumsQuery.refetch()}
@@ -32,7 +33,7 @@ export function HomePage() {
               <EmptyState
                 title="No albums yet"
                 hint="Create an album in Albums to start organizing your media."
-                action={<Link className="btn btn--primary" to="/gallery/album">{t("Go to albums")}</Link>}
+                action={<Link className="btn btn--primary" to="/album">{t("Go to albums")}</Link>}
               />
             ) : (
               <div className="home-feed" aria-busy={albumsQuery.isFetching}>

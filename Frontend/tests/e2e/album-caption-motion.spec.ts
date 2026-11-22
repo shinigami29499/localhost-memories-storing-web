@@ -9,12 +9,12 @@ for (const width of [390, 1024]) {
     });
     await page.route(/^https?:\/\/[^/]+\/api\//, (route) => {
       const path = new URL(route.request().url()).pathname;
-      if (path === "/api/location/home-location") return route.fulfill({ json: null });
+      if (path === "/api/place/home-location") return route.fulfill({ json: null });
       if (path === "/api/library/album/a1") return route.fulfill({ json: { id: "a1", name: "Album", caption: "A long caption with enough words to fill several lines. ".repeat(30), isPublic: false, owner: { id: "u1", username: "viewer" }, mediaCount: 0, previewMediaId: null, createdAt: "2026-01-01T00:00:00Z" } });
       return route.fulfill({ json: { items: [], total: 0, hasMore: false } });
     });
     await page.route("**/hubs/**", (route) => route.abort());
-    await page.goto("/gallery/album/a1");
+    await page.goto("/album/a1");
     const button = page.locator(".album-hero__caption-button");
     const captionArea = page.locator(".album-hero__caption-expand");
     await expect(page.getByText("Show more")).toBeVisible();

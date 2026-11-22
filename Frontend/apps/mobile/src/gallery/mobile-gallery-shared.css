@@ -13,6 +13,135 @@
   flex: 1 1 0;
 }
 
+.mobile-albums-page .album-date-view__body {
+  --album-title-size: var(--mobile-item-title-size);
+  --album-queue-name-size: calc(var(--mobile-item-title-size) * .75);
+  --album-queue-owner-size: calc(var(--mobile-item-support-size) * .75);
+}
+.mobile-albums-page .album-date-view__body > .empty-state { align-self: start; }
+.mobile-albums-page .album-date-view__days { touch-action: pan-y pinch-zoom; }
+
+.mobile-albums-page .album-date-view__move-up {
+  --control-radius: 50%;
+  grid-area: 2 / 2;
+}
+.mobile-albums-page .album-date-view__move-up:not([data-visible]) {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.mobile-albums-page[data-create-action] {
+  overflow-y: auto;
+  scroll-padding-block-end: var(--mobile-nav-clearance);
+}
+
+.mobile-albums-page[data-create-action] .album-date-view__viewport {
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
+}
+
+.mobile-albums-page[data-create-action] .album-date-view__body { flex: none; }
+
+.mobile-albums-page__footer {
+  display: flex;
+  flex: 1 0 auto;
+  align-items: end;
+  justify-content: center;
+  margin-block-start: calc(-1 * var(--mobile-nav-clearance));
+  padding-block: .25rem calc(var(--mobile-nav-clearance) + .25rem);
+}
+
+.mobile-albums-page .mobile-albums-page__create {
+  --control-radius: var(--mobile-nav-radius);
+  --mobile-gradient: linear-gradient(90deg, #9333ea, #be185d 50%, #9333ea);
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  inline-size: min(26rem, calc(100% - 2 * var(--page-gutter)));
+  min-block-size: var(--mobile-nav-item-height);
+  border: 1px solid transparent;
+  border-radius: var(--control-radius);
+  background-origin: border-box;
+  background-color: #9333ea;
+  box-shadow: var(--mobile-shadow);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :root[data-motion="on"] .mobile-albums-page .album-date-view__move-up {
+    transition: opacity 200ms ease, visibility 0s;
+  }
+  :root[data-motion="on"] .mobile-albums-page .album-date-view__move-up:not([data-visible]) {
+    transition-delay: 0s, 200ms;
+  }
+  :root[data-motion="on"] .mobile-albums-page__create {
+    transition: opacity 200ms ease, transform 350ms cubic-bezier(.22, 1, .36, 1);
+  }
+  @starting-style {
+    :root[data-motion="on"] .mobile-albums-page__create {
+      opacity: 0;
+      transform: translateY(.75rem);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) and (hover: hover) {
+  :root[data-motion="on"] .mobile-albums-page [data-icon-motion] .album-date-view__move-up[data-visible]:hover svg {
+    animation: album-move-up-arrow 320ms ease-out;
+  }
+}
+
+@keyframes album-move-up-arrow {
+  0% { transform: translateY(.1875rem); }
+  55% { transform: translateY(-.1875rem); }
+  100% { transform: translateY(0); }
+}
+
+@media (max-height: 600px) {
+  .mobile-albums-page[data-create-action] .album-date-view__viewport,
+  .mobile-albums-page .album-date-view__viewport[data-frame-loading] {
+    flex: none;
+    block-size: calc(17rem + var(--mobile-nav-clearance));
+  }
+
+  .mobile-albums-page[data-create-action] .album-date-view__body {
+    touch-action: pan-y pinch-zoom;
+  }
+
+  .mobile-albums-page[data-create-action] :is(.album-date-card--featured, .album-date-view__queue) {
+    touch-action: pinch-zoom;
+  }
+}
+
+.mobile-albums-page .album-date-card--featured .album-date-card__name {
+  font-size: var(--album-title-size);
+  font-weight: var(--mobile-item-title-weight);
+  line-height: var(--mobile-item-line-height);
+}
+
+.mobile-albums-page .album-date-card--compact .album-date-card__name {
+  font-size: var(--album-queue-name-size);
+  font-weight: var(--mobile-item-title-weight);
+  line-height: var(--mobile-item-line-height);
+}
+
+.mobile-albums-page .album-date-card--featured .album-date-card__owner {
+  font-size: var(--mobile-item-support-size);
+  line-height: var(--mobile-item-line-height);
+}
+
+.mobile-albums-page .album-date-card--compact .album-date-card__owner {
+  font-size: var(--album-queue-owner-size);
+  line-height: var(--mobile-item-line-height);
+}
+
 .gallery-page__scroll-track {
   background: var(--surface);
   height: 3px;

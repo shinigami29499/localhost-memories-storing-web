@@ -26,7 +26,7 @@ function toBody(input: SavePlaceInput) {
 
 export const placeService = {
   map(): Promise<Place[]> {
-    return api<Omit<Place, "mediaIds">[]>("/api/location/map").then((places) => places.map((place) => ({
+    return api<Omit<Place, "mediaIds">[]>("/api/place/map").then((places) => places.map((place) => ({
       ...place,
       mediaIds: [],
     })));
@@ -36,63 +36,63 @@ export const placeService = {
     const params = new URLSearchParams({ page: String(page), limit: "100",
       west: String(bounds.west), south: String(bounds.south),
       east: String(bounds.east), north: String(bounds.north) });
-    return api<PlacePage<Omit<Place, "mediaIds">>>(`/api/location/map/page?${params}`, { signal })
+    return api<PlacePage<Omit<Place, "mediaIds">>>(`/api/place/map/page?${params}`, { signal })
       .then((result) => ({ ...result, items: result.items.map((place) => ({ ...place, mediaIds: [] })) }));
   },
 
   get(placeId: string): Promise<Place> {
-    return api(`/api/location/${placeId}`);
+    return api(`/api/place/${placeId}`);
   },
 
   list(): Promise<Place[]> {
-    return api<Place[]>("/api/location/saved");
+    return api<Place[]>("/api/place/saved");
   },
 
   page(page: number, limit: number, search = "", minimumRating = 0, signal?: AbortSignal): Promise<PlacePage<Place>> {
     const params = new URLSearchParams({ page: String(page), limit: String(limit), minimumRating: String(minimumRating) });
     if (search.trim()) params.set("search", search.trim());
-    return api(`/api/location/saved/page?${params}`, { signal });
+    return api(`/api/place/saved/page?${params}`, { signal });
   },
 
   visitPage(page: number, limit: number, all = false, placeId?: string, signal?: AbortSignal): Promise<PlacePage<PlaceVisit>> {
     const params = new URLSearchParams({ page: String(page), limit: String(limit), all: String(all) });
     if (placeId) params.set("placeId", placeId);
-    return api(`/api/location/history/page?${params}`, { signal });
+    return api(`/api/place/history/page?${params}`, { signal });
   },
 
   visitHistory(): Promise<PlaceVisit[]> {
-    return api<PlaceVisit[]>("/api/location/history");
+    return api<PlaceVisit[]>("/api/place/history");
   },
 
   allVisitHistory(): Promise<PlaceVisit[]> {
-    return api<PlaceVisit[]>("/api/location/history/all");
+    return api<PlaceVisit[]>("/api/place/history/all");
   },
 
   visitsForPlace(placeId: string): Promise<PlaceVisit[]> {
-    return api<PlaceVisit[]>(`/api/location/${placeId}/visits`);
+    return api<PlaceVisit[]>(`/api/place/${placeId}/visit`);
   },
 
   checkIn(placeId: string): Promise<void> {
-    return api(`/api/location/${placeId}/visits`, { method: "POST" });
+    return api(`/api/place/${placeId}/visit`, { method: "POST" });
   },
 
   removeVisit(visitId: string): Promise<void> {
-    return api(`/api/location/visits/${visitId}`, { method: "DELETE" });
+    return api(`/api/place/visit/${visitId}`, { method: "DELETE" });
   },
 
   updateVisit(visitId: string, input: { note: string; rating: number }): Promise<PlaceVisit> {
-    return api(`/api/location/visits/${visitId}`, { method: "PUT", body: input });
+    return api(`/api/place/visit/${visitId}`, { method: "PUT", body: input });
   },
 
   create(input: SavePlaceInput): Promise<Place> {
-    return api("/api/location", { method: "POST", body: toBody(input) });
+    return api("/api/place", { method: "POST", body: toBody(input) });
   },
 
   update(placeId: string, input: SavePlaceInput): Promise<Place> {
-    return api(`/api/location/${placeId}`, { method: "PUT", body: toBody(input) });
+    return api(`/api/place/${placeId}`, { method: "PUT", body: toBody(input) });
   },
 
   remove(placeId: string): Promise<void> {
-    return api(`/api/location/${placeId}`, { method: "DELETE" });
+    return api(`/api/place/${placeId}`, { method: "DELETE" });
   },
 };

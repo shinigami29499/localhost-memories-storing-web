@@ -15,6 +15,7 @@ namespace Apis.Controllers;
 
 [ApiController]
 [Route("api/sync/upload")]
+[Route("api/upload")]
 [Route("api/uploads")]
 [Authorize]
 public sealed class UploadsController(
@@ -26,6 +27,7 @@ public sealed class UploadsController(
     private readonly IUploadService _uploadService = uploadService;
     private readonly ICurrentUserContext _currentUser = currentUser;
 
+    [HttpGet("batch")]
     [HttpGet("batches")]
     public async Task<ActionResult<PagedUploadBatchesResponse>> GetOwnBatchesAsync(
         [FromQuery] UploadListRequest request,
@@ -34,6 +36,7 @@ public sealed class UploadsController(
             _currentUser.RequireUserId(), false, request.Offset, request.Limit,
             request.CreatedFrom, request.CreatedBefore, cancellationToken));
 
+    [HttpPost("batch")]
     [HttpPost("batches")]
     public async Task<ActionResult<UploadBatchDto>> CreateBatchAsync(
         CreateUploadBatchRequest request,
@@ -43,10 +46,14 @@ public sealed class UploadsController(
             _currentUser.RequireUserId(), request, cancellationToken);
         await notificationsHub.NotifyUploadsChangedAsync(
             _currentUser.RequireUserId(), logger, cancellationToken);
-        return Created($"/api/sync/upload/batches/{batch.Id}", batch);
+        var path = Request.Path.Value?.EndsWith("/batch", StringComparison.OrdinalIgnoreCase) == true
+            ? "/api/sync/upload/batch"
+            : "/api/sync/upload/batches";
+        return Created($"{path}/{batch.Id}", batch);
     }
 
     [RequireAdmin]
+    [HttpGet("admin/batch")]
     [HttpGet("admin/batches")]
     public async Task<ActionResult<PagedUploadBatchesResponse>> GetAllBatchesAsync(
         [FromQuery] UploadListRequest request,
@@ -55,6 +62,7 @@ public sealed class UploadsController(
             _currentUser.RequireUserId(), true, request.Offset, request.Limit,
             request.CreatedFrom, request.CreatedBefore, cancellationToken));
 
+    [HttpGet("batch/{batchId:guid}")]
     [HttpGet("batches/{batchId:guid}")]
     public async Task<ActionResult<UploadBatchDto>> GetBatchAsync(
         Guid batchId,
@@ -62,17 +70,20 @@ public sealed class UploadsController(
         => Ok(await _uploadService.GetBatchAsync(
             _currentUser.RequireUserId(), _currentUser.IsAdmin, batchId, cancellationToken));
 
+    [HttpGet("batch/{batchId:guid}/image")]
     [HttpGet("batches/{batchId:guid}/images")]
     public async Task<ActionResult<IReadOnlyList<Guid>>> GetBatchImageIdsAsync(
         Guid batchId, CancellationToken cancellationToken)
         => Ok(await _uploadService.GetBatchImageIdsAsync(_currentUser.RequireUserId(), batchId, cancellationToken));
 
+    [HttpPut("batch/{batchId:guid}/viewed")]
     [HttpPut("batches/{batchId:guid}/viewed")]
     public async Task<IActionResult> MarkBatchViewedAsync(Guid batchId, CancellationToken cancellationToken)
         => await _uploadService.MarkBatchViewedAsync(_currentUser.RequireUserId(), batchId, cancellationToken)
             ? NoContent()
             : NotFound();
 
+    [HttpPut("batch/viewed/selected")]
     [HttpPut("batches/viewed/selected")]
     public async Task<IActionResult> MarkBatchesViewedAsync(
         MarkUploadBatchesViewedRequest request,
@@ -86,6 +97,7 @@ public sealed class UploadsController(
         return NoContent();
     }
 
+    [HttpPut("batch/viewed")]
     [HttpPut("batches/viewed")]
     public async Task<IActionResult> MarkAllBatchesViewedAsync(CancellationToken cancellationToken)
     {
@@ -115,6 +127,7 @@ public sealed class UploadsController(
         return NoContent();
     }
 
+    [HttpPost("batch/{batchId:guid}/item/{itemId:guid}/start")]
     [HttpPost("batches/{batchId:guid}/items/{itemId:guid}/start")]
     public async Task<ActionResult<UploadItemDto>> StartItemAsync(
         Guid batchId,
@@ -128,6 +141,7 @@ public sealed class UploadsController(
         return Ok(item);
     }
 
+    [HttpPost("batch/{batchId:guid}/item/{itemId:guid}/progress")]
     [HttpPost("batches/{batchId:guid}/items/{itemId:guid}/progress")]
     public async Task<ActionResult<UploadItemDto>> ReportProgressAsync(
         Guid batchId,
@@ -146,6 +160,7 @@ public sealed class UploadsController(
         return Ok(item);
     }
 
+    [HttpPost("batch/{batchId:guid}/item/{itemId:guid}/file")]
     [HttpPost("batches/{batchId:guid}/items/{itemId:guid}/file")]
     public async Task<ActionResult<UploadItemDto>> UploadFileAsync(
         Guid batchId,
@@ -194,6 +209,7 @@ public sealed class UploadsController(
         return Ok(result.Item);
     }
 
+    [HttpPost("batch/{batchId:guid}/item/delete")]
     [HttpPost("batches/{batchId:guid}/items/delete")]
     public async Task<IActionResult> DeleteRecordsAsync(Guid batchId, [FromBody] Guid[] itemIds, CancellationToken cancellationToken)
     {
@@ -203,7 +219,9 @@ public sealed class UploadsController(
         return NoContent();
     }
 
+    [HttpDelete("batch/{batchId:guid}")]
     [HttpDelete("batches/{batchId:guid}")]
+    [HttpDelete("batch/{batchId:guid}/item/{itemId:guid}")]
     [HttpDelete("batches/{batchId:guid}/items/{itemId:guid}")]
     public async Task<IActionResult> DeleteRecordAsync(Guid batchId, Guid? itemId, CancellationToken cancellationToken)
     {
@@ -212,7 +230,9 @@ public sealed class UploadsController(
         return NoContent();
     }
 
+    [HttpPost("batch/{batchId:guid}/pause")]
     [HttpPost("batches/{batchId:guid}/pause")]
+    [HttpPost("batch/{batchId:guid}/item/{itemId:guid}/pause")]
     [HttpPost("batches/{batchId:guid}/items/{itemId:guid}/pause")]
     public async Task<ActionResult<UploadBatchDto>> PauseAsync(Guid batchId, Guid? itemId, CancellationToken cancellationToken)
     {
@@ -221,7 +241,9 @@ public sealed class UploadsController(
         return Ok(batch);
     }
 
+    [HttpPost("batch/{batchId:guid}/resume")]
     [HttpPost("batches/{batchId:guid}/resume")]
+    [HttpPost("batch/{batchId:guid}/item/{itemId:guid}/resume")]
     [HttpPost("batches/{batchId:guid}/items/{itemId:guid}/resume")]
     public async Task<ActionResult<UploadBatchDto>> ResumeAsync(Guid batchId, Guid? itemId, CancellationToken cancellationToken)
     {
@@ -230,6 +252,7 @@ public sealed class UploadsController(
         return Ok(batch);
     }
 
+    [HttpPost("batch/{batchId:guid}/item/{itemId:guid}/fail")]
     [HttpPost("batches/{batchId:guid}/items/{itemId:guid}/fail")]
     public async Task<ActionResult<UploadItemDto>> FailItemAsync(
         Guid batchId,

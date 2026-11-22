@@ -12,6 +12,8 @@
   --mobile-on-primary: #ffffff;
   --mobile-focus: #1763b0;
   --mobile-danger: #b3261e;
+  --mobile-paused-on-light: #b3261e;
+  --mobile-paused-on-dark: #ee6969;
   --mobile-danger-action: color-mix(in oklch, var(--mobile-surface) 88%, var(--mobile-danger));
   --mobile-danger-action-hover: #ebaaa2;
   --mobile-action-color-duration: 0ms;

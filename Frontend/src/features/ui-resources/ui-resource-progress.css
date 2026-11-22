@@ -1,0 +1,57 @@
+.ui-resource-progress {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: .75rem;
+  inline-size: min(16rem, calc(100% - 3rem));
+  color: var(--text, #f5f5f5);
+}
+
+.ui-resource-progress__title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.ui-resource-progress progress {
+  inline-size: 100%;
+  block-size: .5rem;
+  overflow: hidden;
+  border: 0;
+  border-radius: 1rem;
+  appearance: none;
+  background: var(--ui-progress-track, var(--surface-hover, #3b3b3b));
+  color: var(--text, #f5f5f5);
+}
+
+.ui-resource-progress progress::-webkit-progress-bar {
+  background: var(--ui-progress-track, var(--surface-hover, #3b3b3b));
+  border-radius: inherit;
+}
+
+.ui-resource-progress progress::-webkit-progress-value {
+  background: var(--ui-progress-fill, currentColor);
+  border-radius: inherit;
+}
+
+.ui-resource-progress progress::-moz-progress-bar {
+  background: var(--ui-progress-fill, currentColor);
+  border-radius: inherit;
+}
+
+.ui-resource-loading {
+  display: grid;
+  place-items: center;
+  background: var(--mobile-bg, var(--surface, #1c1c1c));
+}
+
+.ui-resource-loading--startup { min-block-size: 100dvh; }
+
+.ui-resource-loading--route {
+  position: absolute;
+  inset: 0;
+  z-index: 101;
+}
+
+.web-route-content { display: contents; }
+.app-topbar__title[data-overlay] { visibility: hidden; }

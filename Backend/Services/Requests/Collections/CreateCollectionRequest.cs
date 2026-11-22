@@ -12,4 +12,6 @@ public record CreateCollectionRequest(
 
     [MaxLength(MaxCaptionLength)]
     public string? Caption { get; init; }
+
+    public DateOnly? AlbumDate { get; init; }
 }

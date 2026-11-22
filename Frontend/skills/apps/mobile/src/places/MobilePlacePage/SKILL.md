@@ -9,4 +9,4 @@ Sources below are relative to `Frontend/apps/mobile/src/` unless marked shared, 
 
 places/MobilePlacePage.tsx uses shared pages/place/usePlacePageController.tsx. It coordinates map, saved places and visit history with search and filters. Users can create places and check in; owners or admins can edit places and move photos. Deletion and moves use confirmation. Home selection uses location access. The map links to Albums for new uploads.
 
-`MobileMapLoadingOverlay.tsx` marks the first map render as pending while the map starts. During a page transition, the shell counts the map render as ready when the map loads or its error state replaces the loading overlay.
+The map uses an in-panel placeholder while its renderer initializes. Initial map data uses a short placeholder beneath the map while queries run. Saved places and visit history show row placeholders until their initial queries settle.

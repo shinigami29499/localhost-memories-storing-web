@@ -56,6 +56,7 @@ This is a guide, not a requirement to create every directory. Prefer colocating 
 - Components must not call `fetch` directly; use services.
 - Use TanStack Query for remote/server state and Zustand for shared client state.
 - Use familiar, labeled icons. Keep navigation and common controls static; use motion only where it clarifies state.
+- Pressable buttons use the shared smooth press-and-release scale feedback in `Frontend/src/utils/buttonPressMotion.ts`. Preserve other control transitions, and disable the feedback when Interface motion is off or reduced motion is requested.
 - Toasts use semantic palettes in `src/components/ui/toast.css`: red for error and delete, amber for warning, green for success, and blue for information. Pair a pale background and border with darker readable text and a solid accent icon.
 - Use `var(--surface-hover)` for neutral hover and focus highlights. The app has one light theme and five authored UI colors in `src/styles/global.css`; keep selected and destructive states distinct through text, icons, and boundaries.
 - Row-level actions are icon buttons with descriptive `aria-label` and `title`; show a spinner while busy. Hide decorative icons from assistive technology.

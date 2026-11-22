@@ -1,5 +1,11 @@
 import { expect, test, type Locator } from "@playwright/test";
 
+function holdResponse() {
+  let release!: () => void;
+  const pending = new Promise<void>((resolve) => { release = resolve; });
+  return { pending, release };
+}
+
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem("shinigacim-auth", JSON.stringify({ state: {
@@ -9,7 +15,7 @@ test.beforeEach(async ({ page }) => {
   });
   await page.route(/^https?:\/\/[^/]+\/api\//, (route) => {
     const path = new URL(route.request().url()).pathname;
-    const json = path.endsWith("/page") || path.startsWith("/api/library/gallery") || path === "/api/location/travel/map"
+    const json = path.endsWith("/page") || path.startsWith("/api/library/album/media") || path === "/api/place/travel/map"
       ? { items: [], total: 0, offset: 0, page: 1, limit: 30, hasMore: false }
       : path.endsWith("home-location") ? null : [];
     return route.fulfill({ json });
@@ -18,6 +24,98 @@ test.beforeEach(async ({ page }) => {
   await page.route(/https:\/\/[^/]*mapbox\.com\//, (route) => route.fulfill({
     json: route.request().url().includes("/styles/v1/") ? { version: 8, sources: {}, layers: [] } : {},
   }));
+});
+
+test("mobile tab highlight previews a mouse drag and opens the released tab", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme: "dark", reducedMotion: "no-preference" });
+  await page.addInitScript(() => localStorage.setItem("shinigacim.animations-enabled", "true"));
+  let releaseGallery!: () => void;
+  const galleryResponse = new Promise<void>((resolve) => { releaseGallery = resolve; });
+  let galleryRequests = 0;
+  await page.route("**/api/library/album/page*", async (route) => {
+    galleryRequests += 1;
+    await galleryResponse;
+    await route.fulfill({ json: { items: [], total: 0, offset: 0, limit: 5, hasMore: false } });
+  });
+  await page.goto("/");
+  const navigation = page.locator(".mobile-menu-bar");
+  const indicator = navigation.locator(".mobile-menu-bar__indicator");
+  const indicatorX = () => indicator.evaluate((element) => element.getBoundingClientRect().left);
+  const home = navigation.getByRole("link", { name: "Home" });
+  const album = navigation.getByRole("link", { name: "Album" });
+  const homeBounds = (await home.boundingBox())!;
+  const albumBounds = (await album.boundingBox())!;
+  const y = homeBounds.y + homeBounds.height / 2;
+  const homeX = homeBounds.x + homeBounds.width / 2;
+  const albumX = albumBounds.x + albumBounds.width / 2;
+
+  await page.mouse.move(homeX, y);
+  await page.mouse.down();
+  const startX = await indicatorX();
+  for (const offset of [14, 24]) {
+    await page.mouse.move(homeX + offset, y);
+    await expect.poll(indicatorX).toBeCloseTo(startX + offset, 0);
+    await expect(navigation).toHaveAttribute("data-item", "home");
+  }
+  await page.mouse.move(albumX, y);
+  await expect(navigation).toHaveAttribute("data-item", "album");
+  await expect(home).toHaveAttribute("aria-current", "page");
+  await expect(album).toHaveCSS("font-weight", "600");
+  await expect(page).toHaveURL(/\/$/);
+  await page.mouse.move(albumX, y - 100);
+  await page.mouse.up();
+  await expect(navigation).toHaveAttribute("data-item", "home");
+  await expect(page).toHaveURL(/\/$/);
+  await expect.poll(indicatorX).toBeCloseTo(startX, 0);
+
+  await page.mouse.move(homeX, y);
+  await page.mouse.down();
+  try {
+    const releaseX = albumX - 18;
+    await page.mouse.move(releaseX, y);
+    await expect.poll(indicatorX).toBeCloseTo(startX + releaseX - homeX, 0);
+    await expect(page.locator(".mobile-page-loading")).toHaveCount(0);
+    expect(galleryRequests).toBe(0);
+    await page.mouse.up();
+    await expect(page).toHaveURL(/\/album$/);
+    await expect(album).toHaveAttribute("aria-current", "page");
+    await expect(page.locator(".mobile-albums-page .album-date-card--placeholder")).toHaveCount(2);
+    await expect.poll(indicatorX).toBeCloseTo(albumBounds.x, 0);
+  } finally {
+    releaseGallery();
+  }
+  await expect(page.locator(".mobile-page-loading")).toHaveCount(0);
+  await page.goBack();
+  await expect(home).toHaveAttribute("aria-current", "page");
+});
+
+test("mobile tab highlight supports touch drags and cancellation", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 844 });
+  await page.goto("/");
+  const navigation = page.locator(".mobile-menu-bar");
+  const home = navigation.getByRole("link", { name: "Home" });
+  const album = navigation.getByRole("link", { name: "Album" });
+  const homeBounds = (await home.boundingBox())!;
+  const albumBounds = (await album.boundingBox())!;
+  const y = homeBounds.y + homeBounds.height / 2;
+  const from = { x: homeBounds.x + homeBounds.width / 2, y };
+  const to = { x: albumBounds.x + albumBounds.width / 2, y };
+  const touch = await page.context().newCDPSession(page);
+  await touch.send("Emulation.setTouchEmulationEnabled", { enabled: true });
+
+  await touch.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [from] });
+  await touch.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [to] });
+  await expect(navigation).toHaveAttribute("data-item", "album");
+  await touch.send("Input.dispatchTouchEvent", { type: "touchCancel", touchPoints: [] });
+  await expect(navigation).toHaveAttribute("data-item", "home");
+  await expect(page).toHaveURL(/\/$/);
+
+  await touch.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [from] });
+  await touch.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [to] });
+  await touch.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  await expect(page).toHaveURL(/\/album$/);
+  await expect(navigation.locator('[data-menu-item="album"]')).toHaveAttribute("aria-current", "page");
 });
 
 for (const width of [320, 390]) {
@@ -37,7 +135,20 @@ for (const width of [320, 390]) {
     await expect(account.getByText("Admin", { exact: true })).toHaveCSS("font-weight", "400");
     const navigation = page.getByRole("navigation", { name: "Main navigation" });
     const homeTab = navigation.getByRole("link", { name: "Home" });
-    const indicator = navigation.locator(".mobile-nav__indicator");
+    const indicator = navigation.locator(".mobile-menu-bar__indicator");
+    await expect(navigation).toHaveClass("mobile-menu-bar");
+    await expect(navigation).toHaveAttribute("data-item", "home");
+    const navigationBounds = await navigation.boundingBox();
+    const homeTabBounds = await homeTab.boundingBox();
+    const pageGutter = await page.locator("html").evaluate((root) => Number.parseFloat(getComputedStyle(root).getPropertyValue("--page-gutter")));
+    expect(navigationBounds?.height).toBe(58);
+    await expect(navigation).toHaveCSS("padding-block", "4px");
+    expect(homeTabBounds?.height).toBeGreaterThanOrEqual(48);
+    expect(homeTabBounds?.width).toBeGreaterThanOrEqual(48);
+    expect(navigationBounds?.x).toBeCloseTo(pageGutter, 1);
+    expect(width - navigationBounds!.x - navigationBounds!.width).toBeCloseTo(pageGutter, 1);
+    await expect(homeTab).toHaveCSS("font-size", "12px");
+    await expect(homeTab.locator("svg")).toHaveCSS("width", "20px");
     await expect(homeTab).toHaveAttribute("aria-current", "page");
     await expect(navigation).toHaveCSS("background-color", "rgb(255, 255, 255)");
     await expect(indicator).toHaveCSS("background-color", "rgb(34, 34, 34)");
@@ -200,8 +311,8 @@ test("album Create and Save changes ease color changes on hover, press, and rele
     expect(new Set(result?.colors).size).toBe(3);
   };
 
-  await page.goto("/gallery");
-  for (const [opener, action] of [["New album", "Create"], ["Edit", "Save changes"]]) {
+  await page.goto("/album");
+  for (const [opener, action] of [["Add album", "Create"], ["Edit", "Save changes"]]) {
     if (action === "Save changes") {
       await page.locator('[data-date="2026-01-02"]').click();
       await page.getByRole("link", { name: "Open album Weekend" }).click();
@@ -227,233 +338,207 @@ test("album Create and Save changes ease color changes on hover, press, and rele
   }
 });
 
-for (const [label, path, title] of [
-  ["Gallery", "/gallery", "Gallery"],
-  ["Locations", "/location", "Locations"],
-  ["Users", "/users", "User"],
-]) {
-  test(`${label} is covered immediately on entry and return with live navigation controls`, async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.emulateMedia({ colorScheme: "light" });
-    await page.addInitScript(() => {
-      localStorage.setItem("shinigacim.animations-enabled", "true");
-      const motion = { documentCaptures: 0, opaqueEntries: [] as boolean[], chromeFrames: [] as boolean[] };
-      Object.assign(window, { motion });
-      const startViewTransition = document.startViewTransition.bind(document);
-      document.startViewTransition = (update) => {
-        motion.documentCaptures++;
-        return startViewTransition(update);
-      };
-      let previousOverlay: Element | null = null;
-      new MutationObserver(() => {
-        const overlay = document.querySelector(".mobile-page-loading");
-        const background = overlay?.querySelector(".mobile-page-loading__background");
-        if (!overlay || overlay === previousOverlay || !background) return;
-        previousOverlay = overlay;
-        const controls = document.querySelectorAll(".mobile-shell-header__actions .icon-button, .mobile-nav a");
-        let remaining = 8;
-        const sampleFrame = () => {
-          motion.chromeFrames.push(controls.length === 6 && Array.from(controls).every((control) => {
-            const box = control.getBoundingClientRect();
-            const hit = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
-            return box.width > 0 && control.contains(hit);
-          }));
-          if (--remaining > 0) requestAnimationFrame(sampleFrame);
-        };
-        requestAnimationFrame(() => {
-          motion.opaqueEntries.push(getComputedStyle(overlay).opacity === "1" && getComputedStyle(background).opacity === "1");
-          sampleFrame();
-        });
-      }).observe(document, { subtree: true, childList: true });
-    });
-    await page.goto("/");
-    await expect(page.getByRole("link", { name: "viewer" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Notifications" })).toBeVisible();
-    const navigation = page.getByRole("navigation", { name: "Main navigation" });
-    const link = navigation.getByRole("link", { name: label });
-    const motionSamples = () => page.evaluate(() => Reflect.get(window, "motion"));
-    await link.click();
-    await expect(page).toHaveURL(new RegExp(`${path}$`));
-    await expect(page.getByRole("progressbar", { name: `Loading page... ${title}` })).toBeVisible();
-    await expect(page.locator(".mobile-page-loading")).toHaveCount(0);
-    await expect(page.getByRole("heading", { name: title, exact: true })).toBeVisible();
-    await expect(page.locator(".mobile-shell")).toHaveCSS("background-color", "rgb(234, 231, 227)");
-    await expect(navigation).toBeVisible();
-    await expect(link).toHaveAttribute("aria-current", "page");
-    expect(await motionSamples()).toEqual({ documentCaptures: 0, opaqueEntries: [true], chromeFrames: Array(8).fill(true) });
-
-    await expect(page.getByRole("banner").getByRole("button", { name: "Back", exact: true })).toHaveCount(0);
-    await navigation.getByRole("link", { name: "Home" }).click();
-    await expect(page).toHaveURL(/\/$/);
-    await expect(page.getByRole("progressbar", { name: "Loading page... Home" })).toBeVisible();
-    await expect(page.locator(".mobile-page-loading")).toHaveCount(0);
-    await expect(navigation).toBeVisible();
-    await expect(navigation.getByRole("link", { name: "Home" })).toHaveAttribute("aria-current", "page");
-    expect(await motionSamples()).toEqual({ documentCaptures: 0, opaqueEntries: [true, true], chromeFrames: Array(16).fill(true) });
-  });
-}
-
-for (const [colorScheme, motionEnabled] of [["dark", true], ["light", true], ["light", false]] as const) {
-  test(`page loading tracks requests in ${colorScheme} mode with motion ${motionEnabled ? "on" : "off"}`, async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.emulateMedia({ colorScheme, reducedMotion: "no-preference" });
-    await page.addInitScript((enabled) => {
-      localStorage.setItem("shinigacim.animations-enabled", String(enabled));
-      const timing = { firstOverlayFrame: 0, handoffStarted: 0, titleMoves: false, firstProgress: 0, halfProgress: 0 };
-      const progressSamples: number[] = [];
-      const chromeTransitions: string[] = [];
-      Object.assign(window, { pageLoadingTiming: timing, progressSamples, chromeTransitions });
-      document.addEventListener("transitionrun", ({ target, propertyName }) => {
-        if (!(target instanceof Element)) return;
-        if (target.matches(".mobile-nav__indicator") && propertyName === "transform") chromeTransitions.push("tab");
-        if (target.matches(".mobile-home-header__avatar") && propertyName === "opacity") chromeTransitions.push("avatar");
-        if (target.matches(".mobile-home-header__account") && propertyName === "opacity") chromeTransitions.push("account");
-      });
-      new MutationObserver((records) => {
-        if (!timing.firstOverlayFrame && document.querySelector(".mobile-page-loading")) {
-          requestAnimationFrame((now) => { timing.firstOverlayFrame ||= now; });
-        }
-        for (const { target, attributeName } of records) {
-          if (!(target instanceof HTMLElement)) continue;
-          if (attributeName === "data-handoff" && target.matches(".mobile-page-loading[data-handoff]")) {
-            timing.handoffStarted = performance.now();
-            const title = target.querySelector(".mobile-page-loading__title");
-            timing.titleMoves = title?.getAnimations().some((animation) =>
-              animation.effect instanceof KeyframeEffect && animation.effect.getKeyframes().some((frame) =>
-                typeof frame.transform === "string" && frame.transform.startsWith("translate("))) ?? false;
-          }
-          if (attributeName === "aria-valuenow" && target.matches(".mobile-page-loading__progress")) {
-            const percent = Number(target.getAttribute("aria-valuenow"));
-            timing.firstProgress ||= performance.now();
-            if (percent === 50) timing.halfProgress ||= performance.now();
-            progressSamples.push(percent);
-          }
-        }
-      }).observe(document, { subtree: true, childList: true, attributes: true, attributeFilter: ["data-handoff", "aria-valuenow"] });
-    }, motionEnabled);
-
-    let releaseGallery!: () => void;
-    const galleryResponse = new Promise<void>((resolve) => { releaseGallery = resolve; });
-    await page.route("**/api/library/album/page*", async (route) => {
-      await galleryResponse;
-      await route.fulfill({ json: { items: [], total: 0, offset: 0, limit: 5, hasMore: false } });
-    });
-
-    await page.goto("/");
-    const navigation = page.getByRole("navigation", { name: "Main navigation" });
-    const gallery = navigation.getByRole("link", { name: "Gallery" });
-    const notifications = page.getByRole("button", { name: "Notifications" });
-    const more = page.getByRole("button", { name: "More", exact: true });
-    const homeControls = await Promise.all([navigation.elementHandle(), notifications.elementHandle(), more.elementHandle()]);
-    await gallery.click();
-    const overlay = page.locator(".mobile-page-loading");
-    const bar = overlay.getByRole("progressbar");
-    const background = overlay.locator(".mobile-page-loading__background");
-    const destination = page.locator(".mobile-header .mobile-page-title");
-    try {
-      await expect(bar).toHaveAttribute("aria-valuemax", "100");
-      await expect(bar).toHaveAttribute("aria-valuenow", "50");
-      await expect(bar.locator("span")).toHaveCSS("transform", "matrix(0.5, 0, 0, 1, 0, 0)");
-      await expect(overlay.locator(".mobile-page-loading__count")).toHaveCount(0);
-      await expect(overlay.locator(".mobile-page-loading__icon svg")).toBeVisible();
-      await expect(background).toHaveCSS("background-color", colorScheme === "dark" ? "rgb(28, 28, 28)" : "rgb(234, 231, 227)");
-      await expect(destination).toHaveCSS("opacity", "0");
-      await expect(overlay).not.toHaveAttribute("data-handoff");
-      await expect(gallery).toHaveAttribute("aria-current", "page");
-      await expect(navigation).toBeVisible();
-      await expect(more).toBeVisible();
-      expect(await page.evaluate(([nav, bell, menu]) => [
-        nav === document.querySelector(".mobile-nav"),
-        bell === document.querySelector(".mobile-notification__trigger"),
-        menu === document.querySelector(".mobile-shell-header__actions button[aria-haspopup='dialog']"),
-      ], homeControls)).toEqual([true, true, true]);
-      expect(await page.evaluate(() => Reflect.get(window, "chromeTransitions").sort())).toEqual(motionEnabled ? ["account", "avatar", "tab"] : []);
-      await notifications.click();
-      await expect(page.getByRole("banner").getByRole("region", { name: "Notifications" })).toBeVisible();
-      await page.keyboard.press("Escape");
-      await expect(bar).toHaveAttribute("aria-valuenow", "50");
-    } finally {
-      releaseGallery();
-    }
-    await expect(overlay).toHaveCount(0);
-    const timing = await page.evaluate(() => Reflect.get(window, "pageLoadingTiming"));
-    if (motionEnabled) {
-      expect(timing.firstOverlayFrame).toBeGreaterThan(0);
-      expect(timing.handoffStarted - timing.firstOverlayFrame).toBeGreaterThanOrEqual(290);
-      expect(timing.titleMoves).toBe(true);
-    } else {
-      expect(timing).toMatchObject({ handoffStarted: 0, titleMoves: false });
-    }
-    expect(timing.halfProgress - timing.firstProgress).toBeGreaterThan(0);
-    expect(timing.halfProgress - timing.firstProgress).toBeLessThan(600);
-    const progressSamples: number[] = await page.evaluate(() => Reflect.get(window, "progressSamples"));
-    expect(progressSamples).toContain(50);
-    expect(progressSamples.at(-1)).toBe(100);
-    expect(progressSamples.every((percent, index) => Number.isInteger(percent) && percent > (progressSamples[index - 1] ?? 0))).toBe(true);
-    await expect(destination).toHaveCSS("opacity", "1");
-    await expect(page.getByText("No albums yet")).toBeVisible();
-    if (!motionEnabled) {
-      await navigation.getByRole("link", { name: "Home" }).click();
-      await expect(page.getByRole("progressbar", { name: "Loading page... Home" })).toBeVisible();
-      await expect(overlay).toHaveCSS("opacity", "1");
-      await expect(overlay).toHaveCount(0);
-    }
-  });
-}
-
-test("Users title grows while sliding into the header", async ({ page }) => {
+test("page overlay waits for Album code and hands off to skeletons while the API is pending", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  const moduleResponse = holdResponse();
+  const feedResponse = holdResponse();
+  let feedRequested = false;
+  await page.route("**/gallery/MobileAlbumsPage.tsx*", async (route) => {
+    await moduleResponse.pending;
+    await route.continue();
+  });
+  await page.route("**/api/library/album/page*", async (route) => {
+    feedRequested = true;
+    await feedResponse.pending;
+    await route.fulfill({ json: { items: [], hasMore: false } });
+  });
+
+  const navigation = page.getByRole("navigation", { name: "Main navigation" });
+  const overlay = page.locator(".mobile-page-loading");
+  const placeholders = page.locator(".mobile-albums-page .album-date-card--placeholder");
+  try {
+    await navigation.getByRole("link", { name: "Album" }).click();
+    await expect(overlay).toBeVisible();
+    await expect(overlay.getByRole("progressbar", { name: "Loading page... Album" })).toBeVisible();
+    await expect(navigation).toHaveAttribute("data-item", "album");
+    await expect(navigation.getByRole("link", { name: "Home" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "More", exact: true })).toBeEnabled();
+    expect(feedRequested).toBe(false);
+
+    moduleResponse.release();
+    await expect(page).toHaveURL(/\/album$/);
+    await expect(overlay).toHaveCount(0);
+    await expect(placeholders).toHaveCount(2);
+    await expect.poll(() => feedRequested).toBe(true);
+    await expect(page.getByRole("heading", { name: "Album", exact: true })).toBeVisible();
+    await expect(navigation.getByRole("link", { name: "Album" })).toHaveAttribute("aria-current", "page");
+    await page.getByRole("button", { name: "More", exact: true }).click();
+    await expect(page.getByRole("dialog", { name: "More" })).toBeVisible();
+    await page.keyboard.press("Escape");
+
+    feedResponse.release();
+    await expect(placeholders).toHaveCount(0);
+    await expect(page.getByText("No albums yet")).toBeVisible();
+    await expect(overlay).toHaveCount(0);
+  } finally {
+    moduleResponse.release();
+    feedResponse.release();
+  }
+});
+
+test("cached pages hold the loading overlay for a quarter second", async ({ page }) => {
+  await page.goto("/");
+  const navigation = page.getByRole("navigation", { name: "Main navigation" });
+  await navigation.getByRole("link", { name: "Album" }).click();
+  await expect(page.getByText("No albums yet")).toBeVisible();
+  await page.evaluate(() => {
+    let shownAt: number | undefined;
+    const observer = new MutationObserver(() => {
+      const visible = Boolean(document.querySelector(".mobile-page-body > .mobile-page-loading:not([data-handoff])"));
+      if (visible) {
+        shownAt ??= performance.now();
+      } else if (shownAt !== undefined) {
+        document.documentElement.dataset.overlayDuration = String(performance.now() - shownAt);
+        observer.disconnect();
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+  });
+
+  await navigation.getByRole("link", { name: "Home" }).click();
+  await expect(page.getByRole("progressbar", { name: "Loading page... Home" })).toBeVisible();
+  await expect(page).toHaveURL(/\/$/);
+  await expect.poll(async () =>
+    Number(await page.locator("html").getAttribute("data-overlay-duration"))).toBeGreaterThanOrEqual(245);
+  expect(Number(await page.locator("html").getAttribute("data-overlay-duration"))).toBeLessThan(500);
+});
+
+test("Album loading advances in percentages and slides the title into the header", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.addInitScript(() => localStorage.setItem("shinigacim.animations-enabled", "true"));
   await page.goto("/");
   await page.evaluate(() => {
-    const observer = new MutationObserver(() => {
-      const title = document.querySelector(".mobile-page-loading[data-handoff] .mobile-page-loading__title");
-      const destination = document.querySelector(".mobile-shell-header .mobile-page-title");
-      if (!title || !destination) return;
-
-      const animation = title.getAnimations().find((candidate) =>
-        candidate.effect instanceof KeyframeEffect && candidate.effect.getKeyframes().some((frame) => frame.transform));
-      if (!animation?.effect) return;
-
-      const duration = Number(animation.effect.getTiming().duration);
-      const originalTime = animation.currentTime;
-      const positions = [0, duration / 3, duration].map((time) => {
-        animation.currentTime = time;
-        return title.getBoundingClientRect().toJSON();
-      });
-      animation.currentTime = originalTime ?? 0;
-      Reflect.set(window, "usersTitleHandoff", { positions, destination: destination.getBoundingClientRect().toJSON() });
-      observer.disconnect();
-    });
-    observer.observe(document, { subtree: true, attributes: true, attributeFilter: ["data-handoff"] });
+    const values: number[] = [];
+    Reflect.set(window, "albumProgress", values);
+    new MutationObserver(() => {
+      const bar = document.querySelector<HTMLProgressElement>(".mobile-page-body .mobile-page-loading:not([data-handoff]) progress");
+      if (bar && values.at(-1) !== bar.value) values.push(bar.value);
+    }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["value"] });
   });
-  await page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Users" }).click();
-  await expect(page.locator(".mobile-shell-header .mobile-page-title")).toHaveCSS("opacity", "1");
-  const handoff = await page.evaluate(() => Reflect.get(window, "usersTitleHandoff"));
-  expect(handoff).toBeDefined();
-  const { positions: [start, middle, end], destination } = handoff;
-  expect(middle.width).toBeGreaterThan(start.width);
-  expect(middle.width).toBeLessThan(end.width);
-  expect(middle.y).toBeLessThan(start.y);
-  expect(middle.y).toBeGreaterThan(end.y);
-  expect(end.width).toBeCloseTo(destination.width, 0);
-  expect(end.x).toBeCloseTo(destination.x, 0);
-  expect(end.y + end.height / 2).toBeCloseTo(destination.y + destination.height / 2, 0);
+  await page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Album" }).click();
+  await expect(page.getByRole("progressbar", { name: "Loading page... Album" })).toHaveAttribute("max", "100");
+  await expect(page.locator(".mobile-shell-header__identity")).toBeHidden();
+  await expect(page.locator("body > .mobile-page-title")).toHaveText("Album");
+  await expect(page.locator(".mobile-page-loading progress")).toHaveAttribute("value", "100");
+  await expect(page.locator(".mobile-page-loading")).toHaveCount(0);
+  const values = await page.evaluate(() => Reflect.get(window, "albumProgress") as number[]);
+  expect(values.length).toBeGreaterThan(3);
+  expect(values.every((value) => Number.isInteger(value) && value < 100)).toBe(true);
+  expect(values.slice(1).some((value, index) => value - values[index] === 1)).toBe(true);
 });
 
-test("page loading and fade respect system reduced motion", async ({ page }) => {
+test("the Album title stays mounted when opening and leaving detail without an overlay", async ({ page }) => {
+  const item = {
+    id: "weekend", name: "Weekend", owner: { id: "u1", username: "viewer" },
+    createdAt: new Date().toISOString(), isPublic: false, mediaCount: 0,
+  };
+  await page.route("**/api/library/album/page*", route => route.fulfill({ json: { items: [item], hasMore: false } }));
+  await page.route("**/api/library/album/weekend", route => route.fulfill({ json: item }));
+  await page.route("**/api/library/album/weekend/media?*", route => route.fulfill({ json: { items: [], offset: 0, total: 0 } }));
+  await page.goto("/album");
+  const header = page.getByRole("banner");
+  const title = header.locator(".mobile-page-title");
+  await expect(title).toHaveText("Album");
+  await expect(header.getByRole("button", { name: "Back", exact: true })).toHaveCount(0);
+  await title.evaluate((element) => { element.dataset.sharedTitle = "true"; });
+  await page.evaluate(() => {
+    new MutationObserver(() => {
+      if (document.querySelector(".mobile-page-body .mobile-page-loading")) document.body.dataset.detailOverlay = "true";
+    }).observe(document.body, { childList: true, subtree: true });
+  });
+  await page.getByRole("link", { name: "Open album Weekend" }).click();
+  await expect(page).toHaveURL(/\/album\/weekend$/);
+  await expect(page.getByRole("heading", { name: /Weekend/ })).toBeVisible();
+  await expect(title).toHaveAttribute("data-shared-title", "true");
+  await expect(header.getByRole("button", { name: "Back", exact: true })).toBeVisible();
+  await header.getByRole("button", { name: "Back", exact: true }).click();
+  await expect(page).toHaveURL(/\/album$/);
+  await expect(header.getByRole("button", { name: "Back", exact: true })).toHaveCount(0);
+  await expect(title).toHaveAttribute("data-shared-title", "true");
+  await expect(page.locator("body")).not.toHaveAttribute("data-detail-overlay", "true");
+});
+
+test("changing tabs abandons the pending component load", async ({ page }) => {
+  const moduleResponse = holdResponse();
+  let albumRequests = 0;
+  await page.route("**/gallery/MobileAlbumsPage.tsx*", async (route) => {
+    await moduleResponse.pending;
+    await route.continue();
+  });
+  await page.route("**/api/library/album/page*", (route) => {
+    albumRequests++;
+    return route.fulfill({ json: { items: [], hasMore: false } });
+  });
+  try {
+    await page.goto("/");
+    const navigation = page.getByRole("navigation", { name: "Main navigation" });
+    await navigation.getByRole("link", { name: "Album" }).click();
+    await expect(page.getByRole("progressbar", { name: "Loading page... Album" })).toBeVisible();
+    await expect(navigation).toHaveAttribute("data-item", "album");
+
+    await navigation.getByRole("link", { name: "User" }).click();
+    await expect(page).toHaveURL(/\/user$/);
+    await expect(navigation).toHaveAttribute("data-item", "user");
+    await expect(page.locator(".mobile-page-loading")).toHaveCount(0);
+    moduleResponse.release();
+    await expect(page.getByRole("searchbox", { name: "Search users" })).toBeVisible();
+    expect(albumRequests).toBe(0);
+  } finally {
+    moduleResponse.release();
+  }
+});
+
+for (const [path, endpoint, layout, empty, data] of [
+  ["/user", "**/api/user", "users", "No users yet", []],
+  ["/uploads", "**/api/sync/upload/admin/batch?*", "cards", "No uploads yet", { items: [], totalItems: 0 }],
+  ["/location/saved", "**/api/place/saved/page?*", "rows", "No saved places yet", { items: [], page: 1, limit: 30, total: 0 }],
+  ["/location/history", "**/api/place/history/page?*", "rows", "No visits yet", { items: [], page: 1, limit: 30, total: 0 }],
+] as const) {
+  test(`${path} shows its own placeholders while data is pending`, async ({ page }) => {
+    const response = holdResponse();
+    await page.route(endpoint, async (route) => {
+      await response.pending;
+      await route.fulfill({ json: data });
+    });
+
+    try {
+      await page.goto(path, { waitUntil: "domcontentloaded" });
+      const placeholder = page.locator(`.mobile-content-placeholder[data-layout="${layout}"]`);
+      await expect(placeholder).toBeVisible();
+      await expect(page.locator(".mobile-page-loading")).toHaveCount(0);
+      await expect(page.getByRole("navigation", { name: "Main navigation" })).toBeVisible();
+      response.release();
+      await expect(placeholder).toHaveCount(0);
+      await expect(page.getByText(empty, { exact: true })).toBeVisible();
+    } finally {
+      response.release();
+    }
+  });
+}
+
+test("mobile navigation respects system reduced motion", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.addInitScript(() => localStorage.setItem("shinigacim.animations-enabled", "true"));
   await page.goto("/");
-  await page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Gallery" }).click();
-  await expect(page.getByRole("heading", { name: "Gallery", exact: true })).toBeVisible();
+  await page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Album" }).click();
+  await expect(page.getByRole("heading", { name: "Album", exact: true })).toBeVisible();
   await expect(page.locator(".mobile-page-loading")).toHaveCount(0);
-  await expect(page.locator(".mobile-nav__indicator")).toHaveCSS("transition-duration", "0s");
+  await expect(page.locator(".mobile-menu-bar__indicator")).toHaveCSS("transition-duration", "0s");
 });
 
-test("persistent tabs can switch away from a page that is still loading", async ({ page }) => {
+test("the Album list uses the Home tab while data is still loading", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   let releaseGallery!: () => void;
   const galleryResponse = new Promise<void>((resolve) => { releaseGallery = resolve; });
@@ -463,15 +548,15 @@ test("persistent tabs can switch away from a page that is still loading", async 
   });
 
   await page.goto("/");
-  const navigation = page.getByRole("navigation", { name: "Main navigation" });
-  const users = navigation.getByRole("link", { name: "Users" });
+  const navigation = page.locator(".mobile-menu-bar");
   const home = navigation.getByRole("link", { name: "Home" });
-  await navigation.getByRole("link", { name: "Gallery" }).click();
+  await navigation.getByRole("link", { name: "Album" }).click();
   try {
-    await expect(page.getByRole("progressbar", { name: "Loading page... Gallery" })).toBeVisible();
-    await users.click();
-    await expect(page).toHaveURL(/\/users$/);
-    await expect(users).toHaveAttribute("aria-current", "page");
+    await expect(page.locator(".mobile-albums-page .album-date-card--placeholder")).toHaveCount(2);
+    await expect(navigation).toBeVisible();
+    await expect(page.getByRole("button", { name: "Back", exact: true })).toHaveCount(0);
+    await home.click();
+    await expect(page).toHaveURL(/\/$/);
   } finally {
     releaseGallery();
   }
@@ -481,7 +566,54 @@ test("persistent tabs can switch away from a page that is still loading", async 
   await expect(home).toHaveAttribute("aria-current", "page");
 });
 
-test("the Home tab returns Home after opening More pages and Gallery", async ({ page }) => {
+for (const colorScheme of ["light", "dark"] as const) {
+test(`Album navigation and Add bar work in ${colorScheme} mode`, async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme, reducedMotion: "no-preference" });
+  await page.addInitScript(() => {
+    localStorage.setItem("shinigacim.animations-enabled", "true");
+    const transitions: { property: string; overlay: boolean }[] = [];
+    Reflect.set(window, "createTransitions", transitions);
+    document.addEventListener("transitionrun", ({ target, propertyName }) => {
+      if (target instanceof HTMLElement && target.matches(".mobile-albums-page__create")) {
+        transitions.push({ property: propertyName, overlay: !!document.querySelector(".mobile-page-loading:not([data-handoff])") });
+      }
+    });
+  });
+  await page.goto("/");
+  const nav = page.locator(".mobile-menu-bar");
+  await nav.getByRole("link", { name: "Album" }).click();
+  await expect(page.locator(".mobile-page-loading")).toHaveCount(0);
+  const create = page.getByRole("button", { name: "Add album", exact: true });
+  await expect(create).toBeVisible();
+  await expect(create).toHaveCSS("transform", "none");
+  await expect(create).toHaveCSS("opacity", "1");
+  await expect(nav).toBeVisible();
+  await expect(nav.getByRole("link", { name: "Album" })).toHaveAttribute("aria-current", "page");
+  await expect(create).toHaveCSS("border-radius", await nav.evaluate((element) => getComputedStyle(element).borderRadius));
+  const back = page.getByRole("button", { name: "Back", exact: true });
+  await expect(back).toHaveCount(0);
+  const transitions = await page.evaluate((): { property: string; overlay: boolean }[] =>
+    Reflect.get(window, "createTransitions"));
+  expect(transitions).toEqual(expect.arrayContaining([
+    expect.objectContaining({ property: "opacity", overlay: false }),
+    expect.objectContaining({ property: "transform", overlay: false }),
+  ]));
+  await create.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("dialog", { name: "New album" })).toBeVisible();
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  await nav.getByRole("link", { name: "Home" }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(nav).toBeVisible();
+  await expect(page.locator(".mobile-albums-page__create")).toHaveCount(0);
+  await page.goto("/album");
+  await nav.getByRole("link", { name: "Home" }).click();
+  await expect(page).toHaveURL(/\/$/);
+});
+}
+
+test("the Home item returns Home after opening More pages and Album", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
@@ -498,8 +630,8 @@ test("the Home tab returns Home after opening More pages and Gallery", async ({ 
   }
 
   const navigation = page.getByRole("navigation", { name: "Main navigation" });
-  await navigation.getByRole("link", { name: "Gallery" }).click();
-  await expect(page).toHaveURL(/\/gallery$/);
+  await navigation.getByRole("link", { name: "Album" }).click();
+  await expect(page).toHaveURL(/\/album$/);
   await expect(back).toHaveCount(0);
   await navigation.getByRole("link", { name: "Home" }).click();
   await expect(page).toHaveURL(/\/$/);
@@ -508,7 +640,7 @@ test("the Home tab returns Home after opening More pages and Gallery", async ({ 
 });
 
 for (const preference of ["enabled", "disabled", "reduced"] as const) {
-  test(`album detail header returns to Gallery with motion ${preference}`, async ({ page }) => {
+  test(`album detail header returns to Album with motion ${preference}`, async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.clock.setFixedTime(new Date("2026-01-03T12:00:00Z"));
     await page.emulateMedia({ reducedMotion: preference === "reduced" ? "reduce" : "no-preference" });
@@ -530,44 +662,41 @@ for (const preference of ["enabled", "disabled", "reduced"] as const) {
     await page.route("**/api/library/album/page*", (route) => route.fulfill({ json: { items: [album], hasMore: false } }));
     await page.route("**/api/library/album/album-test", (route) => route.fulfill({ json: album }));
 
-    await page.goto("/gallery");
+    await page.goto("/album");
     const header = page.getByRole("banner");
     const back = header.getByRole("button", { name: "Back", exact: true });
-    const title = header.getByText("Gallery", { exact: true });
+    const title = header.getByText("Album", { exact: true });
     const position = page.locator(".mobile-shell-header__title-position");
     const steps = () => page.evaluate((): string[] => Reflect.get(window, "albumHeaderSteps"));
-    await expect(back).toHaveCount(0);
+    await expect(back).toBeVisible();
     const listX = (await title.boundingBox())!.x;
+    await page.evaluate(() => { Reflect.get(window, "albumHeaderSteps").length = 0; });
     await page.getByRole("link", { name: "Open album Weekend" }).click();
-    await expect(page).toHaveURL(/\/gallery\/album\/album-test$/);
+    await expect(page).toHaveURL(/\/album\/album-test$/);
     await expect(page.locator(".mobile-page-loading")).toHaveCount(0);
     await expect(back).toHaveCSS("opacity", "1");
-    expect((await title.boundingBox())!.x).toBeGreaterThan(listX + 40);
-    if (preference === "enabled") {
-      const openSteps = await steps();
-      expect(openSteps[0]).toBe("title");
-      expect(openSteps.slice(1).sort()).toEqual(["fade", "slide"]);
-    } else {
-      expect(await steps()).toEqual([]);
-    }
+    expect((await title.boundingBox())!.x).toBeCloseTo(listX, 0);
+    expect(await steps()).toEqual([]);
+    await expect(page.locator(".mobile-menu-bar")).toBeVisible();
+    await expect(page.locator(".mobile-albums-page__create")).toHaveCount(0);
 
     await back.click();
-    await expect(page).toHaveURL(/\/gallery$/);
-    await expect(back).toHaveCount(0);
-    await expect(position).toHaveCSS("margin-inline-start", "0px");
-    expect((await title.boundingBox())!.x).toBe(listX);
-    if (preference === "enabled") {
-      const returnSteps = (await steps()).slice(3);
-      expect(returnSteps.slice(0, 2).sort()).toEqual(["fade", "slide"]);
-      expect(returnSteps[2]).toBe("title");
-    } else {
-      expect(await steps()).toEqual([]);
+    await expect(page).toHaveURL(/\/album$/);
+    await expect(back).toBeVisible();
+    await expect(position).not.toHaveCSS("margin-inline-start", "0px");
+    expect((await title.boundingBox())!.x).toBeCloseTo(listX, 0);
+    expect(await steps()).toEqual([]);
+    await expect(page.locator(".mobile-menu-bar")).toBeVisible();
+    await expect(page.locator(".mobile-albums-page__create")).toBeVisible();
+    if (preference !== "enabled") {
+      await expect(page.locator(".mobile-albums-page__create")).toHaveCSS("transition-duration", "0s");
+      await expect(page.locator(".mobile-menu-bar")).toHaveCSS("transition-duration", "0s");
     }
 
     if (preference === "reduced") {
-      await page.goto("/gallery/album/album-test");
+      await page.goto("/album/album-test");
       await back.click();
-      await expect(page).toHaveURL(/\/gallery$/);
+      await expect(page).toHaveURL(/\/album$/);
     }
   });
 }

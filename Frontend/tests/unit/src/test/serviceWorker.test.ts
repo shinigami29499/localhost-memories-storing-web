@@ -17,6 +17,7 @@ function setup() {
     if (offline) throw new Error("offline");
     const path = key(input);
     if (path === "/") return new Response(`<html><script src="/assets/${version}.js"></script></html>`, { headers: { "Content-Type": "text/html" } });
+    if (path === "/ui-assets.json") return Response.json({ assets: ["/assets/lazy.js", "/api/private", "/assets/media.js?token=secret"] });
     if (path.startsWith("/assets/") || path.startsWith("/pwa-") || path === "/manifest.webmanifest") return new Response(`asset ${path}`);
     return new Response("private navigation");
   });
@@ -42,7 +43,7 @@ describe("service worker shell and privacy", () => {
       request("/api/media/1", "navigate"), request("/hubs/notifications"),
       request("/assets/a.js?token=secret"),
       request("/assets/a.js", "cors", new Headers({ Authorization: "Bearer secret" })),
-      request("/gallery", "navigate", new Headers({ Authorization: "Bearer secret" })),
+      request("/album", "navigate", new Headers({ Authorization: "Bearer secret" })),
     ]) {
       const respondWith = vi.fn();
       handlers.fetch({ request: req, respondWith, waitUntil: vi.fn() });
@@ -56,17 +57,20 @@ describe("service worker shell and privacy", () => {
     handlers.install({ waitUntil: (promise: Promise<unknown>) => installed.push(promise) });
     await Promise.all(installed);
     expect(await (await cache.match("/"))!.text()).toContain("old.js");
+    expect(await cache.match("/assets/lazy.js")).toBeDefined();
+    expect(await cache.match("/api/private")).toBeUndefined();
+    expect(await cache.match("/assets/media.js?token=secret")).toBeUndefined();
     setVersion("new");
     const pending: Promise<unknown>[] = [];
     const response: Promise<Response>[] = [];
-    handlers.fetch({ request: request("/gallery", "navigate"), waitUntil: (p: Promise<unknown>) => pending.push(p), respondWith: (p: Promise<Response>) => response.push(p) });
+    handlers.fetch({ request: request("/album", "navigate"), waitUntil: (p: Promise<unknown>) => pending.push(p), respondWith: (p: Promise<Response>) => response.push(p) });
     expect(await (await response[0]).text()).toBe("private navigation");
     await Promise.all(pending);
     expect(await (await cache.match("/"))!.text()).toContain("new.js");
     expect(await cache.match("/assets/new.js")).toBeDefined();
     expect(fetch.mock.calls.filter(([input]) => typeof input === "string").every(([, options]) => options?.credentials === "omit")).toBe(true);
     setOffline(true);
-    handlers.fetch({ request: request("/gallery", "navigate"), waitUntil: (p: Promise<unknown>) => pending.push(p), respondWith: (p: Promise<Response>) => response.push(p) });
+    handlers.fetch({ request: request("/album", "navigate"), waitUntil: (p: Promise<unknown>) => pending.push(p), respondWith: (p: Promise<Response>) => response.push(p) });
     expect(await (await response[1]).text()).toContain("new.js");
     await Promise.all(pending);
   });
@@ -78,7 +82,7 @@ describe("service worker shell and privacy", () => {
     await Promise.all(pending);
     fetch.mockResolvedValueOnce(new Response("personalized", { headers: { "Content-Type": "text/html", "Cache-Control": "private" } }));
     const responses: Promise<Response>[] = [];
-    handlers.fetch({ request: request("/gallery", "navigate"), waitUntil: (p: Promise<unknown>) => pending.push(p), respondWith: (p: Promise<Response>) => responses.push(p) });
+    handlers.fetch({ request: request("/album", "navigate"), waitUntil: (p: Promise<unknown>) => pending.push(p), respondWith: (p: Promise<Response>) => responses.push(p) });
     await Promise.all([...pending, ...responses]);
     expect(await (await cache.match("/"))!.text()).toContain("old.js");
   });

@@ -10,12 +10,12 @@ test.beforeEach(async ({ page }) => {
   });
   await page.route(/^https?:\/\/[^/]+\/api\//, async (route) => {
     const path = new URL(route.request().url()).pathname;
-    if (path === "/api/location/home-location") return route.fulfill({ json: null });
-    if (path === "/api/users/page") {
+    if (path === "/api/place/home-location") return route.fulfill({ json: null });
+    if (path === "/api/user/page") {
       await new Promise((resolve) => setTimeout(resolve, 500));
       return route.fulfill({ json: { items: [], page: 1, limit: 20, total: 0, allCount: 0, pendingCount: 0 } });
     }
-    if (path.includes("/page") || path === "/api/location/travel/map" || path.startsWith("/api/library/gallery")) {
+    if (path.includes("/page") || path === "/api/place/travel/map" || path.startsWith("/api/library/album/media")) {
       return route.fulfill({ json: { items: [], offset: 0, page: 1, limit: 20, total: 0 } });
     }
     return route.fulfill({ json: [] });
@@ -63,7 +63,7 @@ async function checkSlide(page: Page, barSelector: string, targetName: string) {
 for (const width of [1280, 390]) {
   test(`gallery, location and users highlights slide at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
-    await page.goto("/gallery");
+    await page.goto("/album");
     await checkSlide(page, ".gallery-page__media-toolbar", "Album");
     await checkSlide(page, ".gallery-page__media-toolbar", "Gallery");
     await page.goto("/location");

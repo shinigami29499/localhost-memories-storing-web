@@ -9,10 +9,10 @@ for (const viewport of [{ width: 1571, height: 1128 }, { width: 390, height: 844
     }, version: 0 })));
     await page.route(/^https?:\/\/[^/]+\/api\//, (route) => {
       const path = new URL(route.request().url()).pathname;
-      if (path === "/api/location/home-location") return route.fulfill({ json: null });
-      if (path === "/api/location/travel/map") return route.fulfill({ json: { offset: 0, total: 0, items: [] } });
-      if (path === "/api/location") return route.fulfill({ json: [{ id: "p1", name: "Place", markerColor: "#00AA00", markerIcon: "P", rating: 2, mediaIds: [], address: "", note: "", createdAt: "2026-01-01", owner: { id: "u1", username: "viewer" }, latitude: 10, longitude: 106 }] });
-      if (path.startsWith("/api/library/gallery")) return route.fulfill({ json: { offset: 0, limit: 20, total: 0, items: [] } });
+      if (path === "/api/place/home-location") return route.fulfill({ json: null });
+      if (path === "/api/place/travel/map") return route.fulfill({ json: { offset: 0, total: 0, items: [] } });
+      if (path === "/api/place") return route.fulfill({ json: [{ id: "p1", name: "Place", markerColor: "#00AA00", markerIcon: "P", rating: 2, mediaIds: [], address: "", note: "", createdAt: "2026-01-01", owner: { id: "u1", username: "viewer" }, latitude: 10, longitude: 106 }] });
+      if (path.startsWith("/api/library/album/media")) return route.fulfill({ json: { offset: 0, limit: 20, total: 0, items: [] } });
       return route.fulfill({ json: [] });
     });
     await page.route("**/hubs/**", (route) => route.abort());
@@ -56,7 +56,7 @@ test("webview search stays in the page header", async ({ page }) => {
   }, version: 0 })));
   await page.route(/^https?:\/\/[^/]+\/api\//, (route) => {
     const path = new URL(route.request().url()).pathname;
-    if (path === "/api/location/saved/page" || path === "/api/location/history/page" || path === "/api/users/page")
+    if (path === "/api/place/saved/page" || path === "/api/place/history/page" || path === "/api/user/page")
       return route.fulfill({ json: { items: [], page: 1, limit: 30, total: 0 } });
     return route.fulfill({ json: [] });
   });

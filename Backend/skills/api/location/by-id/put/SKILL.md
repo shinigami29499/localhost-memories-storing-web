@@ -10,3 +10,5 @@ description: "Current behavior of PUT /api/location/{placeId:guid}."
 - Inputs: Guid placeId, SavePlaceRequest request.
 - Flow: Only the owner or administrator can update a place. The service validates fields and preview images, transactionally updates links, then cleans up removed previews.
 - Source: `Backend/Apis/Controllers/PlacesController.cs` (UpdatePlaceAsync); `Backend/Infrastructures/Data/ApplicationServices/PlaceService.cs`.
+
+Canonical route: `/api/place/{placeId:guid}`. Previous routes remain aliases.

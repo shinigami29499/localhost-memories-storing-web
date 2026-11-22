@@ -15,11 +15,11 @@ for (const [action, width] of [["Change role for", 390], ["Block", 1280]] as con
     const pending = new Promise<void>((resolve) => { release = resolve; });
     await page.route(/^https?:\/\/[^/]+\/api\//, async (route) => {
       const path = new URL(route.request().url()).pathname;
-      if (path === "/api/users/u1/role" || path === "/api/users/u1/disable") {
+      if (path === "/api/user/u1/role" || path === "/api/user/u1/disable") {
         await pending;
         return route.fulfill({ json: user });
       }
-      if (path === "/api/users/page") return route.fulfill({ json: { page: 1, limit: 30, total: 1, items: [user] } });
+      if (path === "/api/user/page") return route.fulfill({ json: { page: 1, limit: 30, total: 1, items: [user] } });
       return route.fulfill({ json: [] });
     });
     await page.route("**/hubs/**", (route) => route.abort());

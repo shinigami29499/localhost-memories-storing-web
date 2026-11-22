@@ -1,3 +1,4 @@
+import { registerUiModule } from "@/features/ui-resources/uiModules";
 import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { Settings } from "@/components/animate-ui/icons/settings";
 import { useLocale } from "../../context/LocaleContext";
@@ -7,7 +8,7 @@ import { Brand } from "./Brand";
 import { CommunityIntro } from "./CommunityIntro";
 import "./control-bar.css";
 
-const SettingsPage = lazy(() => import("../../pages/settings/SettingsPage").then((module) => ({ default: module.SettingsPage })));
+const SettingsPage = lazy(registerUiModule("Sign-in settings", () => import("../../pages/settings/SettingsPage").then((module) => ({ default: module.SettingsPage }))));
 
 export function AuthLayout({ children, showSettings = true }: { children: ReactNode; showSettings?: boolean }) {
   const { t } = useLocale();

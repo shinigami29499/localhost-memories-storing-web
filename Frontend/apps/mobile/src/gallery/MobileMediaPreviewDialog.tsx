@@ -1,3 +1,4 @@
+import { registerUiModule } from "@/features/ui-resources/uiModules";
 import { Bookmark } from "@/components/animate-ui/icons/bookmark";
 import { Check } from "@/components/animate-ui/icons/check";
 import { Copy } from "@/components/animate-ui/icons/copy";
@@ -19,9 +20,7 @@ CarouselDots,
 import { Particles,ParticlesEffect } from "@animate-ui/react/primitives/effects/particles";
 import { lazy,Suspense } from "react";
 
-const SaveToAlbumDialog = lazy(() =>
-  import("./MobileSaveToAlbumDialog").then((module) => ({ default: module.MobileSaveToAlbumDialog })),
-);
+const SaveToAlbumDialog = lazy(registerUiModule("Save to album dialog", () => import("./MobileSaveToAlbumDialog").then((module) => ({ default: module.MobileSaveToAlbumDialog }))));
 
 const MAX_DOTS = 20;
 

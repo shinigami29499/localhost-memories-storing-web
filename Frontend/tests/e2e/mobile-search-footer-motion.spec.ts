@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-for (const [from, to] of [["/users", "/gallery"], ["/gallery", "/users"], ["/location/saved", "/location"], ["/location", "/location/saved"]]) {
+for (const [from, to] of [["/users", "/album"], ["/album", "/users"], ["/location/saved", "/location"], ["/location", "/location/saved"]]) {
   test(`mobile search footer moves together: ${from} to ${to}`, async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.addInitScript(() => {
@@ -9,8 +9,8 @@ for (const [from, to] of [["/users", "/gallery"], ["/gallery", "/users"], ["/loc
     });
     await page.route(/^https?:\/\/[^/]+\/api\//, (route) => {
       const path = new URL(route.request().url()).pathname;
-      if (path === "/api/location/home-location") return route.fulfill({ json: null });
-      if (path.endsWith("/page") || path.startsWith("/api/library/gallery") || path === "/api/location/travel/map") return route.fulfill({ json: { page: 1, offset: 0, total: 0, limit: 30, items: [], allCount: 0, pendingCount: 0, hasMore: false } });
+      if (path === "/api/place/home-location") return route.fulfill({ json: null });
+      if (path.endsWith("/page") || path.startsWith("/api/library/album/media") || path === "/api/place/travel/map") return route.fulfill({ json: { page: 1, offset: 0, total: 0, limit: 30, items: [], allCount: 0, pendingCount: 0, hasMore: false } });
       return route.fulfill({ json: [] });
     });
     await page.route("**/hubs/**", (route) => route.abort());
@@ -18,7 +18,7 @@ for (const [from, to] of [["/users", "/gallery"], ["/gallery", "/users"], ["/loc
     await page.goto(from);
     if (from === "/users") await expect(page.getByRole("searchbox", { name: "Search users" })).toBeVisible();
     if (from === "/location/saved") await expect(page.getByRole("searchbox", { name: "Search saved places" })).toBeVisible();
-    if (from === "/gallery") await expect(page.locator(".page-action-bar").getByRole("button", { name: "New album" })).toBeVisible();
+    if (from === "/album") await expect(page.locator(".page-action-bar").getByRole("button", { name: "New album" })).toBeVisible();
     if (from === "/location") await expect(page.getByRole("button", { name: "Add", exact: true })).toBeVisible();
     await page.waitForTimeout(350);
     await page.evaluate(() => {

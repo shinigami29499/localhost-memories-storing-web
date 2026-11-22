@@ -18,8 +18,8 @@ test.beforeEach(async ({ page }) => {
   }));
   await page.route(/^https?:\/\/[^/]+\/api\//, (route) => {
     const path = new URL(route.request().url()).pathname;
-    if (path === "/api/users/page") return route.fulfill({ json: { items: users, page: 1, limit: 30, total: users.length } });
-    if (path === "/api/users") return route.fulfill({ json: users });
+    if (path === "/api/user/page") return route.fulfill({ json: { items: users, page: 1, limit: 30, total: users.length } });
+    if (path === "/api/user") return route.fulfill({ json: users });
     return route.fulfill({ json: {} });
   });
   await page.route("**/hubs/**", (route) => route.abort());

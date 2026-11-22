@@ -27,12 +27,12 @@ for (const width of [1280, 390]) {
       }, effect);
       await page.route(/^https?:\/\/[^/]+\/api\//, async (route) => {
         const path = new URL(route.request().url()).pathname;
-        if (path === "/api/location/home-location") return route.fulfill({ json: null });
-        if (path === "/api/users") return route.fulfill({ json: [
+        if (path === "/api/place/home-location") return route.fulfill({ json: null });
+        if (path === "/api/user") return route.fulfill({ json: [
           { id: "u1", username: "viewer", role: "admin", status: "active", createdAt: "2026-01-01" },
           { id: "u2", username: "pending-user", role: "user", status: "pending_approval", createdAt: "2026-01-01" },
         ] });
-        if (path.startsWith("/api/library/gallery") || path === "/api/library/album/page") return route.fulfill({ json: { offset: 0, limit: 20, total: 0, items: [] } });
+        if (path.startsWith("/api/library/album/media") || path === "/api/library/album/page") return route.fulfill({ json: { offset: 0, limit: 20, total: 0, items: [] } });
         return route.fulfill({ json: [] });
       });
       await page.route("**/hubs/**", (route) => route.abort());
@@ -43,7 +43,7 @@ for (const width of [1280, 390]) {
       }));
       const errors: string[] = [];
       page.on("pageerror", (error) => errors.push(error.message));
-      await page.goto("/gallery");
+      await page.goto("/album");
       await settled(page);
       const bar = page.locator(".page-action-bar");
       await expect(bar.getByRole("button", { name: "New album", exact: true })).toBeVisible();
@@ -97,7 +97,7 @@ for (const width of [1280, 390]) {
         await expect(bar.locator("button, a")).toHaveCount(0);
       }
       // Return to a populated bar after pages with no gallery actions.
-      await sidebar(page, "/gallery");
+      await sidebar(page, "/album");
       await settled(page);
       await expect(bar.getByRole("button", { name: "New album", exact: true })).toBeVisible();
       const samples = await page.evaluate(() => (window as Window & { actionBarSamples?: { nested: boolean; hidden: boolean; pseudoZ: string }[] }).actionBarSamples ?? []);

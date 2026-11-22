@@ -11,7 +11,7 @@ export default defineConfig({
     ...devices["Desktop Chrome"],
   },
   webServer: {
-    command: "npm run dev -- --host 127.0.0.1 --port 34300 --strictPort",
+    command: "npm run dev -- --mode test --host 127.0.0.1 --port 34300 --strictPort",
     url: "http://127.0.0.1:34300",
     env: { VITE_MAPBOX_ACCESS_TOKEN: "pk.test-browser-token" },
     reuseExistingServer: false,

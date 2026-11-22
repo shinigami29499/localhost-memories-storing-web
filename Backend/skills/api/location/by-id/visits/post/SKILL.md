@@ -10,3 +10,5 @@ description: "Current behavior of POST /api/location/{placeId:guid}/visits."
 - Inputs: Guid placeId.
 - Flow: Creates a visit for the caller at an existing place, saves it, and sends a best-effort PlaceCheckedIn event.
 - Source: `Backend/Apis/Controllers/PlacesController.cs` (CheckInPlaceAsync); `Backend/Infrastructures/Data/ApplicationServices/PlaceService.cs`.
+
+Canonical route: `/api/place/{placeId:guid}/visit`. Previous routes remain aliases.

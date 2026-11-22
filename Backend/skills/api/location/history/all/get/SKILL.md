@@ -10,3 +10,5 @@ description: "Current behavior of GET /api/location/history/all."
 - Inputs: No request parameters.
 - Flow: Returns all users' place visit history to an authenticated caller.
 - Source: `Backend/Apis/Controllers/PlacesController.cs` (GetAllPlaceVisitHistoryAsync); `Backend/Infrastructures/Data/ApplicationServices/PlaceService.cs`.
+
+Canonical route: `/api/place/history/all`. Previous routes remain aliases.

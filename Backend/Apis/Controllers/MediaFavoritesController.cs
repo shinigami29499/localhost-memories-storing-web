@@ -9,11 +9,13 @@ using Services.Responses.Media;
 namespace Apis.Controllers;
 
 [ApiController]
+[Route("api/library/album/media")]
 [Route("api/library/gallery")]
 [Route("api/media")]
 [Authorize]
 public sealed class MediaFavoritesController(IMediaService mediaService, ICurrentUserContext currentUser) : ControllerBase
 {
+    [HttpGet("favorite")]
     [HttpGet("favorites")]
     public async Task<ActionResult<PagedMediaResponse<MediaFileDto>>> GetFavoritesAsync(
         [FromQuery] MediaPageRequest request, CancellationToken cancellationToken)
@@ -41,6 +43,7 @@ public sealed class MediaFavoritesController(IMediaService mediaService, ICurren
         return NoContent();
     }
 
+    [HttpPut("favorite/batch")]
     [HttpPut("favorites/batch")]
     public async Task<IActionResult> SetFavoritesAsync(
         SetMediaFavoritesRequest request, CancellationToken cancellationToken)

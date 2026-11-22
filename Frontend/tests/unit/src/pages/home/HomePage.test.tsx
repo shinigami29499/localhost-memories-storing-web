@@ -127,7 +127,7 @@ describe("HomePage", () => {
     await vi.waitFor(() => expect(albumService.media).toHaveBeenCalledWith("own-album", 0, 5, undefined));
     await vi.waitFor(() => expect(container.querySelectorAll(".album-feed-post img")).toHaveLength(2));
     expect(container.querySelectorAll("video")).toHaveLength(0);
-    expect(container.querySelector('a[href="/gallery/album/own-album"]')).toBeNull();
+    expect(container.querySelector('a[href="/album/own-album"]')).toBeNull();
     expect(albumService.page).toHaveBeenCalledWith("feed", null, 30, undefined, "", expect.any(AbortSignal));
   });
 
@@ -147,14 +147,14 @@ describe("HomePage", () => {
   it("opens the album when clicking the preview", async () => {
     await renderPage();
     await act(async () => { pointerClick(preview(), 1); });
-    expect(location()).toBe("/gallery/album/own-album");
+    expect(location()).toBe("/album/own-album");
     expect(mediaService.favorite).not.toHaveBeenCalled();
   });
 
   it("opens the album without favoriting on double-click", async () => {
     await renderPage();
     await doubleClick();
-    expect(location()).toBe("/gallery/album/own-album");
+    expect(location()).toBe("/album/own-album");
     expect(mediaService.favorite).not.toHaveBeenCalled();
     expect(mediaService.unfavorite).not.toHaveBeenCalled();
   });
@@ -226,7 +226,7 @@ describe("HomePage", () => {
     await doubleClick();
     expect(mediaService.favorite).not.toHaveBeenCalled();
     await act(async () => preview().click());
-    expect(location()).toBe("/gallery/album/own-album");
+    expect(location()).toBe("/album/own-album");
   });
 
   it("retries a failed preview without navigating", async () => {

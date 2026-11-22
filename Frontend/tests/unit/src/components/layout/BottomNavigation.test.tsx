@@ -26,9 +26,9 @@ describe("mobile navigation", () => {
     document.body.append(container);
     const root = createRoot(container);
     try {
-      await act(async () => root.render(<MemoryRouter initialEntries={["/gallery"]}><BottomNavigation /></MemoryRouter>));
+      await act(async () => root.render(<MemoryRouter initialEntries={["/album"]}><BottomNavigation /></MemoryRouter>));
       const links = [...container.querySelectorAll<HTMLAnchorElement>(".bottom-navigation a")];
-      expect(links.map((link) => link.getAttribute("href"))).toEqual(["/", "/gallery", "/location", "/users"]);
+      expect(links.map((link) => link.getAttribute("href"))).toEqual(["/", "/album", "/location", "/users"]);
       expect(links[1].getAttribute("aria-current")).toBe("page");
       const more = container.querySelector<HTMLButtonElement>('.bottom-navigation button')!;
       await act(async () => more.click());

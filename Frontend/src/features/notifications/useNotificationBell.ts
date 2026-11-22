@@ -7,7 +7,7 @@ import { uploadMessage } from "./uploadMessage";
 import { useAuthStore } from "../../store/authStore";
 import { useLocale } from "../../context/LocaleContext";
 
-export function useNotificationBell(navigateToGallery = () => window.location.assign("/gallery")) {
+export function useNotificationBell(navigateToGallery = () => window.location.assign("/album")) {
   const { language, t } = useLocale();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);

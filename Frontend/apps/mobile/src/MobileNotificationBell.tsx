@@ -19,7 +19,8 @@ function emphasizeNames(message: string, names: string[]) {
 export function MobileNotificationBell() {
   const location = useLocation();
   const openPage = useOpenMobilePage();
-  const { language, t, open, setOpen, containerRef, triggerRef, notifications, unreadCount, describe, markAllRead, openNotification } = useNotificationBell(() => openPage("/gallery"));
+  const { language, t, open, setOpen, containerRef, triggerRef, notifications, unreadCount, describe, markAllRead, openNotification } = useNotificationBell(() => openPage("/album"));
+  const notificationLabel = t(unreadCount > 0 ? "Notifications, unread items" : "Notifications");
 
   useEffect(() => { setOpen(false); }, [location.key, setOpen]);
 
@@ -32,16 +33,12 @@ export function MobileNotificationBell() {
           className="mobile-flat-icon-button mobile-notification__trigger"
           aria-expanded={open}
           aria-controls="notification-panel"
-          aria-label={unreadCount > 0 ? t("Notifications, {count} unread", { count: unreadCount }) : t("Notifications")}
-          title={unreadCount > 0 ? t("{count} unread notifications", { count: unreadCount }) : t("Notifications")}
+          aria-label={notificationLabel}
+          title={notificationLabel}
           onClick={() => setOpen((value) => !value)}
         >
           <Bell size={18} fill="currentColor" aria-hidden="true" />
-          {unreadCount > 0 ? (
-            <span className="mobile-notification__badge" aria-hidden="true">
-              {unreadCount > 99 ? "99+" : unreadCount}
-            </span>
-          ) : null}
+          {unreadCount > 0 && <span className="mobile-notification__unread-dot" aria-hidden="true" />}
         </IconButton>
       </AnimateIcon>
       {open ? (
@@ -67,7 +64,7 @@ export function MobileNotificationBell() {
                 return (
                 <li key={notification.kind === "album" ? notification.eventId : notification.id}>
                   <MobilePageLink
-                    to={notification.kind === "album" ? `/gallery/album/${notification.albumId}` : "/gallery"}
+                    to={notification.kind === "album" ? `/album/${notification.albumId}` : "/album"}
                     className={`mobile-notification__item${notification.readAt ? "" : " mobile-notification__item--unread"}`}
                     onClick={(event) => openNotification(event, notification)}
                   >

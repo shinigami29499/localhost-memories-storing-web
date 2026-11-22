@@ -14,6 +14,7 @@ using Apis.Realtime;
 namespace Apis.Controllers;
 
 [ApiController]
+[Route("api/user")]
 [Route("api/users")]
 [Authorize]
 public class UsersController(
@@ -76,6 +77,7 @@ public class UsersController(
         => Ok(await _userService.SetAvatarAsync(
             _currentUser.RequireUserId(), request, cancellationToken));
 
+    [HttpGet("~/api/place/home-location")]
     [HttpGet("~/api/location/home-location")]
     [HttpGet("~/api/location/place/home-location")]
     [HttpGet("~/api/location/food/home-location")]
@@ -83,6 +85,7 @@ public class UsersController(
     public async Task<ActionResult<HomeLocationDto?>> GetHomeLocationAsync(CancellationToken cancellationToken)
         => Ok(await _userService.GetHomeLocationAsync(_currentUser.RequireUserId(), cancellationToken));
 
+    [HttpPut("~/api/place/home-location")]
     [HttpPut("~/api/location/home-location")]
     [HttpPut("~/api/location/place/home-location")]
     [HttpPut("~/api/location/food/home-location")]
@@ -92,6 +95,7 @@ public class UsersController(
         => Ok(await _userService.SetHomeLocationAsync(
             _currentUser.RequireUserId(), request, cancellationToken));
 
+    [HttpDelete("~/api/place/home-location")]
     [HttpDelete("~/api/location/home-location")]
     [HttpDelete("~/api/location/place/home-location")]
     [HttpDelete("~/api/location/food/home-location")]

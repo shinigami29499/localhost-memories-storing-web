@@ -1,7 +1,7 @@
 ﻿import { expect, test } from "@playwright/test";
 
-const paths = ["/gallery", "/location", "/users"] as const;
-const names: Record<string, string> = { "/gallery": "Gallery", "/location": "Locations", "/users": "Users" };
+const paths = ["/album", "/location", "/users"] as const;
+const names: Record<string, string> = { "/album": "Gallery", "/location": "Locations", "/users": "Users" };
 for (const shifted of [false, true]) for (const from of paths) for (const to of paths) {
   if (from === to) continue;
   test(`${from} to ${to} keeps a visible highlight${shifted ? " from another index" : ""}`, async ({ page }) => {
@@ -11,8 +11,8 @@ for (const shifted of [false, true]) for (const from of paths) for (const to of 
     });
     await page.route(/^https?:\/\/[^/]+\/api\//, route => {
       const path = new URL(route.request().url()).pathname;
-      if (path === "/api/location/home-location") return route.fulfill({ json: null });
-      if (path.endsWith("/page") || path === "/api/location/travel/map" || path.startsWith("/api/library/gallery")) return route.fulfill({ json: { page: 1, total: 0, limit: 30, items: [], allCount: 0, pendingCount: 0 } });
+      if (path === "/api/place/home-location") return route.fulfill({ json: null });
+      if (path.endsWith("/page") || path === "/api/place/travel/map" || path.startsWith("/api/library/album/media")) return route.fulfill({ json: { page: 1, total: 0, limit: 30, items: [], allCount: 0, pendingCount: 0 } });
       return route.fulfill({ json: [] });
     });
     await page.route("**/hubs/**", route => route.abort());

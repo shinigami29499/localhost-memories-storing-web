@@ -10,3 +10,5 @@ description: "Current behavior of GET /api/location/map."
 - Inputs: No request parameters.
 - Flow: Returns compact map summaries for places.
 - Source: `Backend/Apis/Controllers/PlacesController.cs` (GetMapPlacesAsync); `Backend/Infrastructures/Data/ApplicationServices/PlaceService.cs`.
+
+Canonical route: `/api/place/map`. Previous routes remain aliases.

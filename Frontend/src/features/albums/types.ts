@@ -10,18 +10,21 @@ export interface Album {
   isPublic: boolean;
   owner: { id: string; username: string; avatarSeed?: string | null };
   mediaCount: number;
+  isFavorited: boolean;
   /** Custom preview when set, otherwise the first image in the album. */
   previewMediaId: string | null;
   previewIsFavorited: boolean;
   customPreviewMediaId: string | null;
   containsMedia: boolean;
   createdAt: string;
+  albumDate?: string | null;
 }
 
 export interface CreateAlbumInput {
   name: string;
   isPublic?: boolean;
   caption?: string;
+  albumDate?: string;
 }
 
 export interface UpdateAlbumInput {

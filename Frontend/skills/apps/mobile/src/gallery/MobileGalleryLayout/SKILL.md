@@ -7,6 +7,6 @@ description: "Mobile album list layout."
 
 Sources below are relative to `Frontend/apps/mobile/src/` unless marked shared, which is relative to `Frontend/src/`.
 
-gallery/MobileGalleryLayout.tsx wraps the album list and provides a loading fallback. Gallery opens Albums directly. Legacy Favorites and Trash URLs redirect to the album list.
+gallery/MobileGalleryLayout.tsx wraps the album list at `/album`. Legacy Gallery, Favorites, and Trash URLs redirect to the album list; legacy album-detail URLs redirect to `/album/{albumId}`.
 
-The outlet fallback marks the destination as pending for the shell loading overlay during a Gallery page transition.
+The mobile shell owns the route-module loader. Album list data loading uses its own frame placeholders.

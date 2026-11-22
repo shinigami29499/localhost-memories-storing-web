@@ -8,6 +8,7 @@ using Services.Responses.Media;
 namespace Apis.Controllers;
 
 [ApiController]
+[Route("api/preview")]
 [Route("api/previews")]
 [Authorize]
 public sealed class PreviewsController(IPreviewService previews, ICurrentUserContext currentUser) : ControllerBase

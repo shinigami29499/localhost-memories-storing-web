@@ -10,3 +10,5 @@ description: "Current behavior of POST /api/sync/upload/batches/{batchId:guid}/i
 - Inputs: Guid batchId, Guid itemId.
 - Flow: Starts a pending item under a batch lock. Only one item may upload per batch; invalid state or concurrent changes produce conflict.
 - Source: `Backend/Apis/Controllers/UploadsController.cs` (StartItemAsync); `Backend/Infrastructures/Data/ApplicationServices/UploadService.cs`.
+
+Canonical route: `/api/sync/upload/batch/{batchId:guid}/item/{itemId:guid}/start`. Previous routes remain aliases.

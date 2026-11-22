@@ -13,7 +13,7 @@ test("mobile transition keeps the chevron and selected text size while a page lo
   let release!: () => void;
   const loading = new Promise<void>((resolve) => { release = resolve; });
   await page.route("**/src/pages/users/UsersPage.tsx*", async (route) => { await loading; await route.continue(); });
-  await page.goto("/gallery");
+  await page.goto("/album");
   const original = page.locator(".page-highlight .navigation-highlight > [aria-current=page]").first();
   const fontSize = await original.evaluate((element) => getComputedStyle(element).fontSize);
   await page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Users", exact: true }).click();
@@ -65,7 +65,7 @@ test("mobile place highlight keeps its chevron visible while switching tabs", as
   });
   await page.route(/^https?:\/\/[^/]+\/api\//, (route) => {
     const path = new URL(route.request().url()).pathname;
-    if (path === "/api/location/home-location") return route.fulfill({ json: null });
+    if (path === "/api/place/home-location") return route.fulfill({ json: null });
     return route.fulfill({ json: { page: 1, offset: 0, limit: 30, total: 0, items: [], allCount: 0, pendingCount: 0, hasMore: false } });
   });
   await page.route("**/hubs/**", (route) => route.abort());
@@ -114,14 +114,14 @@ for (const width of [390, 1280]) {
     });
     await page.route(/^https?:\/\/[^/]+\/api\//, (route) => {
       const path = new URL(route.request().url()).pathname;
-      if (path === "/api/location/home-location") return route.fulfill({ json: null });
-      if (path === "/api/location/saved") return route.fulfill({ json: [] });
+      if (path === "/api/place/home-location") return route.fulfill({ json: null });
+      if (path === "/api/place/saved") return route.fulfill({ json: [] });
       return route.fulfill({ json: { page: 1, offset: 0, limit: 30, total: 0, items: [], allCount: 0, pendingCount: 0, hasMore: false } });
     });
     await page.route("**/hubs/**", (route) => route.abort());
     await page.route(/https:\/\/[^/]*mapbox\.com\//, (route) => route.fulfill({ json: { version: 8, sources: {}, layers: [] } }));
     const sizes: number[] = [];
-    for (const path of ["/gallery", "/location/saved", "/users"]) {
+    for (const path of ["/album", "/location/saved", "/users"]) {
       await page.goto(path);
       const bar = page.locator(".page-highlight .navigation-highlight-bar");
       await expect(bar).toBeVisible();
@@ -154,15 +154,15 @@ test("mobile highlight collapse persists across page transitions", async ({ page
   });
   await page.route(/^https?:\/\/[^/]+\/api\//, (route) => {
     const path = new URL(route.request().url()).pathname;
-    if (path === "/api/location/home-location") return route.fulfill({ json: null });
+    if (path === "/api/place/home-location") return route.fulfill({ json: null });
     return route.fulfill({ json: { page: 1, offset: 0, limit: 30, total: 0, items: [], allCount: 0, pendingCount: 0, hasMore: false } });
   });
   await page.route("**/hubs/**", (route) => route.abort());
   await page.route(/https:\/\/[^/]*mapbox\.com\//, (route) => route.fulfill({ json: { version: 8, sources: {}, layers: [] } }));
-  await page.goto("/gallery");
+  await page.goto("/album");
   await page.locator(".page-highlight__toggle").click();
   const nav = page.getByRole("navigation", { name: "Main navigation" });
-  for (const [name, path] of [["Locations", "/location"], ["Users", "/users"], ["Gallery", "/gallery"]]) {
+  for (const [name, path] of [["Locations", "/location"], ["Users", "/users"], ["Gallery", "/album"]]) {
     await nav.getByRole("link", { name, exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`${path}$`));
     const highlight = page.locator(".page-highlight").filter({ has: page.locator(".page-highlight__toggle") }).last();

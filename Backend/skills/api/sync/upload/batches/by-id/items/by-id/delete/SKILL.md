@@ -10,3 +10,5 @@ description: "Current behavior of DELETE /api/sync/upload/batches/{batchId:guid}
 - Inputs: Guid batchId, Guid? itemId.
 - Flow: Soft-deletes a caller-owned batch or selected item. Deleting an individual successful item is rejected. State changes use a transaction and batch lock.
 - Source: `Backend/Apis/Controllers/UploadsController.cs` (DeleteRecordAsync); `Backend/Infrastructures/Data/ApplicationServices/UploadService.cs`.
+
+Canonical route: `/api/sync/upload/batch/{batchId:guid}/item/{itemId:guid}`. Previous routes remain aliases.

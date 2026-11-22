@@ -10,3 +10,5 @@ description: "Current behavior of GET /api/location/history."
 - Inputs: No request parameters.
 - Flow: Returns the caller's place visit history.
 - Source: `Backend/Apis/Controllers/PlacesController.cs` (GetPlaceVisitHistoryAsync); `Backend/Infrastructures/Data/ApplicationServices/PlaceService.cs`.
+
+Canonical route: `/api/place/history`. Previous routes remain aliases.

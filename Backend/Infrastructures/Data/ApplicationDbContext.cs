@@ -20,6 +20,7 @@ public class ApplicationDbContext(
     public DbSet<UploadItem> UploadItems => Set<UploadItem>();
     public DbSet<Collection> Collections => Set<Collection>();
     public DbSet<CollectionMedia> CollectionMedia => Set<CollectionMedia>();
+    public DbSet<CollectionFavorite> CollectionFavorites => Set<CollectionFavorite>();
     public DbSet<MediaFavorite> MediaFavorites => Set<MediaFavorite>();
     public DbSet<Place> Places => Set<Place>();
     public DbSet<PlaceMedia> PlaceMedia => Set<PlaceMedia>();
@@ -201,6 +202,26 @@ public class ApplicationDbContext(
             entity.HasIndex(item => item.MediaFileId);
 
             entity.HasQueryFilter(item => item.DeletedAt == null);
+        });
+
+        modelBuilder.Entity<CollectionFavorite>(entity =>
+        {
+            entity.HasOne(favorite => favorite.Collection)
+                .WithMany()
+                .HasForeignKey(favorite => favorite.CollectionId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(favorite => favorite.User)
+                .WithMany()
+                .HasForeignKey(favorite => favorite.UserId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasIndex(favorite => new { favorite.CollectionId, favorite.UserId })
+                .IsUnique()
+                .HasFilter("deleted_at IS NULL");
+            entity.HasIndex(favorite => new { favorite.UserId, favorite.CreatedAt });
+
+            entity.HasQueryFilter(favorite => favorite.DeletedAt == null);
         });
 
         modelBuilder.Entity<MediaFavorite>(entity =>

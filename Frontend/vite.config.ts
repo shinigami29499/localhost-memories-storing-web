@@ -2,9 +2,10 @@ import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
+import { uiAssetsPlugin } from "./uiAssetsPlugin";
 
 export default defineConfig(({ command }) => ({
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), uiAssetsPlugin()],
   define: command === "serve" ? {
     "import.meta.env.VITE_API_URL": JSON.stringify(""),
   } : {},
@@ -12,7 +13,9 @@ export default defineConfig(({ command }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+    dedupe: ["react", "react-dom"],
   },
+  optimizeDeps: { include: ["react", "react-dom/client", "react-router-dom", "zustand", "@tanstack/react-query"] },
   server: {
     port: 3000,
     allowedHosts: ["atomic-stop-petition-collection.trycloudflare.com"],

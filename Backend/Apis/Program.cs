@@ -110,7 +110,9 @@ builder.Services
                 {
                     context.Token = accessToken;
                 }
-                else if ((context.Request.Path.StartsWithSegments("/api/media") || context.Request.Path.StartsWithSegments("/api/library/gallery"))
+                else if ((context.Request.Path.StartsWithSegments("/api/media")
+                    || context.Request.Path.StartsWithSegments("/api/library/gallery")
+                    || context.Request.Path.StartsWithSegments("/api/library/album/media"))
                     && context.Request.Path.Value?.EndsWith("/file", StringComparison.OrdinalIgnoreCase) == true)
                 {
                     var mediaToken = context.Request.Query["accessToken"];
@@ -225,6 +227,9 @@ app.Use(async (context, next) =>
          path.Equals("/api/users/me/heartbeat", StringComparison.OrdinalIgnoreCase) ||
          path.Equals("/api/users/me/offline", StringComparison.OrdinalIgnoreCase) ||
          path.Equals("/api/users/me/request-approval", StringComparison.OrdinalIgnoreCase) ||
+         path.Equals("/api/user/me/heartbeat", StringComparison.OrdinalIgnoreCase) ||
+         path.Equals("/api/user/me/offline", StringComparison.OrdinalIgnoreCase) ||
+         path.Equals("/api/user/me/request-approval", StringComparison.OrdinalIgnoreCase) ||
          path.Equals("/api/library/album/membership/query", StringComparison.OrdinalIgnoreCase) ||
          path.Equals("/api/collections/membership/query", StringComparison.OrdinalIgnoreCase) ||
          path.Equals("/hubs/notifications", StringComparison.OrdinalIgnoreCase) ||

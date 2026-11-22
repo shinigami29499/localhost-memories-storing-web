@@ -15,6 +15,7 @@
     "dev:mobile": "npm run dev --workspace @shinigacim/mobile",
     "build:mobile": "npm run build --workspace @shinigacim/mobile",
     "android:sync": "npm run build:mobile && cap sync android",
+    "android:apk": "npm run android:sync && cd android && .\\gradlew.bat :app:assembleDebug",
     "preview": "vite preview",
     "test": "vitest",
     "test:e2e": "playwright test"

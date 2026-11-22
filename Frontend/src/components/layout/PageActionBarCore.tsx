@@ -143,7 +143,8 @@ export function usePageActionBarProvider() {
         const nextWidth = bar?.getBoundingClientRect().width ?? 0;
         const mobile = window.matchMedia("(max-width: 767px)").matches && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
         if (pendingRouteEntry && pendingRouteEntry !== window.location.pathname) pendingRouteEntry = null;
-        const searchDestination = (window.location.pathname === "/users" || window.location.pathname.startsWith("/users/")) || /^\/location\/(saved|history)\/?$/.test(window.location.pathname);
+        const userDestination = /^\/users?(?:\/|$)/.test(window.location.pathname);
+        const searchDestination = userDestination || /^\/location\/(saved|history)\/?$/.test(window.location.pathname);
         if (!searchDestination && sharedSearchPending) {
           sharedSearchBridge?.remove();
           sharedSearchBridge = null;
@@ -154,7 +155,7 @@ export function usePageActionBarProvider() {
           : added && observedBar !== added && observedBar?.classList.contains("place__action-bar") ? observedBar : null;
         const sharedSearchSwap = mobile && searchDestination && (sharedSearchPending
           || (removed && removed === sharedSearchOld)
-          || (previousSearch && (previousSearch.classList.contains("users__action-bar") || (window.location.pathname === "/users" || window.location.pathname.startsWith("/users/")))));
+          || (previousSearch && (previousSearch.classList.contains("users__action-bar") || userDestination)));
         if (sharedSearchSwap) {
           const completedOverlap = Boolean(removed && removed === sharedSearchOld);
           if (completedOverlap) sharedSearchOld = null;
@@ -185,7 +186,7 @@ export function usePageActionBarProvider() {
         const searchEnteringEmpty = added?.classList.contains("place__action-bar") && !observedBar;
         const userSwap = mobile && (removed?.classList.contains("users__action-bar") || added?.classList.contains("users__action-bar")
           || searchLeavingPage || verticalToSearch || searchEnteringEmpty || (added && pendingRouteEntry === window.location.pathname)
-          || (removed && (window.location.pathname === "/users" || window.location.pathname.startsWith("/users/"))) || performance.now() < userExitUntil);
+          || (removed && userDestination) || performance.now() < userExitUntil);
         if (userSwap) {
           if (removed && snapshot && snapshotBounds.width > 0) {
             userExit?.remove();

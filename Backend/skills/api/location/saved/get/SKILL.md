@@ -10,3 +10,5 @@ description: "Current behavior of GET /api/location/saved."
 - Inputs: No request parameters.
 - Flow: Returns saved places. Both the base route and saved route call the same operation.
 - Source: `Backend/Apis/Controllers/PlacesController.cs` (GetPlacesAsync); `Backend/Infrastructures/Data/ApplicationServices/PlaceService.cs`.
+
+Canonical route: `/api/place/saved`. Previous routes remain aliases.

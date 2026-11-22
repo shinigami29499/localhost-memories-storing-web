@@ -1,3 +1,4 @@
+import { PageDataPlaceholder } from "@/components/ui/PageDataPlaceholder";
 import { Check } from "@/components/animate-ui/icons/check";
 import { ExternalLink } from "@/components/animate-ui/icons/external-link";
 import { Heart } from "@/components/animate-ui/icons/heart";
@@ -36,7 +37,7 @@ export function AlbumPage() {
 function AlbumDetail({ albumId }: { albumId: string | undefined }) {
   const { t, navigate, copied, editing, setEditing, editingCaption, setEditingCaption, deleting, setDeleting, selectionMode, selectedItems, removingSelection, setRemovingSelection, bulkFavoriteBusy, favoriteBusyMediaId, showImages, showVideos, mediaKind, hasMediaFilter, previewMediaId, setPreviewMediaId, returnToMediaId, returnToIndex, contentRef, sentinelRef, album, media, invalidate, items, total, isOwner, selectedMedia, allSelectedFavorited, cancelSelection, setSelected, selectionDragHandlers, changeFilter, removeSelected, uploadInput, uploading, uploadFiles, favoriteSelected, toggleFavorite, copyLink, saveCaption } = useAlbumDetail(albumId);
   if (album.isPending) {
-    return <main className="gallery-page album-page"><Spinner page label={t("Loading album...")} /></main>;
+    return <main className="gallery-page album-page mobile-content-placeholder--album-detail"><PageDataPlaceholder layout="cards" count={1} label={t("Loading album...")} /><PageDataPlaceholder layout="media" label={t("Loading media...")} /></main>;
   }
 
   if (album.isError) {
@@ -158,7 +159,7 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
                     ? "Videos added to this album will appear here."
                     : mediaKind === "image" ? "Images added to this album will appear here." : "Images and videos added to this album will appear here."}
                 />
-              ) : media.isPending ? <Spinner page label={t("Loading media...")} /> : media.isError && items.length === 0 ? (
+              ) : media.isPending ? <PageDataPlaceholder layout="media" label={t("Loading media...")} /> : media.isError && items.length === 0 ? (
                 <ErrorState message={t("Could not load media.")} onRetry={() => void media.refetch()} />
               ) : (
                 <MediaRetryProvider order={items.map((item) => item.id)}>
@@ -238,7 +239,7 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
           onClose={() => setEditing(false)}
           onDelete={async () => {
             await albumService.remove(data.id);
-            return () => { navigate("/gallery/album", { replace: true }); void invalidate(true); };
+            return () => { navigate("/album", { replace: true }); void invalidate(true); };
           }}
           onSubmit={async (input) => {
             await albumService.update(data.id, input);
@@ -255,7 +256,7 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
           onConfirm={async () => {
             await albumService.remove(data.id);
             return () => {
-              navigate("/gallery/album", { replace: true });
+              navigate("/album", { replace: true });
               void invalidate(true);
             };
           }}

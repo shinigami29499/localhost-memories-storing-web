@@ -10,3 +10,5 @@ description: "Current behavior of DELETE /api/location/{placeId:guid}."
 - Inputs: Guid placeId.
 - Flow: Only the owner or administrator can soft-delete a place and its media links in a transaction. Removed previews are cleaned up afterward.
 - Source: `Backend/Apis/Controllers/PlacesController.cs` (DeletePlaceAsync); `Backend/Infrastructures/Data/ApplicationServices/PlaceService.cs`.
+
+Canonical route: `/api/place/{placeId:guid}`. Previous routes remain aliases.

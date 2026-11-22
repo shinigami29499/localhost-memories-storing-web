@@ -10,3 +10,5 @@ description: "Current behavior of POST /api/sync/upload/batches/{batchId:guid}/i
 - Inputs: Guid batchId, Guid? itemId.
 - Flow: Returns paused items to pending in the caller-owned batch, either one item or all. Recomputes batch state under a lock.
 - Source: `Backend/Apis/Controllers/UploadsController.cs` (ResumeAsync); `Backend/Infrastructures/Data/ApplicationServices/UploadService.cs`.
+
+Canonical route: `/api/sync/upload/batch/{batchId:guid}/item/{itemId:guid}/resume`. Previous routes remain aliases.

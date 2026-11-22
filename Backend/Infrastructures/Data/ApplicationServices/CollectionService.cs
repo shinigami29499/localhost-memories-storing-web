@@ -115,7 +115,7 @@ public sealed class CollectionService(
             CollectionListRequest.PublicScope => await repository.GetPublicCollectionsAsync(
                 viewerId, request.MediaId, cancellationToken),
             CollectionListRequest.AdminScope when isAdmin => await repository.GetAllCollectionsAsync(
-                request.MediaId, cancellationToken),
+                viewerId, request.MediaId, cancellationToken),
             _ => throw new ValidationException(
                 "Invalid collection scope.",
                 new Dictionary<string, string[]> { ["scope"] = [isAdmin ? "Must be 'mine', 'public', or 'all'." : "Must be 'mine' or 'public'."] }),
@@ -144,6 +144,47 @@ public sealed class CollectionService(
         var favoritedIds = await mediaRepository.GetFavoritedMediaIdsAsync(
             viewerId, [previewId], cancellationToken);
         return collection with { PreviewIsFavorited = favoritedIds.Contains(previewId) };
+    }
+
+    public async Task SetCollectionFavoriteAsync(
+        Guid collectionId, Guid userId, bool isFavorite, CancellationToken cancellationToken = default)
+    {
+        await GetViewableSourceAsync(collectionId, userId, cancellationToken);
+        var favorite = await repository.FindCollectionFavoriteAsync(
+            userId, collectionId, includeDeleted: isFavorite, cancellationToken);
+        if (isFavorite)
+        {
+            if (favorite is { DeletedAt: null })
+                return;
+            if (favorite is not null)
+            {
+                favorite.DeletedAt = null;
+                favorite.DeletedBy = null;
+                favorite.UpdatedAt = DateTime.UtcNow;
+                favorite.UpdatedBy = userId;
+            }
+            else
+            {
+                repository.AddCollectionFavorite(new CollectionFavorite
+                {
+                    CollectionId = collectionId,
+                    UserId = userId,
+                });
+            }
+        }
+        else if (favorite is { DeletedAt: null })
+        {
+            favorite.DeletedAt = DateTime.UtcNow;
+            favorite.DeletedBy = userId;
+            favorite.UpdatedAt = DateTime.UtcNow;
+            favorite.UpdatedBy = userId;
+        }
+        else
+        {
+            return;
+        }
+
+        await unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
     public Task<PagedMediaResponse<MediaFileDto>> GetCollectionMediaAsync(
@@ -193,6 +234,7 @@ public sealed class CollectionService(
             Caption = NormalizeCaption(request.Caption),
             OwnerId = ownerId,
             IsPublic = request.IsPublic,
+            AlbumDate = request.AlbumDate,
         };
         repository.AddCollection(collection);
         await unitOfWork.SaveChangesAsync(cancellationToken);
@@ -238,7 +280,7 @@ public sealed class CollectionService(
     }
 
     public async Task<CollectionDto> GetCollectionForAdminAsync(Guid collectionId, CancellationToken cancellationToken = default)
-        => mapper.Map(await repository.GetCollectionSourceAsync(collectionId, cancellationToken)
+        => mapper.Map(await repository.GetCollectionSourceAsync(collectionId, null, cancellationToken)
             ?? throw new NotFoundException($"Collection '{collectionId}' was not found."));
 
     public Task DeleteCollectionAsync(
@@ -398,7 +440,7 @@ public sealed class CollectionService(
     private async Task<CollectionSource> GetViewableSourceAsync(
         Guid collectionId, Guid viewerId, bool isAdmin, CancellationToken cancellationToken)
     {
-        var source = await repository.GetCollectionSourceAsync(collectionId, cancellationToken);
+        var source = await repository.GetCollectionSourceAsync(collectionId, viewerId, cancellationToken);
         // Private collections are reported as missing so their existence is not disclosed.
         if (source is null || (!isAdmin && source.Collection.OwnerId != viewerId && !source.Collection.IsPublic))
             throw new NotFoundException($"Collection '{collectionId}' was not found.");

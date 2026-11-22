@@ -10,3 +10,5 @@ description: "Current behavior of GET /api/location/travel/unlocated."
 - Inputs: [FromQuery] int offset = 0, [FromQuery] int limit = 50.
 - Flow: Returns a page of visible media without a location using offset and limit.
 - Source: `Backend/Apis/Controllers/MediaController.cs` (GetUnlocatedMediaPageAsync); `Backend/Infrastructures/Data/ApplicationServices/MediaService.cs` and its partial files.
+
+Canonical route: `/api/place/travel/unlocated`. Previous routes remain aliases.

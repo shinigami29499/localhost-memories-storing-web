@@ -130,7 +130,7 @@ describe("Sidebar navigation", () => {
     vi.unstubAllGlobals();
   });
 
-  it.each(["/", "/gallery", "/location", "/users", "/uploads"])("shows a stable icon and label for %s", async (href) => {
+  it.each(["/", "/album", "/location", "/users", "/uploads"])("shows a stable icon and label for %s", async (href) => {
     const link = container.querySelector<HTMLAnchorElement>(`.sidebar__nav a[href="${href}"]`)!;
     const label = link.querySelector("span")!;
     expect(link.classList.contains("sidebar__link")).toBe(true);
@@ -147,7 +147,7 @@ describe("Sidebar navigation", () => {
       user: { id: "reader", username: "reader", role: "user", status: "active", createdAt: "2026-01-01T00:00:00Z" },
     }));
     expect(Array.from(container.querySelectorAll(".sidebar__nav > a"), (link) => link.getAttribute("href")))
-      .toEqual(["/", "/gallery", "/location", "/users", "/uploads"]);
+      .toEqual(["/", "/album", "/location", "/users", "/uploads"]);
     expect(container.querySelector('[href="/users"]')?.textContent).toBe("Users");
     expect(container.querySelector('[href="/location"]')?.textContent).toBe("Locations");
     expect(container.querySelector('[href="/location/place"]')).toBeNull();

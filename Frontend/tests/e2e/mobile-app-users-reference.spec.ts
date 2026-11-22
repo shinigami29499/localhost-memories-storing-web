@@ -3,7 +3,7 @@ test('mobile users reference layout and presence', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.addInitScript(() => localStorage.setItem('shinigacim-auth', JSON.stringify({state:{user:{id:'admin',username:'admin',role:'admin',status:'active',createdAt:'2026-01-01'},accessToken:'test',refreshToken:'test'},version:0})));
   const users = [ ['online', 0, 'active'], ['recent', 600000, 'active'], ['old', 25200000, 'active'], ['pending', 0, 'pending_approval'] ].map(([id, age, status]) => ({id, username:id, status, role:'user', createdAt:'2026-01-01', lastSeenAt:new Date(Date.now()-Number(age)).toISOString()}));
-  await page.route(/^https?:\/\/[^/]+\/api\//, route => route.fulfill({json:new URL(route.request().url()).pathname === '/api/users' ? users : []}));
+  await page.route(/^https?:\/\/[^/]+\/api\//, route => route.fulfill({json:new URL(route.request().url()).pathname === '/api/user' ? users : []}));
   await page.route('**/hubs/**', route => route.abort());
   await page.goto('/users');
   const rows = page.locator('.mobile-users__item');

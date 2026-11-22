@@ -7,10 +7,10 @@ test("location action hover matches gallery", async ({ page }) => {
   }, version: 0 })));
   await page.route(/^https?:\/\/[^/]+\/api\//, (route) => {
     const path = new URL(route.request().url()).pathname;
-    if (path === "/api/location/home-location") return route.fulfill({ json: null });
-    if (path === "/api/location/travel/map") return route.fulfill({ json: { offset: 0, total: 0, items: [] } });
-    if (path === "/api/location") return route.fulfill({ json: [] });
-    if (path.startsWith("/api/library/gallery")) return route.fulfill({ json: { offset: 0, limit: 20, total: 0, items: [] } });
+    if (path === "/api/place/home-location") return route.fulfill({ json: null });
+    if (path === "/api/place/travel/map") return route.fulfill({ json: { offset: 0, total: 0, items: [] } });
+    if (path === "/api/place") return route.fulfill({ json: [] });
+    if (path.startsWith("/api/library/album/media")) return route.fulfill({ json: { offset: 0, limit: 20, total: 0, items: [] } });
     return route.fulfill({ json: [] });
   });
   await page.route("**/hubs/**", (route) => route.abort());
@@ -29,7 +29,7 @@ test("location action hover matches gallery", async ({ page }) => {
       return { background: style.backgroundColor, color: style.color, icon: icon && getComputedStyle(icon).color };
     });
   };
-  await page.goto("/gallery");
+  await page.goto("/album");
   const gallery = await colors('.page-action-bar button[aria-label="New album"]');
   await page.goto("/location");
   const location = await colors('.map-navigation__toolbar button[aria-label="Add"]');

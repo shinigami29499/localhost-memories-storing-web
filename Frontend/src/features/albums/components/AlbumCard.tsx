@@ -33,7 +33,7 @@ export function AlbumCard({ album, isOwner, showOwner = false, onEdit, selection
 
   return (
     <article className="album-card">
-      <Link to={`/gallery/album/${album.id}`} className="gallery-tile album-card__link" data-media-id={album.id} role={selectionMode ? "checkbox" : undefined} aria-checked={selectionMode ? selected : undefined}
+      <Link to={`/album/${album.id}`} className="gallery-tile album-card__link" data-media-id={album.id} role={selectionMode ? "checkbox" : undefined} aria-checked={selectionMode ? selected : undefined}
         aria-label={t(selectionMode ? "Select album {name}" : "Open album {name}", { name: album.name })} aria-description={t("Hold to select, or press Shift+Space.")}
         onDragStart={(event) => event.preventDefault()}
         onContextMenu={(event) => event.preventDefault()}

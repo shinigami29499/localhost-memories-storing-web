@@ -26,7 +26,7 @@ For inset selection tiles, keep a longer, soft dark inset shadow at the top and 
 
 Use the mobile theme's default page background in light and dark modes. Mobile Home is the reference: off-white `#f4f3f2` in light mode and charcoal `#272727` in dark mode. Use clear text and icon contrast across page, flat control, and raised navigation surfaces. Keep the username and active navigation label stronger than role and inactive labels.
 
-Use a 16px (`1rem`) base for new UI. Home uses a bold 16px username, a 12px supporting role, and 11px labels in its compact bottom navigation. Apply those sizes to equivalent roles. Keep existing type sizes as authored and change or reduce them only when the user requests it.
+Use a 16px (`1rem`) base for standalone body copy. For paired mobile titles and supporting text, use an 18px (`1.125rem`) title at weight 700 and 13px (`.8125rem`) supporting text. Use a `1.25` line height for both. Apply this scale to account labels, directory rows, card titles with bylines, and empty-state titles with hints. Reuse the `--mobile-item-*` tokens in `Frontend/apps/mobile/src/styles/mobile-base.css`. Compact bottom-navigation labels keep their own scale.
 
 ### Box corners and padding
 

@@ -122,7 +122,7 @@
     background: var(--surface-hover);
     color: var(--text);
   }
-  .bottom-navigation__item[aria-current="page"],
+  .bottom-navigation__item[data-highlighted],
   .bottom-navigation__item[aria-expanded="true"] {
     background: var(--accent-wash);
     color: var(--text);

@@ -115,7 +115,7 @@ public partial class MediaService(
         var media = await _repository.FindOwnedMediaAsync(mediaId, cancellationToken)
             ?? throw new NotFoundException($"Media '{mediaId}' was not found.");
         if (media.IsPreviewOnly)
-            throw new ForbiddenException("Preview-only images cannot be managed as gallery media.");
+            throw new ForbiddenException("Preview-only images cannot be managed as album media.");
 
         if (!isAdmin && media.OwnerId != actorId)
             throw new ForbiddenException("Only the media owner or an administrator may manage this media.");

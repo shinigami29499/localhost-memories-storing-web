@@ -8,3 +8,5 @@ description: "Mobile profile and avatar."
 Sources below are relative to `Frontend/apps/mobile/src/` unless marked shared, which is relative to `Frontend/src/`.
 
 MobileProfilePage.tsx uses shared features/users/hooks/useProfileData.ts and MobileAvatarPicker.tsx. It displays user and album, image and video counts. Missing user, count and profile failures have separate states; profile errors can be retried. Avatar picker appears after profile query success.
+
+Profile counts show value placeholders independently during initial requests. The avatar settings area shows a card placeholder while the profile query is pending.
