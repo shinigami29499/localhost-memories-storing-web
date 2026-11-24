@@ -102,6 +102,7 @@
     flex: none;
     block-size: calc(17rem + var(--mobile-nav-clearance));
     overflow: visible;
+    clip-path: inset(-1000px 0);
   }
 
   .mobile-albums-page .album-date-view__body {

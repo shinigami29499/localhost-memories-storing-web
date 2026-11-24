@@ -120,6 +120,18 @@ export function useUsersPage(forceMobile = false) {
       ? { ...user, lastSeenAt: liveLastSeen }
       : user;
   });
+  useEffect(() => {
+    setNow(Date.now());
+  }, [presenceByUser, users.data, searchUsers.data]);
+
+  useEffect(() => {
+    const currentTime = Date.now();
+    const deadlines = usersWithPresence.map((user) => timestamp(user.lastSeenAt) + ONLINE_WINDOW_MS).filter((deadline) => deadline > currentTime);
+    if (!deadlines.length) return;
+    const timer = window.setTimeout(() => setNow(Date.now()), Math.min(...deadlines) - currentTime);
+    return () => window.clearTimeout(timer);
+  }, [now, presenceByUser, users.data, searchUsers.data]);
+
   const isOnline = (user: AuthUser) => {
     const lastSeen = timestamp(user.lastSeenAt);
     const live = presenceByUser[user.id];

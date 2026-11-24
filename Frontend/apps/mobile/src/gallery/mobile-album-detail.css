@@ -561,65 +561,123 @@
 }
 
 .mobile-album-page .gallery-page__fixed-layout {
-  --gallery-gutter: 20px;
-  padding: 20px 20px 0;
+  padding: 0;
 }
 
 .mobile-album-page .album-hero {
   gap: 16px;
-  margin-bottom: 16px;
-  padding-bottom: 20px;
-  border-color: var(--mobile-border-subtle);
+  margin: 0;
+  padding: 0;
+  border: 0;
 }
 
 .mobile-album-page .album-hero__text {
+  flex-basis: 100%;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: .25rem;
 }
 
 .mobile-album-page .album-hero__text h1 {
   order: -1;
-  font-size: 1.75rem;
-  letter-spacing: -0.03em;
+  font-size: var(--mobile-item-title-size);
+  font-weight: var(--mobile-item-title-weight);
+  line-height: var(--mobile-item-line-height);
+  letter-spacing: normal;
 }
 
 .mobile-album-page .album-hero__text .gallery-page__eyebrow {
   margin: 0;
   color: var(--mobile-text-muted);
-  font-size: 0.875rem;
+  font-size: var(--mobile-item-support-size);
+  line-height: var(--mobile-item-line-height);
   font-weight: 400;
   letter-spacing: normal;
   text-transform: none;
 }
 
-.mobile-album-page .album-hero__actions {
-  gap: 8px;
+.mobile-album-detail__counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
 }
 
-.mobile-album-page .btn.album-hero__icon-button {
-  width: 44px;
-  height: 44px;
-  min-width: 44px;
-  min-height: 44px;
-  border-color: var(--mobile-border);
-  border-radius: 10px;
-}
-
-.mobile-album-page .album-page__grid {
-  gap: 8px;
-}
-
-.mobile-album-page .media-tile,
-.mobile-album-page .gallery-tile__preview {
-  border-radius: 12px;
-}
-
-.mobile-album-page .gallery-tile__info {
-  border: 0;
+.mobile-album-detail__counts > span {
+  display: inline-flex;
+  align-items: center;
+  gap: .375rem;
+  padding: .375rem .75rem;
+  border-radius: 999px;
+  background: var(--mobile-surface-raised);
   color: var(--mobile-text);
+  font-size: var(--mobile-item-support-size);
 }
 
-.mobile-album-page .gallery-tile__author {
+.mobile-album-detail__counts svg { width: 1rem; height: 1rem; }
+.mobile-album-carousel { position: relative; width: 100%; min-width: 0; }
+.mobile-album-carousel__track {
+  display: flex;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  border-radius: .75rem;
+}
+.mobile-album-carousel__slide {
+  flex: 0 0 100%;
+  min-width: 0;
+  aspect-ratio: 4 / 3;
+  scroll-snap-align: start;
+  background: var(--mobile-surface-raised);
+}
+.mobile-album-carousel__slide img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.mobile-album-carousel__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: .75rem;
+  background: var(--mobile-surface-raised);
   color: var(--mobile-text-muted);
+  font-size: var(--mobile-item-support-size);
+}
+.mobile-album-carousel__dots {
+  position: absolute;
+  left: .75rem;
+  inset-block-end: .75rem;
+  display: flex;
+  align-items: center;
+  gap: .375rem;
+  padding: .375rem .625rem;
+  border-radius: 999px;
+  pointer-events: none;
+}
+.mobile-album-carousel__dots::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--mobile-surface-raised) 25%, transparent);
+  backdrop-filter: blur(.5rem);
+}
+.mobile-album-carousel__dots span {
+  position: relative;
+  width: .4375rem;
+  height: .4375rem;
+  border-radius: 999px;
+  background: var(--mobile-text-muted);
+  box-shadow: 0 0 0 1px var(--mobile-surface-raised);
+}
+.mobile-album-carousel__dots [data-active] { width: 1.25rem; background: var(--mobile-text); }
+.mobile-album-carousel__retry { position: absolute; inset: .5rem .5rem auto auto; }
+
+@media (prefers-reduced-motion: no-preference) {
+  :root[data-motion="on"] .mobile-album-carousel__dots { animation: mobile-album-dots-in 260ms ease-out both; }
+  :root[data-motion="on"] .mobile-album-carousel__dots span { transition: width 180ms ease; }
+}
+@keyframes mobile-album-dots-in {
+  from { transform: translateY(.75rem); opacity: 0; }
 }

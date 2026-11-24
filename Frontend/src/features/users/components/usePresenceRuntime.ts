@@ -14,29 +14,6 @@ import { api } from "../../../services/api";
 import { useQueryClient } from "@tanstack/react-query";
 import { useUserPresenceStore } from "../store/userPresenceStore";
 
-const PRESENCE_INTERVAL_MS = 25_000;
-const ACTIVITY_WINDOW_MS = 120_000;
-const presenceStorageKey = "shinigacim.user-presence";
-
-function readPresenceCache(): Map<string, boolean> {
-  try {
-    const value = sessionStorage.getItem(presenceStorageKey);
-    const parsed: unknown = value ? JSON.parse(value) : {};
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return new Map();
-    return new Map(Object.entries(parsed).filter((entry): entry is [string, boolean] => typeof entry[1] === "boolean"));
-  } catch {
-    return new Map();
-  }
-}
-
-function writePresenceCache(presence: Map<string, boolean>): void {
-  try {
-    sessionStorage.setItem(presenceStorageKey, JSON.stringify(Object.fromEntries(presence)));
-  } catch {
-    // Presence toasts still work for the lifetime of the current runtime.
-  }
-}
-
 export function usePresenceRuntime() {
   const authenticated = useAuthStore((state) => Boolean(state.accessToken));
   const accountId = useAuthStore((state) => state.user?.id);
@@ -58,47 +35,26 @@ export function usePresenceRuntime() {
     const translate = (key: string, values?: Record<string, string | number>) => translateRef.current(key, values);
 
     let stopped = false;
-    let interval: number | undefined;
-    let lastActivity = Date.now();
-    const presence = readPresenceCache();
     const apiBase = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
     const heartbeat = () => {
       if (!stopped && document.visibilityState === "visible") void userService.heartbeat().catch(() => undefined);
     };
-    const trackActivity = () => {
-      lastActivity = Date.now();
-    };
-    const onVisibilityChange = () => {
-      if (document.visibilityState === "visible") heartbeat();
-    };
-    const onUserActivity = () => {
-      if (Date.now() - lastActivity > PRESENCE_INTERVAL_MS && document.visibilityState === "visible") heartbeat();
-      trackActivity();
-    };
+    const onUserActivity = () => heartbeat();
     const transport = createNotificationTransport({
       apiBase,
       getAccessToken: () => useAuthStore.getState().accessToken ?? "",
-      onFailure: heartbeat,
+      onFailure: () => undefined,
       configure: (connection) => {
         connection.on("UsersChanged", (userId: string, resetPresence: boolean) => {
           if (resetPresence) useUserPresenceStore.getState().setOnline(userId, false);
           void queryClient.invalidateQueries({ queryKey: ["users"] });
         });
         connection.onreconnected(() => {
-          heartbeat();
           void queryClient.invalidateQueries({ queryKey: ["users"] });
         });
         connection.on("UserPresenceChanged", (event: { userId: string; username: string; online: boolean; lastSeenAt: string | null }) => {
           if (event.userId === useAuthStore.getState().user?.id || !event.username) return;
           useUserPresenceStore.getState().setOnline(event.userId, event.online, event.lastSeenAt);
-          const previous = presence.get(event.userId);
-          presence.set(event.userId, event.online);
-          writePresenceCache(presence);
-          if (previous === undefined || previous === event.online) return;
-          const message = translate(event.online ? "{username} is online" : "{username} went offline", { username: event.username });
-          const options = { timeout: 5000, highlight: [event.username] };
-          if (event.online) showToast.success(message, options);
-          else showToast.error(message, options);
         });
         connection.on("PublicAlbumPublished", (event: Omit<AlbumNotification, "userId" | "readAt">) => {
           const userId = useAuthStore.getState().user?.id;
@@ -190,22 +146,13 @@ export function usePresenceRuntime() {
       },
     });
     transport.start();
-    heartbeat();
-    interval = window.setInterval(() => {
-      if (Date.now() - lastActivity <= ACTIVITY_WINDOW_MS) heartbeat();
-    }, PRESENCE_INTERVAL_MS);
     window.addEventListener("pointerdown", onUserActivity, { passive: true });
     window.addEventListener("keydown", onUserActivity, { passive: true });
-    window.addEventListener("touchstart", onUserActivity, { passive: true });
-    document.addEventListener("visibilitychange", onVisibilityChange);
 
     return () => {
       stopped = true;
-      if (interval !== undefined) window.clearInterval(interval);
       window.removeEventListener("pointerdown", onUserActivity);
       window.removeEventListener("keydown", onUserActivity);
-      window.removeEventListener("touchstart", onUserActivity);
-      document.removeEventListener("visibilitychange", onVisibilityChange);
       useUserPresenceStore.getState().clear();
       transport.stop();
     };

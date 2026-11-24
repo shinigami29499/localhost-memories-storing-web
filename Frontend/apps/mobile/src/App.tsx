@@ -15,6 +15,8 @@ import { Capacitor } from "@capacitor/core";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AnimateUIProvider } from "@animate-ui/react/provider";
 import { ApiError } from "@/services/api";
+import { albumKeys } from "@/features/albums/hooks/useAlbums";
+import { albumService } from "@/features/albums/services/albumService";
 import { useAnimationStore } from "@/store/animationStore";
 import { useAuthStore } from "@/store/authStore";
 import { LocaleProvider } from "@/context/LocaleContext";
@@ -29,6 +31,7 @@ import { RouteLoadingProvider, useRouteLoadingOverlay } from "@/features/ui-reso
 import { uiRoute } from "@/features/ui-resources/uiRoute";
 import { MobileGalleryLayout } from "./gallery/MobileGalleryLayout";
 const albumsRoute = uiRoute("MobileAlbumsPage.tsx", () => import("./gallery/MobileAlbumsPage").then((module) => module.MobileAlbumsPage));
+const albumDetailRoute = uiRoute("MobileAlbumPage.tsx", () => import("./gallery/MobileAlbumPage").then((module) => module.MobileAlbumPage));
 const usersRoute = uiRoute("MobileUsersPage.tsx", () => import("./users/MobileUsersPage").then((module) => module.MobileUsersPage));
 
 const ErrorPage = lazy(registerUiModule("Error page", () => import("./MobileErrorPage").then((module) => ({ default: module.MobileErrorPage }))));
@@ -94,7 +97,21 @@ const routes: RouteObject[] = [
           },
           {
             path: "/album/:albumId",
-            ...uiRoute("MobileAlbumPage.tsx", () => import("./gallery/MobileAlbumPage").then((module) => module.MobileAlbumPage)),
+            ...albumDetailRoute,
+            loader: async (args) => {
+              const { albumId } = args.params;
+              const prepareHeading = albumId && /^\/album\/?$/.test(window.location.pathname)
+                && typeof document.startViewTransition === "function" && useAuthStore.getState().accessToken
+                && useAnimationStore.getState().enabled
+                && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+              const [component] = await Promise.all([
+                albumDetailRoute.loader(args),
+                prepareHeading && queryClient.prefetchQuery({
+                  queryKey: albumKeys.detail(albumId), queryFn: () => albumService.get(albumId), retry: false,
+                }),
+              ]);
+              return component;
+            },
           },
           { path: "/gallery", element: <Navigate replace to="/album" /> },
           { path: "/gallery/album", element: <Navigate replace to="/album" /> },

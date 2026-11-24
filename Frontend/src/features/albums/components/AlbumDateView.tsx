@@ -2,7 +2,7 @@ import { addDays, eachDayOfInterval, endOfMonth, format, min, startOfDay, startO
 import { SlidingNumber } from "@animate-ui/react/primitives/texts/sliding-number";
 import { SwappingText } from "@animate-ui/react/primitives/texts/swapping";
 import { ArrowUpToLine, CalendarDays, Image, SendHorizontal, Video } from "lucide-react";
-import { AnimatePresence, motion, usePresence } from "motion/react";
+import { AnimatePresence, motion, usePresence, usePresenceData } from "motion/react";
 import { forwardRef, useEffect, useId, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type ComponentType, type PointerEvent, type ReactNode } from "react";
 import type { LinkProps } from "react-router-dom";
 import { UserAvatar } from "../../../components/common/UserAvatar";
@@ -177,15 +177,21 @@ function AlbumDateBar({ today, selectedDate, onDateChange, albumDateCounts, albu
   );
 }
 
-const AlbumFrameFade = forwardRef<HTMLDivElement, { className: string; children: ReactNode }>(
-  function AlbumFrameFade({ className, children }, ref) {
+const AlbumFrameFade = forwardRef<HTMLDivElement, { className: string; children: ReactNode; instant: boolean }>(
+  function AlbumFrameFade({ className, children, instant }, ref) {
     const element = useRef<HTMLDivElement>(null);
     const [present, remove] = usePresence();
+    const exitInstant = usePresenceData() as boolean;
     useImperativeHandle(ref, () => element.current!, []);
+
+    useEffect(() => {
+      // AnimatePresence registers the exit in its layout effect.
+      if (!present && exitInstant) remove?.();
+    }, [present, exitInstant, remove]);
 
     useLayoutEffect(() => {
       const frame = element.current;
-      if (present || !frame) return;
+      if (present || exitInstant || !frame) return;
       const fade = frame.animate([{ opacity: getComputedStyle(frame).opacity }, { opacity: 0 }], {
         duration: 200,
         easing: "ease-in-out",
@@ -193,11 +199,12 @@ const AlbumFrameFade = forwardRef<HTMLDivElement, { className: string; children:
       });
       void fade.finished.then(() => remove?.(), () => {});
       return () => fade.cancel();
-    }, [present, remove]);
+    }, [present, remove, exitInstant]);
 
     return (
       <motion.div ref={element} className={className} inert={!present} aria-hidden={!present || undefined}
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+        style={!present && exitInstant ? { display: "none" } : undefined}
+        initial={instant ? false : { opacity: 0 }} animate={{ opacity: 1 }}
         transition={{ duration: 0.2, ease: "easeInOut" }}>
         {children}
       </motion.div>
@@ -237,8 +244,9 @@ function AlbumFramePlaceholder({ compact = false }: { compact?: boolean }) {
   );
 }
 
-function AlbumFrame({ animate, className, frame, children }: {
+function AlbumFrame({ animate, instant, className, frame, children }: {
   animate: boolean;
+  instant: boolean;
   className: string;
   frame: "placeholder" | "album" | null;
   children: ReactNode;
@@ -246,8 +254,8 @@ function AlbumFrame({ animate, className, frame, children }: {
   if (!animate) return frame && <div className={className}>{children}</div>;
 
   return (
-    <AnimatePresence initial={false} mode="popLayout">
-      {frame && <AlbumFrameFade key={frame} className={className}>{children}</AlbumFrameFade>}
+    <AnimatePresence initial={false} mode="popLayout" custom={instant}>
+      {frame && <AlbumFrameFade key={frame} className={className} instant={instant}>{children}</AlbumFrameFade>}
     </AnimatePresence>
   );
 }
@@ -278,7 +286,15 @@ function DatedAlbumCard({ album, action, onAdvance, swapText, showCoverLoading }
   const hasPreview = Boolean(src && status !== "failed");
   const waitingForCover = Boolean(showCoverLoading && hasPreview && status !== "loaded");
   const loading = useDelayedPlaceholder(waitingForCover, src);
+  const hasShownText = useRef(false);
+  const previousAlbumId = useRef(album.id);
+  const showText = !waitingForCover || hasShownText.current || (swapText && previousAlbumId.current !== album.id);
+  useLayoutEffect(() => {
+    previousAlbumId.current = album.id;
+    hasShownText.current = showText;
+  }, [album.id, showText]);
   const Title = action ? "h2" : "span";
+  const ownerLabel = `${t(album.isPublic ? "Public" : "Private")} · ${album.owner.username}`;
   const contributors = [album.owner, ...(album.contributors ?? []).filter((user) => user.id !== album.owner.id)].slice(0, 5);
   const selectedId = selectedContributor?.albumId === album.id ? selectedContributor.userId : null;
   const activeId = hoveredContributor ?? selectedId;
@@ -316,13 +332,13 @@ function DatedAlbumCard({ album, action, onAdvance, swapText, showCoverLoading }
   const content = (
     <>
       <div className="album-date-card__heading">
-        <div className="album-date-card__text" data-cover-pending={waitingForCover || undefined}>
-          {loading && <AlbumTextPlaceholder />}
+        <div className="album-date-card__text" data-cover-pending={!showText || undefined}>
+          {loading && !showText && <AlbumTextPlaceholder />}
           <Title className="album-date-card__name">
             {swapText ? <SwappingText text={album.name} stagger={0.025} /> : album.name}
           </Title>
           <span className="album-date-card__owner">
-            {swapText ? <SwappingText text={album.owner.username} stagger={0.025} /> : album.owner.username}
+            {swapText ? <SwappingText text={ownerLabel} stagger={0.025} /> : ownerLabel}
           </span>
         </div>
         {action && (
@@ -509,6 +525,8 @@ export function AlbumDateView({
   const overlayRef = useRef<HTMLDivElement>(null);
   const pendingMotion = useRef<AlbumCarouselMotion | null>(null);
   const cancelMotion = useRef<(() => void) | null>(null);
+  const datePush = useRef<{ date: number; direction: number; node: HTMLElement; bounds: DOMRect } | null>(null);
+  const cancelDatePush = useRef<(() => void) | null>(null);
   const pointerStart = useRef<{ id: number; x: number; y: number; canStepDate: boolean } | null>(null);
   const suppressClick = useRef(false);
   const featured = albums[albumIndex];
@@ -516,6 +534,58 @@ export function AlbumDateView({
   const showError = !pending && failed && !featured;
   const showQueue = !showError && Boolean(mobileNavigation || pending || featured);
   const showPlaceholders = useDelayedPlaceholder(pending);
+
+  useLayoutEffect(() => {
+    const push = datePush.current;
+    const stage = stageRef.current;
+    if (!push || !stage || push.date !== startOfDay(selectedDate).getTime()) return;
+    if (!animate || showError) { datePush.current = null; return; }
+    if (pending) return;
+    datePush.current = null;
+    const viewport = stage.parentElement;
+    if (!viewport) return;
+    const bounds = viewport.getBoundingClientRect();
+    Object.assign(push.node.style, {
+      position: "absolute", margin: "0", left: `${push.bounds.left - bounds.left}px`,
+      top: `${push.bounds.top - bounds.top}px`, width: `${push.bounds.width}px`,
+      height: `${push.bounds.height}px`, boxSizing: "border-box", pointerEvents: "none",
+    });
+    push.node.setAttribute("aria-hidden", "true");
+    push.node.setAttribute("inert", "");
+    push.node.dataset.datePushExit = "";
+    viewport.append(push.node);
+    const options: KeyframeAnimationOptions = { duration: 500, easing: "cubic-bezier(.42, 0, .58, 1)" };
+    const distance = bounds.width * push.direction;
+    const incoming = stage.querySelectorAll<HTMLElement>(
+      ".album-date-view__main-frame:not([inert]), .album-date-view__sub-frame:not([inert]), .empty-state",
+    );
+    const entering = Array.from(incoming, (frame) => frame.animate(
+      [{ transform: `translateX(${distance}px)` }, { transform: "translateX(0)" }], options,
+    ));
+    push.node.querySelector(".album-date-view__move-up")?.remove();
+    const exit = push.node.animate([{ transform: "translateX(0)" }, { transform: `translateX(${-distance}px)` }], options);
+    const cleanup = () => {
+      entering.forEach((animation) => animation.cancel());
+      exit.cancel();
+      push.node.remove();
+      if (cancelDatePush.current === cleanup) cancelDatePush.current = null;
+    };
+    cancelDatePush.current = cleanup;
+    void exit.finished.then(cleanup, cleanup);
+    return cleanup;
+  }, [selectedDate, featured?.id, animate, showError, pending]);
+
+  const changeDate = (date: Date) => {
+    cancelDatePush.current?.();
+    const target = startOfDay(date).getTime();
+    const current = startOfDay(selectedDate).getTime();
+    const source = stageRef.current;
+    const targetHasAlbums = (albumDateCounts.get(format(date, "yyyy-MM-dd")) ?? 0) > 0;
+    datePush.current = mobileNavigation && animate && source && target !== current && Boolean(featured) !== targetHasAlbums
+      ? { date: target, direction: target > current ? 1 : -1, node: source.cloneNode(true) as HTMLElement, bounds: source.getBoundingClientRect() }
+      : null;
+    onDateChange(date);
+  };
 
   useLayoutEffect(() => {
     const previous = pendingMotion.current;
@@ -552,7 +622,7 @@ export function AlbumDateView({
   const move = (direction: 1 | -1) => moveTo(albumIndex + direction);
   const stepDate = (direction: 1 | -1) => {
     const date = addDays(startOfDay(selectedDate), direction);
-    if (date <= startOfDay(today)) onDateChange(date);
+    if (date <= startOfDay(today)) changeDate(date);
   };
   const featuredCard = featured && (
     <DatedAlbumCard key={cardKey} album={featured} swapText={swapText} showCoverLoading action={{
@@ -574,7 +644,7 @@ export function AlbumDateView({
       <AlbumDateBar today={today} selectedDate={selectedDate} albumDateCounts={albumDateCounts} albumHistory={albumHistory} animate={animate}
         onDateChange={(date) => {
           if (mobileNavigation && date.getTime() === startOfDay(selectedDate).getTime()) moveTo(0);
-          else onDateChange(date);
+          else changeDate(date);
         }} />
       {showPlaceholders && <span className="sr-only" role="status">{t("Loading albums...")}</span>}
       <div className="album-date-view__viewport" aria-busy={pending || fetching} data-frame-loading={pending || undefined}>
@@ -626,7 +696,7 @@ export function AlbumDateView({
             event.stopPropagation();
           }}>
           {mobileNavigation && (
-            <AlbumFrame animate={animate} className="album-date-view__main-frame"
+            <AlbumFrame animate={animate} instant={Boolean(datePush.current)} className="album-date-view__main-frame"
               frame={showPlaceholders ? "placeholder" : featured ? "album" : null}>
               {showPlaceholders ? <AlbumFramePlaceholder /> : featuredCard}
             </AlbumFrame>
@@ -640,7 +710,7 @@ export function AlbumDateView({
           ) : !mobileNavigation && featuredCard}
           {showQueue && <div className="album-date-view__queue">
             {mobileNavigation ? (
-              <AlbumFrame animate={animate} className="album-date-view__sub-frame"
+              <AlbumFrame animate={animate} instant={Boolean(datePush.current)} className="album-date-view__sub-frame"
                 frame={showPlaceholders ? "placeholder" : next ? "album" : null}>
                 {showPlaceholders ? (
                   <>

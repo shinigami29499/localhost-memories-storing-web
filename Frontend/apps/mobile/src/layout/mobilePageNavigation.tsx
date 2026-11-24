@@ -1,5 +1,6 @@
 import { useCallback, type KeyboardEvent, type MouseEvent } from "react";
 import { Link, type LinkProps, type Location, useLocation, useNavigate, useNavigation } from "react-router-dom";
+import { useAnimationStore } from "@/store/animationStore";
 
 type PageEntry = { fromKey: string; fromPathname?: string; homeIndex?: number };
 export type MobileAlbumCreateEntry = { albumDate: string; listLocationKey: string };
@@ -20,6 +21,8 @@ export function mobileSection(pathname: string) {
 
 export const isMobileAlbumDetail = (pathname: string) => /^\/album\/[^/]+\/?$/.test(pathname);
 const isGalleryList = (pathname: string) => /^\/album\/?$/.test(pathname);
+const albumTransitionEnabled = () => useAnimationStore.getState().enabled
+  && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 export function rememberMobilePageEntry(previous: Location, next: Location, pop: boolean) {
   if (pop || (previous.pathname === next.pathname &&
@@ -57,7 +60,8 @@ export function useOpenMobilePage() {
     const homeIndex = openingFromHome ? currentIndex : entryFor(location)?.homeIndex;
     const mobileEntry = { fromKey: location.key, fromPathname: location.pathname, homeIndex };
     const replace = options?.replace ?? (!openingFromHome && !mobileSection(location.pathname) && homeIndex === currentIndex - 1);
-    void navigate(to, { replace, state: { mobileEntry } });
+    const viewTransition = isGalleryList(location.pathname) && isMobileAlbumDetail(to) && albumTransitionEnabled();
+    void navigate(to, { replace, state: { mobileEntry }, viewTransition });
   };
 }
 
@@ -99,7 +103,7 @@ export function useMobileBack() {
     } else if (isGalleryList(entryFor(location)?.fromPathname ?? "") && historyIndex() > 0) {
       void navigate(-1);
     } else {
-      void navigate("/album", { replace: true });
+      void navigate("/album", { replace: true, viewTransition: albumTransitionEnabled() });
     }
   }, [location, navigate, returnHome]);
 }

@@ -236,7 +236,7 @@ export function AuthenticatedLayout() {
   const PendingIcon = pageIcons[pendingTitle];
   const albumDetail = isMobileAlbumDetail(location.pathname);
   const hasBack = albumDetail || (!isHome && !section);
-  return <div className="app-shell mobile-shell">
+  return <div className="app-shell mobile-shell" data-album-detail={albumDetail || undefined}>
     <a className="skip-link" href="#main-content" inert={covered || undefined}>{t("Skip to content")}</a>
     <MobilePresenceRuntime /><UploadRuntime />
     <div className="app-shell__main">
@@ -281,7 +281,7 @@ export function AuthenticatedLayout() {
           keepHeaderTitle={keepTitle} icon={<PendingIcon size={36} />} pageTransition complete={exiting} handoff={handoff} headerTitle={headerTitle} />}
       </div>
     </div>
-    <div className="mobile-bottom-slot">
+    <div className="mobile-bottom-slot" data-gallery-list={section === "gallery" && !albumDetail || undefined} inert={albumDetail || undefined}>
     <nav className="mobile-menu-bar" aria-label={t("Main navigation")} data-item={highlightedMenuItem}
       data-dragging={dragOffset !== undefined || undefined}
       onPointerDown={startMenuDrag} onPointerMove={moveMenuDrag} onPointerUp={endMenuDrag} onPointerCancel={clearMenuDrag}

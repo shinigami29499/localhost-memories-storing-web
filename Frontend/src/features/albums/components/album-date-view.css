@@ -162,6 +162,7 @@
 }
 
 .album-date-view__viewport {
+  position: relative;
   container-type: inline-size;
   flex: 1;
   min-block-size: 0;
@@ -496,6 +497,9 @@
   inline-size: 100%;
   block-size: 100%;
   object-fit: cover;
+  touch-action: pinch-zoom;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 .album-date-card--compact {

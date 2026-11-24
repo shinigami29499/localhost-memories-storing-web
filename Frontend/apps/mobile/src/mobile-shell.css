@@ -156,6 +156,38 @@
   height: var(--mobile-nav-height);
   margin-inline: auto;
 }
+.mobile-shell[data-album-detail] {
+  --mobile-nav-clearance: env(safe-area-inset-bottom, 0px);
+}
+.mobile-shell[data-album-detail] .mobile-bottom-slot {
+  transform: translateY(calc(100% + var(--mobile-nav-bottom) + 1rem));
+}
+@media (prefers-reduced-motion: no-preference) {
+  :root[data-motion="on"] .mobile-bottom-slot {
+    transition: transform 260ms cubic-bezier(.22, 1, .36, 1);
+  }
+  :root[data-motion="on"] .mobile-bottom-slot[data-gallery-list] { view-transition-name: mobile-album-menu; }
+  :root[data-motion="on"] .mobile-albums-page .album-date-card--featured .album-date-card__name,
+  :root[data-motion="on"] .mobile-album-detail__title { view-transition-name: mobile-album-title; }
+  :root[data-motion="on"] .mobile-albums-page .album-date-card--featured .album-date-card__owner,
+  :root[data-motion="on"] .mobile-album-detail__byline { view-transition-name: mobile-album-byline; }
+
+  ::view-transition-group(mobile-album-title),
+  ::view-transition-group(mobile-album-byline),
+  ::view-transition-group(mobile-album-menu) {
+    animation-duration: 260ms;
+    animation-timing-function: cubic-bezier(.22, 1, .36, 1);
+  }
+  ::view-transition-old(mobile-album-menu):only-child { animation: mobile-album-menu-down 260ms ease-in both; }
+  ::view-transition-new(mobile-album-menu):only-child { animation: mobile-album-menu-down 260ms ease-out reverse both; }
+}
+@keyframes mobile-album-menu-down {
+  to { transform: translateY(calc(100% + 2rem + env(safe-area-inset-bottom, 0px))); }
+}
+:root[data-motion="off"]::view-transition-group(*) { animation-duration: 0s; }
+@media (prefers-reduced-motion: reduce) {
+  :root::view-transition-group(*) { animation-duration: 0s; }
+}
 .mobile-menu-bar {
   --mobile-menu-index: 0;
   --mobile-menu-action-offset: 0px;

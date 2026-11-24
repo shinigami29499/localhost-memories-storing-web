@@ -9,8 +9,7 @@ namespace Apis.Realtime;
 [Authorize]
 public sealed class NotificationsHub(
     IUserService userService,
-    PresenceConnections presenceConnections,
-    IHubContext<NotificationsHub> notificationsHub) : Hub
+    PresenceConnections presenceConnections) : Hub
 {
     internal const string UploadAdminsGroup = "uploads:admins";
     internal const string UserAdminsGroup = "users:admins";
@@ -37,13 +36,8 @@ public sealed class NotificationsHub(
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        var disconnectedAt = DateTime.UtcNow;
-        if (Guid.TryParse(Context.UserIdentifier, out var userId) &&
-            presenceConnections.RemoveLast(userId, Context.ConnectionId) &&
-            Context.User?.FindFirstValue(Constants.Auth.UsernameClaim) is { Length: > 0 } username)
-        {
-            await notificationsHub.NotifyTransitionAsync(userId, username, false, disconnectedAt);
-        }
+        if (Guid.TryParse(Context.UserIdentifier, out var userId))
+            presenceConnections.RemoveLast(userId, Context.ConnectionId);
         await base.OnDisconnectedAsync(exception);
     }
 

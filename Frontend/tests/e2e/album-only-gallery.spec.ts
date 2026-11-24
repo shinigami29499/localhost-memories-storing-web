@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 test.use({ timezoneId: "America/Los_Angeles" });
 
-for (const width of [390, 1280]) test(`uploads and deletes media inside an album at ${width}px`, async ({ page }) => {
+for (const width of [390, 1280]) test(`creates albums and uses desktop media actions at ${width}px`, async ({ page }) => {
   await page.setViewportSize({ width, height: 844 });
   await page.clock.setFixedTime(new Date("2026-11-22T20:00:00Z"));
   const owner = { id: "viewer", username: "Viewer", role: "admin", status: "active", createdAt: "" };
@@ -105,6 +105,23 @@ for (const width of [390, 1280]) test(`uploads and deletes media inside an album
 
   await expect(page).toHaveURL(/\/album\/album-test$/);
   expect(albumDate).toBe(selectedAlbumDate);
+  if (mobileAlbum) {
+    await expect(page.getByRole("heading", { name: "Weekend", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Add media", exact: true })).toHaveCount(0);
+    await page.goBack();
+    await expect(page).toHaveURL(/\/album$/);
+    await expect(page.getByRole("button", { name: "Add album" })).toBeVisible();
+    await expect(page.getByRole("dialog", { name: "New album" })).toHaveCount(0);
+    await expect(selectedDay).toHaveAttribute("aria-pressed", "true");
+    await expect(selectedDay).toHaveAttribute("data-has-albums", "true");
+    await expect(page.getByRole("link", { name: "Open album Weekend" })).toBeVisible();
+    const creationDay = page.locator('[data-date="2026-11-20"]');
+    await expect(creationDay).not.toHaveAttribute("data-has-albums");
+    await creationDay.click();
+    await expect(page.getByRole("link", { name: "Open album Weekend" })).toHaveCount(0);
+    return;
+  }
+
   const chooser = page.waitForEvent("filechooser");
   await page.getByRole("button", { name: "Add media", exact: true }).click();
   await (await chooser).setFiles({ name: "test.png", mimeType: "image/png", buffer: Buffer.from("file") });
@@ -121,17 +138,4 @@ for (const width of [390, 1280]) test(`uploads and deletes media inside an album
   await confirmation.getByRole("button", { name: "Delete from album", exact: true }).click();
   await expect.poll(() => deletionIds).toEqual([file.id]);
   await expect(tile).toHaveCount(0);
-  if (mobileAlbum) {
-    await page.goBack();
-    await expect(page).toHaveURL(/\/album$/);
-    await expect(page.getByRole("button", { name: "Add album" })).toBeVisible();
-    await expect(page.getByRole("dialog", { name: "New album" })).toHaveCount(0);
-    await expect(selectedDay).toHaveAttribute("aria-pressed", "true");
-    await expect(selectedDay).toHaveAttribute("data-has-albums", "true");
-    await expect(page.getByRole("link", { name: "Open album Weekend" })).toBeVisible();
-    const creationDay = page.locator('[data-date="2026-11-20"]');
-    await expect(creationDay).not.toHaveAttribute("data-has-albums");
-    await creationDay.click();
-    await expect(page.getByRole("link", { name: "Open album Weekend" })).toHaveCount(0);
-  }
 });

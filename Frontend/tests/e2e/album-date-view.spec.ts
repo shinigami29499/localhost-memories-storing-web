@@ -1,5 +1,153 @@
 import { expect, test, type Locator } from "@playwright/test";
 
+test("mobile date push keeps frames adjacent and swipes from the cover", async ({ page, browserName }) => {
+  test.skip(browserName !== "chromium");
+  await page.setViewportSize({ width: 390, height: 520 });
+  await page.clock.setFixedTime(new Date("2026-11-21T04:00:00Z"));
+  const owner = { id: "viewer", username: "Alex", role: "user", status: "active", createdAt: "" };
+  await page.addInitScript((user) => {
+    localStorage.setItem("shinigacim-auth", JSON.stringify({ state: { user, accessToken: "test", refreshToken: "test" }, version: 0 }));
+    localStorage.setItem("shinigacim.animations-enabled", "true");
+  }, owner);
+  await page.route(/^https?:\/\/[^/]+\/hubs\//, (route) => route.abort());
+  let releaseSecondCover!: () => void;
+  const secondCoverReady = new Promise<void>((resolve) => { releaseSecondCover = resolve; });
+  await page.route(/^https?:\/\/[^/]+\/api\//, async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (path === "/api/library/album/page") return route.fulfill({ json: { items: [{
+      id: "one", name: "One", owner, createdAt: "2026-11-21T03:00:00Z", previewMediaId: "one", mediaCount: 1, isPublic: false,
+    }, {
+      id: "two", name: "Two", owner: { ...owner, username: "Jamie" }, createdAt: "2026-11-19T03:00:00Z", previewMediaId: "two", mediaCount: 1, isPublic: false,
+    }, {
+      id: "one-next", name: "Coast", owner, createdAt: "2026-11-21T02:00:00Z", previewMediaId: "one-next", mediaCount: 1, isPublic: false,
+    }, {
+      id: "two-next", name: "Mountains", owner: { ...owner, username: "Jamie" }, createdAt: "2026-11-19T02:00:00Z", previewMediaId: "two-next", mediaCount: 1, isPublic: false,
+    }], hasMore: false } });
+    if (path.endsWith("/file")) {
+      if (/\/(two|one-next|two-next)\/file$/.test(path)) await secondCoverReady;
+      return route.fulfill({ contentType: "image/png", body: Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=", "base64") });
+    }
+    return route.fulfill({ json: [] });
+  });
+  await page.goto("/album");
+  const mobile = page.locator(".mobile-albums-page");
+  await expect(mobile.locator(".album-date-card--featured img")).toBeVisible();
+  const bar = page.getByRole("group", { name: "Album dates" });
+  const featuredCard = mobile.locator(".album-date-card--featured:not([inert] *)");
+  const compactCard = mobile.locator(".album-date-card--compact:not([inert] *)");
+  const caption = ":is(.album-date-card__name, .album-date-card__owner)";
+  await expect(compactCard.locator(".album-date-card__text")).toHaveAttribute("data-cover-pending", "true");
+  const swaps = [featuredCard, compactCard].map((card) => card.evaluate((element, selector) =>
+    new Promise<boolean>((resolve) => {
+      const deadline = performance.now() + 3000;
+      function sample() {
+        const captions = Array.from(element.querySelectorAll(selector));
+        const swapping = captions.length === 2 && captions.every((caption) => {
+          const incoming = caption.querySelector('[data-slot="swapping-text-in"]');
+          return incoming && Number(getComputedStyle(caption).opacity) > 0 &&
+            getComputedStyle(incoming).transform !== "none";
+        });
+        if (swapping || performance.now() >= deadline) resolve(swapping);
+        else requestAnimationFrame(sample);
+      }
+      sample();
+    }), caption));
+  await featuredCard.evaluate((element) => element.setAttribute("data-test-card", "original"));
+  await bar.getByRole("button", { name: "Thursday, November 19, 2026" }).click();
+  expect(await Promise.all(swaps)).toEqual([true, true]);
+  await expect(mobile.locator("[data-date-push-exit]")).toHaveCount(0);
+  await expect(featuredCard).toHaveAttribute("data-test-card", "original");
+  await expect(featuredCard.locator(".album-date-card__name")).toContainText("Two");
+  await expect(featuredCard.locator('.album-date-card__name [data-slot="swapping-text-out"]').first()).toBeVisible();
+  await expect(featuredCard.locator(".album-date-card__name")).toHaveCSS("opacity", "1");
+  await expect(featuredCard.locator(".album-date-card__preview[data-cover-loading]")).toBeVisible();
+  await expect(featuredCard.locator(".album-date-card__name")).toHaveCSS("opacity", "1");
+  releaseSecondCover();
+  await bar.getByRole("button", { name: "Saturday, November 21, 2026" }).click();
+  await expect(featuredCard).toHaveAttribute("data-test-card", "original");
+  const checkPush = async () => {
+    const exit = mobile.locator("[data-date-push-exit]");
+    await expect(exit).toHaveCount(1);
+    const measurements = await mobile.evaluate((root) => {
+      const outgoing = root.querySelector<HTMLElement>("[data-date-push-exit]")!;
+      const incoming = root.querySelector<HTMLElement>(".album-date-view__body:not([data-date-push-exit])")!;
+      const frames = Array.from(incoming.querySelectorAll<HTMLElement>(
+        ".album-date-view__main-frame:not([inert]), .album-date-view__sub-frame:not([inert]), .empty-state",
+      ));
+      const counter = incoming.querySelector(".album-date-view__move-up")!;
+      for (const element of [outgoing, ...frames]) {
+        const animation = element.getAnimations().find((item) => item.effect instanceof KeyframeEffect && item.effect.getKeyframes().some((frame) => frame.transform))!;
+        animation.pause();
+        animation.currentTime = 250;
+      }
+      const a = outgoing.getBoundingClientRect();
+      const b = incoming.getBoundingClientRect();
+      const offset = new DOMMatrixReadOnly(getComputedStyle(frames[0]).transform).m41;
+      const counterX = counter.getBoundingClientRect().x;
+      outgoing.getAnimations().forEach((animation) => animation.finish());
+      return {
+        gap: Math.max(a.left, b.left + offset) - Math.min(a.right, b.right + offset),
+        width: Math.abs(a.width - b.width),
+        counterX,
+        copiedCounter: Boolean(outgoing.querySelector(".album-date-view__move-up")),
+      };
+    });
+    expect(Math.abs(measurements.gap)).toBeLessThan(1);
+    expect(measurements.width).toBeLessThan(1);
+    expect(measurements.copiedCounter).toBe(false);
+    await expect(exit).toHaveCount(0);
+    const counter = await mobile.locator(".album-date-view__move-up").boundingBox();
+    expect(counter!.x).toBeCloseTo(measurements.counterX);
+  };
+  await bar.getByRole("button", { name: "Friday, November 20, 2026" }).click();
+  await checkPush();
+  await expect(mobile.locator(".album-date-view__main-frame, .album-date-view__sub-frame")).toHaveCount(0);
+  await expect(mobile.locator(".empty-state")).toBeVisible();
+  const empty = mobile.locator(".empty-state");
+  await empty.evaluate((element) => element.setAttribute("data-test-empty", "original"));
+  await bar.getByRole("button", { name: "Wednesday, November 18, 2026" }).click();
+  await expect(mobile.locator("[data-date-push-exit]")).toHaveCount(0);
+  await expect(empty).toHaveAttribute("data-test-empty", "original");
+  await bar.getByRole("button", { name: "Friday, November 20, 2026" }).click();
+  await bar.getByRole("button", { name: "Saturday, November 21, 2026" }).click();
+  await checkPush();
+  await bar.getByRole("button", { name: "Friday, November 20, 2026" }).click();
+  await checkPush();
+  await bar.getByRole("button", { name: "Saturday, November 21, 2026" }).click();
+  await expect(mobile.locator("[data-date-push-exit]")).toHaveCount(1);
+  await featuredCard.evaluate((element) => element.setAttribute("data-test-card", "during-push"));
+  await bar.getByRole("button", { name: "Thursday, November 19, 2026" }).click();
+  await expect(featuredCard).toHaveAttribute("data-test-card", "during-push");
+  await expect(featuredCard.locator('.album-date-card__name [data-slot="swapping-text-out"]').first()).toBeVisible();
+  await bar.getByRole("button", { name: "Saturday, November 21, 2026" }).click();
+  const image = mobile.locator(".album-date-card--featured img");
+  const bounds = (await image.boundingBox())!;
+  await page.mouse.move(bounds.x + bounds.width * .4, bounds.y + bounds.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(bounds.x + bounds.width * .4 + 85, bounds.y + bounds.height / 2, { steps: 5 });
+  await page.mouse.up();
+  await expect(bar.getByRole("button", { name: "Friday, November 20, 2026" })).toHaveAttribute("aria-pressed", "true");
+  await checkPush();
+  await bar.getByRole("button", { name: "Saturday, November 21, 2026" }).click();
+  await checkPush();
+  const cover = (await image.boundingBox())!;
+  const touch = await page.context().newCDPSession(page);
+  const x = cover.x + cover.width / 2;
+  const y = cover.y + cover.height / 2;
+  await touch.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
+  for (let delta = 20; delta <= 100; delta += 20)
+    await touch.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x + delta, y }] });
+  await touch.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  await expect(bar.getByRole("button", { name: "Friday, November 20, 2026" })).toHaveAttribute("aria-pressed", "true");
+  await checkPush();
+  await touch.detach();
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await bar.getByRole("button", { name: "Saturday, November 21, 2026" }).click();
+  await expect(mobile.locator("[data-date-push-exit]")).toHaveCount(0);
+  await expect(mobile.locator(".album-date-card--featured img")).toBeVisible();
+});
+
 test.use({ timezoneId: "Asia/Ho_Chi_Minh" });
 
 for (const width of [390, 1280]) {
@@ -121,7 +269,7 @@ for (const width of [390, 1280]) {
     const frame = page.getByRole("article").filter({ has: title });
     await expect(frame).toHaveCSS("padding-inline-start", "12px");
     const ownerLabel = mobileApp ? featuredOwner.locator(".sr-only") : featuredOwner;
-    await expect(ownerLabel).toHaveText("Alex");
+    await expect(ownerLabel).toHaveText("Private · Alex");
     await expect(frame.getByRole("link", { name: "Open album Mountain weekend" })).toBeVisible();
     await title.hover();
     await expect(title).toHaveCSS("text-decoration-line", "none");
@@ -504,7 +652,7 @@ for (const width of [390, 1280]) {
     expect(middleOpacity).toBeGreaterThan(0);
     expect(middleOpacity).toBeLessThan(1);
     await expect(mainSlot.getByRole("heading", { name: "The coast" })).toBeVisible();
-    await expect(ownerLabel).toHaveText("Jamie");
+    await expect(ownerLabel).toHaveText("Private · Jamie");
     await expect(secondarySlot).toHaveAttribute("aria-label", "Next album: Third album");
     await expect(motionPreviews).toHaveCount(0);
     expect(await mainSlot.boundingBox()).toEqual(mainBounds);
@@ -607,10 +755,11 @@ for (const width of [390, 1280]) {
     await compact.click();
     await mainSlot.getByRole("link", { name: "Open album Riverside" }).press("Enter");
     await expect(page).toHaveURL(/\/album\/yesterday-b$/);
-    await expect(page.getByRole("button", { name: "Edit", exact: true })).toBeVisible();
     if (await navigation.count()) {
+      await expect(page.getByRole("button", { name: "Add media", exact: true })).toHaveCount(0);
       await page.getByRole("banner").getByRole("button", { name: "Back", exact: true }).click();
     } else {
+      await expect(page.getByRole("button", { name: "Edit", exact: true })).toBeVisible();
       await page.goBack();
     }
     await expect(page).toHaveURL(/\/album$/);
@@ -636,6 +785,127 @@ for (const width of [390, 1280]) {
     expect(tallFrame.y + tallFrame.height - tallPreview.y - tallPreview.height).toBeCloseTo(12, 0);
   });
 }
+
+test.describe("mobile album detail preview", () => {
+  test.use({ hasTouch: true, viewport: { width: 390, height: 670 } });
+
+  test("hides the menu and swipes through album images", async ({ page }) => {
+    const createdAt = "2026-11-21T04:00:00Z";
+    await page.clock.setFixedTime(new Date(createdAt));
+    const owner = { id: "viewer", username: "Alex", role: "user", status: "active", createdAt };
+    const album = { id: "riverside", name: "Riverside", owner, createdAt, isPublic: true,
+      previewMediaId: "custom-cover", caption: "Hidden album caption", imageCount: 24, videoCount: 1, mediaCount: 25 };
+    const photos = Array.from({ length: 24 }, (_, index) => {
+      const id = index === 0 ? "river" : index === 1 ? "bridge" : `photo-${index + 1}`;
+      return { id, mediaKind: "image", originalFilename: id + ".png", createdAt };
+    });
+    await page.addInitScript((user) => {
+      const startTransition = document.startViewTransition.bind(document);
+      document.startViewTransition = (update) => {
+        const transition = startTransition(update);
+        void transition.ready.then(() => {
+          const root = document.documentElement;
+          root.dataset.testAlbumTransitions = String(Number(root.dataset.testAlbumTransitions ?? 0) + 1);
+        }, () => {});
+        return transition;
+      };
+      localStorage.setItem("shinigacim-auth", JSON.stringify({
+        state: { user, accessToken: "test", refreshToken: "test" }, version: 0,
+      }));
+      localStorage.setItem("shinigacim.animations-enabled", "true");
+    }, owner);
+    await page.route(/^https?:\/\/[^/]+\/hubs\//, (route) => route.abort());
+    await page.route(/^https?:\/\/[^/]+\/api\//, (route) => {
+      const url = new URL(route.request().url());
+      if (url.pathname === "/api/library/album/page") return route.fulfill({ json: { items: [album], hasMore: false } });
+      if (url.pathname === "/api/library/album/riverside") return route.fulfill({ json: album });
+      if (url.pathname === "/api/library/album/riverside/media") {
+        if (url.searchParams.get("mediaKind") !== "image") return route.abort();
+        const offset = Number(url.searchParams.get("offset"));
+        return route.fulfill({ json: { items: photos.slice(offset, offset + 20), offset, total: photos.length } });
+      }
+      if (url.pathname.endsWith("/file")) return route.fulfill({ contentType: "image/png", body: Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=", "base64",
+      ) });
+      return route.fulfill({ json: [] });
+    });
+
+    await page.goto("/album");
+    const menu = page.locator(".mobile-bottom-slot");
+    const open = page.getByRole("link", { name: "Open album Riverside" });
+    await open.waitFor();
+    test.skip(await menu.count() === 0, "Mobile app only");
+    await open.click();
+    await expect(page.getByRole("heading", { name: "Riverside", exact: true })).toBeVisible();
+    await expect(page.locator("html")).toHaveAttribute("data-test-album-transitions", "1");
+    await expect(page.locator(".mobile-album-detail__byline")).toHaveText("Public · Alex");
+    await expect(page.locator(".mobile-album-detail__counts")).toContainText("Images 24");
+    await expect(page.locator(".mobile-album-detail__counts")).toContainText("Videos 1");
+    await expect(page.getByRole("button", { name: "Edit", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Add media", exact: true })).toHaveCount(0);
+    await expect(page.getByText("Hidden album caption")).toHaveCount(0);
+    await expect(page.locator(".album-page__grid")).toHaveCount(0);
+    await expect(menu).toHaveAttribute("inert", "");
+    await expect.poll(() => menu.evaluate((node) => node.getBoundingClientRect().top >= innerHeight)).toBe(true);
+
+    const carousel = page.locator(".mobile-album-carousel");
+    const dots = carousel.locator(".mobile-album-carousel__dots");
+    const slots = dots.locator("span");
+    await expect(slots).toHaveCount(5);
+    await expect(slots.nth(0)).toHaveAttribute("data-active", "true");
+    await expect(dots).toHaveCSS("left", "12px");
+    await expect(dots).toHaveCSS("backdrop-filter", "none");
+    expect(await dots.evaluate((node) => getComputedStyle(node, "::before").backdropFilter)).toBe("blur(8px)");
+    expect(await dots.evaluate((node) => getComputedStyle(node, "::before").backgroundColor)).toMatch(/\/ 0\.25\)$/);
+    await page.emulateMedia({ colorScheme: "light" });
+    await expect(slots.nth(0)).toHaveCSS("background-color", "rgb(34, 34, 34)");
+    await page.emulateMedia({ colorScheme: "dark" });
+    await expect(slots.nth(0)).toHaveCSS("background-color", "rgb(245, 245, 245)");
+    const first = carousel.getByRole("img", { name: "river.png" });
+    await expect(first).toBeVisible();
+    await first.dblclick();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    const track = carousel.locator(".mobile-album-carousel__track");
+    await track.press("ArrowRight");
+    await expect(carousel.getByRole("img", { name: "bridge.png" })).toBeVisible();
+    await expect(carousel.locator(".mobile-album-carousel__dots span").nth(1)).toHaveAttribute("data-active", "true");
+    await expect.poll(() => track.evaluate((node) => Math.abs(node.clientWidth - node.scrollLeft))).toBeLessThan(2);
+    const bounds = (await track.boundingBox())!;
+    const touch = await page.context().newCDPSession(page);
+    const x = bounds.x + bounds.width * .1;
+    const y = bounds.y + bounds.height / 2;
+    await touch.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
+    for (const fraction of [.1, .25, .4, .55, .7, .8]) {
+      const offset = fraction * bounds.width;
+      await touch.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x + offset, y }] });
+      await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(resolve)));
+    }
+    await touch.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    await expect(first).toBeVisible();
+    await touch.detach();
+
+    const position = carousel.locator("[aria-live]");
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    for (let current = 2; current <= 24; current++) {
+      if (current === 4) await page.emulateMedia({ reducedMotion: "no-preference" });
+      if (current === 21) await expect(carousel.locator(".mobile-album-carousel__slide")).toHaveCount(24);
+      await track.press("ArrowRight");
+      await expect(position).toHaveText(`Media ${current} of 24`);
+      const slot = current <= 3 ? current - 1 : current <= 22 ? 2 : current - 20;
+      await expect(slots.nth(slot)).toHaveAttribute("data-active", "true");
+      if (current === 4) {
+        expect(await slots.evaluateAll((nodes) => nodes.flatMap((node) => node.getAnimations()))).toHaveLength(0);
+        await page.emulateMedia({ reducedMotion: "reduce" });
+      }
+    }
+    await expect(carousel.getByRole("img", { name: "photo-24.png" })).toBeVisible();
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await page.getByRole("button", { name: "Back", exact: true }).click();
+    await expect(open).toBeVisible();
+    await expect(page.locator("html")).toHaveAttribute("data-test-album-transitions", "2");
+    await expect.poll(() => menu.evaluate((node) => node.getBoundingClientRect().bottom <= innerHeight)).toBe(true);
+  });
+});
 
 test("mobile album center Add button preserves the queue and Move up returns to the first album", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 800 });
