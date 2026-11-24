@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { format, isFuture, isSameDay, isValid, parseISO } from "date-fns";
 import { useLocation, useNavigate } from "react-router-dom";
 import { showToast } from "../../components/ui/Toast";
@@ -18,24 +18,28 @@ export function useAlbumsPage({ onAlbumCreated, listLocationKey }: {
   const storageKey = `gallery-album-position:${listLocationKey ?? key}`;
   const [creating, setCreating] = useState(false);
   const [favoriteBusyAlbumId, setFavoriteBusyAlbumId] = useState<string | null>(null);
+  const favoritePending = useRef(false);
   const [position, setPosition] = useState(() => readAlbumPosition(storageKey));
   const { date: selectedDate } = position;
   const selectedDateKey = format(selectedDate, "yyyy-MM-dd");
   const today = new Date();
   const albumsQuery = useInfiniteAlbums("feed");
   const invalidate = useInvalidateAlbums();
-  const { albumsByDate, albumDates } = useMemo(() => {
+  const { albumsByDate, albumDateCounts } = useMemo(() => {
     const albumsByDate = new Map<string, Album[]>();
+    const seen = new Set<string>();
     for (const page of albumsQuery.data?.pages ?? []) {
       for (const album of page.items) {
         const date = albumDayKey(album);
-        if (!date) continue;
+        if (!date || seen.has(album.id)) continue;
+        seen.add(album.id);
         const group = albumsByDate.get(date);
         if (group) group.push(album);
         else albumsByDate.set(date, [album]);
       }
     }
-    return { albumsByDate, albumDates: [...albumsByDate.keys()].sort() };
+    const albumDateCounts = new Map(Array.from(albumsByDate, ([date, albums]) => [date, albums.length]));
+    return { albumsByDate, albumDateCounts };
   }, [albumsQuery.data]);
   const items = useMemo(() => albumsByDate.get(selectedDateKey) ?? [], [albumsByDate, selectedDateKey]);
   const matchingIndex = position.albumId ? items.findIndex((album) => album.id === position.albumId) : -1;
@@ -64,9 +68,9 @@ export function useAlbumsPage({ onAlbumCreated, listLocationKey }: {
     };
   };
   const toggleFavorite = async (albumId: string, isFavorited: boolean) => {
-    if (favoriteBusyAlbumId !== null) return;
+    if (favoritePending.current) return;
+    favoritePending.current = true;
     setFavoriteBusyAlbumId(albumId);
-    const loadingStarted = performance.now();
     try {
       if (isFavorited) await albumService.unfavorite(albumId);
       else await albumService.favorite(albumId);
@@ -74,12 +78,11 @@ export function useAlbumsPage({ onAlbumCreated, listLocationKey }: {
     } catch (error) {
       showToast.error(error instanceof ApiError ? error.message : t("Could not update favorites."));
     } finally {
-      const remaining = 300 - (performance.now() - loadingStarted);
-      if (remaining > 0) await new Promise<void>((resolve) => window.setTimeout(resolve, remaining));
+      favoritePending.current = false;
       setFavoriteBusyAlbumId(null);
     }
   };
-  return { creating, setCreating, today, selectedDate, selectedDateKey, selectDate, albumsQuery, albumDates, items, albumIndex,
+  return { creating, setCreating, today, selectedDate, selectedDateKey, selectDate, albumsQuery, albumDateCounts, items, albumIndex,
     selectAlbumIndex, rememberOpenedAlbum, createAlbum, favoriteBusyAlbumId, toggleFavorite };
 }
 

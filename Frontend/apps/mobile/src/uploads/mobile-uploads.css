@@ -1062,7 +1062,7 @@
 .mobile-uploads .mobile-card-upload-batch__summary--admin .mobile-card-upload-batch__username-field { display: grid; grid-area: username; min-width: 0; }
 .mobile-uploads .mobile-card-upload-batch__summary--admin .mobile-card-upload-batch__username-field .mobile-card-upload-batch__label { display: none; }
 .mobile-uploads .mobile-card-upload-batch__summary--admin .mobile-card-upload-batch__username-field .mobile-card-upload-batch__value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 650; }
-.mobile-uploads .mobile-card-upload-batch__toggle { position: absolute; z-index: 1; left: 12px; bottom: 8px; width: auto; height: auto; min-height: 44px; padding: 8px; border: 0; clip-path: none; background: transparent; color: var(--mobile-text); font-family: inherit; font-size: .875rem; font-weight: 600; line-height: 1.2; text-decoration: underline; text-underline-offset: 3px; }
+.mobile-uploads .mobile-card-upload-batch__toggle { position: absolute; z-index: 1; left: 12px; bottom: 8px; width: auto; height: auto; min-height: 44px; padding: 8px; border: 0; clip-path: none; background: transparent; color: var(--mobile-text); font-family: inherit; font-size: .875rem; font-weight: 600; line-height: 1.2; }
 :root[data-mobile-theme] .mobile-uploads .mobile-card-upload-item__select { border: 1px solid var(--mobile-text-muted); }
 :root[data-mobile-theme] .mobile-uploads .mobile-card-upload-item__select:checked,
 :root[data-mobile-theme] .mobile-uploads .mobile-card-upload-item__select:indeterminate { border-color: var(--mobile-text); }
@@ -1088,7 +1088,7 @@
 .mobile-uploads .upload-batch__summary--admin .upload-batch__username-field { display: grid; grid-area: username; min-width: 0; }
 .mobile-uploads .upload-batch__summary--admin .upload-batch__username-field .upload-batch__label { display: none; }
 .mobile-uploads .upload-batch__summary--admin .upload-batch__username-field .upload-batch__value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 650; }
-.mobile-uploads .upload-batch__toggle { position: absolute; z-index: 1; left: 12px; bottom: 8px; width: auto; height: auto; min-height: 44px; padding: 8px; border: 0; clip-path: none; background: transparent; color: var(--mobile-text); font-family: inherit; font-size: .875rem; font-weight: 600; line-height: 1.2; text-decoration: underline; text-underline-offset: 3px; }
+.mobile-uploads .upload-batch__toggle { position: absolute; z-index: 1; left: 12px; bottom: 8px; width: auto; height: auto; min-height: 44px; padding: 8px; border: 0; clip-path: none; background: transparent; color: var(--mobile-text); font-family: inherit; font-size: .875rem; font-weight: 600; line-height: 1.2; }
 :root[data-mobile-theme] .mobile-uploads .upload-item__select { border: 1px solid var(--mobile-text-muted); }
 :root[data-mobile-theme] .mobile-uploads .upload-item__select:checked,
 :root[data-mobile-theme] .mobile-uploads .upload-item__select:indeterminate { border-color: var(--mobile-text); }

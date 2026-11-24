@@ -19,12 +19,12 @@ function uploadListQuery(offset: number, limit: number, date?: string): string {
 }
 
 export const uploadService = {
-  list(offset = 0, limit = 20, date?: string): Promise<PagedUploadBatches> {
-    return api(`${BASE_PATH}/batch?${uploadListQuery(offset, limit, date)}`);
+  list(offset = 0, limit = 20, date?: string, signal?: AbortSignal): Promise<PagedUploadBatches> {
+    return api(`${BASE_PATH}/batch?${uploadListQuery(offset, limit, date)}`, { signal });
   },
 
-  listAll(offset = 0, limit = 20, date?: string): Promise<PagedUploadBatches> {
-    return api(`${BASE_PATH}/admin/batch?${uploadListQuery(offset, limit, date)}`);
+  listAll(offset = 0, limit = 20, date?: string, signal?: AbortSignal): Promise<PagedUploadBatches> {
+    return api(`${BASE_PATH}/admin/batch?${uploadListQuery(offset, limit, date)}`, { signal });
   },
 
   get(batchId: string): Promise<UploadBatch> {

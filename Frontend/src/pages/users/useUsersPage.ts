@@ -9,6 +9,7 @@ import { userService } from "../../features/users";
 import { ApiError } from "../../services/api";
 import { showToast } from "../../components/ui/Toast";
 import { inDateRange } from "../../utils/dateRange";
+import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import type { AuthUser } from "../../features/auth";
 
 type UserFilter = "all" | "pending_approval" | "blocked";
@@ -34,6 +35,8 @@ export function useUsersPage(forceMobile = false) {
     if (!isAdmin && pathname.endsWith("/blocked")) navigate(forceMobile ? "/user" : "/users", { replace: true });
   }, [forceMobile, isAdmin, pathname, navigate]);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search);
+  const appliedSearch = forceMobile ? search : debouncedSearch;
   const [role, setRole] = useState("");
   const [roles, setRoles] = useState<string[]>([]);
   const [status, setStatus] = useState("");
@@ -41,7 +44,7 @@ export function useUsersPage(forceMobile = false) {
   const [joinedFrom, setJoinedFrom] = useState("");
   const [joinedTo, setJoinedTo] = useState("");
   const hasFilters = !!role || (forceMobile && roles.length > 0) || (forceMobile && statuses.length > 0) || !!joinedFrom || !!joinedTo;
-  const useList = forceMobile || !!search.trim() || hasFilters;
+  const useList = forceMobile || !!appliedSearch.trim() || hasFilters;
   const sentinel = useRef<HTMLDivElement>(null);
   const [now, setNow] = useState(() => Date.now());
   const presenceByUser = useUserPresenceStore((state) => state.presenceByUser);
@@ -51,7 +54,7 @@ export function useUsersPage(forceMobile = false) {
     getNextPageParam: (lastPage) => lastPage.page * lastPage.limit < lastPage.total ? lastPage.page + 1 : undefined,
     enabled: !useList, refetchInterval: isAdmin ? 60_000 : false,
   });
-  const searchUsers = useQuery({ queryKey: ["users", "search-list", isAdmin], queryFn: () => userService.list(), enabled: useList, refetchInterval: isAdmin ? 60_000 : false });
+  const searchUsers = useQuery({ queryKey: ["users", "search-list", isAdmin], queryFn: ({ signal }) => userService.list(signal), enabled: useList, refetchInterval: isAdmin ? 60_000 : false });
   const activeQuery = useList ? searchUsers : users;
   useEffect(() => {
     const target = sentinel.current;
@@ -109,7 +112,7 @@ export function useUsersPage(forceMobile = false) {
   });
 
   const matchedUsers = useList
-    ? (searchUsers.data ?? []).filter((user) => (forceMobile || (filter === "blocked" ? user.status === "disabled" : filter === "pending_approval" ? user.status === "pending_approval" : user.status !== "disabled")) && user.username.toLowerCase().includes(search.trim().toLowerCase()) && (!hasFilters || ((forceMobile ? roles.length === 0 || roles.includes(user.role.toLowerCase()) : !role || user.role.toLowerCase() === role) && (!forceMobile || statuses.length === 0 || statuses.includes(user.status)) && inDateRange(user.createdAt, joinedFrom, joinedTo))))
+    ? (searchUsers.data ?? []).filter((user) => (forceMobile || (filter === "blocked" ? user.status === "disabled" : filter === "pending_approval" ? user.status === "pending_approval" : user.status !== "disabled")) && user.username.toLowerCase().includes(appliedSearch.trim().toLowerCase()) && (!hasFilters || ((forceMobile ? roles.length === 0 || roles.includes(user.role.toLowerCase()) : !role || user.role.toLowerCase() === role) && (!forceMobile || statuses.length === 0 || statuses.includes(user.status)) && inDateRange(user.createdAt, joinedFrom, joinedTo))))
     : users.data?.pages.flatMap((page) => page.items) ?? [];
   const usersWithPresence = matchedUsers.map((user) => {
     const liveLastSeen = presenceByUser[user.id]?.lastSeenAt;
@@ -131,7 +134,7 @@ export function useUsersPage(forceMobile = false) {
       || timestamp(b.createdAt) - timestamp(a.createdAt))
     : usersWithPresence;
 
-  return { language, t, isMobile, me, isAdmin, action, setAction, navigate, filter, search, setSearch, role, setRole, roles, setRoles, status, setStatus, statuses, setStatuses, joinedFrom, setJoinedFrom, joinedTo, setJoinedTo, useList, sentinel, now, isOnline, users, activeQuery, approve, reject, remove, disable, activate, updateRole, pagedUsers };
+  return { directoryUsers: searchUsers.data ?? [], language, t, isMobile, me, isAdmin, action, setAction, navigate, filter, search, setSearch, role, setRole, roles, setRoles, status, setStatus, statuses, setStatuses, joinedFrom, setJoinedFrom, joinedTo, setJoinedTo, useList, sentinel, now, isOnline, users, activeQuery, approve, reject, remove, disable, activate, updateRole, pagedUsers };
 }
 
 export function formatLastActive(value: string | null | undefined, language: "en" | "vi", now: number): string {

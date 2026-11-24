@@ -52,7 +52,7 @@ describe("LocationSearch", () => {
       input().dispatchEvent(new Event("input", { bubbles: true }));
     });
   };
-  const advance = async (milliseconds = 500) => {
+  const advance = async (milliseconds = 300) => {
     await act(async () => { await vi.advanceTimersByTimeAsync(milliseconds); });
     await act(async () => { await vi.advanceTimersByTimeAsync(1); });
   };
@@ -77,9 +77,9 @@ describe("LocationSearch", () => {
     vi.useRealTimers();
   });
 
-  it("searches typed text in the background after a 500 ms pause without opening another tab", async () => {
+  it("searches typed text in the background after a 300 ms pause without opening another tab", async () => {
     await change("Hanoi");
-    await advance(498);
+    await advance(298);
     expect(search).not.toHaveBeenCalled();
     await advance(1);
     expect(search).toHaveBeenCalledExactlyOnceWith("Hanoi", expect.any(AbortSignal));

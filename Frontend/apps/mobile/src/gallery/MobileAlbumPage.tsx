@@ -6,10 +6,8 @@ import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { ImageIcon } from "@/components/animate-ui/icons/image";
 import { NotebookPen } from "@/components/animate-ui/icons/notebook-pen";
 import { PencilLine } from "@/components/animate-ui/icons/pencil-line";
-import { Plus } from "@/components/animate-ui/icons/plus";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
 import { VideoIcon } from "@/components/animate-ui/icons/video";
-import { PageActionBar } from "../layout/MobilePageActionBar";
 import { Button,EmptyState,ErrorState,Spinner } from "@/components/ui";
 import { PageDataPlaceholder } from "@/components/ui/PageDataPlaceholder";
 import { albumService } from "@/features/albums/services/albumService";
@@ -27,7 +25,6 @@ import { MobileMediaPreviewDialog } from "./MobileMediaPreviewDialog";
 import { MobileMediaTile } from "./MobileMediaTile";
 
 import { useAlbumDetail } from "@/pages/albums/useAlbumDetail";
-import { MobileSelectionActions } from "./MobileSelectionActions";
 
 export function MobileAlbumPage() {
   const { albumId } = useParams<{ albumId: string }>();
@@ -68,7 +65,7 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
         if (editing || editingCaption || deleting || removingSelection || previewMediaId || bulkFavoriteBusy) return;
         selectionDragHandlers.onClickCapture(event);
         if (event.defaultPrevented || removingSelection || editing || editingCaption || deleting || previewMediaId) return;
-        if (selectionMode && !(event.target instanceof Element && event.target.closest("[data-media-id], .gallery-selection-bar"))) {
+        if (selectionMode && !(event.target instanceof Element && event.target.closest("[data-media-id], .album-hero__actions"))) {
           cancelSelection();
         }
       }}>
@@ -150,6 +147,27 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
                     </Button>
                   </>
                 ) : null}
+                {isOwner && !selectionMode && (
+                  <Button type="button" variant="secondary" disabled={uploading} aria-busy={uploading || undefined}
+                    onClick={() => uploadInput.current?.click()}>
+                    {t("Add media")}
+                  </Button>
+                )}
+                {selectionMode && <>
+                  <Button type="button" variant="secondary" className="album-hero__icon-button"
+                    aria-label={t(allSelectedFavorited ? "Remove from favorites" : "Add to favorites")}
+                    title={t(allSelectedFavorited ? "Remove from favorites" : "Add to favorites")}
+                    aria-pressed={allSelectedFavorited} disabled={!selectedMedia.length || bulkFavoriteBusy || favoriteBusyMediaId !== null}
+                    onClick={() => void favoriteSelected()}>
+                    <Heart size={20} fill={allSelectedFavorited ? "currentColor" : "none"} aria-hidden="true" />
+                  </Button>
+                  {isOwner && <Button type="button" variant="ghost" className="album-hero__icon-button btn--danger-solid"
+                    aria-label={t("Delete from album")} title={t("Delete from album")}
+                    disabled={!selectedMedia.length || bulkFavoriteBusy} onClick={() => setRemovingSelection(true)}>
+                    <Trash2 size={20} aria-hidden="true" />
+                  </Button>}
+                  <output className="sr-only">{t("{count} selected", { count: selectedItems.size })}</output>
+                </>}
               </div>
           </header>
           <div className="gallery-page__fixed-tabs">
@@ -196,28 +214,6 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
         event.currentTarget.value = "";
         void uploadFiles(files);
       }} />}
-      <footer className="gallery-page__footer gallery-page__footer--transition">
-        <PageActionBar className={isOwner ? "gallery-page__actions" : "gallery-page__actions gallery-selection-bar--selection-only"} role="group"
-          aria-label={selectionMode ? t("{count} selected", { count: selectedItems.size }) : t("Album actions")}>
-          <span className="gallery-selection-bar__status" role="status">{t("{count} selected", { count: selectedItems.size })}</span>
-          {selectionMode && <><span className="gallery-selection-bar__count" aria-hidden="true">{t("{count} selected", { count: selectedItems.size })}</span><span className="gallery-selection-bar__divider" aria-hidden="true" /></>}
-          {isOwner && !selectionMode && <button key="primary" type="button"
-            className="gallery-selection-bar__action gallery-selection-bar__action--primary"
-            aria-label={t("Add media")} title={t("Add media")} disabled={uploading} aria-busy={uploading || undefined}
-            onClick={() => uploadInput.current?.click()}>
-            <Plus size={20} aria-hidden="true" /><span>{t("Add media")}</span>
-          </button>}
-          <MobileSelectionActions open={selectionMode} mobileVertical>
-          <button type="button" className="gallery-selection-bar__action gallery-selection-bar__action--favorite"
-            aria-label={t(allSelectedFavorited ? "Remove from favorites" : "Add to favorites")} title={t(allSelectedFavorited ? "Remove from favorites" : "Add to favorites")}
-            aria-pressed={allSelectedFavorited} disabled={!selectedMedia.length || bulkFavoriteBusy || favoriteBusyMediaId !== null} onClick={() => void favoriteSelected()}>
-            <Heart size={20} fill={allSelectedFavorited ? "currentColor" : "none"} aria-hidden="true" />
-          </button>
-          {isOwner && <button type="button" className="gallery-selection-bar__action gallery-selection-bar__action--danger"
-            aria-label={t("Delete from album")} title={t("Delete from album")} disabled={!selectedMedia.length || bulkFavoriteBusy}
-            onClick={() => setRemovingSelection(true)}><Trash2 size={20} aria-hidden="true" /><span>{t("Delete from album")}</span></button>}</MobileSelectionActions>
-        </PageActionBar>
-      </footer>
       {removingSelection && <MobileConfirmationDialog title="Delete selected media from album?" confirmLabel="Delete from album" danger onConfirm={removeSelected} onClose={() => setRemovingSelection(false)}>
         <p>{t("{count} selected", { count: selectedMedia.length })}</p>
         <p>{data.name}</p>

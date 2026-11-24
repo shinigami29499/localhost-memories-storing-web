@@ -6,3 +6,5 @@ description: "Album upload history and controls on the web."
 Upload history uses Frontend/src/pages/uploads/useUploadManagement.ts for pagination, date filtering, unread status, pause, and record deletion. The Albums link takes the user to the upload entry point.
 
 The initial upload-history request shows card placeholders.
+
+Date changes update the URL immediately. The filtered request waits for 300 ms of settled input and obsolete requests are aborted.

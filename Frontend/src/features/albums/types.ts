@@ -9,7 +9,10 @@ export interface Album {
   caption: string;
   isPublic: boolean;
   owner: { id: string; username: string; avatarSeed?: string | null };
+  contributors?: { id: string; username: string; avatarSeed?: string | null }[];
   mediaCount: number;
+  imageCount?: number;
+  videoCount?: number;
   isFavorited: boolean;
   /** Custom preview when set, otherwise the first image in the album. */
   previewMediaId: string | null;

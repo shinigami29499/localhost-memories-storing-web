@@ -67,9 +67,13 @@ function MapContent(props: Props & { token: string }) {
 } = props;
   const { t, shouldReduceMotion, mapRef, scenesRef, appearanceRef, loaded, setLoaded, failed, setFailed, navigationOpen, setNavigationOpen, mapboxPreview, setMapboxPreview, initialLocationResolved, hasInitialCenter, setHasInitialCenter, scene, setScene, showMarkers, setShowMarkers, showPhotoMarkers, setShowPhotoMarkers, addChoiceOpen, setAddChoiceOpen, mapAppearance, appearanceOpen, setAppearanceOpen, homeRequest, setHomeRequest, homeHovered, onHomeHoverChange, homeSelected, setHomeSelected, markerDragging, setMarkerDragging, focusRequest, setFocusRequest, relocating, photoDraftChanged, mapPlaces, addPlace, focusCoordinate, resolveInitialLocation, selected, selectSearchResult } = usePlaceMapController(props);
 
+  useEffect(() => {
+    props.onLoadingSettledChange?.(loaded || failed);
+  }, [props.onLoadingSettledChange, loaded, failed]);
+
   if (failed)
     return <>
-      <ErrorState message="The map could not load. Check your connection and try again. Adding places requires the map." onRetry={() => setFailed(false)} />
+      <ErrorState message="The map could not load. Check your connection and try again. Adding places requires the map." onRetry={() => { setLoaded(false); setFailed(false); }} />
       {selected && <NavigationFallback destination={{ ...selected, name: selected.name }} />}
     </>;
 
@@ -228,7 +232,7 @@ function MapContent(props: Props & { token: string }) {
         {homeRelocationDraft && <MapDraftMarker location={homeRelocationDraft} label={t("Change home location")}
           draggable={!navigationOpen} onPick={(coordinate) => onMoveHome?.(coordinate)} />}
       </Map>
-      <MapLoadingOverlay ready={loaded} closeDelay={300} className="map-loading-overlay" />
+      {!props.onLoadingSettledChange && <MapLoadingOverlay ready={loaded} className="map-loading-overlay" />}
       <LocationSearch
         disabled={!loaded || navigationOpen}
         onFocus={() => {
@@ -371,6 +375,9 @@ function MapContent(props: Props & { token: string }) {
 export function MobilePlaceMap(props: Props) {
   const { t } = useLocale();
   const token = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN?.trim();
+  useEffect(() => {
+    if (!token?.startsWith("pk.")) props.onLoadingSettledChange?.(true);
+  }, [token, props.onLoadingSettledChange]);
   if (!token || !token.startsWith("pk.")) {
     const selected = props.places.find((place) => place.id === props.selectedId);
     return <>

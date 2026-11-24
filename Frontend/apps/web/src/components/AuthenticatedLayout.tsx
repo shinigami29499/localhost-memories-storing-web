@@ -3,7 +3,7 @@ import { useAnimationStore } from "@/store/animationStore";
 import { Suspense, useState } from "react";
 import { Outlet, useLocation, useNavigation } from "react-router-dom";
 import { useUiRouteProgress } from "@/features/ui-resources/uiRoute";
-import { isReturningToMainPage } from "@/features/ui-resources/uiOverlayPolicy";
+import { useRouteLoadingOverlay, useRouteOverlayFade } from "@/features/ui-resources/useRouteLoadingOverlay";
 import { UiResourceProgress } from "@/features/ui-resources/UiResourceProgress";
 import { PushTransition } from "@/hooks/PushTransition";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
@@ -37,8 +37,10 @@ export function AuthenticatedLayout() {
   const location = useLocation();
   const navigation = useNavigation();
   const destination = navigation.location?.pathname;
-  const loading = Boolean(destination && destination !== location.pathname && !isReturningToMainPage(location.pathname, destination));
-  const progress = useUiRouteProgress(loading ? destination : undefined);
+  const { path: overlayPath, loading, exiting } = useRouteLoadingOverlay();
+  const overlayRef = useRouteOverlayFade(exiting);
+  const covered = loading && Boolean(overlayPath);
+  const progress = useUiRouteProgress(overlayPath);
   const isMobile = useMediaQuery(MOBILE_QUERY);
   const motionEnabled = useAnimationStore((state) => state.enabled);
   const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
@@ -57,8 +59,8 @@ export function AuthenticatedLayout() {
         <PresenceRuntime />
         <UploadRuntime />
         <header className="app-topbar">
-          <span className="app-topbar__title" data-overlay={loading || undefined} role={showHeading ? "heading" : undefined} aria-level={showHeading ? 1 : undefined}>
-            {!loading && (motionEnabled && !reducedMotion
+          <span className="app-topbar__title" data-overlay={covered || undefined} role={showHeading ? "heading" : undefined} aria-level={showHeading ? 1 : undefined}>
+            {!covered && (motionEnabled && !reducedMotion
               ? <SwappingText text={t(pageTitle(location.pathname))} stagger={0.025} />
               : t(pageTitle(location.pathname)))}
           </span>
@@ -68,11 +70,11 @@ export function AuthenticatedLayout() {
         <PageActionBarProvider>
           <div id="main-content" tabIndex={-1} className="app-shell__content">
             <PushTransition transitionKey={pageKey} matchPageHighlights hasPageHighlight={pageKey === "/location" || pageKey === "/users"} />
-            <div className="web-route-content" inert={loading}>
+            <div className="web-route-content" inert={covered}>
               <Suspense key={pageKey} fallback={<Spinner page />}><Outlet /></Suspense>
             </div>
-            {loading && destination && <div className="ui-resource-loading ui-resource-loading--route">
-              <UiResourceProgress key={destination} label={`${t("Loading page...")} ${t(pageTitle(destination))}`} loaded={progress?.loaded} total={progress?.total} stepped />
+            {overlayPath && <div ref={overlayRef} className="ui-resource-loading ui-resource-loading--route" data-complete={exiting || undefined} aria-hidden={exiting || undefined}>
+              <UiResourceProgress key={overlayPath} label={`${t("Loading page...")} ${t(pageTitle(overlayPath))}`} loaded={progress?.loaded} total={progress?.total} pageTransition complete={exiting} />
             </div>}
           </div>
         </PageActionBarProvider>

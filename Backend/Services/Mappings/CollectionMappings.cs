@@ -17,6 +17,9 @@ internal static class CollectionMappings
         source.ContainsMedia,
         source.Collection.CreatedAt)
     {
+        ImageCount = source.ImageCount,
+        VideoCount = source.VideoCount,
+        Contributors = source.Contributors,
         AlbumDate = source.Collection.AlbumDate,
         IsFavorited = source.IsFavorited,
     };

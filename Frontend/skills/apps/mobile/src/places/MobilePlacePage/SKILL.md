@@ -9,4 +9,6 @@ Sources below are relative to `Frontend/apps/mobile/src/` unless marked shared, 
 
 places/MobilePlacePage.tsx uses shared pages/place/usePlacePageController.tsx. It coordinates map, saved places and visit history with search and filters. Users can create places and check in; owners or admins can edit places and move photos. Deletion and moves use confirmation. Home selection uses location access. The map links to Albums for new uploads.
 
-The map uses an in-panel placeholder while its renderer initializes. Initial map data uses a short placeholder beneath the map while queries run. Saved places and visit history show row placeholders until their initial queries settle.
+Saved-place search and rating changes wait 300 ms before the paginated query.
+
+The map panel owns one loading overlay across module import and renderer initialization. The overlay appears after 200 ms and remains visible at least 400 ms if shown. The renderer reports readiness or failure to the panel. Map data, saved places and visit history use delayed inline placeholders while their queries run.

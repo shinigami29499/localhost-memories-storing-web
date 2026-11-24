@@ -123,7 +123,7 @@ body,
 body {
   background-color: var(--bg);
   color: var(--text);
-  font-family: "Prompt", sans-serif;
+  font-family: "Be Vietnam Pro", system-ui, sans-serif;
   font-size: 1rem;
   line-height: 1.5;
 }
@@ -146,6 +146,13 @@ a,
 input,
 textarea {
   -webkit-tap-highlight-color: transparent;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
 }
 
 @media (hover: none) and (pointer: coarse) {
@@ -184,6 +191,7 @@ button:focus-visible {
   border: 1px solid transparent;
   font: inherit;
   font-weight: 600;
+  text-decoration: none;
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease, filter 0.15s ease, scale 140ms ease-out;
 }
@@ -212,19 +220,9 @@ button:focus-visible {
   border-color: var(--border-control);
 }
 
-.btn--secondary:hover:not(:disabled) {
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
 .btn--ghost {
   background: transparent;
   color: var(--text-muted);
-}
-
-.btn--ghost:hover:not(:disabled) {
-  text-decoration: underline;
-  text-underline-offset: 3px;
 }
 
 .btn--danger {
@@ -493,8 +491,7 @@ textarea::placeholder {
   text-underline-offset: 3px;
 }
 
-.confirmation-dialog a:hover,
-.confirmation-dialog__link:hover {
+.confirmation-dialog a:hover {
   color: var(--text);
   text-decoration-color: var(--text);
 }
@@ -507,8 +504,6 @@ textarea::placeholder {
   color: var(--text);
   font: inherit;
   text-align: left;
-  text-decoration: underline;
-  text-underline-offset: 3px;
   cursor: pointer;
 }
 
@@ -544,7 +539,7 @@ textarea::placeholder {
 .dialog-actions__prompt { align-self: center; color: var(--dialog-danger-text); font-weight: 600; }
 .dialog-actions__note { color: var(--text); font-size: 0.8125rem; line-height: 1.5; margin: 0; }
 
-.dialog-action:hover:not(:disabled) { filter: none; text-decoration: underline; }
+.dialog-action:hover:not(:disabled) { filter: none; }
 .dialog-action--secondary,
 .dialog-action--secondary:hover:not(:disabled) {
   background: var(--surface);

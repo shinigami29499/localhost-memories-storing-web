@@ -90,8 +90,7 @@
   text-underline-offset: 3px;
 }
 
-.confirmation-dialog a:hover,
-.confirmation-dialog__link:hover {
+.confirmation-dialog a:hover {
   color: var(--text);
   text-decoration-color: var(--text);
 }
@@ -104,8 +103,6 @@
   color: var(--text);
   font: inherit;
   text-align: left;
-  text-decoration: underline;
-  text-underline-offset: 3px;
   cursor: pointer;
 }
 
@@ -145,7 +142,7 @@
 .dialog-actions__prompt { align-self: center; color: var(--dialog-danger-text); font-weight: 600; }
 .dialog-actions__note { color: var(--text); font-size: 0.8125rem; line-height: 1.5; margin: 0; }
 
-.dialog-action:hover:not(:disabled) { filter: none; text-decoration: underline; }
+.dialog-action:hover:not(:disabled) { filter: none; }
 .dialog-action--secondary,
 .dialog-action--secondary:hover:not(:disabled) {
   background: var(--surface);

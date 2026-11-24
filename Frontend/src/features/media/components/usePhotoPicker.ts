@@ -4,6 +4,8 @@ import { useCustomDialog } from "../../../components/ui/CustomDialog";
 import { showToast } from "../../../components/ui";
 import { useLocale } from "../../../context/LocaleContext";
 import { useDialogViewportStyle } from "../../../hooks/useDialogViewportStyle";
+import { useThrottledCallback } from "../../../hooks/useThrottledCallback";
+import { UI_TIMING } from "../../../config/uiTiming";
 import { mediaQueryOptions } from "../hooks/useMedia";
 import { previewService } from "../services/previewService";
 import type { MediaFile } from "../types";
@@ -44,7 +46,7 @@ export function usePhotoPicker({
   const tabId = useId();
   const initialImage = useQuery({
     queryKey: ["picker-image", selectedId],
-    queryFn: () => previewService.getImage(selectedId!),
+    queryFn: ({ signal }) => previewService.getImage(selectedId!, signal),
     enabled: Boolean(selectedId),
     staleTime: 0,
   });
@@ -55,7 +57,7 @@ export function usePhotoPicker({
   const previews = useInfiniteQuery({
     queryKey: ["previews", PAGE_SIZE],
     initialPageParam: 0,
-    queryFn: ({ pageParam }) => previewService.list(pageParam, PAGE_SIZE),
+    queryFn: ({ pageParam, signal }) => previewService.list(pageParam, PAGE_SIZE, signal),
     getNextPageParam: (page) => page.offset + page.items.length < page.total
       ? page.offset + page.items.length : undefined,
     enabled: initialized && source === "preview",
@@ -133,11 +135,13 @@ export function usePhotoPicker({
     setSource(value === "preview" ? "preview" : "gallery");
     bodyRef.current?.scrollTo({ top: 0 });
   };
-  const handleScroll = (event: UIEvent<HTMLDivElement>) => {
-    const element = event.currentTarget;
+  const checkScroll = useThrottledCallback((element: HTMLDivElement) => {
     const range = element.scrollHeight - element.clientHeight;
     if (range - element.scrollTop < 160 && query.hasNextPage
-      && !query.isFetchingNextPage && !query.isFetchNextPageError) void query.fetchNextPage();
+      && !query.isFetchingNextPage && !query.isFetchNextPageError) void query.fetchNextPage({ cancelRefetch: false });
+  }, UI_TIMING.SCROLL_THROTTLE);
+  const handleScroll = (event: UIEvent<HTMLDivElement>) => {
+    checkScroll(event.currentTarget);
   };
   const confirm = () => {
     confirmedId.current = picked?.id ?? null;

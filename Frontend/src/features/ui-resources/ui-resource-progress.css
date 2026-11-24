@@ -39,19 +39,71 @@
   border-radius: inherit;
 }
 
+.ui-resource-progress__meter {
+  position: relative;
+  inline-size: 100%;
+  block-size: .5rem;
+  overflow: hidden;
+  border-radius: 1rem;
+  background: var(--ui-progress-track, var(--surface-hover, #3b3b3b));
+}
+
+.ui-resource-progress__fill {
+  position: absolute;
+  inset: 0;
+}
+
+.ui-resource-progress__fill:not([data-complete]) { clip-path: inset(0 1% 0 0); }
+
+.ui-resource-progress__fill::before {
+  content: "";
+  display: block;
+  block-size: 100%;
+  background: var(--ui-progress-fill, currentColor);
+  transform: scaleX(var(--page-progress-value));
+  transform-origin: left center;
+  animation: ui-resource-progress-fill var(--page-progress-duration) steps(100, end) both;
+}
+
+.ui-resource-progress__fill[data-complete]::before { animation-name: none; }
+
+@media (prefers-reduced-motion: no-preference) {
+  :root[data-motion="off"] .ui-resource-progress__fill::before {
+    animation-duration: var(--page-progress-duration) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-resource-progress__fill::before { animation-name: none; }
+}
+
+.ui-resource-progress__fill:dir(rtl)::before { transform-origin: right center; }
+.ui-resource-progress__fill:dir(rtl):not([data-complete]) { clip-path: inset(0 0 0 1%); }
+
+@keyframes ui-resource-progress-fill {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
 .ui-resource-loading {
   display: grid;
   place-items: center;
   background: var(--mobile-bg, var(--surface, #1c1c1c));
 }
 
-.ui-resource-loading--startup { min-block-size: 100dvh; }
-
 .ui-resource-loading--route {
   position: absolute;
   inset: 0;
   z-index: 101;
 }
+
+.ui-resource-loading--public {
+  position: fixed;
+  inset: 0;
+  z-index: 101;
+}
+
+.ui-resource-loading[data-complete] { pointer-events: none; }
 
 .web-route-content { display: contents; }
 .app-topbar__title[data-overlay] { visibility: hidden; }

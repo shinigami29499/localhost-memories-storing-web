@@ -1,9 +1,10 @@
-﻿import type { ButtonHTMLAttributes, ReactNode } from "react";
+import type { ButtonHTMLAttributes, ReactNode, Ref } from "react";
 import "./icon-button.css";
 
 type IconButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children" | "size" | "aria-label"> & {
   "aria-label": string;
   children: ReactNode;
+  ref?: Ref<HTMLButtonElement>;
   size?: "badge" | "button" | "fab";
   shape?: "circle" | "rounded-square";
 };

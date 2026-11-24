@@ -36,7 +36,7 @@ describe("placeService", () => {
     await expect(placeService.list()).resolves.toEqual([
       place,
     ]);
-    expect(api).toHaveBeenCalledWith("/api/place/saved");
+    expect(api).toHaveBeenCalledWith("/api/place/saved", { signal: undefined });
   });
 
   it("requests a bounded map page across the antimeridian", async () => {

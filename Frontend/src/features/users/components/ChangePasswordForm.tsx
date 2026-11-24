@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Collapsible } from "@animate-ui/react/primitives/base-ui/collapsible";
 import { ChevronDown } from "@/components/animate-ui/icons/chevron-down";
 import { useMutation } from "@tanstack/react-query";
@@ -13,9 +13,11 @@ export function ChangePasswordForm() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [mismatch, setMismatch] = useState(false);
+  const pending = useRef(false);
   const change = useMutation({
     mutationFn: () => userService.changePassword(current, password),
     onSuccess: () => { setCurrent(""); setPassword(""); setConfirm(""); },
+    onSettled: () => { pending.current = false; },
   });
 
   return (
@@ -28,8 +30,10 @@ export function ChangePasswordForm() {
       <Collapsible.Panel className="profile-password__panel">
       <form onSubmit={(event) => {
         event.preventDefault();
+        if (pending.current) return;
         if (password !== confirm) { setMismatch(true); return; }
         setMismatch(false);
+        pending.current = true;
         change.mutate();
       }}>
         <label htmlFor="current-password">{t("Current password")}</label>

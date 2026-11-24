@@ -47,6 +47,7 @@ function IconComponent({ size, ...props }: CameraProps) {
           animate={controls}
         />
         <motion.circle
+          data-icon-detail
           cx={12}
           cy={13}
           r={3}

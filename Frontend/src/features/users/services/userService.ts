@@ -22,8 +22,8 @@ export const userService = {
     return api("/api/user/me/avatar", { method: "PUT", body: { seed } });
   },
 
-  list(): Promise<AuthUser[]> {
-    return api("/api/user");
+  list(signal?: AbortSignal): Promise<AuthUser[]> {
+    return api("/api/user", { signal });
   },
 
   page(page: number, limit: number, pendingOnly = false, signal?: AbortSignal, blockedOnly = false): Promise<UserPage> {

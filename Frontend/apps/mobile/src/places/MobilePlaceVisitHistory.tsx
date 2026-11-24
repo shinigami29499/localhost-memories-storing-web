@@ -26,7 +26,7 @@ import { usePlaceVisitHistorySharedController } from "@/features/place/component
 
 export function MobilePlaceVisitHistory(props: PlaceVisitHistoryProps) {
   const { visits, showPlaceDetails = true, showVisitor = false, showVisitorName = false, canEditVisits = true, onRemove, removingVisitId, onShowOnMap, DialogComponent } = props;
-  const { language, t, currentUserId, now, confirmingRemoval, setConfirmingRemoval, removalBusy, selectedVisit, setSelectedVisit, editNote, setEditNote, editRating, setEditRating, updateVisit, canRemove, showColumnHeadings, requestRemove, confirmRemove } = usePlaceVisitHistorySharedController(props);
+  const { language, t, currentUserId, now, confirmingRemoval, setConfirmingRemoval, removalBusy, selectedVisit, setSelectedVisit, editNote, setEditNote, editRating, setEditRating, updateVisit, saveVisit, canRemove, showColumnHeadings, requestRemove, confirmRemove } = usePlaceVisitHistorySharedController(props);
 
   return (
     <>
@@ -129,11 +129,7 @@ export function MobilePlaceVisitHistory(props: PlaceVisitHistoryProps) {
       >
         <form className="place__visit-detail place__visit-edit" onSubmit={(event) => {
           event.preventDefault();
-          void updateVisit.mutateAsync({ visitId: selectedVisit.id, note: editNote, rating: editRating }).then((updated) => {
-            setSelectedVisit(updated);
-            setEditNote(updated.note);
-            setEditRating(updated.rating);
-          });
+          void saveVisit(selectedVisit);
         }}>
           {selectedVisit.placeAddress && <p>{selectedVisit.placeAddress}</p>}
           {selectedVisit.userId === currentUserId && canEditVisits ? (

@@ -7,7 +7,6 @@ import {
   createBrowserRouter,
   useLocation,
   useNavigate,
-  useNavigation,
   useParams,
 } from "react-router-dom";
 import { lazy, Suspense, useEffect, useRef, type ReactNode } from "react";
@@ -22,24 +21,27 @@ import { LocaleProvider } from "@/context/LocaleContext";
 import { ToastProvider, showToast } from "@/components/ui";
 import { useLocale } from "@/context/LocaleContext";
 import { MobileSessionReplacedDialog } from "./MobileSessionReplacedDialog";
-import { isAlbumDetailHandoff, rememberMobilePageEntry, useMobileBack } from "./layout/mobilePageNavigation";
+import { isMobileAlbumDetail, rememberMobilePageEntry, useMobileBack } from "./layout/mobilePageNavigation";
 import { MobilePageLoadingOverlay } from "./layout/MobilePageLoadingOverlay";
+import { StartupLoadingBoundary, StartupLoadingSignal } from "@/features/ui-resources/StartupLoadingBoundary";
+import { RouteLoadingProvider, useRouteLoadingOverlay } from "@/features/ui-resources/useRouteLoadingOverlay";
 
 import { uiRoute } from "@/features/ui-resources/uiRoute";
-import { isReturningToMainPage } from "@/features/ui-resources/uiOverlayPolicy";
 import { MobileGalleryLayout } from "./gallery/MobileGalleryLayout";
-const albumsRoute = uiRoute("MobileAlbumsPage.tsx", () => import("./gallery/MobileAlbumsPage").then((module) => module.MobileAlbumsPage), skipMainPageOverlay);
-const usersRoute = uiRoute("MobileUsersPage.tsx", () => import("./users/MobileUsersPage").then((module) => module.MobileUsersPage), skipMainPageOverlay);
-
-function skipMainPageOverlay(url: URL) {
-  return Boolean(router && isReturningToMainPage(router.state.location.pathname, url.pathname));
-}
+const albumsRoute = uiRoute("MobileAlbumsPage.tsx", () => import("./gallery/MobileAlbumsPage").then((module) => module.MobileAlbumsPage));
+const usersRoute = uiRoute("MobileUsersPage.tsx", () => import("./users/MobileUsersPage").then((module) => module.MobileUsersPage));
 
 const ErrorPage = lazy(registerUiModule("Error page", () => import("./MobileErrorPage").then((module) => ({ default: module.MobileErrorPage }))));
 const errorPage = <Suspense fallback={<main role="alert">Page unavailable.</main>}><ErrorPage /></Suspense>;
 const AuthenticatedLayout = lazy(registerUiModule("App navigation", () => import("./MobileLayout").then((module) => ({ default: module.AuthenticatedLayout }))));
 const loginRoute = uiRoute("MobileLoginPage.tsx", () => import("./MobileLoginPage").then((module) => module.LoginPage));
 const registerRoute = uiRoute("MobileRegisterPage.tsx", () => import("./MobileRegisterPage").then((module) => module.RegisterPage));
+
+function skipMobileRouteOverlay(from: string, to: string) {
+  const albumList = /^\/album\/?$/;
+  return (albumList.test(from) && isMobileAlbumDetail(to))
+    || (isMobileAlbumDetail(from) && albumList.test(to));
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -52,8 +54,11 @@ const queryClient = new QueryClient({
 });
 
 function PublicPages() {
-  const navigation = useNavigation();
-  return navigation.location ? <MobilePageLoadingOverlay pathname={navigation.location.pathname} /> : <Outlet />;
+  const { path: overlayPath, exiting } = useRouteLoadingOverlay();
+  return <>
+    <Outlet />
+    {overlayPath && <MobilePageLoadingOverlay key={overlayPath} pathname={overlayPath} pageTransition complete={exiting} />}
+  </>;
 }
 
 function LegacyLocationRedirect() {
@@ -76,11 +81,11 @@ const routes: RouteObject[] = [
         errorElement: errorPage,
         element: (
           <RequireAuth>
-            <Suspense fallback={isStartupPrepared() ? null : <MobilePageLoadingOverlay />}><AuthenticatedLayout /></Suspense>
+            <Suspense fallback={isStartupPrepared() ? null : <StartupLoadingSignal />}><AuthenticatedLayout /></Suspense>
           </RequireAuth>
         ),
         children: [
-          { path: "/", ...uiRoute("MobileHomePage.tsx", () => import("./MobileHomePage").then((module) => module.HomePage), skipMainPageOverlay) },
+          { path: "/", ...uiRoute("MobileHomePage.tsx", () => import("./MobileHomePage").then((module) => module.HomePage)) },
           {
             element: <MobileGalleryLayout />,
             children: [
@@ -89,8 +94,7 @@ const routes: RouteObject[] = [
           },
           {
             path: "/album/:albumId",
-            ...uiRoute("MobileAlbumPage.tsx", () => import("./gallery/MobileAlbumPage").then((module) => module.MobileAlbumPage),
-              (url) => Boolean(router && isAlbumDetailHandoff(router.state.location.pathname, url.pathname))),
+            ...uiRoute("MobileAlbumPage.tsx", () => import("./gallery/MobileAlbumPage").then((module) => module.MobileAlbumPage)),
           },
           { path: "/gallery", element: <Navigate replace to="/album" /> },
           { path: "/gallery/album", element: <Navigate replace to="/album" /> },
@@ -112,7 +116,7 @@ const routes: RouteObject[] = [
           { path: "/location/travel", ...uiRoute("MobileTravelPage.tsx", () => import("./places/MobileTravelPage").then((module) => module.MobileTravelPage)) },
           {
             path: "/location",
-            ...uiRoute("MobilePlacePage.tsx", () => import("./places/MobilePlacePage").then((module) => module.MobilePlacePage), skipMainPageOverlay),
+            ...uiRoute("MobilePlacePage.tsx", () => import("./places/MobilePlacePage").then((module) => module.MobilePlacePage)),
             children: [
               { path: "saved" },
               { path: "history" },
@@ -209,7 +213,7 @@ function RouteNotifications() {
     void navigate(location.pathname + location.search + location.hash, { replace: true, state: remainingState });
   }, [location, navigate, t]);
 
-  return <Outlet />;
+  return <RouteLoadingProvider skipTransition={skipMobileRouteOverlay}><Outlet /></RouteLoadingProvider>;
 }
 
 /** Session must carry the admin role; non-admins fall back to Home. */
@@ -230,7 +234,9 @@ export function App() {
         <QueryClientProvider client={queryClient}>
           <MotionPreferences>
             <ToastProvider>
-              <RouterProvider router={getRouter()} fallbackElement={isStartupPrepared() ? null : <MobilePageLoadingOverlay />} future={{ v7_startTransition: true }} />
+              <StartupLoadingBoundary renderOverlay={(complete) => <MobilePageLoadingOverlay complete={complete} />}>
+                <RouterProvider router={getRouter()} fallbackElement={isStartupPrepared() ? null : <StartupLoadingSignal />} future={{ v7_startTransition: true }} />
+              </StartupLoadingBoundary>
               <MobileSessionReplacedDialog />
             </ToastProvider>
           </MotionPreferences>

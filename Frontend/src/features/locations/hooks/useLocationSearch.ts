@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { searchLocations } from "../services/locationSearchService";
+import { UI_TIMING } from "../../../config/uiTiming";
 
 export function useLocationSearch(query: string, enabled: boolean) {
   const text = query.trim();
@@ -10,7 +11,7 @@ export function useLocationSearch(query: string, enabled: boolean) {
       setDebounced("");
       return;
     }
-    const timer = window.setTimeout(() => setDebounced(text), 500);
+    const timer = window.setTimeout(() => setDebounced(text), UI_TIMING.AUTOCOMPLETE_DEBOUNCE);
     return () => window.clearTimeout(timer);
   }, [text, enabled]);
 

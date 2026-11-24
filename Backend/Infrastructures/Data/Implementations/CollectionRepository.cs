@@ -3,6 +3,7 @@ using Domains.Entities;
 using Infrastructures.Adapters.Storage;
 using Infrastructures.Data.Interfaces;
 using Services.Models.Collections;
+using Services.Models.Users;
 
 namespace Infrastructures.Data.Implementations;
 
@@ -219,5 +220,18 @@ public sealed class CollectionRepository(ApplicationDbContext db) : ICollectionR
             mediaId != null && collection.MediaItems.Any(item =>
                 item.MediaFileId == mediaId && item.MediaFile.DeletedAt == null),
             viewerId.HasValue && db.CollectionFavorites.Any(favorite =>
-                favorite.CollectionId == collection.Id && favorite.UserId == viewerId.Value)));
+                favorite.CollectionId == collection.Id && favorite.UserId == viewerId.Value))
+        {
+            ImageCount = collection.MediaItems.Count(item => item.MediaFile.DeletedAt == null && item.MediaFile.MediaKind == MediaKinds.Image),
+            VideoCount = collection.MediaItems.Count(item => item.MediaFile.DeletedAt == null && item.MediaFile.MediaKind == MediaKinds.Video),
+            Contributors = db.Users
+                .Where(user => db.CollectionMedia.Any(item =>
+                    item.CollectionId == collection.Id
+                    && item.MediaFile.OwnerId == user.Id
+                    && item.MediaFile.DeletedAt == null))
+                .OrderBy(user => user.Id)
+                .Take(5)
+                .Select(user => new UserSummaryDto(user.Id, user.Username, user.AvatarSeed))
+                .ToList()
+        });
 }

@@ -20,7 +20,6 @@ export function mobileSection(pathname: string) {
 
 export const isMobileAlbumDetail = (pathname: string) => /^\/album\/[^/]+\/?$/.test(pathname);
 const isGalleryList = (pathname: string) => /^\/album\/?$/.test(pathname);
-export const isAlbumDetailHandoff = (from: string, to: string) => isGalleryList(from) && isMobileAlbumDetail(to);
 
 export function rememberMobilePageEntry(previous: Location, next: Location, pop: boolean) {
   if (pop || (previous.pathname === next.pathname &&

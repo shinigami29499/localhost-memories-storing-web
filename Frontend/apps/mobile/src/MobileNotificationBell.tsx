@@ -37,7 +37,7 @@ export function MobileNotificationBell() {
           title={notificationLabel}
           onClick={() => setOpen((value) => !value)}
         >
-          <Bell size={18} fill="currentColor" aria-hidden="true" />
+          <Bell fill="currentColor" aria-hidden="true" />
           {unreadCount > 0 && <span className="mobile-notification__unread-dot" aria-hidden="true" />}
         </IconButton>
       </AnimateIcon>

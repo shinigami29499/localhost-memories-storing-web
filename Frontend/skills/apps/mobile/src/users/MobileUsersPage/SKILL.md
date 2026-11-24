@@ -3,21 +3,13 @@ name: mobile-mobileuserspage
 description: Mobile user directory and administration.
 ---
 
-MobileUsersPage.tsx uses shared pages/users/useUsersPage.ts. Typing in the search field is debounced 300 ms. Role and status filters allow multiple selections. Leaving a group empty includes all eligible values. Paused status is available to admins and superadmins. Rejected accounts are excluded from the mobile directory and search results. Admin actions use confirmation and refresh user queries.
+MobileUsersPage.tsx uses shared pages/users/useUsersPage.ts. Typing in the search field is debounced 300 ms. Rejected accounts are excluded from the mobile directory and search results. Admin actions use confirmation and refresh user queries.
 
-The directory sits between the shared mobile header and persistent tab bar. The header shows the gradient User title. The filter dialog repeats the title and adds a 40px Back button to close the dialog. Filters sits inside the right edge of the search box. The bottom fade is decorative and lets pointer events pass through.
-The shared directory hook redirects non-admins from `/user/blocked` to `/user`.
-Role and Status can remain open together. Expanding Joined date collapses both; expanding Role or Status collapses Joined date without closing the other. Selections remain active when collapsed.
-Role, status, and joined-date sections animate expansion and collapse when supported, unless app animation is off or reduced motion is requested. Unsupported browsers expand and collapse immediately.
-The filter dialog blurs the directory behind it. It keeps the User title sharp and Back in its original position. Back closes the dialog and returns focus to Filters. The backdrop fades as the filter sections and footer move in, with the animations reversing on close. Each opening expands Role and collapses Status and Joined date while preserving selections. Reduced motion and disabled app animations show changes immediately.
-Joined date expands to an inline calendar. The dialog starts with the applied filters. Role, status, and joined-date edits update the draft. Clear all resets the draft. Search applies the draft to the directory and closes the dialog. Back and Escape leave the applied filters in place.
-Clicking, tapping, or swiping up in the blank area below the filter sections closes the dialog and leaves the applied filters in place. The side gutters sit outside the dismissal area. Swiping inside the filter sections scrolls the content on short screens.
-The filter footer sizes Clear all to its label with 1.5rem padding on each side. Search takes the remaining width. Clear all uses the same neutral hover fill as Back.
-The calendar uses shared SelectField controls for month and year, with dropdowns hosted in the filter dialog.
-Closed month and year selectors use inset shadows and a contrasting border. Open selectors and dropdowns use exterior shadows and borders that match their fill at rest. Dropdown items appear immediately.
-Hover highlights interactive borders. Keyboard focus remains visible in either depth state.
-Joined-date calendar navigation and selection are limited to 2025 through the current year.
-Calendar height changes animate when switching between months with different week counts. App animation settings and reduced motion disable this transition.
+Active admins and super admins see square Role and Status tiles at opposite ends of one row above the bottom navigation. Each tile and option puts its label under its icon. Status options use colored dots for active, pending, and paused. The super admin option is labeled S-Admin. Role opens by default. Opening either tile widens it inward and closes the other, and one tile always remains open. The options share available width equally, to the right of Role or the left of Status. The bars animate when interface motion is enabled and the system allows motion. Each bar supports multiple selections and applies changes immediately through the shared directory filters. An empty selection leaves that dimension unrestricted.
+
+The calendar button in the search field opens a joined-date range sheet. The sheet opens with the applied dates; selecting dates changes a draft. Done applies only the date draft. Escape, the backdrop, and a downward swipe on the header dismiss the sheet without applying changes. Focus returns to the calendar button. The sheet slides from the bottom when motion is enabled and closes immediately when reduced motion is requested or animations are disabled.
+
+The calendar uses shared SelectField controls for month and year, hosted in the dialog. Navigation and selection are limited to 2025 through the current year. Dots mark dates, months, and years with eligible directory users, independent of the current search and date filter. Date dots appear at the top right. Calendar height changes animate when switching between months with different week counts, respecting motion preferences.
 
 Directory rows show the avatar and recent presence beside the username. The second line shows the join date when available, followed by the role. It appends the localized Paused or Pending label after a centered dot for `disabled` or `pending_approval` accounts. Active accounts end with the role. Selecting an avatar or username opens a profile sheet. Its hero shows the avatar, username, role, and all permitted icon-only administration actions. The lower area is empty. The sheet slides from the bottom when motion is enabled and closes immediately when motion is reduced or disabled.
 Join dates use two digits each for the month and day in the current language's date order.
@@ -28,9 +20,16 @@ Delete and Reject use a lightly tinted surface with a danger-colored icon at res
 The Delete and Reject buttons transition their background and icon colors over 320 ms. Reduced motion and disabled app animations apply the colors immediately.
 Profile action buttons use the shared IconButton button size: 40px visual circles with 20px icons and 48px hit targets.
 Search navigation buttons use 40px visual boxes, 20px icons, and 48px hit targets.
-The search field uses soft exterior shadows at rest. It switches to inset shadows and a highlighted border when the text input has focus. Opening or closing filters clears input focus. Closing returns keyboard focus to the Filters button. Disabled interface motion or reduced motion removes the transition.
-Filter sections and the Search action use exterior shadows. The search field, panels, Search action, and selected role and status tiles match their borders to their fill at rest. Inset tiles keep a contrasting border.
-Unselected role and status tiles use soft inset shadows, longer and darker at the top and shorter and lighter at the bottom. Selected tiles transition to exterior shadows with the matching blur and lengths, shorter above and longer below. Motion preferences disable the transition.
-The resting search box, filter panels, open calendar controls, and profile sheet use the shared raised fill. Selected role and status tiles use a white fill and dark text in dark mode, and a dark fill and white text in light mode. In dark mode, unchecked tiles use the page background.
+When search text becomes nonempty, the calendar button slides right and fades at the end while the clear button appears. Clearing the text reverses the transition. Motion preferences make the swap immediate. The search field uses soft exterior shadows at rest and inset shadows when focused. Opening the date sheet clears input focus.
 
-The directory shows avatar and text row placeholders while its initial request is pending. Search and filter controls remain available.
+## Directory transitions
+
+`MobileUsersPage.tsx` renders the ordered results from `useUsersPage.ts`. Its row and avatar styles live in `mobile-users.css` beside the component.
+
+- The initial request shows avatar and text placeholders. Search and filter controls stay available. Once results appear, rows fade in with a short, capped stagger. Returning to `/user` replays the entrance after the route overlay clears.
+- Search and applied filters reuse rows by visible list index. Changed usernames, join dates, roles, and status labels use Animate UI `SwappingText` within the existing row. Unchanged text stays still. The row itself stays opaque during the swap.
+- The avatar column tracks users by ID. A user present in both result sets keeps their avatar visible. If their row changes, their avatar slides from the previous position to the new one over 240 ms, carrying its status and presence badges. A user entering or leaving the results fades in or out.
+- Extra row slots fade in. Surplus slots fade out from bottom to top, with 60 ms between starts. Row exits and avatar movement use separate timing so a retained avatar can leave a disappearing slot without fading.
+- Disabled interface motion and reduced motion apply the results immediately.
+
+To check the transitions, filter `[A, B, C, D]` to `[B, D]`. The first two rows swap text in place. B and D slide to their new slots, A and C fade out, and the fourth row starts fading before the third. Clear the filter to check avatar entry and extra row slots. Repeat with motion disabled, then re-enter `/user` with motion enabled to check the full entrance. The mobile build passed. The browser check timed out before the rows rendered.

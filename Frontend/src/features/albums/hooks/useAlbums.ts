@@ -62,7 +62,7 @@ export function useAlbumMedia(
   const offset = (page - 1) * limit;
   return useQuery({
     queryKey: albumKeys.media(albumId ?? "", offset, limit, mediaKind),
-    queryFn: () => albumService.media(albumId!, offset, limit, mediaKind),
+    queryFn: ({ signal }) => albumService.media(albumId!, offset, limit, mediaKind, signal),
     enabled: Boolean(albumId) && enabled,
     placeholderData: (previousData, previousQuery) =>
       previousQuery?.queryKey[2] === albumId && previousQuery?.queryKey[6] === (mediaKind ?? null)
@@ -77,7 +77,7 @@ export function useInfiniteAlbumMedia(
   return useInfiniteQuery({
     queryKey: albumKeys.infiniteMedia(albumId ?? "", limit, mediaKind),
     initialPageParam: 0,
-    queryFn: ({ pageParam }) => albumService.media(albumId!, pageParam, limit, mediaKind),
+    queryFn: ({ pageParam, signal }) => albumService.media(albumId!, pageParam, limit, mediaKind, signal),
     getNextPageParam: (lastPage) => {
       const nextOffset = lastPage.offset + lastPage.items.length;
       return nextOffset < lastPage.total ? nextOffset : undefined;

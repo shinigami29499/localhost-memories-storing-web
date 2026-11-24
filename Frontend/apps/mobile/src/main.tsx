@@ -9,13 +9,15 @@ import { UiBootstrap } from "@/features/ui-resources/UiBootstrap";
 import { App } from "./App";
 import { MobileThemeProvider } from "./theme/MobileThemeProvider";
 import { installButtonPressMotion } from "@/utils/buttonPressMotion";
+import { ProjectTooltip } from "@/components/ui/ProjectTooltip";
 import "./styles/mobile-theme-adapter.css";
 import "./mobile-shell.css";
 import "./mobile-home.css";
 import "./mobile-auth.css";
 import "./styles/mobile-legacy-surfaces.css";
+import "@/styles/primary-button-gradient.css";
 
 installButtonPressMotion();
 createRoot(document.getElementById("root")!).render(
-  <StrictMode><MobileThemeProvider><UiBootstrap><App /></UiBootstrap></MobileThemeProvider></StrictMode>,
+  <StrictMode><MobileThemeProvider><UiBootstrap><App /></UiBootstrap><ProjectTooltip /></MobileThemeProvider></StrictMode>,
 );

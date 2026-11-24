@@ -16,6 +16,7 @@ export function RegisterPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const pending = useRef(false);
   const [created, setCreated] = useState(false);
   const [confirmError, setConfirmError] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -32,6 +33,8 @@ export function RegisterPage() {
       setConfirmError(true);
       return;
     }
+    if (pending.current) return;
+    pending.current = true;
     setBusy(true);
     try {
       await authService.register(username.trim(), password);
@@ -40,6 +43,7 @@ export function RegisterPage() {
     } catch (error) {
       showToast.error(error instanceof Error ? error.message : t("Registration failed."));
     } finally {
+      pending.current = false;
       setBusy(false);
     }
   }
@@ -73,7 +77,7 @@ export function RegisterPage() {
         <label htmlFor="confirm-password">{t("Confirm password")}</label>
         <PasswordInput id="confirm-password" value={confirmPassword} onChange={(value) => { setConfirmPassword(value); setConfirmError(false); }} placeholder={t("Confirm password")} autoComplete="new-password" required aria-label={t("Confirm password")} aria-invalid={confirmError} aria-describedby={confirmError ? "register-confirm-error" : undefined} />
         {confirmError && <p id="register-confirm-error" className="mobile-register__error" role="alert">{t("Passwords do not match.")}</p>}
-        <button className="mobile-register__primary" type="submit" disabled={busy}>{t("Create account")}</button>
+        <button className="mobile-register__primary" type="submit" disabled={busy} aria-busy={busy}>{t(busy ? "Creating account..." : "Create account")}</button>
       </form>
       <p className="mobile-register__signin">{t("Already have an account?")} <Link to="/login">{t("Sign in")}</Link></p>
     </div>}

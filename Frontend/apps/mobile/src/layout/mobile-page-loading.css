@@ -5,13 +5,17 @@
   display: grid;
   place-items: center;
   background: var(--mobile-bg);
-  --ui-progress-track: var(--mobile-border-subtle);
+  --ui-progress-track: color-mix(in srgb, var(--mobile-bg), var(--mobile-text) 20%);
   --ui-progress-fill: var(--mobile-primary);
 }
 
 .mobile-page-body > .mobile-page-loading {
-  position: absolute;
   z-index: 101;
+  padding-block-end: var(--mobile-nav-clearance);
+}
+
+:root[data-mobile-theme="dark"] .mobile-page-loading {
+  --ui-progress-track: var(--mobile-border-subtle);
 }
 
 .mobile-page-route { display: contents; }
@@ -26,5 +30,5 @@
 
 .mobile-page-loading__icon { display: grid; place-items: center; min-block-size: 3rem; }
 .mobile-page-loading .ui-resource-progress__title { font-size: 1.5rem; }
-.mobile-page-loading progress { block-size: .25rem; }
-.mobile-page-loading[data-handoff] { pointer-events: none; }
+.mobile-page-loading :is(progress, .ui-resource-progress__meter) { block-size: .25rem; }
+.mobile-page-loading[data-complete] { pointer-events: none; }

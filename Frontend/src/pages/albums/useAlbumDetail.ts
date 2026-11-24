@@ -2,6 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { showToast } from "../../components/ui/Toast";
+import { UI_TIMING } from "../../config/uiTiming";
 import { useLocale } from "../../context/LocaleContext";
 import {
   albumKeys,
@@ -15,6 +16,7 @@ import { useMediaSelectionDrag } from "../../features/media/hooks/useMediaSelect
 import { mediaService } from "../../features/media/services/mediaService";
 import type { MediaFile, MediaKindFilter } from "../../features/media/types";
 import { uploadService } from "../../features/uploads/services/uploadService";
+import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import { ApiError } from "../../services/api";
 import { useAnimationStore } from "../../store/animationStore";
 import { useAuthStore } from "../../store/authStore";
@@ -56,6 +58,9 @@ export function useAlbumDetail(albumId: string | undefined) {
   const [showVideos, setShowVideos] = useState(true);
   const mediaKind: MediaKindFilter | undefined = showImages === showVideos ? undefined : showImages ? "image" : "video";
   const hasMediaFilter = showImages || showVideos;
+  const requestedFilter = hasMediaFilter ? mediaKind : "none";
+  const debouncedFilter = useDebouncedValue(requestedFilter, UI_TIMING.FILTER_DEBOUNCE);
+  const mediaFilterReady = hasMediaFilter && requestedFilter === debouncedFilter;
   const [previewMediaId, setPreviewMediaId] = useState<string | null>(null);
   const returnToMediaId = useRef<string | null>(null);
   const returnToIndex = useRef(0);
@@ -64,7 +69,7 @@ export function useAlbumDetail(albumId: string | undefined) {
   const queryClient = useQueryClient();
   const album = useAlbum(albumId);
 
-  const media = useInfiniteAlbumMedia(albumId, 20, album.isSuccess && hasMediaFilter, mediaKind);
+  const media = useInfiniteAlbumMedia(albumId, 20, album.isSuccess && mediaFilterReady, mediaKind);
   const invalidate = useInvalidateAlbums();
   const items = media.data?.pages.flatMap((page) => page.items) ?? [];
   useEffect(() => () => {
@@ -166,7 +171,7 @@ export function useAlbumDetail(albumId: string | undefined) {
     const root = contentRef.current;
     const sentinel = sentinelRef.current;
     if (
-      previewMediaId || !root || !sentinel || !media.hasNextPage
+      previewMediaId || !mediaFilterReady || !root || !sentinel || !media.hasNextPage
       || media.isFetching || media.isFetchNextPageError
     ) return;
 
@@ -180,6 +185,7 @@ export function useAlbumDetail(albumId: string | undefined) {
     return () => observer.disconnect();
   }, [
     previewMediaId,
+    mediaFilterReady,
     media.fetchNextPage,
     media.hasNextPage,
     media.isFetchNextPageError,

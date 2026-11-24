@@ -17,105 +17,98 @@
   --album-title-size: var(--mobile-item-title-size);
   --album-queue-name-size: calc(var(--mobile-item-title-size) * .75);
   --album-queue-owner-size: calc(var(--mobile-item-support-size) * .75);
+  --album-position-size: 4rem;
+  --album-queue-height: calc(max(var(--album-position-size), var(--album-queue-thumb) / (var(--album-preview-ratio))) +
+    var(--album-queue-title-height) + var(--album-queue-gap));
 }
 .mobile-albums-page .album-date-view__body > .empty-state { align-self: start; }
-.mobile-albums-page .album-date-view__days { touch-action: pan-y pinch-zoom; }
 
 .mobile-albums-page .album-date-view__move-up {
   --control-radius: 50%;
   grid-area: 2 / 2;
+  inline-size: var(--album-position-size);
+  block-size: var(--album-position-size);
+  background: var(--mobile-surface-raised);
+  color: #000;
+  box-shadow: none;
+  opacity: 1;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
 }
-.mobile-albums-page .album-date-view__move-up:not([data-visible]) {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
+.album-date-view__move-up-count [data-slot="sliding-number-display"] {
+  overflow: hidden;
 }
-
-.mobile-albums-page[data-create-action] {
-  overflow-y: auto;
-  scroll-padding-block-end: var(--mobile-nav-clearance);
-}
-
-.mobile-albums-page[data-create-action] .album-date-view__viewport {
-  display: flex;
-  flex-direction: column;
-  overflow: visible;
-}
-
-.mobile-albums-page[data-create-action] .album-date-view__body { flex: none; }
-
-.mobile-albums-page__footer {
-  display: flex;
-  flex: 1 0 auto;
-  align-items: end;
-  justify-content: center;
-  margin-block-start: calc(-1 * var(--mobile-nav-clearance));
-  padding-block: .25rem calc(var(--mobile-nav-clearance) + .25rem);
-}
-
-.mobile-albums-page .mobile-albums-page__create {
-  --control-radius: var(--mobile-nav-radius);
-  --mobile-gradient: linear-gradient(90deg, #9333ea, #be185d 50%, #9333ea);
-  position: relative;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: .5rem;
-  inline-size: min(26rem, calc(100% - 2 * var(--page-gutter)));
-  min-block-size: var(--mobile-nav-item-height);
-  border: 1px solid transparent;
-  border-radius: var(--control-radius);
-  background-origin: border-box;
-  background-color: #9333ea;
-  box-shadow: var(--mobile-shadow);
+:root[data-mobile-theme="dark"] .mobile-albums-page .album-date-view__move-up {
+  background: transparent;
   color: #fff;
-  font-weight: 700;
-  cursor: pointer;
 }
+.album-date-view__move-up .icon-button__icon {
+  inline-size: 100%;
+  block-size: 100%;
+}
+.album-date-view__move-up .album-date-view__move-up-ring {
+  position: absolute;
+  inset: 0;
+  color: inherit;
+}
+.album-date-view__move-up-track {
+  stroke: color-mix(in srgb, currentColor 16%, transparent);
+}
+.album-date-view__move-up-progress {
+  stroke: currentColor;
+  stroke-linecap: round;
+}
+.album-date-view__move-up :is(.album-date-view__move-up-count, .album-date-view__move-up-arrow) {
+  grid-area: 1 / 1;
+}
+.album-date-view__move-up .album-date-view__move-up-arrow {
+  inline-size: 1.75rem;
+  block-size: 1.75rem;
+  opacity: 0;
+}
+.album-date-view__move-up-count {
+  display: inline-flex;
+  align-items: baseline;
+  gap: .2em;
+  font-size: var(--mobile-nav-label-size);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  white-space: nowrap;
+  translate: 0 1px;
+}
+.album-date-view__move-up-total { color: var(--mobile-text-muted); }
+.album-date-view__move-up[data-armed] .album-date-view__move-up-count {
+  opacity: 0;
+}
+.album-date-view__move-up[data-armed] .album-date-view__move-up-arrow { opacity: 1; }
 
 @media (prefers-reduced-motion: no-preference) {
-  :root[data-motion="on"] .mobile-albums-page .album-date-view__move-up {
-    transition: opacity 200ms ease, visibility 0s;
+  :root[data-motion="on"] .album-date-view__move-up-progress {
+    transition: stroke-dashoffset 320ms ease;
   }
-  :root[data-motion="on"] .mobile-albums-page .album-date-view__move-up:not([data-visible]) {
-    transition-delay: 0s, 200ms;
+  :root[data-motion="on"] .album-date-view__move-up :is(.album-date-view__move-up-count, .album-date-view__move-up-arrow) {
+    transition: opacity 180ms ease;
   }
-  :root[data-motion="on"] .mobile-albums-page__create {
-    transition: opacity 200ms ease, transform 350ms cubic-bezier(.22, 1, .36, 1);
-  }
-  @starting-style {
-    :root[data-motion="on"] .mobile-albums-page__create {
-      opacity: 0;
-      transform: translateY(.75rem);
-    }
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) and (hover: hover) {
-  :root[data-motion="on"] .mobile-albums-page [data-icon-motion] .album-date-view__move-up[data-visible]:hover svg {
-    animation: album-move-up-arrow 320ms ease-out;
-  }
-}
-
-@keyframes album-move-up-arrow {
-  0% { transform: translateY(.1875rem); }
-  55% { transform: translateY(-.1875rem); }
-  100% { transform: translateY(0); }
 }
 
 @media (max-height: 600px) {
-  .mobile-albums-page[data-create-action] .album-date-view__viewport,
-  .mobile-albums-page .album-date-view__viewport[data-frame-loading] {
-    flex: none;
-    block-size: calc(17rem + var(--mobile-nav-clearance));
+  .mobile-albums-page {
+    overflow-y: auto;
+    scroll-padding-block-end: var(--mobile-nav-clearance);
   }
 
-  .mobile-albums-page[data-create-action] .album-date-view__body {
+  .mobile-albums-page .album-date-view__viewport {
+    flex: none;
+    block-size: calc(17rem + var(--mobile-nav-clearance));
+    overflow: visible;
+  }
+
+  .mobile-albums-page .album-date-view__body {
     touch-action: pan-y pinch-zoom;
   }
 
-  .mobile-albums-page[data-create-action] :is(.album-date-card--featured, .album-date-view__queue) {
+  .mobile-albums-page :is(.album-date-card--featured, .album-date-view__queue) {
     touch-action: pinch-zoom;
   }
 }

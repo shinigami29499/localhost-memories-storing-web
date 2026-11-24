@@ -1,4 +1,5 @@
 import { useLayoutEffect, useState, type CSSProperties } from "react";
+import { UI_TIMING } from "../config/uiTiming";
 
 interface ViewportBounds {
   left: number;
@@ -23,14 +24,20 @@ export function useDialogViewportStyle(): CSSProperties {
       const next = getMainBounds();
       setBounds((current) => current.left === next.left && current.width === next.width ? current : next);
     };
-    const observer = new ResizeObserver(update);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const scheduleUpdate = () => {
+      clearTimeout(timer);
+      timer = setTimeout(update, UI_TIMING.RESIZE_DEBOUNCE);
+    };
+    const observer = new ResizeObserver(scheduleUpdate);
     observer.observe(main);
-    window.addEventListener("resize", update);
+    window.addEventListener("resize", scheduleUpdate);
     update();
 
     return () => {
       observer.disconnect();
-      window.removeEventListener("resize", update);
+      window.removeEventListener("resize", scheduleUpdate);
+      clearTimeout(timer);
     };
   }, []);
 

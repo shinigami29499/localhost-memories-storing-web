@@ -33,7 +33,7 @@ interface RequestOptions extends Omit<RequestInit, "body"> {
  *  - Clears the session when the refresh token itself is invalid/expired/revoked.
  */
 export async function api<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  return (await unwrap(await requestResponse(path, options))) as T;
+  return (await unwrap(await requestResponse(path, options), options.signal)) as T;
 }
 
 async function requestResponse(path: string, options: RequestOptions): Promise<Response> {
@@ -44,8 +44,10 @@ async function requestResponse(path: string, options: RequestOptions): Promise<R
 
   if (response.status === 401 && !skipAuthRefresh) {
     const problem = await response.clone().json().catch(() => null) as { code?: string } | null;
+    rest.signal?.throwIfAborted();
     if (problem?.code === "session_replaced") endReplacedSession(requestToken);
     const refreshed = problem?.code !== "session_replaced" && requestToken === useAuthStore.getState().accessToken && await refreshSession();
+    rest.signal?.throwIfAborted();
     if (refreshed) {
       response = await performRequest(path, extraHeaders, rest, body);
     }
@@ -142,11 +144,15 @@ export function uploadWithProgress<T>(
   });
 }
 
-async function unwrap(response: Response): Promise<unknown> {
+async function unwrap(response: Response, signal?: AbortSignal | null): Promise<unknown> {
   if (response.status === 204) return undefined;
   try {
     return await response.json();
-  } catch {
+  } catch (error) {
+    signal?.throwIfAborted();
+    if (error instanceof DOMException && error.name === "TimeoutError") {
+      throw new ApiError(0, "Request timed out", "The request timed out. Try again.");
+    }
     return undefined;
   }
 }
@@ -208,28 +214,21 @@ async function performRequest(
     payload = JSON.stringify(payload);
   }
 
-  const requestController = new AbortController();
   const callerSignal = rest.signal;
-  const abortFromCaller = () => requestController.abort(callerSignal?.reason);
-  if (callerSignal?.aborted) abortFromCaller();
-  else callerSignal?.addEventListener("abort", abortFromCaller, { once: true });
-
-  const timeout = setTimeout(() => requestController.abort(), API_REQUEST_TIMEOUT_MS);
+  const timeoutSignal = AbortSignal.timeout(API_REQUEST_TIMEOUT_MS);
+  const signal = callerSignal ? AbortSignal.any([callerSignal, timeoutSignal]) : timeoutSignal;
   try {
     return await fetch(`${API_URL}${path}`, {
       ...rest,
       headers,
       body: payload as BodyInit | null | undefined,
-      signal: requestController.signal,
+      signal,
     });
   } catch (error) {
-    if (requestController.signal.aborted && !callerSignal?.aborted) {
+    if (timeoutSignal.aborted && !callerSignal?.aborted) {
       throw new ApiError(0, "Request timed out", "The request timed out. Try again.");
     }
     throw error;
-  } finally {
-    clearTimeout(timeout);
-    callerSignal?.removeEventListener("abort", abortFromCaller);
   }
 }
 

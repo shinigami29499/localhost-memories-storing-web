@@ -21,6 +21,7 @@
   border: 1px solid transparent;
   font: inherit;
   font-weight: 600;
+  text-decoration: none;
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease, filter 0.15s ease, scale 140ms ease-out;
 }

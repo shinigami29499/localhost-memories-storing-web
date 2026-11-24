@@ -11,3 +11,6 @@ description: "Current behavior of GET /api/library/album/page."
 - Flow: Returns a paginated collection listing for the requested scope with viewer-specific album favorite state; administrator scope requires administrator permission.
 - Output: Each album includes its nullable calendar `albumDate` and audited `createdAt`. The feed keeps its creation-time ordering and cursor.
 - Source: `Backend/Apis/Controllers/CollectionsController.cs` (GetCollectionsPageAsync); `Backend/Infrastructures/Data/ApplicationServices/CollectionService.cs`.
+
+- Contributors: Up to five distinct owners of active media, ordered by user ID, include username and avatar seed. Empty albums return an empty list.
+- Counts: `imageCount` and `videoCount` count active album media by kind.

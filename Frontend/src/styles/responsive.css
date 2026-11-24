@@ -236,7 +236,7 @@ body {
 
 .btn { min-height: 44px; box-shadow: none; transition: none; }
 .btn--secondary { background: var(--surface); }
-.btn--primary:hover:not(:disabled) { filter: none; text-decoration: underline; }
+.btn--primary:hover:not(:disabled) { filter: none; }
 .btn:disabled:not(.dialog-actions:has(> .dialog-action[aria-busy="true"]) > .dialog-action) { opacity: 1; color: var(--text); background: var(--surface-hover); border-color: var(--border-control); }
 .dialog-actions:has(> .dialog-action[aria-busy="true"]) > .dialog-action:disabled { opacity: 1; }
 input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]),

@@ -15,7 +15,7 @@ export const placeKeys = {
 export function usePlaces(enabled = true) {
   return useQuery<Place[]>({
     queryKey: placeKeys.list(),
-    queryFn: () => placeService.list(),
+    queryFn: ({ signal }) => placeService.list(signal),
     enabled,
   });
 }
@@ -73,7 +73,7 @@ export function usePlaceVisitHistory(enabled = true) {
   const userId = useAuthStore((state) => state.user?.id);
   return useQuery<PlaceVisit[]>({
     queryKey: [...placeKeys.visitHistory(), userId],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       if (!userId || useAuthStore.getState().user?.id !== userId)
         throw new Error("Cannot load visit history without the signed-in user.");
       let userChanged = false;
@@ -82,7 +82,7 @@ export function usePlaceVisitHistory(enabled = true) {
         if (state.user?.id !== userId) userChanged = true;
       });
       try {
-        const visits = await placeService.allVisitHistory();
+        const visits = await placeService.allVisitHistory(signal);
         if (userChanged)
           throw new Error("The signed-in user changed while loading visit history.");
         return visits;

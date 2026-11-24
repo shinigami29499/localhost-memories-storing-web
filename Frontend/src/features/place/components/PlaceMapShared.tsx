@@ -31,6 +31,7 @@ import type { PlaceMapBounds } from "../services/placeService";
 import { viewportBounds } from "../../locations/utils/mapBounds";
 
 export interface Props {
+  onLoadingSettledChange?: (settled: boolean) => void;
   DialogComponent?: ComponentType<PlaceDialogProps>;
   MarkerPreview?: ComponentType<PlaceMarkerPreviewProps>;
   PhotoMarkerPreview?: ComponentType<PhotoMarkerPreviewProps>;

@@ -14,6 +14,9 @@ public record CollectionDto(
     bool ContainsMedia,
     DateTime CreatedAt)
 {
+    public int ImageCount { get; init; }
+    public int VideoCount { get; init; }
+    public IReadOnlyList<UserSummaryDto> Contributors { get; init; } = [];
     public DateOnly? AlbumDate { get; init; }
     public bool PreviewIsFavorited { get; init; }
     public bool IsFavorited { get; init; }

@@ -180,10 +180,8 @@ describe("UploadManagementPage", () => {
       Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(dateInput, "2026-10-30");
       dateInput.dispatchEvent(new Event("change", { bubbles: true }));
     });
-    await act(async () => {
-      await vi.waitFor(() => expect(container.textContent).toContain("No uploads on this date"));
-    });
-    expect(list).toHaveBeenLastCalledWith(0, 10, "2026-10-30");
+    await vi.waitFor(() => expect(container.textContent).toContain("No uploads on this date"));
+    expect(list).toHaveBeenLastCalledWith(0, 10, "2026-10-30", expect.any(AbortSignal));
     expect(container.querySelectorAll('input[type="date"]')).toHaveLength(1);
 
     await act(async () => {
@@ -194,7 +192,7 @@ describe("UploadManagementPage", () => {
       await vi.waitFor(() => expect(container.textContent).toContain("No uploads yet"));
     });
     expect(dateInput.value).toBe("");
-    expect(list).toHaveBeenLastCalledWith(0, 10, undefined);
+    await vi.waitFor(() => expect(list).toHaveBeenLastCalledWith(0, 10, undefined, expect.any(AbortSignal)));
     expect(container.querySelector('[aria-label="Remove filter"]')).toBeNull();
   });
 
@@ -213,17 +211,15 @@ describe("UploadManagementPage", () => {
 
     await act(async () => triggerIntersection?.());
     await vi.waitFor(() => expect(container.querySelector('[data-batch-id="batch-10"]')).not.toBeNull());
-    expect(uploadService.list).toHaveBeenLastCalledWith(10, 10, undefined);
+    expect(uploadService.list).toHaveBeenLastCalledWith(10, 10, undefined, expect.any(AbortSignal));
 
     const dateInput = container.querySelector<HTMLInputElement>("[data-date-picker]")!;
     await act(async () => {
       Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(dateInput, "2026-10-30");
       dateInput.dispatchEvent(new Event("change", { bubbles: true }));
     });
-    await act(async () => {
-      await vi.waitFor(() => expect(container.querySelector('[data-batch-id="filtered-batch"]')).not.toBeNull());
-    });
-    expect(uploadService.list).toHaveBeenLastCalledWith(0, 10, "2026-10-30");
+    await vi.waitFor(() => expect(container.querySelector('[data-batch-id="filtered-batch"]')).not.toBeNull());
+    expect(uploadService.list).toHaveBeenLastCalledWith(0, 10, "2026-10-30", expect.any(AbortSignal));
     expect(container.querySelector('[data-batch-id="batch-10"]')).toBeNull();
 
     await act(async () => {
@@ -248,7 +244,8 @@ describe("UploadManagementPage", () => {
       dateInput.dispatchEvent(new Event("change", { bubbles: true }));
     });
     expect(container.querySelector('[data-batch-id="batch"]')).toBeNull();
-    expect(container.textContent).toContain("Loading");
+    expect(container.textContent).not.toContain("Loading");
+    await vi.waitFor(() => expect(container.textContent).toContain("Loading"));
     expect(container.querySelector(".upload-page__footer")).toBeNull();
   });
 });

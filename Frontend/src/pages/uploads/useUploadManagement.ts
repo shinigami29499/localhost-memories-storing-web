@@ -3,12 +3,14 @@ import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { DEFAULT_PAGE_SIZE } from "../../components/ui/paginationConstants";
 import { showToast } from "../../components/ui/Toast";
+import { UI_TIMING } from "../../config/uiTiming";
 import { useUnreadUploads } from "../../features/uploads/hooks/useUnreadUploads";
 import { useAuthStore } from "../../store/authStore";
 import { useLocale } from "../../context/LocaleContext";
 import { stopUploadLocally, setUploadPaused } from "../../features/uploads/services/uploadRuntime";
 import { uploadService } from "../../features/uploads/services/uploadService";
 import { removeUploadFile } from "../../features/uploads/services/uploadFileStore";
+import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import type { UploadBatch, UploadItem } from "../../features/uploads/types";
 
 export function useUploadManagement() {
@@ -19,15 +21,17 @@ export function useUploadManagement() {
   const [searchParams, setSearchParams] = useSearchParams();
   const dateParam = searchParams.get("date") ?? "";
   const selectedDate = /^\d{4}-\d{2}-\d{2}$/.test(dateParam) && !Number.isNaN(new Date(`${dateParam}T00:00:00`).getTime()) ? dateParam : "";
+  const debouncedDate = useDebouncedValue(selectedDate, UI_TIMING.FILTER_DEBOUNCE);
   const [busyItemIds, setBusyItemIds] = useState<Set<string>>(() => new Set());
   const busyTimeouts = useRef(new Map<string, number>());
   const sentinel = useRef<HTMLDivElement>(null);
   const query = useInfiniteQuery({
     queryKey: ["uploads", "page", selectedDate, user?.id, user?.role],
+    enabled: selectedDate === debouncedDate,
     initialPageParam: 0,
-    queryFn: ({ pageParam }) => {
+    queryFn: ({ pageParam, signal }) => {
       const list = ["admin", "superadmin"].includes(user?.role?.toLowerCase() ?? "") ? uploadService.listAll : uploadService.list;
-      return list(pageParam, DEFAULT_PAGE_SIZE, selectedDate || undefined);
+      return list(pageParam, DEFAULT_PAGE_SIZE, selectedDate || undefined, signal);
     },
     getNextPageParam: (lastPage, _pages, lastOffset) =>
       lastPage.items.length > 0 && lastOffset + lastPage.items.length < lastPage.totalItems
@@ -37,13 +41,13 @@ export function useUploadManagement() {
 
   useEffect(() => {
     const target = sentinel.current;
-    if (!target || !query.hasNextPage || query.isFetchingNextPage || query.isFetchNextPageError) return;
+    if (!target || selectedDate !== debouncedDate || !query.hasNextPage || query.isFetchingNextPage || query.isFetchNextPageError) return;
     const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) void query.fetchNextPage();
+      if (entry.isIntersecting) void query.fetchNextPage({ cancelRefetch: false });
     }, { root: target.closest(".upload-page__content"), rootMargin: "200px" });
     observer.observe(target);
     return () => observer.disconnect();
-  }, [selectedDate, query.hasNextPage, query.isFetchingNextPage, query.isFetchNextPageError, query.fetchNextPage]);
+  }, [selectedDate, debouncedDate, query.hasNextPage, query.isFetchingNextPage, query.isFetchNextPageError, query.fetchNextPage]);
 
   useEffect(() => {
     const items = query.data?.pages.flatMap((page) => page.items.flatMap((batch) => batch.items)) ?? [];

@@ -44,8 +44,8 @@ export const placeService = {
     return api(`/api/place/${placeId}`);
   },
 
-  list(): Promise<Place[]> {
-    return api<Place[]>("/api/place/saved");
+  list(signal?: AbortSignal): Promise<Place[]> {
+    return api<Place[]>("/api/place/saved", { signal });
   },
 
   page(page: number, limit: number, search = "", minimumRating = 0, signal?: AbortSignal): Promise<PlacePage<Place>> {
@@ -64,8 +64,8 @@ export const placeService = {
     return api<PlaceVisit[]>("/api/place/history");
   },
 
-  allVisitHistory(): Promise<PlaceVisit[]> {
-    return api<PlaceVisit[]>("/api/place/history/all");
+  allVisitHistory(signal?: AbortSignal): Promise<PlaceVisit[]> {
+    return api<PlaceVisit[]>("/api/place/history/all", { signal });
   },
 
   visitsForPlace(placeId: string): Promise<PlaceVisit[]> {

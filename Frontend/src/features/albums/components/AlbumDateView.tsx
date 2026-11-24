@@ -1,9 +1,11 @@
 import { addDays, eachDayOfInterval, endOfMonth, format, min, startOfDay, startOfMonth } from "date-fns";
+import { SlidingNumber } from "@animate-ui/react/primitives/texts/sliding-number";
 import { SwappingText } from "@animate-ui/react/primitives/texts/swapping";
-import { ArrowUpToLine, Image, SendHorizontal } from "lucide-react";
+import { ArrowUpToLine, CalendarDays, Image, SendHorizontal, Video } from "lucide-react";
 import { AnimatePresence, motion, usePresence } from "motion/react";
-import { forwardRef, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type ComponentType, type PointerEvent, type ReactNode } from "react";
+import { forwardRef, useEffect, useId, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type ComponentType, type PointerEvent, type ReactNode } from "react";
 import type { LinkProps } from "react-router-dom";
+import { UserAvatar } from "../../../components/common/UserAvatar";
 import { Heart } from "@/components/animate-ui/icons/heart";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import { EmptyState, ErrorState, IconButton } from "../../../components/ui";
@@ -13,6 +15,7 @@ import { useMediaQuery } from "../../../hooks/useMediaQuery";
 import { mediaPreviewUrl } from "../../../utils/media";
 import { useAnimationStore } from "../../../store/animationStore";
 import type { Album } from "../types";
+import { AlbumDateSheet, type AlbumDateHistory } from "./AlbumDateSheet";
 import { animateAlbumCarousel, captureAlbumCarousel, type AlbumCarouselMotion } from "./albumCarouselMotion";
 import "./album-date-view.css";
 
@@ -21,7 +24,8 @@ type AlbumDateViewProps = {
   today: Date;
   selectedDate: Date;
   onDateChange: (date: Date) => void;
-  albumDates: readonly string[];
+  albumDateCounts: ReadonlyMap<string, number>;
+  albumHistory?: AlbumDateHistory;
   albums: Album[];
   albumIndex: number;
   onAlbumIndexChange: (index: number) => void;
@@ -29,26 +33,24 @@ type AlbumDateViewProps = {
   favoriteBusyAlbumId: string | null;
   onFavorite: (albumId: string, isFavorited: boolean) => void;
   mobileNavigation?: boolean;
-  footerAction?: ReactNode;
   pending: boolean;
   failed: boolean;
   fetching: boolean;
   onRetry: () => void;
 };
 
-function AlbumDateBar({ today, selectedDate, onDateChange, albumDates, onDateStep }:
-  Pick<AlbumDateViewProps, "today" | "selectedDate" | "onDateChange" | "albumDates"> & {
-    onDateStep?: (direction: 1 | -1) => void;
-  }) {
+function AlbumDateBar({ today, selectedDate, onDateChange, albumDateCounts, albumHistory, animate }:
+  Pick<AlbumDateViewProps, "today" | "selectedDate" | "onDateChange" | "albumDateCounts" | "albumHistory"> & { animate: boolean }) {
   const { t, language } = useLocale();
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const monthTrigger = useRef<HTMLButtonElement>(null);
   const stripRef = useRef<HTMLDivElement>(null);
-  const drag = useRef<{ pointerId: number; x: number; y: number; left: number } | null>(null);
+  const drag = useRef<{ pointerId: number; x: number; left: number } | null>(null);
   const dragged = useRef(false);
   const month = new Intl.DateTimeFormat(language, { month: "long", year: "numeric" });
   const weekday = new Intl.DateTimeFormat(language, { weekday: "short" });
   const fullDate = new Intl.DateTimeFormat(language, { dateStyle: "full" });
   const selectedKey = format(selectedDate, "yyyy-MM-dd");
-  const occupiedDates = useMemo(() => new Set(albumDates), [albumDates]);
   const start = startOfMonth(selectedDate).getTime();
   const end = min([endOfMonth(start), startOfDay(today)]).getTime();
   const days = useMemo(() => eachDayOfInterval({ start, end }), [start, end]);
@@ -102,7 +104,23 @@ function AlbumDateBar({ today, selectedDate, onDateChange, albumDates, onDateSte
 
   return (
     <div className="album-date-view__bar" role="group" aria-label={t("Album dates")}>
-      <div className="album-date-view__month" aria-live="polite">{month.format(selectedDate)}</div>
+      <div className="album-date-view__month">
+        {albumHistory ? (
+          <button ref={monthTrigger} className="album-date-view__month-trigger" type="button"
+            aria-haspopup="dialog" aria-expanded={pickerOpen} onClick={() => setPickerOpen(true)}>
+            {month.format(selectedDate)}
+            <CalendarDays className="album-date-view__month-icon" size={16} aria-hidden="true" />
+          </button>
+        ) : <span className="album-date-view__month-label">{month.format(selectedDate)}</span>}
+        {albumHistory && pickerOpen && (
+          <AlbumDateSheet today={today} selectedDate={selectedDate} albumDateCounts={albumDateCounts}
+            history={albumHistory} animate={animate} onSelect={onDateChange}
+            onDismiss={() => {
+              setPickerOpen(false);
+              monthTrigger.current?.focus({ preventScroll: true });
+            }} />
+        )}
+      </div>
       <div className="album-date-view__days" ref={stripRef}
         onKeyDown={(event) => {
           if (!(event.target instanceof HTMLButtonElement)) return;
@@ -115,13 +133,12 @@ function AlbumDateBar({ today, selectedDate, onDateChange, albumDates, onDateSte
         onPointerDown={(event) => {
           if (!event.isPrimary || event.button !== 0) return;
           dragged.current = false;
-          if (event.pointerType === "touch" && !onDateStep) return;
-          drag.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, left: event.currentTarget.scrollLeft };
+          if (event.pointerType === "touch") return;
+          drag.current = { pointerId: event.pointerId, x: event.clientX, left: event.currentTarget.scrollLeft };
         }}
         onPointerMove={(event) => {
           const start = drag.current;
           if (!start || start.pointerId !== event.pointerId) return;
-          if (event.pointerType === "touch") return;
           const delta = event.clientX - start.x;
           if (!dragged.current) {
             if (Math.abs(delta) < 6) return;
@@ -132,15 +149,7 @@ function AlbumDateBar({ today, selectedDate, onDateChange, albumDates, onDateSte
           event.preventDefault();
           event.currentTarget.scrollLeft = start.left - delta;
         }}
-        onPointerUp={(event) => {
-          const start = drag.current;
-          endDrag(event);
-          if (event.pointerType !== "touch" || start?.pointerId !== event.pointerId) return;
-          const dx = event.clientX - start.x;
-          const dy = event.clientY - start.y;
-          dragged.current = Math.hypot(dx, dy) > 10;
-          if (Math.abs(dx) >= 40 && Math.abs(dx) > Math.abs(dy)) onDateStep?.(dx < 0 ? 1 : -1);
-        }}
+        onPointerUp={endDrag}
         onPointerCancel={endDrag} onLostPointerCapture={endDrag}
         onPointerLeave={(event) => { if (!dragged.current) endDrag(event); }}
         onClickCapture={(event) => {
@@ -150,7 +159,7 @@ function AlbumDateBar({ today, selectedDate, onDateChange, albumDates, onDateSte
         }}>
         {days.map((day) => {
           const key = format(day, "yyyy-MM-dd");
-          const hasAlbums = occupiedDates.has(key);
+          const hasAlbums = albumDateCounts.has(key);
           return (
             <button key={key} type="button" className="album-date-view__day" data-date={key} data-has-albums={hasAlbums || undefined}
               aria-label={fullDate.format(day)} aria-description={hasAlbums ? t("Has albums") : undefined} aria-pressed={key === selectedKey}
@@ -257,13 +266,45 @@ function DatedAlbumCard({ album, action, onAdvance, swapText, showCoverLoading }
 }) {
   const { t } = useLocale();
   const imageRef = useRef<HTMLImageElement>(null);
+  const contributorsRef = useRef<HTMLDivElement>(null);
+  const previewClickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastPreviewClick = useRef(0);
+  const [expandedAlbumId, setExpandedAlbumId] = useState<string | null>(null);
   const [result, setResult] = useState<{ src: string; status: "loaded" | "failed" }>();
+  const [selectedContributor, setSelectedContributor] = useState<{ albumId: string; userId: string } | null>(null);
+  const [hoveredContributor, setHoveredContributor] = useState<string | null>(null);
   const src = album.previewMediaId ? mediaPreviewUrl(album.previewMediaId) : undefined;
   const status = result?.src === src ? result?.status : undefined;
   const hasPreview = Boolean(src && status !== "failed");
   const waitingForCover = Boolean(showCoverLoading && hasPreview && status !== "loaded");
   const loading = useDelayedPlaceholder(waitingForCover, src);
   const Title = action ? "h2" : "span";
+  const contributors = [album.owner, ...(album.contributors ?? []).filter((user) => user.id !== album.owner.id)].slice(0, 5);
+  const selectedId = selectedContributor?.albumId === album.id ? selectedContributor.userId : null;
+  const activeId = hoveredContributor ?? selectedId;
+  const expanded = expandedAlbumId === album.id;
+
+  useEffect(() => () => { if (previewClickTimer.current) clearTimeout(previewClickTimer.current); }, []);
+
+  useEffect(() => {
+    if (!selectedId) return;
+    const dismiss = (event: globalThis.PointerEvent) => {
+      if (!(event.target instanceof Element) || !event.target.closest(".album-date-card__contributor")) {
+        setSelectedContributor(null);
+        setHoveredContributor(null);
+        if (contributorsRef.current?.contains(document.activeElement)) (document.activeElement as HTMLElement).blur();
+      }
+    };
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSelectedContributor(null);
+    };
+    document.addEventListener("pointerdown", dismiss);
+    document.addEventListener("keydown", escape);
+    return () => {
+      document.removeEventListener("pointerdown", dismiss);
+      document.removeEventListener("keydown", escape);
+    };
+  }, [selectedId]);
 
   useLayoutEffect(() => {
     const image = imageRef.current;
@@ -318,6 +359,26 @@ function DatedAlbumCard({ album, action, onAdvance, swapText, showCoverLoading }
       </div>
       <div className="album-date-card__preview-slot">
         <div className="album-date-card__preview" data-press-motion-target={!action || undefined}
+          role={action ? "button" : undefined} tabIndex={action ? 0 : undefined}
+          aria-label={action ? t("Show contributors") : undefined} aria-expanded={action ? expanded : undefined}
+          onKeyDown={action ? (event) => {
+            if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setExpandedAlbumId(expanded ? null : album.id); }
+          } : undefined}
+          onClick={action ? () => {
+            const now = Date.now();
+            if (now - lastPreviewClick.current < 350) {
+              if (previewClickTimer.current) clearTimeout(previewClickTimer.current);
+              previewClickTimer.current = null;
+              lastPreviewClick.current = 0;
+              if (!action.favoriteBusy) action.onFavorite();
+              return;
+            }
+            lastPreviewClick.current = now;
+            previewClickTimer.current = setTimeout(() => {
+              setExpandedAlbumId((current) => current === album.id ? null : album.id);
+              previewClickTimer.current = null;
+            }, 350);
+          } : undefined}
           data-cover-loading={loading || undefined} data-cover-pending={waitingForCover || undefined} data-empty={!hasPreview || undefined}>
           {src && hasPreview && (
             <img key={src} ref={imageRef} src={src} alt="" decoding="async" draggable={false}
@@ -332,6 +393,28 @@ function DatedAlbumCard({ album, action, onAdvance, swapText, showCoverLoading }
           )}
         </div>
       </div>
+      {action && (
+        <div className="album-date-card__contributors-wrap" data-expanded={expanded || undefined} inert={!expanded}>
+        <div ref={contributorsRef} className="album-date-card__contributors">
+          {album.imageCount != null && album.videoCount != null && <div className="album-date-card__media-counts">
+            <span aria-label={`${album.imageCount} ${t("Images")}`}><Image aria-hidden="true" /><strong>{album.imageCount}</strong> {t("Images")}</span>
+            <span aria-label={`${album.videoCount} ${t("Videos")}`}><Video aria-hidden="true" /><strong>{album.videoCount}</strong> {t("Videos")}</span>
+          </div>}
+          <div className="album-date-card__avatar-group">
+          {contributors.map((user) => (
+            <button key={user.id} type="button" className="album-date-card__contributor"
+              aria-label={user.username} aria-pressed={selectedId === user.id} data-active={activeId === user.id || undefined}
+              onPointerEnter={(event) => { if (event.pointerType === "mouse") setHoveredContributor(user.id); }}
+              onPointerLeave={() => setHoveredContributor(null)}
+              onClick={() => setSelectedContributor(selectedId === user.id ? null : { albumId: album.id, userId: user.id })}>
+              <UserAvatar user={user} className="album-date-card__contributor-avatar" />
+              {activeId === user.id && <span className="project-tooltip album-date-card__contributor-tooltip" aria-hidden="true">{user.username}</span>}
+            </button>
+          ))}
+          </div>
+        </div>
+        </div>
+      )}
     </>
   );
 
@@ -345,9 +428,74 @@ function DatedAlbumCard({ album, action, onAdvance, swapText, showCoverLoading }
   );
 }
 
+const MOVE_UP_CONFIRMATION_MS = 2000;
+
+function AlbumPositionButton({ position, total, dateKey, disabled, animate, onMoveUp }: {
+  position: number;
+  total: number;
+  dateKey: number;
+  disabled: boolean;
+  animate: boolean;
+  onMoveUp: () => void;
+}) {
+  const { t } = useLocale();
+  const maskId = useId();
+  const [armedUntil, setArmedUntil] = useState(0);
+  const armed = armedUntil > 0;
+  const totalText = t("of {total}", { total });
+  const [totalPrefix, totalSuffix] = t("of {total}", { total: "__total__" }).split("__total__");
+  const actionLabel = t(armed ? "Move up" : disabled ? "Album position" : "Show Move up");
+  const segment = 1 / Math.max(1, total);
+  const gap = total > 1 ? Math.min(0.018, segment * 0.25) : 0;
+  const emptyFraction = total ? (total - position) / total : 1;
+
+  useLayoutEffect(() => { setArmedUntil(0); }, [dateKey, position, total, disabled]);
+  useEffect(() => {
+    if (!armedUntil) return;
+    const timer = window.setTimeout(() => setArmedUntil(0), Math.max(0, armedUntil - performance.now()));
+    return () => window.clearTimeout(timer);
+  }, [armedUntil]);
+
+  return (
+    <IconButton className="album-date-view__move-up" size="fab" data-armed={armed || undefined}
+      disabled={disabled} aria-label={actionLabel} aria-description={`${position} ${totalText}`} title={actionLabel}
+      onClick={() => {
+        const now = performance.now();
+        if (now < armedUntil) {
+          setArmedUntil(0);
+          onMoveUp();
+        } else {
+          setArmedUntil(now + MOVE_UP_CONFIRMATION_MS);
+        }
+      }}>
+      <svg className="album-date-view__move-up-ring" viewBox="0 0 56 56" fill="none">
+        <defs>
+          <mask id={maskId} maskUnits="userSpaceOnUse" x="0" y="0" width="56" height="56">
+            <circle cx="28" cy="28" r="25.5" pathLength="1" stroke="white" strokeWidth="4"
+              strokeDasharray={gap ? `${segment - gap} ${gap}` : undefined} strokeDashoffset={-gap / 2} />
+          </mask>
+        </defs>
+        <g transform="rotate(-90 28 28)" mask={`url(#${maskId})`}>
+          <circle className="album-date-view__move-up-track" cx="28" cy="28" r="25.5" />
+          <circle className="album-date-view__move-up-progress" cx="28" cy="28" r="25.5"
+            pathLength="1" strokeDasharray="1 1" strokeDashoffset={emptyFraction}
+            visibility={position ? undefined : "hidden"} />
+        </g>
+      </svg>
+      <span className="album-date-view__move-up-count">
+        <span>{animate ? <SlidingNumber number={position} initiallyStable /> : position}</span>{" "}
+        <span className="album-date-view__move-up-total">
+          {animate ? <>{totalPrefix}<SlidingNumber number={total} initiallyStable />{totalSuffix}</> : totalText}
+        </span>
+      </span>
+      <ArrowUpToLine className="album-date-view__move-up-arrow" />
+    </IconButton>
+  );
+}
+
 export function AlbumDateView({
-  AlbumLink, today, selectedDate, onDateChange, albumDates, albums, albumIndex, onAlbumIndexChange, onAlbumOpen,
-  favoriteBusyAlbumId, onFavorite, mobileNavigation, footerAction,
+  AlbumLink, today, selectedDate, onDateChange, albumDateCounts, albumHistory, albums, albumIndex, onAlbumIndexChange, onAlbumOpen,
+  favoriteBusyAlbumId, onFavorite, mobileNavigation,
   pending, failed, fetching, onRetry,
 }: AlbumDateViewProps) {
   const { t } = useLocale();
@@ -361,12 +509,13 @@ export function AlbumDateView({
   const overlayRef = useRef<HTMLDivElement>(null);
   const pendingMotion = useRef<AlbumCarouselMotion | null>(null);
   const cancelMotion = useRef<(() => void) | null>(null);
-  const pointerStart = useRef<{ id: number; x: number; y: number } | null>(null);
+  const pointerStart = useRef<{ id: number; x: number; y: number; canStepDate: boolean } | null>(null);
   const suppressClick = useRef(false);
   const featured = albums[albumIndex];
   const next = albums[albumIndex + 1];
+  const showError = !pending && failed && !featured;
+  const showQueue = !showError && Boolean(mobileNavigation || pending || featured);
   const showPlaceholders = useDelayedPlaceholder(pending);
-  const showMoveUp = Boolean(featured && albumIndex > 0 && !pending);
 
   useLayoutEffect(() => {
     const previous = pendingMotion.current;
@@ -422,15 +571,14 @@ export function AlbumDateView({
 
   return (
     <>
-      <AlbumDateBar today={today} selectedDate={selectedDate} albumDates={albumDates}
-        onDateStep={mobileNavigation ? stepDate : undefined}
+      <AlbumDateBar today={today} selectedDate={selectedDate} albumDateCounts={albumDateCounts} albumHistory={albumHistory} animate={animate}
         onDateChange={(date) => {
           if (mobileNavigation && date.getTime() === startOfDay(selectedDate).getTime()) moveTo(0);
           else onDateChange(date);
         }} />
       {showPlaceholders && <span className="sr-only" role="status">{t("Loading albums...")}</span>}
       <div className="album-date-view__viewport" aria-busy={pending || fetching} data-frame-loading={pending || undefined}>
-        <div className="album-date-view__body" ref={stageRef} data-has-queue={Boolean(mobileNavigation || pending || featured || footerAction) || undefined}
+        <div className="album-date-view__body" ref={stageRef} data-has-queue={showQueue || undefined}
           data-icon-motion={iconsEnabled || undefined}
           onKeyDown={(event) => {
             if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
@@ -440,14 +588,16 @@ export function AlbumDateView({
           onPointerDown={(event) => {
             if (!event.isPrimary || event.button !== 0 || (!featured && !mobileNavigation)) return;
             suppressClick.current = false;
-            pointerStart.current = { id: event.pointerId, x: event.clientX, y: event.clientY };
+            const canStepDate = Boolean(mobileNavigation && event.target instanceof Element &&
+              event.target.closest(".album-date-view__main-frame, .album-date-view__sub-frame"));
+            pointerStart.current = { id: event.pointerId, x: event.clientX, y: event.clientY, canStepDate };
           }}
           onPointerMove={(event) => {
             const start = pointerStart.current;
             if (start?.id !== event.pointerId) return;
             const dx = Math.abs(event.clientX - start.x);
             const dy = Math.abs(event.clientY - start.y);
-            if (Math.max(dx, dy) > 10 && (mobileNavigation || dy > dx) &&
+            if (Math.max(dx, dy) > 10 && (start.canStepDate || dy > dx) &&
               !event.currentTarget.hasPointerCapture(event.pointerId)) {
               event.currentTarget.setPointerCapture(event.pointerId);
             }
@@ -459,7 +609,7 @@ export function AlbumDateView({
             const dy = event.clientY - start.y;
             const dx = event.clientX - start.x;
             suppressClick.current = Math.hypot(dx, dy) > 10;
-            if (mobileNavigation && Math.abs(dx) >= 40 && Math.abs(dx) > Math.abs(dy)) {
+            if (start.canStepDate && Math.abs(dx) >= 40 && Math.abs(dx) > Math.abs(dy)) {
               stepDate(dx < 0 ? 1 : -1);
               return;
             }
@@ -467,6 +617,9 @@ export function AlbumDateView({
             move(dy < 0 ? 1 : -1);
           }}
           onPointerCancel={() => { pointerStart.current = null; }}
+          onLostPointerCapture={(event) => {
+            if (event.target === event.currentTarget) pointerStart.current = null;
+          }}
           onClickCapture={(event) => {
             if (!suppressClick.current || event.detail === 0) return;
             event.preventDefault();
@@ -478,14 +631,14 @@ export function AlbumDateView({
               {showPlaceholders ? <AlbumFramePlaceholder /> : featuredCard}
             </AlbumFrame>
           )}
-          {pending ? !mobileNavigation && showPlaceholders && <AlbumFramePlaceholder /> : failed && !featured ? (
+          {pending ? !mobileNavigation && showPlaceholders && <AlbumFramePlaceholder /> : showError ? (
             <ErrorState message={t("Could not load albums.")} onRetry={onRetry} />
           ) : !featured ? (
             <EmptyState title="No albums yet" hint={mobileNavigation
               ? "Choose Add album to get started."
               : "Use New album to organize your media into collections."} />
           ) : !mobileNavigation && featuredCard}
-          {(mobileNavigation || pending || featured) && <div className="album-date-view__queue">
+          {showQueue && <div className="album-date-view__queue">
             {mobileNavigation ? (
               <AlbumFrame animate={animate} className="album-date-view__sub-frame"
                 frame={showPlaceholders ? "placeholder" : next ? "album" : null}>
@@ -497,19 +650,15 @@ export function AlbumDateView({
                 ) : nextCard}
               </AlbumFrame>
             ) : pending ? showPlaceholders && <AlbumFramePlaceholder compact /> : nextCard}
-            {mobileNavigation && <IconButton className="album-date-view__move-up"
-              data-visible={showMoveUp || undefined} disabled={!showMoveUp} aria-hidden={!showMoveUp || undefined}
-              aria-label={t("Move up")} title={t("Move up")}
-              onClick={() => {
+            {mobileNavigation && <AlbumPositionButton position={featured ? albumIndex + 1 : 0} total={albums.length}
+              dateKey={selectedDate.getTime()} disabled={!featured || pending} animate={animate}
+              onMoveUp={() => {
                 stageRef.current?.querySelector<HTMLElement>(".album-date-card__open")?.focus({ preventScroll: true });
                 moveTo(0);
-              }}>
-              <ArrowUpToLine size={20} />
-            </IconButton>}
+              }} />}
           </div>}
           <div ref={overlayRef} className="album-date-view__motion" aria-hidden="true" inert />
         </div>
-        {footerAction}
       </div>
     </>
   );

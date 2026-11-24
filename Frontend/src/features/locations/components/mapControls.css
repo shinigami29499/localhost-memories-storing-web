@@ -31,6 +31,8 @@
   z-index: 50;
 }
 
+.map-loading-overlay[data-ready="true"] { pointer-events: none; }
+
 .map-loading-overlay[data-exiting="true"] {
   animation: map-loading-iris-exit 1000ms ease-in forwards;
   pointer-events: none;

@@ -165,7 +165,6 @@
   background: transparent;
   color: var(--text);
   font: inherit;
-  text-decoration: underline;
   cursor: pointer;
 }
 

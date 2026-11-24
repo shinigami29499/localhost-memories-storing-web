@@ -1,4 +1,6 @@
 import { useEffect,useLayoutEffect,useRef,useState,useSyncExternalStore,type KeyboardEvent,type ReactNode } from "react";
+import { UI_TIMING } from "../../config/uiTiming";
+import { useThrottledCallback } from "../../hooks/useThrottledCallback";
 
 function getScrollEdges(element: HTMLElement) {
   const maxScroll = element.scrollWidth - element.clientWidth;
@@ -150,6 +152,10 @@ export function useDayRow<T extends { id: string }>({ items, renderItem, fallbac
     setFocusTarget(items[position].id);
   };
 
+  const checkReachEnd = useThrottledCallback((row: HTMLDivElement) => {
+    if (row.scrollWidth - row.scrollLeft - row.clientWidth <= row.clientWidth * 2.5) onReachEnd?.();
+  }, UI_TIMING.SCROLL_THROTTLE);
+
   const handleScroll = (event: React.UIEvent<HTMLDivElement>) => {
     const row = event.currentTarget;
     if (frame.current !== null) return;
@@ -157,7 +163,7 @@ export function useDayRow<T extends { id: string }>({ items, renderItem, fallbac
       frame.current = null;
       setScrollLeft(row.scrollLeft);
       setScrollEdges(getScrollEdges(row));
-      if (row.scrollWidth - row.scrollLeft - row.clientWidth <= row.clientWidth * 2.5) onReachEnd?.();
+      checkReachEnd(row);
     });
   };
   return { gridRef, scrollEdges, hoverHeight, hoverInset, height, handleKeyDown, screenWidth, rowInset, items, step, gap, rendered, enterGroup, recycle, slots, tileSize, tileHeight, screenHeight, handleScroll };

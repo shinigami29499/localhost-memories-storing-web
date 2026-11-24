@@ -1,4 +1,4 @@
-import { useEffect, useState, type ComponentType, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type ComponentType, type CSSProperties } from "react";
 import { showToast } from "../../../components/ui";
 import { useAuthStore } from "../../../store/authStore";
 import { UserAvatar } from "../../../components/common/UserAvatar";
@@ -31,9 +31,30 @@ export function usePlaceVisitHistorySharedController({ visits, showPlaceDetails 
   const [confirmingRemoval, setConfirmingRemoval] = useState(false);
   const [removalBusy, setRemovalBusy] = useState(false);
   const [selectedVisit, setSelectedVisit] = useState<PlaceVisit | null>(null);
+  const selectedVisitRef = useRef(selectedVisit);
+  selectedVisitRef.current = selectedVisit;
   const [editNote, setEditNote] = useState("");
   const [editRating, setEditRating] = useState(0);
   const updateVisit = useUpdatePlaceVisit();
+  const updatePending = useRef(false);
+  const removalPending = useRef(false);
+
+  const saveVisit = async (visit: PlaceVisit) => {
+    if (updatePending.current) return;
+    updatePending.current = true;
+    try {
+      const updated = await updateVisit.mutateAsync({ visitId: visit.id, note: editNote, rating: editRating });
+      if (selectedVisitRef.current?.id === updated.id) {
+        setSelectedVisit(updated);
+        setEditNote(updated.note);
+        setEditRating(updated.rating);
+      }
+    } catch {
+      showToast.error(t("Could not complete this action. Please retry."));
+    } finally {
+      updatePending.current = false;
+    }
+  };
 
   useEffect(() => {
     if (!onRemove) return;
@@ -55,11 +76,13 @@ export function usePlaceVisitHistorySharedController({ visits, showPlaceDetails 
   };
 
   const confirmRemove = async (visit: PlaceVisit) => {
+    if (removalPending.current) return;
     if (!canRemove(visit, Date.now())) {
       setNow(Date.now());
       showToast.error(t("Check ins older than one day cannot be removed."));
       return;
     }
+    removalPending.current = true;
     setRemovalBusy(true);
     try {
       await onRemove?.(visit);
@@ -68,8 +91,9 @@ export function usePlaceVisitHistorySharedController({ visits, showPlaceDetails 
     } catch {
       showToast.error(t("Could not complete this action. Please retry."));
     } finally {
+      removalPending.current = false;
       setRemovalBusy(false);
     }
   };
-  return { language, t, currentUserId, now, confirmingRemoval, setConfirmingRemoval, removalBusy, selectedVisit, setSelectedVisit, editNote, setEditNote, editRating, setEditRating, updateVisit, canRemove, showColumnHeadings, requestRemove, confirmRemove };
+  return { language, t, currentUserId, now, confirmingRemoval, setConfirmingRemoval, removalBusy, selectedVisit, setSelectedVisit, editNote, setEditNote, editRating, setEditRating, updateVisit, saveVisit, canRemove, showColumnHeadings, requestRemove, confirmRemove };
 }

@@ -33,7 +33,7 @@ export function useAlbumFormDialog({ album, onSubmit, onClose, onDelete }: Album
   const { register: registerDraft, retain: retainDrafts } = usePreviewDrafts();
   const selectedImage = useQuery({
     queryKey: ["picker-image", previewMediaId],
-    queryFn: () => previewService.getImage(previewMediaId!),
+    queryFn: ({ signal }) => previewService.getImage(previewMediaId!, signal),
     enabled: Boolean(previewMediaId),
   });
 

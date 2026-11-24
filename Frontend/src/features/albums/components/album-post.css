@@ -148,7 +148,6 @@
   display: block;
 }
 
-.post-card__toggle-btn:hover,
 .post-card__toggle-btn:focus-visible {
   text-decoration: underline;
 }

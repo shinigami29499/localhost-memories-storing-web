@@ -7,7 +7,6 @@ import {
   createBrowserRouter,
   useLocation,
   useNavigate,
-  useNavigation,
   useParams,
 } from "react-router-dom";
 import { lazy, Suspense, useEffect, useRef, type ReactNode } from "react";
@@ -25,20 +24,21 @@ import { SessionReplacedDialog } from "@/features/auth/SessionReplacedDialog";
 
 import { GalleryLayout } from "./pages/gallery/GalleryLayout";
 import { uiRoute, useUiRouteProgress } from "@/features/ui-resources/uiRoute";
-import { isReturningToMainPage } from "@/features/ui-resources/uiOverlayPolicy";
 import { UiResourceProgress } from "@/features/ui-resources/UiResourceProgress";
+import { StartupLoadingBoundary, StartupLoadingSignal } from "@/features/ui-resources/StartupLoadingBoundary";
+import { RouteLoadingProvider, useRouteLoadingOverlay, useRouteOverlayFade } from "@/features/ui-resources/useRouteLoadingOverlay";
 
 const ErrorPage = lazy(registerUiModule("Error page", () => import("./pages/ErrorPage").then((module) => ({ default: module.ErrorPage }))));
 const errorPage = <Suspense fallback={<main role="alert">Page unavailable.</main>}><ErrorPage /></Suspense>;
 const AuthenticatedLayout = lazy(registerUiModule("App navigation", () => import("./components/AuthenticatedLayout").then((module) => ({ default: module.AuthenticatedLayout }))));
-const HomePage = uiRoute("HomePage.tsx", () => import("./pages/home/HomePage").then((module) => module.HomePage), skipMainPageOverlay);
+const HomePage = uiRoute("HomePage.tsx", () => import("./pages/home/HomePage").then((module) => module.HomePage));
 const loginRoute = uiRoute("LoginPage.tsx", () => import("./pages/login/LoginPage").then((module) => module.LoginPage));
 const registerRoute = uiRoute("RegisterPage.tsx", () => import("./pages/register/RegisterPage").then((module) => module.RegisterPage));
-const AlbumsPage = uiRoute("AlbumsPage.tsx", () => import("./pages/albums/AlbumsPage").then((module) => module.AlbumsPage), skipMainPageOverlay);
+const AlbumsPage = uiRoute("AlbumsPage.tsx", () => import("./pages/albums/AlbumsPage").then((module) => module.AlbumsPage));
 const AlbumPage = uiRoute("AlbumPage.tsx", () => import("./pages/albums/AlbumPage").then((module) => module.AlbumPage));
-const UsersPage = uiRoute("UsersPage.tsx", () => import("./pages/users/UsersPage").then((module) => module.UsersPage), skipMainPageOverlay);
+const UsersPage = uiRoute("UsersPage.tsx", () => import("./pages/users/UsersPage").then((module) => module.UsersPage));
 const LocationsPage = uiRoute("LocationsPage.tsx", () => import("./pages/locations/LocationsPage").then((module) => module.LocationsPage));
-const PlacePage = uiRoute("PlacePage.tsx", () => import("./pages/place/PlacePage").then((module) => module.PlacePage), skipMainPageOverlay);
+const PlacePage = uiRoute("PlacePage.tsx", () => import("./pages/place/PlacePage").then((module) => module.PlacePage));
 const UploadManagementPage = uiRoute("UploadManagementPage.tsx", () => import("./pages/uploads/UploadManagementPage").then((module) => module.UploadManagementPage));
 const SettingsPage = uiRoute("SettingsPage.tsx", () => import("./pages/settings/SettingsPage").then((module) => module.SettingsPage));
 const ProfilePage = uiRoute("ProfilePage.tsx", () => import("./pages/profile/ProfilePage").then((module) => module.ProfilePage));
@@ -58,21 +58,23 @@ function LegacyLocationRedirect() {
   return <Navigate replace to="/location" state={location.state} />;
 }
 
-function skipMainPageOverlay(url: URL) {
-  return Boolean(router && isReturningToMainPage(router.state.location.pathname, url.pathname));
-}
-
-function WebUiRouteFallback({ pathname = window.location.pathname }: { pathname?: string }) {
+function WebUiRouteFallback({ pathname = window.location.pathname, complete = false, pageTransition }: {
+  pathname?: string; complete?: boolean; pageTransition?: boolean;
+}) {
   const { t } = useLocale();
   const progress = useUiRouteProgress(pathname);
-  return <div className="ui-resource-loading ui-resource-loading--startup">
-    <UiResourceProgress key={pathname} label={t("Loading page...")} loaded={progress?.loaded} total={progress?.total} stepped />
+  const overlayRef = useRouteOverlayFade(Boolean(pageTransition && complete));
+  return <div ref={overlayRef} className="ui-resource-loading ui-resource-loading--public" data-complete={complete || undefined} aria-hidden={complete || undefined}>
+    <UiResourceProgress key={pathname} label={t("Loading page...")} loaded={progress?.loaded} total={progress?.total} stepped complete={complete} pageTransition={pageTransition} />
   </div>;
 }
 
 function PublicPages() {
-  const navigation = useNavigation();
-  return navigation.location ? <WebUiRouteFallback pathname={navigation.location.pathname} /> : <Outlet />;
+  const { path: overlayPath, exiting } = useRouteLoadingOverlay();
+  return <>
+    <Outlet />
+    {overlayPath && <WebUiRouteFallback pathname={overlayPath} pageTransition complete={exiting} />}
+  </>;
 }
 
 /** / is the protected Home page; unauthenticated visitors land on /login or /register. */
@@ -85,7 +87,7 @@ const routes: RouteObject[] = [
         errorElement: errorPage,
         element: (
           <RequireAuth>
-            <Suspense fallback={isStartupPrepared() ? null : <WebUiRouteFallback />}><AuthenticatedLayout /></Suspense>
+            <Suspense fallback={isStartupPrepared() ? null : <StartupLoadingSignal />}><AuthenticatedLayout /></Suspense>
           </RequireAuth>
         ),
         children: [
@@ -200,7 +202,7 @@ function RouteNotifications() {
     void navigate(location.pathname + location.search + location.hash, { replace: true, state: remainingState });
   }, [location, navigate, t]);
 
-  return <Outlet />;
+  return <RouteLoadingProvider><Outlet /></RouteLoadingProvider>;
 }
 
 /** Session must carry the admin role; non-admins fall back to Home. */
@@ -221,7 +223,9 @@ export function App() {
         <QueryClientProvider client={queryClient}>
           <MotionPreferences>
             <ToastProvider>
-              <RouterProvider router={getRouter()} fallbackElement={isStartupPrepared() ? null : <WebUiRouteFallback />} future={{ v7_startTransition: true }} />
+              <StartupLoadingBoundary renderOverlay={(complete) => <WebUiRouteFallback complete={complete} />}>
+                <RouterProvider router={getRouter()} fallbackElement={isStartupPrepared() ? null : <StartupLoadingSignal />} future={{ v7_startTransition: true }} />
+              </StartupLoadingBoundary>
               <SessionReplacedDialog />
             </ToastProvider>
           </MotionPreferences>

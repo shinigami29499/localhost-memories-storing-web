@@ -1,11 +1,14 @@
-import { ArrowLeft, Circle } from "lucide-react";
+﻿import { CalendarDays, Circle } from "lucide-react";
+import { AnimatePresence, motion, useIsPresent, useReducedMotion } from "motion/react";
+import { SwappingText } from "@animate-ui/react/primitives/texts/swapping";
+import { Shield, ShieldCheck, Unplug, User, Zap } from "lucide-react";
+import { useAnimationStore } from "@/store/animationStore";
+import "@/features/albums/components/album-date-sheet.css";
 import { DropdownRangeDatePicker } from "@/components/ui/dropdown-range-date-picker";
 import { Check } from "@/components/animate-ui/icons/check";
 import { Pause } from "@/components/animate-ui/icons/pause";
 import { Play } from "@/components/animate-ui/icons/play";
 import { X } from "@/components/animate-ui/icons/x";
-import { ChevronDown } from "@/components/animate-ui/icons/chevron-down";
-﻿import { Terminal } from "@/components/animate-ui/icons/terminal";
 import { UserRoundCog } from "@/components/animate-ui/icons/user-round-cog";
 import { CircleX } from "@/components/animate-ui/icons/circle-x";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
@@ -13,35 +16,56 @@ import { Trash2 } from "@/components/animate-ui/icons/trash-2";
 import { UserRound } from "@/components/animate-ui/icons/user-round";
 import { UserAvatar } from "@/components/common/UserAvatar";
 import { Search } from "@/components/animate-ui/icons/search";
-import { SlidersHorizontal } from "@/components/animate-ui/icons/sliders-horizontal";
 import { IconButton, EmptyState, ErrorState, Spinner } from "@/components/ui";
 import { PageDataPlaceholder } from "@/components/ui/PageDataPlaceholder";
 import { MobileConfirmationDialog as ConfirmationDialog } from "../gallery/MobileConfirmationDialog";
 import { formatLastActive, useUsersPage } from "@/pages/users/useUsersPage";
-import { useEffect, useRef, useState, type PointerEvent } from "react";
+import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { useRouteLoadingOverlay } from "@/features/ui-resources/useRouteLoadingOverlay";
+import { useLocation } from "react-router-dom";
 import "./mobile-users.css";
 
-const emptyFilters = {
-  roles: [] as string[],
-  statuses: [] as string[],
-  joinedFrom: "",
-  joinedTo: "",
-};
+const roleOptions = [
+  { value: "admin", label: "Admin", Icon: Shield },
+  { value: "superadmin", label: "S-Admin", Icon: ShieldCheck },
+  { value: "user", label: "User", Icon: User },
+];
 
-function MobileUsersHeading({ title, backLabel, onBack }: { title: string; backLabel: string; onBack: () => void }) {
-  return (
-    <header className="mobile-header mobile-users__heading">
-      <IconButton className="mobile-flat-icon-button mobile-header-back" aria-label={backLabel} title={backLabel} onClick={onBack}>
-        <ArrowLeft />
-      </IconButton>
-      <h1 className="mobile-users__title"><span className="mobile-page-title">{title}</span></h1>
-    </header>
-  );
+const statusOptions = [
+  { value: "active", label: "Active", Icon: null },
+  { value: "pending_approval", label: "Pending", Icon: null },
+  { value: "disabled", label: "Paused", Icon: null },
+];
+
+function RowText({ text, animate }: { text: string; animate: boolean }) {
+  return animate ? <SwappingText text={text} stagger={0.015} style={{ display: "inline", whiteSpace: "pre-wrap" }} /> : text;
+}
+
+const VisibleUserIds = createContext<ReadonlySet<string>>(new Set());
+
+function RowAvatar({ userId, status, animate, fadeIn, children }: {
+  userId: string; status: string; animate: boolean; fadeIn: boolean; children: ReactNode;
+}) {
+  const rowPresent = useIsPresent();
+  const visibleIds = useContext(VisibleUserIds);
+  if (!rowPresent && visibleIds.has(userId)) return null;
+
+  return <span className="mobile-users__avatar-swap">
+    <AnimatePresence initial={false} custom={visibleIds}>
+      <motion.span key={userId} className="mobile-users__avatar-layer" data-avatar-id={userId} data-status={status}
+        initial={animate && fadeIn ? { opacity: 0 } : false} animate={{ opacity: 1 }}
+        exit="removed" variants={{ removed: (nextIds: ReadonlySet<string>) => ({
+          opacity: 0, transition: { duration: animate && !nextIds.has(userId) ? 0.2 : 0 },
+        }) }} transition={{ duration: animate ? 0.2 : 0 }}>
+        {children}
+      </motion.span>
+    </AnimatePresence>
+  </span>;
 }
 
 export function MobileUsersPage() {
-  const { language, t, me, isAdmin, action, setAction, search, setSearch, roles, setRoles, statuses, setStatuses, joinedFrom, setJoinedFrom, joinedTo, setJoinedTo, useList, sentinel, now, isOnline, users, activeQuery, approve, reject, remove, disable, activate, updateRole, pagedUsers } = useUsersPage(true);
+  const { directoryUsers, language, t, me, isAdmin, action, setAction, search, setSearch, roles, setRoles, statuses, setStatuses, joinedFrom, setJoinedFrom, joinedTo, setJoinedTo, useList, sentinel, now, isOnline, users, activeQuery, approve, reject, remove, disable, activate, updateRole, pagedUsers } = useUsersPage(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const profileDialog = useRef<HTMLDialogElement>(null);
   const selectedUser = pagedUsers.find((user) => user.id === selectedId);
@@ -52,61 +76,102 @@ export function MobileUsersPage() {
     if (!selectedUser && !action && dialog.open) dialog.close();
   }, [selectedUser, action]);
   const [searchDraft, setSearchDraft] = useState(search);
-  const [filterDraft, setFilterDraft] = useState(emptyFilters);
-  const debouncedSearch = useDebouncedValue(searchDraft, 300);
+  const [filterDraft, setFilterDraft] = useState({ joinedFrom: "", joinedTo: "" });
+  const [openFilter, setOpenFilter] = useState<"role" | "status">("role");
+  const debouncedSearch = useDebouncedValue(searchDraft);
   const searchDialog = useRef<HTMLDialogElement>(null);
   const searchInput = useRef<HTMLInputElement>(null);
   const filterTrigger = useRef<HTMLButtonElement>(null);
-  const dismissStart = useRef<{ id: number; x: number; y: number } | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [sheetClosing, setSheetClosing] = useState(false);
+  const motionEnabled = useAnimationStore((state) => state.enabled);
+  const reducedMotion = useReducedMotion();
+  const animateSheet = motionEnabled && !reducedMotion;
+  const { path: overlayPath } = useRouteLoadingOverlay();
+  const { pathname } = useLocation();
+  const rowsCovered = overlayPath === pathname;
+  const slideAvatars = animateSheet && !rowsCovered;
+  const visibleUserIds = new Set(pagedUsers.map((user) => user.id));
+  const listRef = useRef<HTMLUListElement>(null);
+  const avatarPositions = useRef(new Map<string, { layer: HTMLElement; top: number; animation?: Animation }>());
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    const previous = avatarPositions.current;
+    const next = new Map<string, { layer: HTMLElement; top: number; animation?: Animation }>();
+    const listTop = list?.getBoundingClientRect().top ?? 0;
+
+    list?.querySelectorAll<HTMLButtonElement>("[data-avatar-user]").forEach((button, index) => {
+      const userId = pagedUsers[index]?.id;
+      if (userId === undefined || button.dataset.avatarUser !== userId) return;
+      const layer = Array.from(button.querySelectorAll<HTMLElement>("[data-avatar-id]"))
+        .find((element) => element.dataset.avatarId === userId);
+      if (!layer) return;
+
+      const top = button.getBoundingClientRect().top - listTop;
+      const old = previous.get(userId);
+      if (slideAvatars && old?.layer === layer && old.top === top) {
+        next.set(userId, old);
+        return;
+      }
+
+      let animation: Animation | undefined;
+      if (slideAvatars && old) {
+        const transform = old.animation && getComputedStyle(old.layer).transform;
+        const offset = transform && transform !== "none" ? new DOMMatrixReadOnly(transform).m42 : 0;
+        const delta = old.top + offset - top;
+        if (Math.abs(delta) > 0.5) {
+          animation = layer.animate([{ transform: `translateY(${delta}px)` }, { transform: "translateY(0)" }], {
+            duration: 240, easing: "cubic-bezier(.22, 1, .36, 1)",
+          });
+        }
+      }
+      old?.animation?.cancel();
+      next.set(userId, { layer, top, animation });
+    });
+
+    for (const [userId, old] of previous) {
+      if (!next.has(userId)) old.animation?.cancel();
+    }
+    avatarPositions.current = next;
+  });
+  const previousRowCount = useRef(pagedUsers.length);
+  const lastExitIndex = previousRowCount.current - 1;
+  useLayoutEffect(() => { previousRowCount.current = pagedUsers.length; }, [pagedUsers.length]);
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
+  useEffect(() => { if (sheetOpen) searchDialog.current?.showModal(); }, [sheetOpen]);
   useEffect(() => {
     const query = debouncedSearch.trim();
     setSearch(query.length >= 3 ? query : "");
   }, [debouncedSearch, setSearch]);
   function openFilters() {
-    const dialog = searchDialog.current;
-    if (!dialog) return;
-
-    setFilterDraft({ roles, statuses, joinedFrom, joinedTo });
+    setFilterDraft({ joinedFrom, joinedTo });
     searchInput.current?.blur();
-    const sections = dialog.querySelectorAll<HTMLDetailsElement>(".mobile-user-search__content > details");
-    sections.forEach((section, index) => { section.open = index === 0; });
-    dialog.showModal();
+    setSheetClosing(false);
+    setSheetOpen(true);
   }
 
-  function toggleDraftFilter(group: "roles" | "statuses", value: string) {
-    setFilterDraft((current) => ({
-      ...current,
-      [group]: current[group].includes(value)
-        ? current[group].filter((item) => item !== value)
-        : [...current[group], value],
-    }));
+  function finishCloseSheet() {
+    searchDialog.current?.close();
+    setSheetOpen(false);
+    setSheetClosing(false);
+    filterTrigger.current?.focus();
+  }
+
+  function closeSheet() {
+    if (animateSheet) setSheetClosing(true);
+    else finishCloseSheet();
   }
 
   function applyFilters() {
-    setRoles(filterDraft.roles);
-    setStatuses(filterDraft.statuses);
     setJoinedFrom(filterDraft.joinedFrom);
     setJoinedTo(filterDraft.joinedTo);
-    searchDialog.current?.close();
+    closeSheet();
   }
 
-  function startFilterDismiss(event: PointerEvent<HTMLDivElement>) {
-    if (event.isPrimary && event.button === 0) {
-      dismissStart.current = { id: event.pointerId, x: event.clientX, y: event.clientY };
-    }
-  }
-
-  function finishFilterDismiss(event: PointerEvent<HTMLDivElement>) {
-    const start = dismissStart.current;
-    if (start?.id !== event.pointerId) return;
-    dismissStart.current = null;
-
-    const horizontalDistance = Math.abs(event.clientX - start.x);
-    const upwardDistance = start.y - event.clientY;
-    const tapped = horizontalDistance <= 8 && Math.abs(upwardDistance) <= 8;
-    const swipedUp = event.pointerType === "touch" && upwardDistance >= 48 && upwardDistance > horizontalDistance;
-    if (tapped || swipedUp) searchDialog.current?.close();
-  }
+  const inlineFilters = [
+    { id: "role", label: "Role", Icon: Zap, options: roleOptions, selected: roles, setSelected: setRoles },
+    { id: "status", label: "Status", Icon: Unplug, options: statusOptions, selected: statuses, setSelected: setStatuses },
+  ] as const;
 
   const busy = approve.isPending || reject.isPending || activate.isPending || disable.isPending || updateRole.isPending || remove.isPending || action !== null;
   return <>
@@ -114,16 +179,70 @@ export function MobileUsersPage() {
       <form className="mobile-users__search" role="search" onSubmit={(event) => { event.preventDefault(); searchInput.current?.blur(); }}>
         <Search size={18} aria-hidden="true" />
         <input ref={searchInput} type="search" aria-label={t("Search users")} placeholder={t("Search users")} value={searchDraft} maxLength={120} onChange={(event) => { const value = event.target.value; setSearchDraft(value); if (value.trim().length < 3) setSearch(""); }} />
-        {searchDraft && <button type="button" className="mobile-users__clear" aria-label={t("Clear search")} onClick={() => { setSearchDraft(""); setSearch(""); searchInput.current?.focus(); }}><CircleX size={18} aria-hidden="true" /></button>}
-        <IconButton ref={filterTrigger} className="mobile-users__search-action" aria-label={t("Filters")} title={t("Filters")} aria-haspopup="dialog" onClick={openFilters}>
-          <SlidersHorizontal />
-        </IconButton>
+        <div className="mobile-users__action-slot">
+          <motion.div className="mobile-users__calendar-motion" initial={false}
+            animate={searchDraft ? { x: ["0%", "90%", "100%"], opacity: [1, 1, 0] } : { x: ["100%", "90%", "0%"], opacity: [0, 1, 1] }}
+            transition={{ duration: animateSheet ? .3 : 0, times: searchDraft ? [0, .9, 1] : [0, .1, 1], ease: "linear" }}>
+            <IconButton ref={filterTrigger} className="mobile-users__search-action" aria-label={t("Joined date")} title={t("Joined date")} aria-haspopup="dialog" disabled={!!searchDraft} onClick={openFilters}>
+              <CalendarDays />
+            </IconButton>
+          </motion.div>
+          <motion.button type="button" className="mobile-users__clear" aria-label={t("Clear search")} disabled={!searchDraft}
+            initial={false} animate={searchDraft ? { opacity: [0, 0, 1] } : { opacity: [1, 0, 0] }}
+            transition={{ duration: animateSheet ? .3 : 0, times: searchDraft ? [0, .85, 1] : [0, .15, 1], ease: "linear" }}
+            onClick={() => { setSearchDraft(""); setSearch(""); searchInput.current?.focus(); }}><CircleX size={18} aria-hidden="true" /></motion.button>
+        </div>
       </form>
+      {isAdmin && (
+        <div className="mobile-users__filters" data-animate={animateSheet}>
+          {inlineFilters.map(({ id, label, Icon, options, selected, setSelected }) => {
+            const expanded = openFilter === id;
+            const panelId = `mobile-users-filter-${id}`;
+            return (
+              <div key={id} className="mobile-users__filter" data-filter={id} data-expanded={expanded}>
+                <button
+                  type="button"
+                  className="mobile-users__filter-trigger"
+                  aria-expanded={expanded}
+                  aria-controls={panelId}
+                  onClick={() => setOpenFilter(id)}
+                >
+                  <Icon size={18} aria-hidden="true" />
+                  <span>{t(label)}</span>
+                </button>
+                <div id={panelId} className="mobile-users__filter-panel" aria-hidden={!expanded}>
+                  <div className="mobile-users__filter-clip">
+                    <div className="mobile-users__filter-options" role="group" aria-label={t(label)}>
+                      {options.map(({ value, label: optionLabel, Icon: OptionIcon }) => (
+                        <button
+                          key={value}
+                          type="button"
+                          disabled={!expanded}
+                          aria-pressed={selected.includes(value)}
+                          onClick={() => setSelected((current) => current.includes(value)
+                            ? current.filter((item) => item !== value)
+                            : [...current, value])}
+                        >
+                          {OptionIcon
+                            ? <OptionIcon size={18} aria-hidden="true" />
+                            : <span className="mobile-users__status-dot" data-status={value} aria-hidden="true" />}
+                          <span>{optionLabel === "S-Admin" ? optionLabel : t(optionLabel)}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
       <div className="mobile-users__content admin-users__content">
         {activeQuery.isLoading && <PageDataPlaceholder layout="users" label={t("Loading users...")} />}
         {activeQuery.isError && !pagedUsers.length && <ErrorState message={t("Could not load users.")} onRetry={() => void activeQuery.refetch()} />}
-        {activeQuery.data && (pagedUsers.length === 0 ? <EmptyState title={search.trim() || roles.length > 0 || statuses.length > 0 || joinedFrom || joinedTo ? "No matching users" : "No users yet"} hint={search.trim() || roles.length > 0 || statuses.length > 0 || joinedFrom || joinedTo ? "Try a different search." : "User accounts will appear here."} /> :
-          <ul className="mobile-users__list">{pagedUsers.map((user) => {
+        {activeQuery.data && <>
+          <VisibleUserIds.Provider value={visibleUserIds}>
+          <ul ref={listRef} className="mobile-users__list"><AnimatePresence custom={lastExitIndex}>{pagedUsers.map((user, index) => {
             const online = isOnline(user);
             const joinedDate = new Date(user.createdAt);
             const joined = Number.isNaN(joinedDate.getTime()) ? "" : joinedDate.toLocaleDateString(language === "vi" ? "vi-VN" : "en-US", {
@@ -132,59 +251,72 @@ export function MobileUsersPage() {
               day: "2-digit",
             });
             const statusLabel = user.status === "disabled" ? t("Paused") : user.status === "pending_approval" ? t("Pending") : null;
+            const joinedLabel = joined ? `${t("Joined")} ${joined}` : "";
+            const roleLabel = t(user.role.toLowerCase() === "superadmin" ? "Super admin" : user.role);
+            const swapText = slideAvatars;
+            const newAvatar = !avatarPositions.current.has(user.id);
             const elapsed = user.lastSeenAt ? Math.max(0, now - Date.parse(user.lastSeenAt)) : NaN;
             const recent = user.status === "active" && Number.isFinite(elapsed) && elapsed >= 0 && elapsed <= 6 * 60 * 60 * 1000;
             const lastActive = recent ? formatLastActive(user.lastSeenAt, language, now) : "";
-            return <li key={user.id} className="mobile-users__item" data-status={user.status}>
-              <button type="button" className="mobile-users__avatar-wrap" aria-label={user.username} onClick={() => setSelectedId(user.id)}>
+            return <motion.li key={index} className="mobile-users__item" data-status={user.status}
+              initial={animateSheet && newAvatar ? { opacity: 0 } : false} animate={{ opacity: animateSheet && rowsCovered ? 0 : 1 }}
+              variants={{ exit: (lastIndex: number) => ({ opacity: 0, transition: { duration: animateSheet ? 0.2 : 0, delay: animateSheet ? Math.max(0, lastIndex - index) * 0.06 : 0 } }) }}
+              exit="exit" transition={{ duration: animateSheet && !rowsCovered ? 0.24 : 0, delay: animateSheet && !rowsCovered ? Math.min(index, 6) * 0.04 : 0 }}>
+              <button type="button" className="mobile-users__avatar-wrap" data-avatar-user={user.id} aria-label={user.username} onClick={() => setSelectedId(user.id)}>
+                <RowAvatar userId={user.id} status={user.status} animate={slideAvatars} fadeIn={newAvatar}>
                 <UserAvatar user={user} className="mobile-users__avatar" />
-                {statusLabel && <span className="mobile-users__avatar-mask" aria-hidden="true">
+                <AnimatePresence>{statusLabel && <motion.span key={user.status} className="mobile-users__avatar-mask" aria-hidden="true" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: animateSheet ? 0.2 : 0 }}>
                   {user.status === "disabled" ? <Pause size={20} /> : (
                     <Circle size={20}>
                       <path d="M12 12l4 2" />
                       <path className="mobile-users__clock-hand" d="M12 12V6" />
                     </Circle>
                   )}
-                </span>}
+                </motion.span>}</AnimatePresence>
                 {recent && (online
                   ? <span className="mobile-users__presence mobile-users__presence--online" role="img" aria-label={t("Online")} />
                   : <span className="mobile-users__presence" aria-label={`${t("Last active")} ${lastActive}`}>{elapsed < 3600000 ? `${Math.max(1, Math.floor(elapsed / 60000))}m` : `${Math.floor(elapsed / 3600000)}h`}</span>)}
+                </RowAvatar>
               </button>
               <div className="mobile-users__details">
                 <div className="mobile-users__identity">
                   <div>
-                    <button type="button" className="mobile-users__name" onClick={() => setSelectedId(user.id)}>{user.username}</button>
+                    <button type="button" className="mobile-users__name" aria-label={user.username} onClick={() => setSelectedId(user.id)}>
+                      <RowText text={user.username} animate={swapText} />
+                    </button>
                   </div>
                   <span>
-                    {joined && <>{t("Joined")} {joined} <span aria-hidden="true">·</span>{" "}</>}
-                    {t(user.role.toLowerCase() === "superadmin" ? "Super admin" : user.role)}
-                    {statusLabel && <>{" "}<span aria-hidden="true">·</span>{"\u00a0"}<span className="mobile-users__status">{statusLabel}</span></>}
+                    <RowText text={joinedLabel ? `${joinedLabel} · ${roleLabel}` : roleLabel} animate={swapText} />
+                    <span className="mobile-users__status"><RowText text={statusLabel ? ` ·\u00a0${statusLabel}` : ""} animate={swapText} /></span>
                   </span>
                 </div>
               </div>
-            </li>;
-          })}</ul>)}
+            </motion.li>;
+          })}</AnimatePresence></ul>
+          </VisibleUserIds.Provider>
+          {pagedUsers.length === 0 && <EmptyState title={search.trim() || roles.length > 0 || statuses.length > 0 || joinedFrom || joinedTo ? "No matching users" : "No users yet"} hint={search.trim() || roles.length > 0 || statuses.length > 0 || joinedFrom || joinedTo ? "Try a different search." : "User accounts will appear here."} />}
+        </>}
         {!useList && users.isFetchNextPageError && <ErrorState message={t("Could not load more users.")} onRetry={() => void users.fetchNextPage()} />}
         {!useList && users.hasNextPage && <div ref={sentinel}>{users.isFetchingNextPage && <Spinner />}</div>}
       </div>
     </main>
-    <dialog ref={searchDialog} className="mobile-user-search" aria-label={t("Filters")} onClose={() => { searchInput.current?.blur(); filterTrigger.current?.focus(); }}>
-      <MobileUsersHeading title={t("User")} backLabel={t("Back")} onBack={() => searchDialog.current?.close()} />
-      <div className="mobile-user-search__content" onToggle={(event) => { const section = event.target; if (section instanceof HTMLDetailsElement && section.open && section.classList.contains("mobile-user-search__card")) { const joined = searchDialog.current?.querySelector<HTMLDetailsElement>(".mobile-user-search__when"); if (joined) joined.open = false; } }}>
-      <details className="mobile-user-search__card"><summary id="role-filter-heading">{t("Role")}<ChevronDown size={18} aria-hidden="true" /></summary><div className="mobile-user-search__roles" role="group" aria-labelledby="role-filter-heading">{([{ value: "superadmin", label: "S-Admin", icon: Terminal }, { value: "admin", label: "Admin", icon: UserRoundCog }, { value: "user", label: "User", icon: UserRound }] as const).map(({ value, label, icon: Icon }) => <label key={value} className="mobile-user-search__role"><input type="checkbox" checked={filterDraft.roles.includes(value)} onChange={() => toggleDraftFilter("roles", value)} /><Icon size={20} aria-hidden="true" /><span>{label}</span></label>)}</div></details>
-      <details className="mobile-user-search__card mobile-user-search__status-card"><summary id="status-filter-heading">{t("Status")}<ChevronDown size={18} aria-hidden="true" /></summary><div className="mobile-user-search__roles" role="group" aria-labelledby="status-filter-heading">{([{ value: "active", label: t("Active"), color: "active" }, { value: "pending_approval", label: t("Pending"), color: "pending" }, ...(isAdmin ? [{ value: "disabled", label: t("Paused"), color: "blocked" }] : [])]).map(({ value, label, color }) => <label key={value} className="mobile-user-search__role"><input type="checkbox" checked={filterDraft.statuses.includes(value)} onChange={() => toggleDraftFilter("statuses", value)} /><span className={`mobile-user-search__status-dot mobile-user-search__status-dot--${color}`} aria-hidden="true" /><span>{label}</span></label>)}</div></details>
-      <details className="mobile-user-search__when" onToggle={(event) => { if (event.currentTarget.open) searchDialog.current?.querySelectorAll<HTMLDetailsElement>(".mobile-user-search__card[open]").forEach((section) => { section.open = false; }); }}><summary><span>{t("Joined date")}</span><ChevronDown size={18} aria-hidden="true" /></summary><div className="mobile-user-search__dates"><DropdownRangeDatePicker from={filterDraft.joinedFrom} to={filterDraft.joinedTo} container={searchDialog} onChange={(from, to) => setFilterDraft((current) => ({ ...current, joinedFrom: from, joinedTo: to }))} /></div></details>
-      </div>
-      <div
-        aria-hidden="true"
-        className="mobile-user-search__dismiss-area"
-        onPointerDown={startFilterDismiss}
-        onPointerUp={finishFilterDismiss}
-        onPointerCancel={() => { dismissStart.current = null; }}
-        onPointerLeave={() => { dismissStart.current = null; }}
-      />
-      <div className="mobile-user-search__footer"><button type="button" onClick={() => setFilterDraft(emptyFilters)}>{t("Clear all")}</button><button type="button" onClick={applyFilters}><Search size={18} aria-hidden="true" />{t("Search")}</button></div>
-    </dialog>
+    {sheetOpen && <dialog ref={searchDialog} className="album-date-sheet mobile-users-date-sheet" aria-label={t("Joined date")}
+      onCancel={(event) => { event.preventDefault(); closeSheet(); }}>
+      <motion.div aria-hidden="true" className="album-date-sheet__scrim" initial={animateSheet ? { opacity: 0 } : false}
+        animate={{ opacity: sheetClosing ? 0 : 1 }} transition={{ duration: animateSheet ? .08 : 0, delay: sheetClosing && animateSheet ? .24 : 0 }}
+        onAnimationComplete={() => { if (sheetClosing) finishCloseSheet(); }} onClick={closeSheet} />
+      <motion.section className="album-date-sheet__panel" initial={animateSheet ? { y: "100%" } : false}
+        animate={{ y: sheetClosing ? "100%" : 0 }} transition={{ duration: animateSheet ? .24 : 0, delay: !sheetClosing && animateSheet ? .08 : 0, ease: sheetClosing ? "easeIn" : "easeOut" }}>
+        <header className="album-date-sheet__header" onTouchStart={(event) => { const touch = event.touches[0]; touchStart.current = { x: touch.clientX, y: touch.clientY }; }}
+          onTouchEnd={(event) => { const start = touchStart.current; touchStart.current = null; const touch = event.changedTouches[0]; if (start && touch.clientY - start.y >= 64 && touch.clientY - start.y > Math.abs(touch.clientX - start.x)) closeSheet(); }}>
+          <span className="album-date-sheet__handle" aria-hidden="true" /><h2>{t("Joined date")}</h2>
+        </header>
+        <div className="album-date-sheet__body"><DropdownRangeDatePicker from={filterDraft.joinedFrom} to={filterDraft.joinedTo} container={searchDialog} markedDates={directoryUsers.filter((user) => user.id !== me?.id && user.status !== "rejected").map((user) => user.createdAt)} onChange={(from, to) => setFilterDraft((current) => ({ ...current, joinedFrom: from, joinedTo: to }))} /></div>
+        <footer className="album-date-sheet__footer mobile-users-date-sheet__footer">
+          <button type="button" onClick={applyFilters}>{t("Done")}</button>
+        </footer>
+      </motion.section>
+    </dialog>}
     <dialog ref={profileDialog} className="mobile-user-profile" aria-label={selectedUser?.username} onClose={() => setSelectedId(null)}>
       {selectedUser && <><div className="mobile-user-profile__hero">
         <UserAvatar user={selectedUser} className="mobile-user-profile__image" />

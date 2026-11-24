@@ -47,10 +47,10 @@ export const albumService = {
     return api(`/api/library/album/${albumId}/favorite`, { method: "DELETE" });
   },
 
-  media(albumId: string, offset = 0, limit = 20, mediaKind?: MediaKindFilter): Promise<PagedMedia> {
+  media(albumId: string, offset = 0, limit = 20, mediaKind?: MediaKindFilter, signal?: AbortSignal): Promise<PagedMedia> {
     const params = new URLSearchParams({ offset: String(offset), limit: String(limit) });
     if (mediaKind) params.set("mediaKind", mediaKind);
-    return api(`/api/library/album/${albumId}/media?${params.toString()}`);
+    return api(`/api/library/album/${albumId}/media?${params.toString()}`, { signal });
   },
 
   create(input: CreateAlbumInput): Promise<Album> {

@@ -4,3 +4,7 @@ description: "Select media or upload preview drafts."
 ---
 
 The web and mobile photo pickers use existing library media or preview drafts. File selection is available on the Previews tab and creates a draft through previewService. Unused drafts are released when the picker closes.
+
+Selected-image and preview-list queries forward cancellation signals to their requests.
+
+Scrolling near the end requests the next page at most once per 100 ms. The trailing check uses the latest source and scroll position, and unmount cancels it. Loading and failed pages do not trigger duplicate pagination.

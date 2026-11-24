@@ -124,7 +124,7 @@ describe("HomePage", () => {
 
   it("loads five media items for visible albums", async () => {
     await renderPage();
-    await vi.waitFor(() => expect(albumService.media).toHaveBeenCalledWith("own-album", 0, 5, undefined));
+    await vi.waitFor(() => expect(albumService.media).toHaveBeenCalledWith("own-album", 0, 5, undefined, expect.any(AbortSignal)));
     await vi.waitFor(() => expect(container.querySelectorAll(".album-feed-post img")).toHaveLength(2));
     expect(container.querySelectorAll("video")).toHaveLength(0);
     expect(container.querySelector('a[href="/album/own-album"]')).toBeNull();
@@ -165,7 +165,7 @@ describe("HomePage", () => {
     for (let index = 0; index < 5; index++) {
       await act(async () => preview().dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true })));
     }
-    await vi.waitFor(() => expect(albumService.media).toHaveBeenCalledWith("own-album", 5, 5, undefined));
+    await vi.waitFor(() => expect(albumService.media).toHaveBeenCalledWith("own-album", 5, 5, undefined, expect.any(AbortSignal)));
     await vi.waitFor(() => expect(preview().textContent).toContain("6 / 6"));
     await act(async () => preview().dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true })));
     expect(preview().textContent).toContain("5 / 6");

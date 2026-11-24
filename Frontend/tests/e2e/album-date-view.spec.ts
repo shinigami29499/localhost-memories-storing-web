@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Locator } from "@playwright/test";
 
 test.use({ timezoneId: "Asia/Ho_Chi_Minh" });
 
@@ -31,11 +31,21 @@ for (const width of [390, 1280]) {
       album("next-month", "December album", "2026-12-01T04:00:00Z"),
     ];
     let feedRequests = 0;
+    let releaseOlderPage!: () => void;
+    const olderPageReady = new Promise<void>((resolve) => { releaseOlderPage = resolve; });
     await page.route(/^https?:\/\/[^/]+\/hubs\//, (route) => route.abort());
-    await page.route(/^https?:\/\/[^/]+\/api\//, (route) => {
+    await page.route(/^https?:\/\/[^/]+\/api\//, async (route) => {
       const path = new URL(route.request().url()).pathname;
       if (path === "/api/library/album/page") {
         feedRequests++;
+        if (new URL(route.request().url()).searchParams.has("cursor")) {
+          if (width === 390) await olderPageReady;
+          return route.fulfill({ json: {
+            items: Array.from({ length: 5 }, (_, index) =>
+              album(`older-${index}`, "February album", "2024-02-14T04:00:00Z")),
+            hasMore: false, nextCursor: null,
+          } });
+        }
         return route.fulfill({ json: { items, hasMore: true, nextCursor: "more" } });
       }
 
@@ -53,11 +63,27 @@ for (const width of [390, 1280]) {
 
     await page.goto("/album");
     const bar = page.getByRole("group", { name: "Album dates" });
+    const monthTrigger = bar.getByRole("button", { name: "November 2026" });
     const featured = page.getByRole("link", { name: "Open album Mountain weekend" });
     const compact = page.locator("button.album-date-card--compact:not([inert] *)");
     const today = bar.getByRole("button", { name: "Saturday, November 21, 2026" });
     await expect(today).toHaveAttribute("aria-pressed", "true", { timeout: 15_000 });
     await expect(today).toHaveAttribute("data-has-albums", "true");
+    const mobileApp = await page.locator(".mobile-albums-page").count() > 0;
+    if (!mobileApp && width === 390) {
+      await monthTrigger.tap();
+      const sheet = page.getByRole("dialog", { name: "Select date" });
+      const panel = sheet.locator("section");
+      await expect(sheet.getByRole("grid")).toBeVisible();
+      await expect(panel).toHaveCSS("transform", "none");
+      const restingBounds = await panel.boundingBox();
+      await expect(sheet.getByRole("button", { name: "Done" })).toBeDisabled();
+      releaseOlderPage();
+      await expect(sheet.getByRole("button", { name: "Done" })).toBeEnabled();
+      expect(await panel.boundingBox()).toEqual(restingBounds);
+      await page.keyboard.press("Escape");
+      await expect(sheet).toBeHidden();
+    }
     await expect(featured).toBeVisible();
     await expect(compact).toHaveAttribute("aria-label", "Next album: The coast");
     const pressPreview = compact.locator(".album-date-card__preview");
@@ -94,7 +120,6 @@ for (const width of [390, 1280]) {
     const featuredOwner = page.locator(".album-date-card--featured .album-date-card__owner");
     const frame = page.getByRole("article").filter({ has: title });
     await expect(frame).toHaveCSS("padding-inline-start", "12px");
-    const mobileApp = await page.locator(".mobile-albums-page").count() > 0;
     const ownerLabel = mobileApp ? featuredOwner.locator(".sr-only") : featuredOwner;
     await expect(ownerLabel).toHaveText("Alex");
     await expect(frame.getByRole("link", { name: "Open album Mountain weekend" })).toBeVisible();
@@ -106,7 +131,6 @@ for (const width of [390, 1280]) {
     await expect(compact).toBeVisible();
     await expect(page.getByRole("heading", { name: "Discover" })).toHaveCount(0);
     await expect(page.getByRole("heading", { name: "Third album" })).toHaveCount(0);
-    const loadedRequests = feedRequests;
     const rail = bar.locator(".album-date-view__days");
     const bounds = (await rail.boundingBox())!;
     const gallery = (await page.getByRole("main", { name: "Album" }).boundingBox())!;
@@ -137,20 +161,7 @@ for (const width of [390, 1280]) {
     await expect.poll(() => rail.evaluate((element) => element.scrollLeft)).toBeLessThan(initialLeft - 50);
     await expect(today).toHaveAttribute("aria-pressed", "true");
 
-    if (width === 390 && mobileApp) {
-      const touch = await page.context().newCDPSession(page);
-      const x = bounds.x + bounds.width / 2;
-      const y = bounds.y + bounds.height / 2;
-      for (const direction of [1, -1]) {
-        await touch.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
-        for (let offset = 20; offset <= 100; offset += 20)
-          await touch.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x + direction * offset, y }] });
-        await touch.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
-        const selected = rail.locator(`[data-date="2026-11-${direction === 1 ? "20" : "21"}"]`);
-        await expect(selected).toHaveAttribute("aria-pressed", "true");
-      }
-      await touch.detach();
-    } else if (width === 390) {
+    if (width === 390) {
       const touchLeft = await rail.evaluate((element) => element.scrollLeft);
       const touch = await page.context().newCDPSession(page);
       const x = bounds.x + bounds.width / 2;
@@ -161,7 +172,151 @@ for (const width of [390, 1280]) {
       await touch.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
       await expect.poll(() => rail.evaluate((element) => element.scrollLeft)).toBeGreaterThan(touchLeft + 40);
       await expect(today).toHaveAttribute("aria-pressed", "true");
+      await touch.detach();
     }
+
+    if (mobileApp) {
+      const monthLabel = bar.getByText("November 2026", { exact: true });
+      await expect(monthLabel).toBeVisible();
+      await expect(monthTrigger).toHaveCount(0);
+      await monthLabel.click();
+      await expect(page.getByRole("dialog", { name: "Select date" })).toHaveCount(0);
+    } else {
+      await monthTrigger.click();
+      const picker = page.getByRole("dialog", { name: "Select date" });
+      const yearField = picker.getByRole("combobox", { name: "Year" });
+      const monthField = picker.getByRole("combobox", { name: "Month" });
+      const done = picker.getByRole("button", { name: "Done" });
+      const singleAlbumDay = picker.getByRole("button", { name: /November 19th, 2026.*1 album/ });
+      const occupiedDay = picker.getByRole("button", { name: /November 20th, 2026.*2 albums/ });
+      const selectedDay = picker.getByRole("button", { name: /November 21st, 2026, selected/ });
+      const outlineStyle = (day: Locator, property: string) => day.evaluate((element, name) =>
+        getComputedStyle(element, "::after").getPropertyValue(name), property);
+      const centeringError = (option: Locator) => option.evaluate((item) => {
+        const popup = item.closest<HTMLElement>(".select-field__popup")!;
+        const bounds = item.getBoundingClientRect();
+        const viewportCenter = popup.getBoundingClientRect().top + popup.clientTop + popup.clientHeight / 2;
+        const ideal = popup.scrollTop + bounds.top + bounds.height / 2 - viewportCenter;
+        const clamped = Math.min(popup.scrollHeight - popup.clientHeight, Math.max(0, ideal));
+        return Math.abs(popup.scrollTop - clamped);
+      });
+      const fields = picker.getByRole("combobox");
+      await expect(fields.nth(0)).toHaveAccessibleName("Month");
+      await expect(fields.nth(1)).toHaveAccessibleName("Year");
+      await expect(picker.locator(".album-date-sheet__fields .select-field__label").first())
+        .toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+      await expect(picker.getByRole("grid")).toHaveCount(1);
+      await expect(picker.getByRole("button", { name: /November 22nd, 2026/ })).toBeDisabled();
+      await expect(done).toHaveClass(/btn--primary/);
+      await expect(done).toHaveCSS("border-top-width", "0px");
+      const footer = picker.locator("footer");
+      await expect(footer).toHaveCSS("border-top-width", "0px");
+      await expect(footer).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+      await expect(footer).toHaveCSS("box-shadow", "none");
+      await expect(singleAlbumDay).toHaveCSS("background-color", "rgb(54, 36, 23)");
+      await expect(occupiedDay.locator("..")).toHaveClass(/album-date-sheet__heat-2/);
+      await expect(occupiedDay).toHaveCSS("background-color", "rgb(111, 94, 84)");
+      await expect(occupiedDay).toHaveCSS("color", "rgb(255, 255, 255)");
+      await expect(singleAlbumDay).toHaveCSS("box-shadow", "none");
+      await expect(picker.getByRole("grid")).toHaveCSS("border-spacing", "4px 3px");
+      await expect(selectedDay).toHaveCSS("background-color", "rgb(255, 255, 255)");
+      await expect(selectedDay).toHaveCSS("color", "rgb(34, 34, 34)");
+      expect(await outlineStyle(selectedDay, "background-image")).toMatch(
+        /conic-gradient.*rgb\(59, 130, 246\).*rgb\(168, 85, 247\).*rgb\(236, 72, 153\)/,
+      );
+      if (width === 1280) {
+        await expect(occupiedDay).toHaveCSS("transition-property", "background-color, color");
+        await occupiedDay.hover();
+        await expect(occupiedDay).toHaveCSS("background-color", /color\(srgb 0\.503/);
+        await expect(occupiedDay).toHaveCSS("color", "rgb(255, 255, 255)");
+        await page.mouse.move(1, 1);
+        await occupiedDay.focus();
+        await expect(occupiedDay).toHaveCSS("background-color", "rgb(111, 94, 84)");
+        await occupiedDay.click();
+        await expect(occupiedDay.locator("..")).toHaveAttribute("aria-selected", "true");
+        await expect(picker.getByRole("button", { name: /Today.*November 21st, 2026/ }))
+          .toHaveCSS("border-top-color", "rgba(0, 0, 0, 0)");
+        await expect(occupiedDay).toHaveCSS("background-color", /color\(srgb 0\.503/);
+        expect(await outlineStyle(occupiedDay, "animation-name")).toBe("album-date-outline-spin");
+        const angle = await outlineStyle(occupiedDay, "--album-date-outline-angle");
+        await expect.poll(() => outlineStyle(occupiedDay, "--album-date-outline-angle")).not.toBe(angle);
+        await page.emulateMedia({ reducedMotion: "reduce" });
+        await expect(occupiedDay).toHaveCSS("transition-duration", "0s");
+        expect(await outlineStyle(occupiedDay, "animation-name")).toBe("none");
+        expect(await outlineStyle(occupiedDay, "background-image")).toMatch(/^conic-gradient/);
+        await page.emulateMedia({ reducedMotion: "no-preference" });
+      }
+      await expect(yearField).toHaveCSS("box-shadow", /inset.*inset/);
+      await yearField.click();
+      await expect(yearField).toHaveCSS("box-shadow", /-1px 4px.*4px 8px/);
+      await expect(yearField).not.toHaveCSS("box-shadow", /inset/);
+      await expect(yearField).toHaveCSS("background-color", "rgb(255, 255, 255)");
+      const years = picker.getByRole("option").filter({ hasText: /^\d{4}/ });
+      await expect(years).toHaveCount(7);
+      await expect(years.first()).toContainText("2020");
+      await expect(years.last()).toContainText("2026");
+      await expect.poll(() => centeringError(years.last())).toBeLessThan(2);
+      await expect(years.filter({ hasText: "2024" }).getByRole("img", { name: "Has albums" })).toBeVisible();
+      await expect(years.filter({ hasText: "2025" }).getByRole("img")).toHaveCount(0);
+      await years.filter({ hasText: "2024" }).click();
+      await monthField.click();
+      const months = picker.getByRole("option").filter({ hasNotText: /^\d{4}/ });
+      await expect(months).toHaveCount(12);
+      await expect(months.first()).toContainText("January");
+      const june = months.filter({ hasText: /^June/ });
+      await june.click();
+      await monthField.click();
+      await expect(june).toHaveAttribute("aria-selected", "true");
+      await expect.poll(() => centeringError(june)).toBeLessThan(2);
+      await months.filter({ hasText: "February" }).click();
+      const busiestDay = picker.getByRole("button", { name: /February 14th, 2024, 5 albums/ });
+      await expect(busiestDay.locator("..")).toHaveClass(/album-date-sheet__heat-3/);
+      await expect(busiestDay).toHaveCSS("background-color", "rgb(241, 218, 191)");
+      await expect(picker.getByRole("button", { name: /previous month/i })).toBeEnabled();
+      await yearField.click();
+      await years.filter({ hasText: "2026" }).click();
+      await monthField.click();
+      await expect(months).toHaveCount(12);
+      await expect(months.last()).toContainText("December");
+      await months.last().click();
+      await expect(picker.getByRole("grid", { name: "December 2026" })).toBeVisible();
+      await expect(picker.getByRole("button", { name: /December 1st, 2026/ })).toBeDisabled();
+      await expect(picker.getByRole("button", { name: /next month/i })).toBeDisabled();
+      await picker.getByRole("button", { name: /previous month/i }).click();
+      await picker.getByRole("button", { name: /previous month/i }).click();
+      await picker.getByRole("button", { name: "Saturday, October 31st, 2026, 1 album" }).click();
+      await expect(picker.getByRole("gridcell", { selected: true })).toHaveCount(1);
+      await expect(bar.locator(".album-date-view__month-trigger")).toHaveText("November 2026");
+      await done.click();
+      await expect(picker).toBeHidden();
+      await expect(bar.getByRole("button", { name: "October 2026" })).toBeFocused();
+      await expect(page.getByRole("link", { name: "Open album October album" })).toBeVisible();
+      await bar.getByRole("button", { name: "October 2026" }).click();
+      await picker.getByRole("button", { name: /next month/i }).click();
+      await picker.getByRole("button", { name: /November 21st, 2026, 3 albums/ }).click();
+      await done.click();
+      await expect(today).toHaveAttribute("aria-pressed", "true");
+      await monthTrigger.click();
+      await picker.locator(".album-date-sheet__scrim").click({ position: { x: 4, y: 4 } });
+      await expect(picker).toBeHidden();
+      if (width === 390) {
+        await monthTrigger.click();
+        const header = picker.locator("header");
+        await expect(picker.locator("section")).toHaveCSS("transform", "none");
+        const box = (await header.boundingBox())!;
+        const touch = await page.context().newCDPSession(page);
+        const x = box.x + box.width / 2;
+        const y = box.y + box.height / 2;
+        await touch.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
+        for (let offset = 20; offset <= 100; offset += 20) {
+          await touch.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x, y: y + offset }] });
+        }
+        await touch.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+        await expect(picker).toBeHidden();
+        await touch.detach();
+      }
+    }
+    const loadedRequests = feedRequests;
 
     const positionAtGutter = (date: string, side: "left" | "right", beyond: number) =>
       rail.evaluate((element, { date, side, beyond }) => {
@@ -397,6 +552,19 @@ for (const width of [390, 1280]) {
         await page.mouse.up();
         await expect(mainSlot.getByRole("heading", { name })).toBeVisible();
       }
+      if (width === 390) {
+        const touch = await page.context().newCDPSession(page);
+        const subBounds = (await secondarySlot.boundingBox())!;
+        const x = subBounds.x + subBounds.width / 2;
+        const y = subBounds.y + subBounds.height / 2;
+        await touch.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
+        for (let dx = 20; dx <= 80; dx += 20) {
+          await touch.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x + dx, y }] });
+        }
+        await touch.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+        await expect(mainSlot.getByRole("heading", { name: "City mornings" })).toBeVisible();
+        await touch.detach();
+      }
     }
 
     const yesterday = bar.getByRole("button", { name: "Friday, November 20, 2026" });
@@ -469,7 +637,7 @@ for (const width of [390, 1280]) {
   });
 }
 
-test("mobile album Add bar preserves the queue and Move up returns to the first album", async ({ page }) => {
+test("mobile album center Add button preserves the queue and Move up returns to the first album", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 800 });
   await page.clock.setFixedTime(new Date("2026-11-21T04:00:00Z"));
   const owner = { id: "viewer", username: "Alex", role: "user", status: "active", createdAt: "" };
@@ -498,11 +666,18 @@ test("mobile album Add bar preserves the queue and Move up returns to the first 
   const create = page.getByRole("button", { name: "Add album", exact: true });
   const pageTitle = page.getByRole("banner").getByRole("heading", { name: "Album" }).locator(".mobile-page-title");
   const navigation = page.getByRole("navigation", { name: "Main navigation" });
+  await expect(navigation.getByRole("button", { name: "Add album" })).toHaveCount(1);
   const moveUp = page.locator(".album-date-view__move-up");
-  const arrow = moveUp.locator("svg");
+  const arrow = moveUp.locator(".album-date-view__move-up-arrow");
+  const progress = moveUp.locator(".album-date-view__move-up-progress");
+  const count = moveUp.locator(".album-date-view__move-up-count");
+  const animatedCount = count.locator('[data-slot="sliding-number"] > .sr-only, [data-slot="swapping-text"] > .sr-only');
+  const digitOffset = (digit: string) => count.locator('[data-slot="sliding-number-display"]').filter({ hasText: digit })
+    .evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).m42);
   const first = page.getByRole("heading", { name: "First", exact: true });
   await expect(create).toBeVisible();
-  await expect(create.locator("svg.lucide-plus")).toHaveCount(1);
+  await expect(create.locator("svg")).toHaveCSS("width", "24px");
+  await expect(create.locator("svg line")).toHaveCount(2);
   for (const gradient of [pageTitle, create]) {
     await expect(gradient).toHaveCSS("animation-name", "mobile-gradient-flow");
     await expect(gradient).toHaveCSS("animation-timing-function", "linear");
@@ -521,71 +696,128 @@ test("mobile album Add bar preserves the queue and Move up returns to the first 
   }
   await expect(create).toHaveCSS("background-origin", "border-box");
   const buttonGradient = await create.evaluate((element) => getComputedStyle(element).backgroundImage);
-  await create.hover();
+  const plusLine = create.locator("svg line").last();
+  const transform = () => plusLine.evaluate((line) => getComputedStyle(line).transform);
+  const initialTransform = await transform();
+  await create.hover({ position: { x: 6, y: 28 } });
+  await expect.poll(transform).not.toBe(initialTransform);
   await expect(create).toHaveCSS("background-image", buttonGradient);
   await expect(create).toHaveCSS("animation-name", "mobile-gradient-flow");
   await page.mouse.move(1, 1);
+  await expect.poll(transform).toBe(initialTransform);
   await page.evaluate(() => { document.documentElement.dataset.motion = "off"; });
   for (const gradient of [pageTitle, create]) {
     await expect(gradient).toHaveCSS("animation-name", "mobile-gradient-flow");
     await expect(gradient).toHaveCSS("animation-duration", "4s");
   }
   await page.evaluate(() => { document.documentElement.dataset.motion = "on"; });
-  await expect(moveUp).toBeHidden();
+  await expect(moveUp).toBeVisible();
+  await expect(animatedCount).toHaveText(["1", "of 3"]);
+  await expect.poll(() => digitOffset("2")).toBeGreaterThan(0);
+  await expect(arrow).toHaveCSS("opacity", "0");
   const button = (await create.boundingBox())!;
   const queue = (await page.locator(".album-date-view__queue").boundingBox())!;
   const nav = (await navigation.boundingBox())!;
-  expect(button.x).toBeCloseTo(nav.x);
-  expect(button.width).toBeCloseTo(nav.width);
-  expect(button.height).toBeLessThan(nav.height);
-  expect(button.y).toBeGreaterThan(queue.y + queue.height);
-  expect(button.y + button.height).toBeLessThan(nav.y);
+  expect(button.x + button.width / 2).toBeCloseTo(nav.x + nav.width / 2, 0);
+  expect(nav.height).toBe(56);
+  expect(button.width).toBe(nav.height);
+  expect(button.height).toBe(nav.height);
+  expect(button.y).toBeCloseTo(nav.y, 0);
+  await expect(create).toHaveText("");
+  const month = page.locator(".album-date-view__month-label");
+  await expect(month).toHaveText("November 2026");
+  await month.click();
+  await expect(page.getByRole("dialog", { name: "Select date" })).toHaveCount(0);
   for (const colorScheme of ["dark", "light"] as const) {
     await page.emulateMedia({ colorScheme });
     await expect(page.locator("html")).toHaveAttribute("data-mobile-theme", colorScheme);
     await expect(pageTitle).toHaveCSS("background-image", /linear-gradient.*rgb\(59, 130, 246\).*rgb\(236, 72, 153\)/);
     await expect(create).toHaveCSS("background-image", /linear-gradient.*rgb\(147, 51, 234\).*rgb\(190, 24, 93\)/);
     await expect(create).toHaveCSS("color", "rgb(255, 255, 255)");
-    for (const property of ["box-shadow", "border-radius"]) {
-      await expect(create).toHaveCSS(property, await navigation.evaluate((element, name) =>
-        getComputedStyle(element).getPropertyValue(name), property));
-    }
+    await expect(create).toHaveCSS("border-radius", "50%");
+    const buttonShadow = colorScheme === "light"
+      ? /rgba\(0, 0, 0, 0\.1\).*rgba\(0, 0, 0, 0\.2\)/
+      : await navigation.evaluate((element) => getComputedStyle(element).boxShadow);
+    await expect(create).toHaveCSS("box-shadow", buttonShadow);
   }
   await page.getByRole("button", { name: "Next album: Second" }).click();
-  await expect(moveUp).toHaveCSS("opacity", "1");
-  await expect(arrow).toHaveCSS("animation-name", "none");
-  await moveUp.hover();
-  await expect(arrow).toHaveCSS("animation-name", "album-move-up-arrow");
-  await page.mouse.move(1, 1);
-  await expect(arrow).toHaveCSS("animation-name", "none");
+  await expect(animatedCount).toHaveText(["2", "of 3"]);
+  await expect.poll(async () => Math.abs(await digitOffset("2"))).toBeLessThan(0.5);
+  await expect(moveUp).toHaveAccessibleDescription("2 of 3");
+  expect(Number(await progress.getAttribute("stroke-dashoffset"))).toBeCloseTo(1 / 3);
+  await expect(progress).toHaveCSS("transition-property", "stroke-dashoffset");
+  const [segment, gap] = (await moveUp.locator("mask circle").getAttribute("stroke-dasharray"))!.split(" ").map(Number);
+  expect(gap).toBeGreaterThan(0);
+  expect(segment + gap).toBeCloseTo(1 / 3);
+  await expect(moveUp).toHaveCSS("width", "64px");
+  await expect(moveUp).toHaveCSS("height", "64px");
+  const menuLabelSize = await navigation.getByRole("link", { name: "Album" })
+    .evaluate((tab) => getComputedStyle(tab).fontSize);
+  await expect(count).toHaveCSS("font-size", menuLabelSize);
+  await expect(arrow).toHaveCSS("width", "28px");
+  await expect(moveUp).toHaveCSS("background-color", "rgb(255, 255, 255)");
+  await expect(moveUp).toHaveCSS("box-shadow", "none");
+  await expect(progress).toHaveCSS("stroke", "rgb(0, 0, 0)");
+  await expect(count.locator(":scope > span").last()).toHaveCSS("color", "rgb(75, 75, 75)");
   await page.getByRole("button", { name: "Next album: Third" }).click();
-  await expect(moveUp).toBeVisible();
+  await expect(animatedCount).toHaveText(["3", "of 3"]);
+  await expect(progress).toHaveAttribute("stroke-dashoffset", "0");
+  await expect.poll(() => digitOffset("2")).toBeLessThan(-5);
+  await moveUp.press("ArrowDown");
+  await expect(animatedCount).toHaveText(["2", "of 3"]);
+  await expect.poll(async () => Math.abs(await digitOffset("2"))).toBeLessThan(0.5);
+  await moveUp.press("ArrowUp");
+  await expect(animatedCount).toHaveText(["3", "of 3"]);
+  await page.emulateMedia({ colorScheme: "dark" });
+  await expect(progress).toHaveCSS("stroke", "rgb(255, 255, 255)");
+  await expect(moveUp).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await expect(moveUp).toHaveCSS("box-shadow", "none");
+  await expect(count.locator(":scope > span").last()).toHaveCSS("color", "rgb(205, 205, 205)");
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.setViewportSize({ width: 320, height: 390 });
+  await mobile.evaluate((element) => { element.scrollTop = element.scrollHeight; });
+  await expect(moveUp).toBeInViewport({ ratio: 1 });
+  const moveUpBounds = (await moveUp.boundingBox())!;
+  expect(moveUpBounds.y + moveUpBounds.height).toBeLessThan((await navigation.boundingBox())!.y);
+  await page.setViewportSize({ width: 390, height: 800 });
+  const third = page.getByRole("heading", { name: "Third", exact: true });
+  await moveUp.click();
+  await expect(moveUp).toHaveAccessibleName("Move up");
+  await expect(third).toBeVisible();
+  await expect(arrow).toHaveCSS("transition-property", "opacity");
+  await expect(arrow).toHaveCSS("opacity", "1");
+  await expect(count).toHaveCSS("opacity", "0");
+  await expect(moveUp).toHaveAccessibleName("Show Move up");
+  await expect(arrow).toHaveCSS("opacity", "0");
+  await expect(count).toHaveCSS("opacity", "1");
+  await expect(third).toBeVisible();
+
   await page.emulateMedia({ reducedMotion: "reduce" });
   await expect(pageTitle).toHaveCSS("animation-name", "none");
   await expect(create).toHaveCSS("animation-name", "none");
   await expect(create).toHaveCSS("background-image", buttonGradient);
-  await moveUp.hover();
-  await expect(arrow).toHaveCSS("animation-name", "none");
+  await create.hover({ position: { x: 6, y: 28 } });
+  await expect.poll(transform).toBe(initialTransform);
+  await expect(progress).toHaveCSS("transition-duration", "0s");
+  await expect(arrow).toHaveCSS("transition-duration", "0s");
+  await expect(count.locator('[data-slot="sliding-number"]')).toHaveCount(0);
+  await moveUp.click();
+  await expect(third).toBeVisible();
   await moveUp.click();
   await expect(first).toBeVisible();
-  await expect(moveUp).toHaveCSS("opacity", "0");
-  await expect(moveUp).toBeHidden();
+  await expect(moveUp).toBeVisible();
+  await expect(count).toHaveText("1 of 3");
+  await expect(moveUp).toHaveAccessibleName("Show Move up");
   await page.emulateMedia({ reducedMotion: "no-preference" });
   expect(await page.locator(".album-date-view__queue").boundingBox()).toEqual(queue);
   for (const height of [520, 390]) {
     await page.setViewportSize({ width: 390, height });
     const preview = (await page.locator(".album-date-card--featured .album-date-card__preview").boundingBox())!;
     expect(preview.height, `preview height at ${height}px`).toBeGreaterThan(16);
-    await mobile.evaluate((element) => { element.scrollTop = 0; });
-    const touch = await page.context().newCDPSession(page);
-    await touch.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: 5, y: 250 }] });
-    await touch.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: 5, y: 150 }] });
-    await touch.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
-    await touch.detach();
-    await expect.poll(() => mobile.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+    const beforeScroll = await create.boundingBox();
     await mobile.evaluate((element) => { element.scrollTop = element.scrollHeight; });
-    const action = (await create.boundingBox())!;
-    expect(action.y + action.height).toBeLessThanOrEqual((await navigation.boundingBox())!.y);
+    expect(await create.boundingBox()).toEqual(beforeScroll);
+    await expect(create).toBeInViewport();
   }
   await page.setViewportSize({ width: 390, height: 800 });
   await create.hover();
@@ -723,11 +955,33 @@ test("both mobile album placeholders fade out on an empty result", async ({ page
   await expect(placeholders).toHaveCount(0);
   await expect(mobile.locator(".empty-state")).toBeVisible();
   await expect(mobile.locator(".empty-state__action")).toHaveCount(0);
-  const create = page.locator(".mobile-albums-page__create");
+  const create = page.getByRole("navigation", { name: "Main navigation" }).getByRole("button", { name: "Add album" });
   await expect(create).toBeVisible();
-  await expect(create).toHaveText("Add album");
+  await expect(create).toHaveText("");
   await create.click();
   await expect(page.getByRole("dialog", { name: "New album" })).toBeVisible();
+});
+
+test("shared button variants keep their labels plain on hover", async ({ page }) => {
+  await page.goto("/login");
+  await page.locator("button").first().waitFor();
+  const variants = ["btn--primary", "btn--secondary", "btn--ghost", "dialog-action"];
+  await page.evaluate((classes) => {
+    const controls = document.createElement("div");
+    controls.style.cssText = "position:fixed;z-index:200000;inset:10px auto auto 10px;display:grid;gap:4px";
+    classes.forEach((variant) => {
+      const button = document.createElement("button");
+      button.className = `btn ${variant}`;
+      button.textContent = variant;
+      controls.append(button);
+    });
+    document.body.append(controls);
+  }, variants);
+  for (const name of variants) {
+    const button = page.getByRole("button", { name, exact: true });
+    await button.hover();
+    await expect(button).toHaveCSS("text-decoration-line", "none");
+  }
 });
 
 test("shared button press feedback respects input and motion settings", async ({ page }) => {

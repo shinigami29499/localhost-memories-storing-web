@@ -11,3 +11,6 @@ description: "Current behavior of GET /api/library/album."
 - Flow: Returns collections for scope mine, public, or all. Only administrators can request all; the optional media filter, viewer-specific album favorite state, and preview favorite state are applied.
 - Output: Each album includes its nullable calendar `albumDate` and audited `createdAt`.
 - Source: `Backend/Apis/Controllers/CollectionsController.cs` (GetCollectionsAsync); `Backend/Infrastructures/Data/ApplicationServices/CollectionService.cs`.
+
+- Contributors: Up to five distinct owners of active media, ordered by user ID, include username and avatar seed. Empty albums return an empty list.
+- Counts: `imageCount` and `videoCount` count active album media by kind.

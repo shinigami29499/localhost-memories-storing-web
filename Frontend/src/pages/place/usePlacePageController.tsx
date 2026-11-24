@@ -10,6 +10,7 @@ import { useHomeLocation } from "../../features/locations/hooks/useHomeLocation"
 import { useLocations } from "../../features/locations/hooks/useLocations";
 import { useMapBounds } from "../../features/locations/hooks/useMapBounds";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
+import { UI_TIMING } from "../../config/uiTiming";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { inDateRange } from "../../utils/dateRange";
 import { cityFromAddress } from "../../features/place/cityFromAddress";
@@ -216,15 +217,18 @@ export function usePlacePageController() {
   const [placeSearch, setPlaceSearch] = useState("");
   const debouncedSearch = useDebouncedValue(placeSearch);
   const [minimumRating, setMinimumRating] = useState(0);
+  const debouncedRating = useDebouncedValue(minimumRating, UI_TIMING.FILTER_DEBOUNCE);
   const [historySearch, setHistorySearch] = useState("");
   const [historyMinimumRating, setHistoryMinimumRating] = useState(0);
+  const debouncedHistorySearch = useDebouncedValue(historySearch);
+  const debouncedHistoryRating = useDebouncedValue(historyMinimumRating, UI_TIMING.FILTER_DEBOUNCE);
   const activeRating = view === "history" ? historyMinimumRating : minimumRating;
   const setActiveRating = view === "history" ? setHistoryMinimumRating : setMinimumRating;
   const historySentinel = useRef<HTMLDivElement>(null);
   const [photoSelection, setPhotoSelection] = useState<{ id: string; draft: PickedLocation | null; editing: boolean } | null>(null);
   const { bounds: mapBounds, update: handleMapBounds } = useMapBounds();
   const { media: photos, query: photosQuery } = useLocations(!saved, photoSelection ? [photoSelection.id] : [], mapBounds);
-  const savedPlaces = useInfinitePlaces(view === "saved" && !hasLocationFilters, debouncedSearch, minimumRating);
+  const savedPlaces = useInfinitePlaces(view === "saved" && !hasLocationFilters, debouncedSearch, debouncedRating);
   const allPlaces = usePlaces(view === "saved" && !isMobile);
   const mapPlacesQuery = useInfiniteMapPlaces(!saved, mapBounds);
   const query = saved ? (hasLocationFilters ? allPlaces : savedPlaces) : mapPlacesQuery;
@@ -233,25 +237,26 @@ export function usePlacePageController() {
   const checkInMutation = useCheckInPlace();
   const removeVisitMutation = useDeletePlaceVisit();
   const [editor, setEditor] = useState<EditorState | null>(null);
+  const submitPending = useRef(false);
   const [editorOpen, setEditorOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(() => !saved ? (location.state as { focusPlaceId?: string } | null)?.focusPlaceId ?? null : null);
   const selectedPlaceQuery = usePlace(selectedId, !saved);
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const visitHistory = useInfinitePlaceVisitHistory(view === "history" && !historySearch.trim() && !historyMinimumRating && !hasLocationFilters);
-  const searchHistory = usePlaceVisitHistory(view === "history" && (!isMobile || !!historySearch.trim() || historyMinimumRating > 0));
-  const historyQuery = historySearch.trim() || historyMinimumRating || hasLocationFilters ? searchHistory : visitHistory;
-  const historyVisits = historySearch.trim() || historyMinimumRating || hasLocationFilters
-    ? (searchHistory.data ?? []).filter((visit) => visit.rating >= historyMinimumRating && [visit.placeName, visit.placeAddress, visit.username].some((value) => value.toLowerCase().includes(historySearch.trim().toLowerCase())) && (!hasLocationFilters || ((!city || ((visit.placeCity || cityFromAddress(visit.placeAddress)) || "__unknown") === city) && (!owner || visit.userId === owner) && inDateRange(visit.visitedAt, dateFrom, dateTo))))
+  const visitHistory = useInfinitePlaceVisitHistory(view === "history" && !debouncedHistorySearch.trim() && !debouncedHistoryRating && !hasLocationFilters);
+  const searchHistory = usePlaceVisitHistory(view === "history" && (!isMobile || !!debouncedHistorySearch.trim() || debouncedHistoryRating > 0));
+  const historyQuery = debouncedHistorySearch.trim() || debouncedHistoryRating || hasLocationFilters ? searchHistory : visitHistory;
+  const historyVisits = debouncedHistorySearch.trim() || debouncedHistoryRating || hasLocationFilters
+    ? (searchHistory.data ?? []).filter((visit) => visit.rating >= debouncedHistoryRating && [visit.placeName, visit.placeAddress, visit.username].some((value) => value.toLowerCase().includes(debouncedHistorySearch.trim().toLowerCase())) && (!hasLocationFilters || ((!city || ((visit.placeCity || cityFromAddress(visit.placeAddress)) || "__unknown") === city) && (!owner || visit.userId === owner) && inDateRange(visit.visitedAt, dateFrom, dateTo))))
     : visitHistory.data?.pages.flatMap((page) => page.items) ?? [];
   useEffect(() => {
     const target = historySentinel.current;
-    if (!target || !visitHistory.hasNextPage || visitHistory.isFetchingNextPage || visitHistory.isFetchNextPageError || historySearch.trim() || historyMinimumRating || hasLocationFilters) return;
+    if (!target || !visitHistory.hasNextPage || visitHistory.isFetchingNextPage || visitHistory.isFetchNextPageError || debouncedHistorySearch.trim() || debouncedHistoryRating || hasLocationFilters) return;
     const observer = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting) void visitHistory.fetchNextPage();
     }, { root: target.closest(".place__view-content"), rootMargin: "200px" });
     observer.observe(target);
     return () => observer.disconnect();
-  }, [view, historySearch, historyMinimumRating, hasLocationFilters, visitHistory.hasNextPage, visitHistory.isFetchingNextPage, visitHistory.isFetchNextPageError, visitHistory.fetchNextPage]);
+  }, [view, debouncedHistorySearch, debouncedHistoryRating, hasLocationFilters, visitHistory.hasNextPage, visitHistory.isFetchingNextPage, visitHistory.isFetchNextPageError, visitHistory.fetchNextPage]);
   const [formError, setFormError] = useState<string | null>(null);
   const [placeToDelete, setPlaceToDelete] = useState<Place | null>(null);
   const [confirmingDetailDeleteId, setConfirmingDetailDeleteId] = useState<string | null>(null);
@@ -280,7 +285,7 @@ export function usePlacePageController() {
   const places = useMemo(() => saved
     ? hasLocationFilters ? allPlaces.data ?? [] : savedPlaces.data?.pages.flatMap((page) => page.items) ?? []
     : mapPlacesQuery.data?.pages.flatMap((page) => page.items) ?? [], [saved, hasLocationFilters, allPlaces.data, savedPlaces.data, mapPlacesQuery.data]);
-  const filteredPlaces = hasLocationFilters ? places.filter((place) => (!city || ((place.city || cityFromAddress(place.address)) || "__unknown") === city) && (!owner || place.owner.id === owner) && inDateRange(place.lastCheckInAt ?? "", dateFrom, dateTo) && place.rating >= minimumRating && [place.name, place.address, place.owner.username].some((value) => value.toLowerCase().includes(placeSearch.trim().toLowerCase()))) : places;
+  const filteredPlaces = hasLocationFilters ? places.filter((place) => (!city || ((place.city || cityFromAddress(place.address)) || "__unknown") === city) && (!owner || place.owner.id === owner) && inDateRange(place.lastCheckInAt ?? "", dateFrom, dateTo) && place.rating >= debouncedRating && [place.name, place.address, place.owner.username].some((value) => value.toLowerCase().includes(debouncedSearch.trim().toLowerCase()))) : places;
   const filterItems = view === "history" ? (searchHistory.data ?? []).map((visit) => ({ city: visit.placeCity || cityFromAddress(visit.placeAddress), id: visit.userId, username: visit.username })) : (allPlaces.data ?? []).map((place) => ({ city: place.city || cityFromAddress(place.address), id: place.owner.id, username: place.owner.username }));
   const cityOptions = [...new Set(filterItems.map((item) => item.city || "__unknown"))].sort().map((value) => ({ value, label: value === "__unknown" ? t("Unknown city") : value }));
   const ownerOptions = [...new Map(filterItems.map((item) => [item.id, { value: item.id, label: item.username }])).values()].sort((a, b) => a.label.localeCompare(b.label));
@@ -498,7 +503,7 @@ export function usePlacePageController() {
   };
 
   const submit = async () => {
-    if (!editor?.coordinate) return;
+    if (!editor?.coordinate || submitPending.current) return;
     const name = editor.values.name.trim();
     if (!name) {
       setFormError(t("Enter a name for this place."));
@@ -506,6 +511,7 @@ export function usePlacePageController() {
     }
 
     setFormError(null);
+    submitPending.current = true;
     try {
       const saved = await save.mutateAsync({
         id: editor.id,
@@ -524,6 +530,8 @@ export function usePlacePageController() {
       showToast.success(t(editor.id ? "Place updated." : "Place saved."));
     } catch (error) {
       setFormError(error instanceof ApiError ? error.message : t("Could not save this place."));
+    } finally {
+      submitPending.current = false;
     }
   };
 

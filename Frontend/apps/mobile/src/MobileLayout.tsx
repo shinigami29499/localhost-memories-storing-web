@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent } from "react";
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent } from "react";
 import { NavLink, Outlet, useLocation, useNavigation } from "react-router-dom";
-import { LibraryBig } from "@/components/animate-ui/icons/library-big";
-import { MapPin } from "@/components/animate-ui/icons/map-pin";
-import { Users } from "@/components/animate-ui/icons/users";
-import { ArrowLeft, X } from "lucide-react";
-import { Home } from "@/components/animate-ui/icons/home";
+import { Camera } from "@/components/animate-ui/icons/camera";
+import { Compass } from "@/components/animate-ui/icons/compass";
+import { Activity, ArrowLeft, X } from "lucide-react";
+import { motion } from "motion/react";
+import { IconWrapper, useAnimateIconContext, type IconProps } from "@/components/animate-ui/icons/icon";
 import { Menu } from "@/components/animate-ui/icons/menu";
 import { Settings } from "@/components/animate-ui/icons/settings";
 import { Upload } from "@/components/animate-ui/icons/upload";
@@ -14,10 +14,11 @@ import { useLogout } from "@/features/auth/hooks/useLogout";
 import { MobilePresenceRuntime } from "./MobilePresenceRuntime";
 import { UploadRuntime } from "@/features/uploads/components/UploadRuntime";
 import { PageActionBarProvider } from "./layout/MobilePageActionBar";
-import { isAlbumDetailHandoff, isMobileAlbumDetail, MobilePageLink, mobileSection, useMobileBack, useOpenMobilePage } from "./layout/mobilePageNavigation";
-import { isReturningToMainPage } from "@/features/ui-resources/uiOverlayPolicy";
+import { isMobileAlbumDetail, MobilePageLink, mobileSection, useMobileBack, useOpenMobilePage } from "./layout/mobilePageNavigation";
 import { MobilePageLoadingOverlay } from "./layout/MobilePageLoadingOverlay";
+import { MobileMenuActionButton, MobileMenuActionContext } from "./layout/MobileMenuAction";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { useRouteLoadingOverlay } from "@/features/ui-resources/useRouteLoadingOverlay";
 import { Button, IconButton } from "@/components/ui";
 import { ApprovalNotice } from "@/features/users/components/ApprovalNotice";
 import { UserAvatar } from "@/components/common/UserAvatar";
@@ -25,18 +26,43 @@ import { useAuthStore } from "@/store/authStore";
 import { useAnimationStore } from "@/store/animationStore";
 import { MobileNotificationBell } from "./MobileNotificationBell";
 
+const MotionActivity = motion.create(Activity);
+const activityPulse = {
+  initial: { scaleY: 1 },
+  animate: { scaleY: [1, 0.72, 1.08, 1], transition: { duration: 0.44 } },
+};
+
+function ActivityPulse({ size, ...props }: IconProps<"default">) {
+  const { controls } = useAnimateIconContext();
+  return <MotionActivity size={size} variants={activityPulse} initial="initial" animate={controls} {...props} />;
+}
+
+function MenuActivityIcon(props: IconProps<"default">) {
+  return <IconWrapper icon={ActivityPulse} animateOnHover animateOnTap={false} animateOnView={false} {...props} />;
+}
+
 const mobileMenuItems = [
-  { id: "home", label: "Home", to: "/", Icon: Home },
-  { id: "album", label: "Album", to: "/album", Icon: LibraryBig },
-  { id: "place", label: "Place", to: "/location", Icon: MapPin },
-  { id: "user", label: "User", to: "/user", Icon: Users },
+  { id: "home", label: "Home", to: "/", Icon: MenuActivityIcon },
+  { id: "album", label: "Album", to: "/album", Icon: Camera },
+  { id: "place", label: "Place", to: "/location", Icon: Compass },
+  { id: "user", label: "User", to: "/user", Icon: UserRound },
 ] as const;
 
-const pageIcons = { Album: LibraryBig, Place: MapPin, User: Users, Home, Settings, Upload, "User profile": UserRound };
+const pageIcons = { Album: Camera, Place: Compass, User: UserRound, Home: Activity, Settings, Upload, "User profile": UserRound };
 
 type MobileMenuItem = (typeof mobileMenuItems)[number];
 type MenuPreview = { id: MobileMenuItem["id"]; offset?: number };
-type MenuDrag = { pointerId: number; startX: number; startOffset: number; endOffset: number };
+type MenuDrag = {
+  pointerId: number;
+  startX: number;
+  startY: number;
+  startIndex: number;
+  startOffset: number;
+  offsets: number[];
+  direction: number;
+  fromActiveItem: boolean;
+};
+const menuDragThreshold = 6;
 
 function menuItemForPath(pathname: string) {
   const section = mobileSection(pathname);
@@ -62,8 +88,7 @@ export function AuthenticatedLayout() {
   const location = useLocation();
   const navigation = useNavigation();
   const pendingPath = navigation.location?.pathname;
-  const loading = Boolean(pendingPath && pendingPath !== location.pathname &&
-    !isAlbumDetailHandoff(location.pathname, pendingPath) && !isReturningToMainPage(location.pathname, pendingPath));
+  const { path: routeOverlay, fromPath: overlayFrom, loading, exiting } = useRouteLoadingOverlay();
   const isHome = location.pathname === "/";
   const user = useAuthStore((state) => state.user);
   const role = user?.role.toLowerCase() ?? "";
@@ -75,27 +100,13 @@ export function AuthenticatedLayout() {
   const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
   const motionEnabled = useAnimationStore((state) => state.enabled) && !reducedMotion;
   const animateMenu = useAnimationStore((state) => state.iconsEnabled) && motionEnabled;
-  const [overlayPath, setOverlayPath] = useState<string>();
-  const [deferredPageKey, setDeferredPageKey] = useState<string>();
   const headerTitle = useRef<HTMLSpanElement>(null);
-  const finishHandoff = useCallback(() => {
-    setOverlayPath(undefined);
-    setDeferredPageKey(undefined);
-  }, []);
-  useLayoutEffect(() => {
-    if (pendingPath) setOverlayPath(loading ? pendingPath : undefined);
-    else if (!motionEnabled || overlayPath !== location.pathname) setOverlayPath(undefined);
-  }, [loading, location.pathname, motionEnabled, overlayPath, pendingPath]);
-  const handoff = !pendingPath && motionEnabled && overlayPath === location.pathname;
-  useLayoutEffect(() => {
-    if (handoff) setDeferredPageKey(location.key);
-    else if (!pendingPath) setDeferredPageKey(undefined);
-  }, [handoff, location.key, pendingPath]);
-  // Keep a deferred destination unmounted if its handoff is interrupted by another navigation.
-  const deferPage = handoff || Boolean(pendingPath && deferredPageKey === location.key);
-  const visibleOverlay = loading ? pendingPath : handoff ? overlayPath : undefined;
+  const covered = loading && Boolean(routeOverlay);
   const [open, setOpen] = useState(false);
   const [menuPreview, setMenuPreview] = useState<MenuPreview>();
+  const [menuAction, setMenuAction] = useState<{ label: string; onClick: () => void } | null>(null);
+  const menuActionButton = useRef<HTMLButtonElement>(null);
+  const menuActionContext = useMemo(() => ({ buttonRef: menuActionButton, setAction: setMenuAction }), []);
   const menuDrag = useRef<MenuDrag | null>(null);
   const menuIndicator = useRef<HTMLSpanElement>(null);
   const dialog = useRef<HTMLDialogElement>(null);
@@ -116,12 +127,17 @@ export function AuthenticatedLayout() {
       if (!editing) baseline = height;
       document.documentElement.classList.toggle("mobile-keyboard-open", editing && baseline - height > 150);
     };
-    const onFocus = () => window.setTimeout(update, 100);
+    let focusTimer: number | undefined;
+    const onFocus = () => {
+      window.clearTimeout(focusTimer);
+      focusTimer = window.setTimeout(update, 100);
+    };
     window.addEventListener("resize", update);
     viewport?.addEventListener("resize", update);
     document.addEventListener("focusin", onFocus);
     document.addEventListener("focusout", onFocus);
     return () => {
+      window.clearTimeout(focusTimer);
       window.removeEventListener("resize", update);
       viewport?.removeEventListener("resize", update);
       document.removeEventListener("focusin", onFocus);
@@ -133,20 +149,32 @@ export function AuthenticatedLayout() {
   const highlightedMenuItem = pendingPath ? menuItemForPath(pendingPath) : menuPreview?.id ?? activeMenuItem;
   const dragOffset = menuPreview?.offset;
 
-  const startMenuDrag = (event: PointerEvent<HTMLAnchorElement>) => {
+  const startMenuDrag = (event: PointerEvent<HTMLElement>) => {
     if (!event.isPrimary || event.button !== 0
       || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    if (event.target instanceof Element && event.target.closest(".mobile-menu-bar__add")) return;
     const indicator = menuIndicator.current;
-    if (!indicator) return;
-    const { direction, transform } = getComputedStyle(indicator);
-    const endOffset = indicator.getBoundingClientRect().width * (mobileMenuItems.length - 1)
-      * (direction === "rtl" ? -1 : 1);
-    if (!endOffset) return;
+    const startIndex = mobileMenuItems.findIndex(({ id }) => id === activeMenuItem);
+    if (!indicator || startIndex === -1) return;
+    const fromActiveItem = event.target instanceof Element &&
+      Boolean(event.target.closest('[aria-current="page"]'));
+    const style = getComputedStyle(indicator);
+    const direction = style.direction === "rtl" ? -1 : 1;
+    const tabWidth = indicator.getBoundingClientRect().width;
+    const centerWidth = event.currentTarget.querySelector(".mobile-menu-bar__action")?.getBoundingClientRect().width ?? 0;
+    if (!tabWidth) return;
+    const offsets = mobileMenuItems.map((_, index) => index * tabWidth + (index >= 2 ? centerWidth : 0));
     menuDrag.current = {
       pointerId: event.pointerId,
       startX: event.clientX,
-      startOffset: new DOMMatrixReadOnly(transform === "none" ? undefined : transform).m41,
-      endOffset,
+      startY: event.clientY,
+      startIndex,
+      startOffset: fromActiveItem
+        ? new DOMMatrixReadOnly(style.transform === "none" ? undefined : style.transform).m41
+        : offsets[startIndex] * direction,
+      offsets,
+      direction,
+      fromActiveItem,
     };
   };
 
@@ -160,19 +188,37 @@ export function AuthenticatedLayout() {
     const drag = menuDrag.current;
     if (drag?.pointerId !== event.pointerId) return;
     const nav = event.currentTarget;
+    const deltaX = event.clientX - drag.startX;
     if (!nav.hasPointerCapture(event.pointerId)) {
-      if (Math.abs(event.clientX - drag.startX) < 6) return;
+      const deltaY = event.clientY - drag.startY;
+      if (!drag.fromActiveItem && Math.abs(deltaY) >= menuDragThreshold && Math.abs(deltaY) >= Math.abs(deltaX)) {
+        clearMenuDrag(event);
+        return;
+      }
+      if (Math.abs(deltaX) < menuDragThreshold) return;
       nav.setPointerCapture(event.pointerId);
     }
-    const offset = Math.min(Math.max(0, drag.endOffset),
-      Math.max(Math.min(0, drag.endOffset), drag.startOffset + event.clientX - drag.startX));
-    const index = Math.round((offset / drag.endOffset) * (mobileMenuItems.length - 1));
-    setMenuPreview({ id: mobileMenuItems[index].id, offset });
+    const lastIndex = mobileMenuItems.length - 1;
+    const minIndex = drag.fromActiveItem ? 0 : Math.max(0, drag.startIndex - 1);
+    const maxIndex = drag.fromActiveItem ? lastIndex : Math.min(lastIndex, drag.startIndex + 1);
+    const position = Math.min(drag.offsets[maxIndex],
+      Math.max(drag.offsets[minIndex], (drag.startOffset + deltaX) * drag.direction));
+    const index = drag.offsets.findIndex((offset, index) =>
+      index === lastIndex || position < (offset + drag.offsets[index + 1]) / 2);
+    setMenuPreview({ id: mobileMenuItems[index].id, offset: position * drag.direction });
   };
 
   const endMenuDrag = (event: PointerEvent<HTMLElement>) => {
-    if (menuDrag.current?.pointerId !== event.pointerId) return;
-    const destination = event.currentTarget.hasPointerCapture(event.pointerId) ? menuItemAtPointer(event) : undefined;
+    const drag = menuDrag.current;
+    if (drag?.pointerId !== event.pointerId) return;
+    let destination: MobileMenuItem | undefined;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      const deltaX = event.clientX - drag.startX;
+      if (drag.fromActiveItem) destination = menuItemAtPointer(event);
+      else if (Math.abs(deltaX) >= menuDragThreshold) {
+        destination = mobileMenuItems[drag.startIndex + Math.sign(deltaX * drag.direction)];
+      }
+    }
     if (!destination || destination.id === activeMenuItem) {
       clearMenuDrag(event);
       return;
@@ -183,19 +229,21 @@ export function AuthenticatedLayout() {
   };
 
   const title = titleForPath(location.pathname);
-  const pendingTitle = visibleOverlay ? titleForPath(visibleOverlay) : title;
+  const pendingTitle = routeOverlay ? titleForPath(routeOverlay) : title;
+  const keepTitle = Boolean(overlayFrom && overlayFrom !== "/" && routeOverlay !== "/"
+    && t(titleForPath(overlayFrom)) === t(pendingTitle));
+  const handoff = exiting && !reducedMotion && !isHome && !keepTitle && routeOverlay === location.pathname;
   const PendingIcon = pageIcons[pendingTitle];
   const albumDetail = isMobileAlbumDetail(location.pathname);
-  const albumList = section === "gallery" && !albumDetail;
   const hasBack = albumDetail || (!isHome && !section);
   return <div className="app-shell mobile-shell">
-    <a className="skip-link" href="#main-content" inert={loading || undefined}>{t("Skip to content")}</a>
+    <a className="skip-link" href="#main-content" inert={covered || undefined}>{t("Skip to content")}</a>
     <MobilePresenceRuntime /><UploadRuntime />
     <div className="app-shell__main">
       <ApprovalNotice />
       <header className="mobile-header mobile-shell-header" data-home={isHome} data-back={hasBack} data-gallery={section === "gallery"}
-        data-overlay={Boolean(visibleOverlay) || undefined}>
-        <div className="mobile-shell-header__identity" inert={Boolean(visibleOverlay)}>
+        data-overlay={(Boolean(routeOverlay) && !exiting) || undefined} data-keep-title={keepTitle || undefined}>
+        <div className="mobile-shell-header__identity" inert={covered}>
           {user && <MobilePageLink to="/profile" className="mobile-home-header__identity" inert={!isHome}>
             <UserAvatar user={user} className="mobile-home-header__avatar" />
             <span className="mobile-home-header__account">
@@ -203,10 +251,10 @@ export function AuthenticatedLayout() {
               {roleLabel && <span className="mobile-home-header__role">{t(roleLabel)}</span>}
             </span>
           </MobilePageLink>}
-          {!albumList && <IconButton className="mobile-flat-icon-button mobile-header-back mobile-shell-header__back"
+          <IconButton className="mobile-flat-icon-button mobile-header-back mobile-shell-header__back"
             aria-label={t("Back")} title={t("Back")} inert={!hasBack} onClick={goBack}>
             <ArrowLeft />
-          </IconButton>}
+          </IconButton>
           <div key="page-title" className="mobile-shell-header__title-position">
             {!isHome && <span role={albumDetail ? undefined : "heading"} aria-level={albumDetail ? undefined : 1}
               className={section === "users" ? "mobile-header__title mobile-users__title" : "mobile-header__title"}>
@@ -214,7 +262,7 @@ export function AuthenticatedLayout() {
             </span>}
           </div>
         </div>
-        <div id="page-header-actions" inert={Boolean(visibleOverlay)} />
+        <div id="page-header-actions" inert={covered} />
         <div className="mobile-shell-header__actions">
           <MobileNotificationBell />
           <IconButton ref={trigger} className="mobile-flat-icon-button" aria-label={t("More")} title={t("More")}
@@ -224,19 +272,19 @@ export function AuthenticatedLayout() {
         </div>
       </header>
       <div className="mobile-page-body">
-        <div className="mobile-page-route" inert={loading}>
+        <div className="mobile-page-route" inert={covered}>
           <PageActionBarProvider><div id="main-content" tabIndex={-1} className="app-shell__content">
-            {!deferPage && <Outlet />}
+            <MobileMenuActionContext.Provider value={menuActionContext}><Outlet /></MobileMenuActionContext.Provider>
           </div></PageActionBarProvider>
         </div>
-        {visibleOverlay && <MobilePageLoadingOverlay key={visibleOverlay} pathname={visibleOverlay} title={pendingTitle}
-          icon={<PendingIcon size={36} />} handoff={handoff} headerTitle={headerTitle} onHandoffComplete={finishHandoff} />}
+        {routeOverlay && <MobilePageLoadingOverlay key={routeOverlay} pathname={routeOverlay} title={pendingTitle}
+          keepHeaderTitle={keepTitle} icon={<PendingIcon size={36} />} pageTransition complete={exiting} handoff={handoff} headerTitle={headerTitle} />}
       </div>
     </div>
     <div className="mobile-bottom-slot">
     <nav className="mobile-menu-bar" aria-label={t("Main navigation")} data-item={highlightedMenuItem}
       data-dragging={dragOffset !== undefined || undefined}
-      onPointerMove={moveMenuDrag} onPointerUp={endMenuDrag} onPointerCancel={clearMenuDrag}
+      onPointerDown={startMenuDrag} onPointerMove={moveMenuDrag} onPointerUp={endMenuDrag} onPointerCancel={clearMenuDrag}
       onPointerLeave={(event) => {
         if (!event.currentTarget.hasPointerCapture(event.pointerId)) clearMenuDrag(event);
       }}
@@ -245,12 +293,16 @@ export function AuthenticatedLayout() {
       }}>
       <span ref={menuIndicator} className="mobile-menu-bar__indicator" aria-hidden="true"
         style={dragOffset === undefined ? undefined : { transform: `translateX(${dragOffset}px)` }} />
-      {mobileMenuItems.map(({ id, label, to, Icon }) => (
-        <MobilePageLink key={id} to={to} data-menu-item={id} data-highlighted={id === highlightedMenuItem || undefined}
-          aria-current={id === activeMenuItem ? "page" : undefined} draggable={id === activeMenuItem ? false : undefined}
-          onPointerDown={id === activeMenuItem ? startMenuDrag : undefined}>
-          <Icon size={20} aria-hidden="true" /><span>{t(label)}</span>
-        </MobilePageLink>
+      {mobileMenuItems.map(({ id, label, to, Icon }, index) => (
+        <Fragment key={id}>
+          {index === 2 && <div className="mobile-menu-bar__action">
+            <MobileMenuActionButton ref={menuActionButton} label={menuAction?.label ?? t("Add")} onClick={menuAction?.onClick} />
+          </div>}
+          <MobilePageLink to={to} data-menu-item={id} data-highlighted={id === highlightedMenuItem || undefined}
+            aria-current={id === activeMenuItem ? "page" : undefined} draggable={activeMenuItem ? false : undefined}>
+            <Icon aria-hidden="true" /><span>{t(label)}</span>
+          </MobilePageLink>
+        </Fragment>
       ))}
     </nav>
     </div>

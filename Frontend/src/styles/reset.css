@@ -27,7 +27,7 @@ body,
 body {
   background-color: var(--bg);
   color: var(--text);
-  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-family: "Be Vietnam Pro", system-ui, sans-serif;
   font-size: 1rem;
   line-height: 1.5;
 }
@@ -50,6 +50,13 @@ a,
 input,
 textarea {
   -webkit-tap-highlight-color: transparent;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
 }
 
 @media (hover: none) and (pointer: coarse) {

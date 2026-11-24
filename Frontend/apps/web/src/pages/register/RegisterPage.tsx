@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ArrowRight } from "@/components/animate-ui/icons/arrow-right";
 import { Link } from "react-router-dom";
 import { authService } from "@/features/auth";
@@ -13,6 +13,7 @@ export function RegisterPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const pending = useRef(false);
   const [created, setCreated] = useState(false);
   const [confirmError, setConfirmError] = useState(false);
 
@@ -22,6 +23,8 @@ export function RegisterPage() {
       setConfirmError(true);
       return;
     }
+    if (pending.current) return;
+    pending.current = true;
     setBusy(true);
     try {
       await authService.register(username.trim(), password);
@@ -30,6 +33,7 @@ export function RegisterPage() {
     } catch (err) {
       showToast.error(err instanceof Error ? err.message : t("Registration failed."));
     } finally {
+      pending.current = false;
       setBusy(false);
     }
   };

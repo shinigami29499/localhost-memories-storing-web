@@ -1,29 +1,30 @@
-import { useCallback, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import { useLayoutEffect, useRef, type ReactNode, type RefObject } from "react";
+import { UI_TIMING } from "@/config/uiTiming";
 import { useLocale } from "@/context/LocaleContext";
 import { UiResourceProgress } from "@/features/ui-resources/UiResourceProgress";
 import { useUiRouteProgress } from "@/features/ui-resources/uiRoute";
+import { useRouteOverlayFade } from "@/features/ui-resources/useRouteLoadingOverlay";
 import "./mobile-page-loading.css";
 
-export function MobilePageLoadingOverlay({ pathname, title, icon, handoff, headerTitle, onHandoffComplete }: {
+export function MobilePageLoadingOverlay({ pathname, title, icon, complete, handoff, headerTitle, keepHeaderTitle, pageTransition }: {
   pathname?: string;
   title?: string;
   icon?: ReactNode;
+  complete?: boolean;
+  pageTransition?: boolean;
   handoff?: boolean;
   headerTitle?: RefObject<HTMLSpanElement | null>;
-  onHandoffComplete?: () => void;
+  keepHeaderTitle?: boolean;
 }) {
   const { t } = useLocale();
   const progress = useUiRouteProgress(pathname ?? window.location.pathname);
-  const overlayRef = useRef<HTMLDivElement>(null);
+  const overlayRef = useRouteOverlayFade(Boolean(pageTransition && complete));
   const titleRef = useRef<HTMLSpanElement>(null);
-  const [barComplete, setBarComplete] = useState(false);
-  const finishBar = useCallback(() => setBarComplete(true), []);
 
   useLayoutEffect(() => {
-    const overlay = overlayRef.current;
-    if (!handoff || !barComplete || !overlay) return;
-    const duration = 320;
-    const animations = [overlay.animate([{ opacity: 1 }, { opacity: 0 }], { duration, easing: "ease-out", fill: "forwards" })];
+    if (!handoff) return;
+    const duration = UI_TIMING.PAGE_HANDOFF_DURATION;
+    const animations: Animation[] = [];
     const source = titleRef.current;
     const target = headerTitle?.current;
     let clone: HTMLSpanElement | undefined;
@@ -51,24 +52,19 @@ export function MobilePageLoadingOverlay({ pathname, title, icon, handoff, heade
       }
     }
 
-    let cancelled = false;
-    void Promise.allSettled(animations.map((animation) => animation.finished)).then(() => {
-      if (!cancelled) onHandoffComplete?.();
-    });
     return () => {
-      cancelled = true;
       animations.forEach((animation) => animation.cancel());
-      if (source) source.style.removeProperty("visibility");
+      if (clone) source?.style.removeProperty("visibility");
       clone?.remove();
     };
-  }, [handoff, barComplete, headerTitle, onHandoffComplete]);
+  }, [handoff, headerTitle]);
 
-  return <div className="mobile-page-loading" ref={overlayRef} data-handoff={handoff || undefined} aria-hidden={(handoff && barComplete) || undefined}>
+  return <div ref={overlayRef} className="mobile-page-loading" data-complete={complete || undefined} data-handoff={handoff || undefined} aria-hidden={complete || undefined}>
     <div className="mobile-page-loading__content">
       {icon && <span className="mobile-page-loading__icon" aria-hidden="true">{icon}</span>}
       <UiResourceProgress label={title ? `${t("Loading page...")} ${t(title)}` : t("Loading page...")}
-        heading={title && <span ref={titleRef} className="mobile-page-title">{t(title)}</span>}
-        loaded={progress?.loaded} total={progress?.total} stepped complete={handoff} onCompleted={finishBar} />
+        heading={keepHeaderTitle ? t("Loading page...") : title && <span ref={titleRef} className="mobile-page-title">{t(title)}</span>}
+        loaded={progress?.loaded} total={progress?.total} stepped complete={complete} pageTransition={pageTransition} />
     </div>
   </div>;
 }

@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 test.use({ timezoneId: "Asia/Ho_Chi_Minh" });
 
 for (const motion of ["on", "off", "reduced"] as const) {
-test(`album favorite hover, minimum loading and no completion zoom (${motion})`, async ({ page }) => {
+test(`album favorite hover, pending feedback and no completion zoom (${motion})`, async ({ page }) => {
   await page.setViewportSize({ width: motion === "on" ? 1024 : 390, height: 844 });
   await page.emulateMedia({
     reducedMotion: motion === "reduced" ? "reduce" : "no-preference",
@@ -106,6 +106,8 @@ test(`album favorite hover, minimum loading and no completion zoom (${motion})`,
   finishFavoriteRequest();
   const removeFavorite = page.getByRole("button", { name: "Remove from favorites" });
   await expect(removeFavorite).toHaveAttribute("aria-pressed", "true");
+  await expect(removeFavorite).toHaveCSS("background-color", "rgb(249, 227, 228)");
+  await expect(removeFavorite.locator("svg")).toHaveCSS("color", "rgb(237, 72, 82)");
   await expect(removeFavorite.locator(".spinner__wheel")).toHaveCount(0);
   await expect(removeFavorite.locator("svg")).toHaveAttribute("fill", "currentColor");
   const scales = await reveal;
@@ -113,19 +115,9 @@ test(`album favorite hover, minimum loading and no completion zoom (${motion})`,
   expect(scales.every((scale) => scale === 1)).toBe(true);
   await expect(removeFavorite.locator("svg")).toHaveCSS("scale", "none");
   await page.screenshot({ path: test.info().outputPath(`favorite-${motion}.png`) });
-  const time = new Date("2026-11-21T04:00:00Z");
-  await page.clock.install({ time });
-  await page.clock.pauseAt(new Date(time.getTime() + 1000));
   const refreshed = page.waitForResponse((response) => new URL(response.url()).pathname === "/api/library/album/page");
   await removeFavorite.evaluate((element: HTMLButtonElement) => element.click());
   await refreshed;
-  const favoriteButton = page.locator(".album-date-card__favorite");
-  await expect(favoriteButton).toBeDisabled();
-  await expect(favoriteButton.locator(".spinner__wheel")).toBeVisible();
-  await page.clock.runFor(299);
-  await expect(favoriteButton).toBeDisabled();
-  await expect(favoriteButton.locator(".spinner__wheel")).toBeVisible();
-  await page.clock.runFor(1);
   await expect(page.getByRole("button", { name: "Add to favorites" })).toHaveAttribute("aria-pressed", "false");
   await expect(page.getByRole("button", { name: "Add to favorites" })).toBeEnabled();
 });

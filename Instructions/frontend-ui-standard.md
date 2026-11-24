@@ -22,6 +22,8 @@ For colored controls, derive hover and press highlights from the control's own s
 
 For inset selection tiles, keep a longer, soft dark inset shadow at the top and a shorter, soft light inset shadow at the bottom while unselected. Use the same length and blur as the corresponding exterior shadows. When selected, transition to the exterior pair with the shorter shadow above and the longer shadow below. Preserve a distinct selection indicator and respect motion preferences.
 
+For dark-mode inset controls, use the mobile date sheet's Month selector as the color reference. Use the dark page fill (`--mobile-bg`, currently `#1c1c1c`) inside the raised surface, with an even, lighter border and soft dark upper and light lower inset shadows. Keep hover, selection, and keyboard focus visible.
+
 ### Background and typography
 
 Use the mobile theme's default page background in light and dark modes. Mobile Home is the reference: off-white `#f4f3f2` in light mode and charcoal `#272727` in dark mode. Use clear text and icon contrast across page, flat control, and raised navigation surfaces. Keep the username and active navigation label stronger than role and inactive labels.
@@ -47,7 +49,7 @@ Use a 16px (`1rem`) base for standalone body copy. For paired mobile titles and 
 ### Dialog actions
 
 - Use the shared `dialog-actions` layout and `dialog-action` classes for dialog buttons. Use `dialog-action--danger` for the pale red Delete action, `dialog-action--danger-confirm` for the solid red final deletion, and `dialog-action--normal` for the brown primary action.
-- Use the shared `Button` component for action buttons in every frontend popup dialog. Keep button background and text colors identical in default and hover states; hover only underlines the label. Dialog action buttons have no selected state. In a two-button row with Delete and another action, give Delete 24% and the other action the remaining width. Use the same narrow column for Cancel in an inline deletion confirmation. Do not add dialog-specific button color overrides. Rating stars, switches, media viewer icons, and selectable album or image tiles are controls, not dialog action buttons; keep their functional state cues.
+- Use the shared `Button` component for action buttons in every frontend popup dialog. Keep dialog action background and text colors identical in default and hover states. Button labels do not underline on hover. Dialog action buttons have no selected state. In a two-button row with Delete and another action, give Delete 24% and the other action the remaining width. Use the same narrow column for Cancel in an inline deletion confirmation. Do not add dialog-specific button color overrides. Rating stars, switches, media viewer icons, and selectable album or image tiles are controls, not dialog action buttons; keep their functional state cues.
 - When Delete turns into an inline confirmation, replace the action row with a narrow pale red Cancel button and a wide solid red final deletion button. Put the target and consequence in smaller `dialog-actions__note` text below the row. Keep focus visible and lock both buttons while the request runs.
 
 ### Header filter popovers

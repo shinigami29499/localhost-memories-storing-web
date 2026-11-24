@@ -10,4 +10,9 @@ public sealed record CollectionSource(
     Guid? CustomPreviewMediaId,
     Guid? DefaultPreviewMediaId,
     bool ContainsMedia,
-    bool IsFavorited);
+    bool IsFavorited)
+{
+    public int ImageCount { get; init; }
+    public int VideoCount { get; init; }
+    public IReadOnlyList<Services.Models.Users.UserSummaryDto> Contributors { get; init; } = [];
+}

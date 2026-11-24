@@ -1,0 +1,313 @@
+@property --album-date-outline-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.album-date-sheet {
+  --date-sheet-width: 32rem;
+  --date-sheet-fill: var(--mobile-surface-raised, #303030);
+  --date-sheet-ink: var(--mobile-text, #f5f5f5);
+  --date-sheet-muted: var(--mobile-text-muted, #aaa);
+  --date-sheet-border: color-mix(in srgb, var(--date-sheet-fill), var(--date-sheet-ink) 19%);
+  --date-heat-almond: #f1dabf;
+  --date-heat-taupe: #6f5e54;
+  --date-heat-coffee: #362417;
+  --date-heat-dark-ink: #17120e;
+  --date-heat-level-1: var(--date-heat-coffee);
+  --date-heat-level-3: var(--date-heat-almond);
+  --date-heat-low-ink: #fff;
+  --date-heat-high-ink: var(--date-heat-dark-ink);
+  --date-sheet-action-fill: #fff;
+  --date-sheet-action-ink: #222;
+  --date-sheet-field-inset: var(--mobile-bg, #1c1c1c);
+  --date-sheet-field-hover: color-mix(in srgb, var(--date-sheet-field-inset), white 7%);
+  --date-sheet-shadow-light: rgb(255 255 255 / .12);
+  --date-sheet-shadow-dark: rgb(0 0 0 / .28);
+  --date-sheet-field-outer-shadow: 0 -1px 4px var(--date-sheet-shadow-light), 0 4px 8px var(--date-sheet-shadow-dark);
+  --date-sheet-field-inset-shadow: inset 0 4px 8px var(--date-sheet-shadow-dark), inset 0 -1px 4px var(--date-sheet-shadow-light);
+  --date-sheet-bottom: var(--mobile-nav-bottom, calc(.75rem + env(safe-area-inset-bottom, 0px)));
+  position: fixed;
+  inset: 0;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  overflow: clip;
+  border: 0;
+  background: transparent;
+  color: var(--date-sheet-ink);
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+:root[data-mobile-theme="light"] .album-date-sheet {
+  --date-heat-level-1: var(--date-heat-almond);
+  --date-heat-level-3: var(--date-heat-coffee);
+  --date-heat-low-ink: var(--date-heat-dark-ink);
+  --date-heat-high-ink: #fff;
+  --date-sheet-action-fill: #222;
+  --date-sheet-action-ink: #fff;
+  --date-sheet-field-inset: #f4f1ee;
+  --date-sheet-field-hover: #eeebe8;
+  --date-sheet-shadow-light: rgb(255 255 255 / .8);
+  --date-sheet-shadow-dark: rgb(0 0 0 / .14);
+}
+
+.album-date-sheet::backdrop { background: transparent; }
+
+.album-date-sheet__scrim {
+  position: absolute;
+  inset: 0;
+  background: rgb(0 0 0 / .25);
+}
+
+.album-date-sheet__panel {
+  position: absolute;
+  inset: auto 0 0;
+  display: flex;
+  flex-direction: column;
+  width: min(100%, var(--date-sheet-width));
+  max-height: calc(100% - max(1rem, env(safe-area-inset-top, 0px)));
+  margin-inline: auto;
+  overflow: hidden;
+  border: 1px solid var(--date-sheet-border);
+  border-bottom: 0;
+  border-radius: 1.5rem 1.5rem 0 0;
+  background: var(--date-sheet-fill);
+  box-shadow: var(--mobile-shadow, var(--shadow-lg));
+}
+
+.album-date-sheet__header {
+  display: grid;
+  justify-items: center;
+  gap: .75rem;
+  padding: .75rem var(--page-gutter) 1rem;
+  touch-action: none;
+}
+
+.album-date-sheet__handle {
+  width: 2rem;
+  height: .1875rem;
+  border-radius: 1rem;
+  background: var(--date-sheet-muted);
+}
+
+.album-date-sheet__header h2 {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.album-date-sheet__header h2:focus { outline: none; }
+
+.album-date-sheet__body {
+  width: 100%;
+  min-height: 0;
+  padding-inline: var(--page-gutter);
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.album-date-sheet__fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: end;
+  gap: .75rem;
+  padding-block: .5rem .75rem;
+}
+
+.album-date-sheet__fields .select-field {
+  position: relative;
+  display: block;
+  padding-block-start: 1rem;
+}
+
+.album-date-sheet__fields .select-field__label {
+  position: absolute;
+  z-index: 1;
+  inset-block-start: 1rem;
+  inset-inline-start: .75rem;
+  padding-inline: .25rem;
+  transform: translateY(-50%);
+  background: transparent;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  color: var(--date-sheet-ink);
+  font-size: .75rem;
+}
+
+:root .album-date-sheet .album-date-sheet__fields .select-field__trigger:not(:disabled):not([data-disabled]) {
+  --control-radius: .75rem;
+  --surface-hover: var(--date-sheet-field-hover);
+  --text: var(--date-sheet-muted);
+  min-height: 3rem;
+  border-color: var(--date-sheet-border);
+  border-radius: .75rem;
+  background: var(--date-sheet-field-inset);
+  color: var(--text);
+  box-shadow: var(--date-sheet-field-inset-shadow);
+}
+
+:root .album-date-sheet .album-date-sheet__fields .select-field__trigger[aria-expanded="true"]:not(:disabled):not([data-disabled]) {
+  --surface-hover: var(--date-sheet-action-fill);
+  --text: var(--date-sheet-action-ink);
+  border-color: var(--date-sheet-action-fill);
+  background: var(--date-sheet-action-fill);
+  box-shadow: var(--date-sheet-field-outer-shadow);
+}
+
+.album-date-sheet__fields .select-field__trigger .select-field__icon { color: inherit; }
+
+.album-date-sheet .select-field__popup {
+  border-radius: .75rem;
+  border-color: var(--date-sheet-border);
+  background: var(--date-sheet-fill);
+}
+
+.album-date-sheet .select-field__item { color: var(--date-sheet-ink); }
+.album-date-sheet .select-field__item:is(:hover, [data-highlighted]) {
+  background: color-mix(in srgb, var(--date-sheet-fill), var(--date-sheet-ink) 12%);
+}
+.album-date-sheet .select-field__item[data-selected] {
+  border-radius: .5rem;
+  background: var(--date-sheet-action-fill);
+  color: var(--date-sheet-action-ink);
+  box-shadow: var(--date-sheet-field-outer-shadow);
+}
+
+.album-date-sheet .rdp-root {
+  --rdp-accent-color: var(--date-sheet-ink);
+  --rdp-day-height: clamp(2.25rem, 10vw, 2.75rem);
+  --rdp-day_button-height: var(--rdp-day-height);
+  --rdp-day_button-width: 100%;
+  --rdp-day_button-border-radius: .625rem;
+  --rdp-nav_button-width: 2.75rem;
+  --rdp-nav_button-height: 2.75rem;
+  --rdp-selected-border: 0;
+  padding: 0;
+}
+
+.album-date-sheet :is(.rdp-months, .rdp-month, .rdp-month_grid) { width: 100%; }
+.album-date-sheet .rdp-months { max-width: none; }
+.album-date-sheet .rdp-month_grid {
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: .25rem .1875rem;
+}
+.album-date-sheet .rdp-month_caption { justify-content: center; }
+.album-date-sheet .rdp-caption_label { font-size: 1rem; font-weight: 700; }
+.album-date-sheet .rdp-weekday { color: var(--date-sheet-muted); opacity: 1; font-size: .8125rem; }
+.album-date-sheet .rdp-day_button {
+  --control-radius: var(--rdp-day_button-border-radius);
+  --date-day-fill: var(--date-heat-fill, var(--date-sheet-fill));
+  --date-day-ink: var(--date-heat-ink, var(--date-sheet-ink));
+  --surface-hover: color-mix(in srgb, var(--date-day-fill), white 12%);
+  --text: var(--date-day-ink);
+  background-color: var(--date-day-fill);
+  color: var(--date-day-ink);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.album-date-sheet__heat-1 { --date-heat-fill: var(--date-heat-level-1); --date-heat-ink: var(--date-heat-low-ink); }
+.album-date-sheet__heat-2 { --date-heat-fill: var(--date-heat-taupe); --date-heat-ink: #fff; }
+.album-date-sheet__heat-3 { --date-heat-fill: var(--date-heat-level-3); --date-heat-ink: var(--date-heat-high-ink); }
+
+.album-date-sheet .rdp-today:not(.rdp-outside) .rdp-day_button {
+  --date-day-fill: var(--date-sheet-action-fill);
+  --date-day-ink: var(--date-sheet-action-ink);
+  font-weight: 700;
+}
+
+.album-date-sheet .rdp-selected .rdp-day_button {
+  --date-day-fill: var(--date-sheet-action-fill);
+  --date-day-ink: var(--date-sheet-action-ink);
+  --date-outline-purple: #a855f7;
+  --date-outline-pink: #ec4899;
+  position: relative;
+  font-weight: 700;
+  box-shadow: 0 0 .3125rem color-mix(in srgb, var(--date-outline-purple) 20%, transparent),
+    0 0 .625rem color-mix(in srgb, var(--date-outline-pink) 13%, transparent);
+}
+
+.album-date-sheet .rdp-selected .rdp-day_button::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  padding: 3px;
+  border-radius: calc(var(--rdp-day_button-border-radius) + 2px);
+  background: conic-gradient(from var(--album-date-outline-angle), #3b82f6, var(--date-outline-purple) 20%, var(--date-outline-pink) 50%, var(--date-outline-purple) 80%, #3b82f6);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.album-date-sheet button:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
+.album-date-sheet .rdp-day_button:focus-visible { outline-offset: 1px; }
+
+@media (hover: hover) {
+  :root .album-date-sheet .album-date-sheet__fields .select-field__trigger:not(:disabled):not([data-disabled]):hover {
+    background-color: var(--surface-hover);
+  }
+
+  .album-date-sheet .rdp-day_button:enabled:hover {
+    background-color: var(--surface-hover);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :root[data-motion="on"] .album-date-sheet .rdp-selected .rdp-day_button::after {
+    animation: album-date-outline-spin 4s linear infinite;
+  }
+
+  :root[data-motion="on"] .album-date-sheet :is(.rdp-day_button, .select-field__trigger) {
+    transition: background-color var(--mobile-action-color-duration, 320ms) ease,
+      color var(--mobile-action-color-duration, 320ms) ease;
+  }
+}
+
+@keyframes album-date-outline-spin {
+  to { --album-date-outline-angle: 360deg; }
+}
+
+@media (forced-colors: active) {
+  .album-date-sheet .rdp-selected .rdp-day_button::after {
+    padding: 0;
+    border: 2px solid Highlight;
+    mask: none;
+  }
+}
+
+.album-date-sheet__status {
+  display: grid;
+  justify-items: center;
+  gap: .75rem;
+  margin: 0;
+  padding: 2rem 0;
+}
+
+.album-date-sheet__status p { margin: 0; }
+
+.album-date-sheet__footer {
+  display: flex;
+  flex: none;
+  justify-content: center;
+  padding-block: .75rem var(--date-sheet-bottom);
+}
+
+.album-date-sheet__footer .btn {
+  --control-radius: var(--mobile-nav-radius, 2rem);
+  inline-size: min(26rem, calc(100dvw - 2 * var(--page-gutter)));
+  min-block-size: var(--mobile-nav-height, 3.625rem);
+  border: 0;
+  border-radius: var(--control-radius);
+  background: var(--date-sheet-action-fill);
+  color: var(--date-sheet-action-ink);
+  box-shadow: var(--mobile-shadow, var(--shadow-lg));
+  font-weight: 700;
+}

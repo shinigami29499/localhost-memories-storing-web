@@ -35,6 +35,7 @@ import { cityFromAddress } from "@/features/place/cityFromAddress";
 import { locationService } from "@/features/locations/services/locationService";
 import { LocationEditor } from "@/features/locations/components/LocationEditor";
 import { useAnimationStore } from "@/store/animationStore";
+import { useMapPanelLoading } from "@/features/locations/components/useMapPanelLoading";
 import { MapLoadingOverlay } from "@/features/locations/components/MapLoadingOverlay";
 import "../../../../../src/features/locations/components/mapControls.css";
 import type { PlaceMapSettings } from "@/features/place/components/PlaceMap";
@@ -101,6 +102,7 @@ export function PlacePage({ ViewSwitch = PlaceViewSwitch }: {
   ViewSwitch?: ComponentType<PlaceViewSwitchProps>;
 } = {}) {
   const { t, location, isMobile, user, home, view, animationsEnabled, requestView, mapSettings, saved, mapStartReady, setMapStartReady, setHighlightMotionVersion, addToolbar, setAddToolbar, city, setCity, owner, setOwner, dateFrom, setDateFrom, dateTo, setDateTo, hasLocationFilters, placeSearch, setPlaceSearch, minimumRating, historySearch, setHistorySearch, historyMinimumRating, activeRating, setActiveRating, historySentinel, photoSelection, setPhotoSelection, handleMapBounds, photos, photosQuery, savedPlaces, mapPlacesQuery, query, save, remove, checkInMutation, removeVisitMutation, editor, setEditor, editorOpen, setEditorOpen, selectedId, setSelectedId, detailsOpen, setDetailsOpen, visitHistory, historyQuery, historyVisits, formError, setFormError, placeToDelete, setPlaceToDelete, confirmingDetailDeleteId, setConfirmingDetailDeleteId, placeToMove, setPlaceToMove, moveConfirmationOpen, setMoveConfirmationOpen, workspaceRef, manualHomePick, setManualHomePick, homeRelocationDraft, setHomeRelocationDraft, homeMoveConfirmationOpen, setHomeMoveConfirmationOpen, homeDialogOpen, setHomeDialogOpen, confirmHomeRemoval, setConfirmHomeRemoval, photoMoveConfirmationOpen, setPhotoMoveConfirmationOpen, places, filteredPlaces, cityOptions, ownerOptions, homePicking, selected, selectedVisits, selectedPhoto, photoRelocating, canEdit, canChangeMarker, mapPlaces, clearPreview, canMovePhoto, selectPhoto, movePhoto, confirmPhotoMove, pickHome, confirmHomeRelocation, cancelHomePick, startHomePick, openHomeDialog, removeHomeLocation, checkIn, removeVisit, startEdit, selectPlace, pickOnMap, cancelMapPick, movePlace, deletePlace, confirmMove, submit, confirmDelete } = usePlacePageController();
+  const mapLoading = useMapPanelLoading(mapStartReady && !saved);
   const navigateToAlbums = useNavigate();
 
 
@@ -185,7 +187,8 @@ export function PlacePage({ ViewSwitch = PlaceViewSwitch }: {
                 ) : null}
                 <div ref={workspaceRef} className="place__workspace">
                   <div className="place__map-panel">
-                    {!mapStartReady ? <MapLoadingOverlay ready={false} className="map-loading-overlay" /> : <Suspense fallback={<MapLoadingOverlay ready={false} className="map-loading-overlay" />}><PlaceMap
+                    {mapStartReady && <Suspense fallback={null}><PlaceMap
+                      onLoadingSettledChange={mapLoading.setReady}
                       onAddToolbarChange={setAddToolbar}
                       settingsRef={mapSettings}
                       onBoundsChange={handleMapBounds}
@@ -254,6 +257,7 @@ export function PlacePage({ ViewSwitch = PlaceViewSwitch }: {
                         else pickOnMap(coordinate, placeName);
                       }}
                     /></Suspense>}
+                    <MapLoadingOverlay ready={mapLoading.ready} className="map-loading-overlay" />
                   </div>
                 </div>
                 {mapPlacesQuery.isFetchNextPageError ? (

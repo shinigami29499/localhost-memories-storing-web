@@ -21,21 +21,22 @@ describe("uploadService date filtering", () => {
     ["listAll", "/api/sync/upload/admin/batch"],
   ] as const)("preserves unfiltered %s requests", async (method, path) => {
     await uploadService[method](20, 10);
-    expect(api).toHaveBeenCalledWith(`${path}?offset=20&limit=10`);
+    expect(api).toHaveBeenCalledWith(`${path}?offset=20&limit=10`, { signal: undefined });
   });
 
   it.each([
     ["list", "/api/sync/upload/batch"],
     ["listAll", "/api/sync/upload/admin/batch"],
   ] as const)("filters %s by the full local calendar day", async (method, path) => {
-    await uploadService[method](0, 10, "2026-10-30");
+    const { signal } = new AbortController();
+    await uploadService[method](0, 10, "2026-10-30", signal);
     const query = new URLSearchParams({
       offset: "0",
       limit: "10",
       createdFrom: new Date(2026, 9, 30).toISOString(),
       createdBefore: new Date(2026, 9, 31).toISOString(),
     });
-    expect(api).toHaveBeenCalledWith(`${path}?${query}`);
+    expect(api).toHaveBeenCalledWith(`${path}?${query}`, { signal });
   });
 
   it("uses the next calendar day across a month boundary", async () => {
@@ -46,6 +47,6 @@ describe("uploadService date filtering", () => {
       createdFrom: new Date(2026, 9, 31).toISOString(),
       createdBefore: new Date(2026, 10, 1).toISOString(),
     });
-    expect(api).toHaveBeenCalledWith(`/api/sync/upload/batch?${query}`);
+    expect(api).toHaveBeenCalledWith(`/api/sync/upload/batch?${query}`, { signal: undefined });
   });
 });
