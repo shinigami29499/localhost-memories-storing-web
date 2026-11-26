@@ -20,6 +20,8 @@ public interface ICollectionRepository
     Task<CollectionSource?> GetCollectionSourceAsync(
         Guid collectionId, Guid? viewerId, CancellationToken cancellationToken = default);
     Task<Collection?> FindCollectionAsync(Guid collectionId, CancellationToken cancellationToken = default);
+    Task<Collection?> FindUploadDestinationAsync(
+        Guid collectionId, Guid contributorId, CancellationToken cancellationToken = default);
     Task<CollectionFavorite?> FindCollectionFavoriteAsync(
         Guid userId, Guid collectionId, bool includeDeleted, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Guid>> GetCollectionMediaIdsPageAsync(

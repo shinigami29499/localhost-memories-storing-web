@@ -35,7 +35,7 @@ export function AlbumPage() {
 }
 
 function AlbumDetail({ albumId }: { albumId: string | undefined }) {
-  const { t, navigate, copied, editing, setEditing, editingCaption, setEditingCaption, deleting, setDeleting, selectionMode, selectedItems, removingSelection, setRemovingSelection, bulkFavoriteBusy, favoriteBusyMediaId, showImages, showVideos, mediaKind, hasMediaFilter, previewMediaId, setPreviewMediaId, returnToMediaId, returnToIndex, contentRef, sentinelRef, album, media, invalidate, items, total, isOwner, selectedMedia, allSelectedFavorited, cancelSelection, setSelected, selectionDragHandlers, changeFilter, removeSelected, uploadInput, uploading, uploadFiles, favoriteSelected, toggleFavorite, copyLink, saveCaption } = useAlbumDetail(albumId);
+  const { t, navigate, copied, editing, setEditing, editingCaption, setEditingCaption, deleting, setDeleting, selectionMode, selectedItems, removingSelection, setRemovingSelection, bulkFavoriteBusy, favoriteBusyMediaId, showImages, showVideos, mediaKind, hasMediaFilter, previewMediaId, setPreviewMediaId, returnToMediaId, returnToIndex, contentRef, sentinelRef, album, media, invalidate, items, total, isOwner, selectedMedia, allSelectedFavorited, cancelSelection, setSelected, selectionDragHandlers, changeFilter, removeSelected, canUpload, uploadInput, uploadFiles, favoriteSelected, toggleFavorite, copyLink, saveCaption } = useAlbumDetail(albumId);
   if (album.isPending) {
     return <main className="gallery-page album-page mobile-content-placeholder--album-detail"><PageDataPlaceholder layout="cards" count={1} label={t("Loading album...")} /><PageDataPlaceholder layout="media" label={t("Loading media...")} /></main>;
   }
@@ -187,19 +187,19 @@ function AlbumDetail({ albumId }: { albumId: string | undefined }) {
             </div>
           </div>
         </div>
-      {isOwner && <input ref={uploadInput} type="file" accept="image/*,video/*" multiple hidden onChange={(event) => {
+      {canUpload && <input ref={uploadInput} type="file" accept="image/*,video/*" multiple hidden onChange={(event) => {
         const files = Array.from(event.currentTarget.files ?? []);
         event.currentTarget.value = "";
         void uploadFiles(files);
       }} />}
       <footer className="gallery-page__footer gallery-page__footer--transition">
-        <PageActionBar className={isOwner ? "gallery-page__actions" : "gallery-page__actions gallery-selection-bar--selection-only"} role="group"
+        <PageActionBar className={canUpload ? "gallery-page__actions" : "gallery-page__actions gallery-selection-bar--selection-only"} role="group"
           aria-label={selectionMode ? t("{count} selected", { count: selectedItems.size }) : t("Album actions")}>
           <span className="gallery-selection-bar__status" role="status">{t("{count} selected", { count: selectedItems.size })}</span>
           {selectionMode && <><span className="gallery-selection-bar__count" aria-hidden="true">{t("{count} selected", { count: selectedItems.size })}</span><span className="gallery-selection-bar__divider" aria-hidden="true" /></>}
-          {isOwner && !selectionMode && <button key="primary" type="button"
+          {canUpload && !selectionMode && <button key="primary" type="button"
             className="gallery-selection-bar__action gallery-selection-bar__action--primary"
-            aria-label={t("Add media")} title={t("Add media")} disabled={uploading} aria-busy={uploading || undefined}
+            aria-label={t("Add media")} title={t("Add media")}
             onClick={() => uploadInput.current?.click()}>
             <Plus size={20} aria-hidden="true" /><span>{t("Add media")}</span>
           </button>}

@@ -96,7 +96,10 @@ export function useMobileBack() {
   const navigate = useNavigate();
   const returnHome = useReturnFromMobilePage();
   return useCallback(() => {
-    if (pageState(location)?.mobileAlbumCreate) {
+    const immersiveViewer = document.querySelector<HTMLDialogElement>("dialog[data-immersive][open]");
+    if (immersiveViewer) {
+      if (immersiveViewer.dispatchEvent(new Event("cancel", { cancelable: true }))) immersiveViewer.close();
+    } else if (pageState(location)?.mobileAlbumCreate) {
       void navigate(-1);
     } else if (!isMobileAlbumDetail(location.pathname)) {
       returnHome();

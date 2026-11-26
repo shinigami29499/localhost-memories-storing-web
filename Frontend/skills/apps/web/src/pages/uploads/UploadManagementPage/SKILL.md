@@ -1,10 +1,8 @@
 ---
 name: web-upload-management
-description: "Album upload history and controls on the web."
+description: Compact upload history stored in the current browser.
 ---
 
-Upload history uses Frontend/src/pages/uploads/useUploadManagement.ts for pagination, date filtering, unread status, pause, and record deletion. The Albums link takes the user to the upload entry point.
+`UploadManagementPage.tsx` serves /upload and renders one compact row per cached transfer for the current user, newest first. Rows show status and live progress. Select a filename to show its full name, transfer size, and timestamp. Users can cancel, retry, restart, or delete terminal records after confirmation. Deleting a record does not change the album.
 
-The initial upload-history request shows card placeholders.
-
-Date changes update the URL immediately. The filtered request waits for 300 ms of settled input and obsolete requests are aborted.
+`Frontend/src/pages/uploads/useUploadManagement.ts` shares history selection and deletion between platforms. The page does not call batch history or read-state APIs. There are no toolbar links, read controls, or date filters.

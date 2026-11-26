@@ -15,6 +15,8 @@ The album position control stays at the right of the next-album row. It shows th
 
 The page registers Add album on the shell's persistent center plus after the route cover begins fading or clears. The featured and next-album titles and usernames use SwappingText when the displayed album changes. Preview text fades with its cover. Both effects respect interface motion and reduced motion.
 
+During the view transition with album detail, the featured title and byline can appear before the cover finishes loading. The list keeps them visible after the transition so they can move back from their detail positions without disappearing.
+
 During initial album loading, the shared date view shows skeletons for the featured and next-album frames. Each skeleton fades away when the query settles, and populated frames fade in. Frame availability changes on date or index changes use the same fade. The next-album row keeps its space for the album position control.
 
 Each populated frame shows an image placeholder and title and username skeletons while its cover loads. Both slots resolve independently. A missing or failed cover reveals the text and shows the no-cover treatment.

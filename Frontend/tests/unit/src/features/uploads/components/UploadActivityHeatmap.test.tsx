@@ -5,14 +5,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "../../../../../../src/context/LocaleContext";
-import { uploadService } from "../../../../../../src/features/uploads/services/uploadService";
-import type { UploadBatch } from "../../../../../../src/features/uploads/types";
+import { useUploadProgress, type AlbumTransfer } from "../../../../../../src/features/uploads/uploadProgress";
 import { useAuthStore } from "../../../../../../src/store/authStore";
 import { UploadActivityHeatmap } from "../../../../../../src/features/uploads/components/UploadActivityHeatmap";
-
-vi.mock("../../../../../../src/features/uploads/services/uploadService", () => ({
-  uploadService: { list: vi.fn(), listAll: vi.fn() },
-}));
 
 function expectedHeatmapCells(weeks: number): number {
   const daysSinceMonday = (new Date().getDay() + 6) % 7;
@@ -20,28 +15,9 @@ function expectedHeatmapCells(weeks: number): number {
 }
 
 const completedAt = new Date().toISOString();
-const batch: UploadBatch = {
-  id: "batch",
-  status: "Completed",
-  username: null,
-  canManage: true,
-  createdAt: completedAt,
-  completedAt,
-  totalFiles: 1,
-  successfulFiles: 1,
-  failedFiles: 0,
-  cancelledFiles: 0,
-  items: [{
-    id: "file",
-    uploadBatchId: "batch",
-    originalFilename: "photo.jpg",
-    contentType: "image/jpeg",
-    fileSizeBytes: 100,
-    status: "Success",
-    progressPercent: 100,
-    errorDetails: null,
-    completedAt,
-  }],
+const completed: AlbumTransfer = {
+  id: "file", albumId: "album", userId: "viewer", name: "photo.jpg",
+  createdAt: completedAt, completedAt, status: "success", loaded: 100, total: 100,
 };
 
 describe("UploadActivityHeatmap", () => {
@@ -61,14 +37,7 @@ describe("UploadActivityHeatmap", () => {
       addEventListener: (_event: string, listener: () => void) => mediaListeners.add(listener),
       removeEventListener: (_event: string, listener: () => void) => mediaListeners.delete(listener),
     })));
-    vi.mocked(uploadService.list).mockResolvedValue({
-      totalItems: 1,
-      items: [batch],
-    });
-    vi.mocked(uploadService.listAll).mockResolvedValue({
-      totalItems: 1,
-      items: [batch],
-    });
+    useUploadProgress.setState({ transfers: { file: completed } });
     useAuthStore.setState({
       user: { id: "viewer", username: "viewer", role: "user", status: "active", createdAt: "" },
     });
@@ -103,8 +72,6 @@ describe("UploadActivityHeatmap", () => {
       .toBe("Upload activity over the last 36 weeks: 1 successful file");
     expect(container.querySelectorAll(".upload-activity__grid .upload-activity__day")).toHaveLength(expectedHeatmapCells(36));
     expect(container.querySelectorAll(".upload-activity__legend .upload-activity__day")).toHaveLength(6);
-    expect(uploadService.list).toHaveBeenCalledWith(0, 100);
-    expect(uploadService.listAll).not.toHaveBeenCalled();
   });
 
   it("shows 12 weeks on mobile", async () => {

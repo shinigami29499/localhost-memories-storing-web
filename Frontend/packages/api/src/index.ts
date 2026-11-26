@@ -66,9 +66,16 @@ async function requestResponse(path: string, options: RequestOptions): Promise<R
 export function uploadWithProgress<T>(
   path: string,
   file: File,
-  onProgress: (loaded: number, total: number) => void,
+  onProgress: (loaded: number, transferred: boolean) => void,
   signal: AbortSignal,
+  method: "POST" | "PUT" = "POST",
 ): Promise<T> {
+  const boundary = `----ShinigaCim${crypto.randomUUID()}`;
+  const filename = file.name.replace(/["\r\n]/g, (character) =>
+    `%${character.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0")}`);
+  const header = new Blob([`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${filename}"\r\nContent-Type: ${file.type || "application/octet-stream"}\r\n\r\n`]);
+  const body = new Blob([header, file, `\r\n--${boundary}--\r\n`]);
+  const userId = useAuthStore.getState().user?.id;
   return new Promise((resolve, reject) => {
     let xhr: XMLHttpRequest | null = null;
     let settled = false;
@@ -87,23 +94,28 @@ export function uploadWithProgress<T>(
       finish(() => reject(new DOMException("Upload cancelled.", "AbortError")));
     };
     const send = async (retried: boolean) => {
-      if (signal.aborted) {
+      if (signal.aborted || useAuthStore.getState().user?.id !== userId) {
         abort();
         return;
       }
 
       xhr = new XMLHttpRequest();
       const requestToken = useAuthStore.getState().accessToken;
-      xhr.open("POST", `${API_URL}${path}`);
+      xhr.open(method, `${API_URL}${path}`);
       for (const [name, value] of Object.entries(sessionHeader())) {
         xhr.setRequestHeader(name, value);
       }
+      xhr.setRequestHeader("Content-Type", `multipart/form-data; boundary=${boundary}`);
+      if (retried) onProgress(0, false);
       xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable) onProgress(event.loaded, event.total);
+        const loaded = Math.max(0, Math.min(file.size, event.loaded - header.size));
+        onProgress(loaded, event.loaded >= body.size);
       };
+      xhr.upload.onload = () => onProgress(file.size, true);
       xhr.onerror = () => finish(() => reject(new ApiError(0, "Network error", "Upload request failed.")));
       xhr.onabort = () => finish(() => reject(new DOMException("Upload cancelled.", "AbortError")));
-      xhr.onload = async () => {
+      xhr.onload = () => void receive().catch((error: unknown) => finish(() => reject(error)));
+      const receive = async () => {
         if (xhr?.status === 401 && !retried) {
           try {
             if ((JSON.parse(xhr.responseText) as { code?: string }).code === "session_replaced") {
@@ -112,7 +124,11 @@ export function uploadWithProgress<T>(
               return;
             }
           } catch { /* Ignore non-JSON responses. */ }
-          if (await refreshSession()) {
+          const current = useAuthStore.getState();
+          const refreshed = current.user?.id === userId && (current.accessToken !== requestToken
+            ? Boolean(current.accessToken)
+            : await refreshSession());
+          if (refreshed) {
             await send(true);
             return;
           }
@@ -134,9 +150,7 @@ export function uploadWithProgress<T>(
         finish(() => resolve(body));
       };
 
-      const form = new FormData();
-      form.append("file", file, file.name);
-      xhr.send(form);
+      xhr.send(body);
     };
 
     signal.addEventListener("abort", abort, { once: true });

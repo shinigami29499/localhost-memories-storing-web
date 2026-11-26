@@ -162,7 +162,7 @@ describe("AuthenticatedLayout sidebar", () => {
     mobileScreen = true;
     await renderLayout();
     expect(container.querySelector('.bottom-navigation a[href="/users"]')).not.toBeNull();
-    expect(container.querySelector('.bottom-navigation a[href="/uploads"]')).toBeNull();
+    expect(container.querySelector('.bottom-navigation a[href="/upload"]')).toBeNull();
     expect(container.querySelector(".bottom-navigation button")?.textContent).toContain("More");
   });
 

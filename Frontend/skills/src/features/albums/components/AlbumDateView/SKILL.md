@@ -17,6 +17,8 @@ On mobile, changing between an empty date and a populated date pushes the outgoi
 
 Frame wrappers stay mounted when a push starts or is interrupted. A rapid change between populated dates preserves the title and owner swap in both slots when both dates have a card in that slot.
 
+When the mobile list mounts with cached albums after Back, only the frame skips its entrance fade. Newly mounted characters still animate on the first populated-date change.
+
 During a push, the outgoing snapshot supplies the visible frames. Exiting live frames hide immediately and are removed after AnimatePresence registers the exit.
 
 The album position control stays in place during a date push and is excluded from the outgoing snapshot.
@@ -25,10 +27,12 @@ After album metadata arrives, each card shows a cover icon and text skeleton onl
 
 Both cards reveal and animate their text when their album changes, even if their first cover is still loading. Once shown, the text stays visible during later cover loads.
 
-The featured card hides its contributor row initially without reserving row space. A single preview activation reveals it downward from the preview or collapses it upward, resizing the frame with the row; a double click or double tap toggles the album favorite. The row shows up to five overlapping avatars aligned right, with the owner first and distinct owners of active media after. Hovering or selecting an avatar raises it and reveals its name. Repeat activation, outside press, or Escape clears selection. Motion respects the interface setting and reduced motion.
+The mobile list requests an early reveal for the featured title and byline during a shared view transition with album detail. The featured text stays visible once revealed, while the cover loads independently.
+
+The featured card hides its contributor row initially without reserving row space. A single preview activation reveals it downward from the preview or collapses it upward, resizing the frame with the row; a double click or double tap toggles the album favorite. The row shows up to five overlapping avatars aligned right, with the owner first and distinct owners of active media after. Animate UI AvatarGroup raises avatars on hover and press, and shares a name tooltip across hover and focus. Tapping an avatar toggles its focus tooltip. Escape dismisses the tooltip. Motion respects the interface setting and reduced motion.
 
 A failed load without a featured album shows a compact retry panel and hides the queue. Try again calls the page retry callback.
 
-The expanded contributor row shows image and video counts at the left when the album response provides both counts.
+The expanded contributor row shows image and video counts at the left when the album response provides both counts. The carousel preserves the open or closed state when the featured index or date changes, including when the selected date has no albums. An empty date has no row to display. While the row is open, changed digits roll with `SlidingNumber`. Counts count down to zero so the roll is visible even when the previous number ends in zero. The first reveal shows the current counts immediately. Counts also update immediately when Interface motion is off or reduced motion is requested. Switching albums cancels any pending preview click from the outgoing album.
 
-The row is clipped during its slide so it emerges from behind the preview. Once expanded, overflow is visible for avatar tooltips.
+The collapsed row clips its contents and is inert. The avatar group reverses the overlap order and raises the hovered avatar above its neighbors. Animate UI portals the tooltip outside the clipped album viewport and adjusts its position near window edges. Collapsing the row or switching albums resets the tooltip.

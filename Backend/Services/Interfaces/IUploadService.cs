@@ -32,6 +32,8 @@ public interface IUploadService
         Guid ownerId, Guid batchId, Guid itemId, int progressPercent, CancellationToken cancellationToken = default);
     Task<UploadFileResult> UploadFileAsync(
         Guid ownerId, Guid batchId, Guid itemId, IFormFile file, CancellationToken cancellationToken = default);
+    Task<AlbumFileResult> StoreAlbumFileAsync(
+        Guid ownerId, Guid albumId, Guid mediaId, IFormFile file, CancellationToken cancellationToken = default);
     Task DeleteRecordsAsync(Guid ownerId, Guid batchId, IReadOnlyCollection<Guid> itemIds, CancellationToken cancellationToken = default);
     Task DeleteRecordAsync(Guid ownerId, Guid batchId, Guid? itemId, CancellationToken cancellationToken = default);
     Task<UploadBatchDto> SetPausedAsync(Guid ownerId, Guid batchId, Guid? itemId, bool paused, CancellationToken cancellationToken = default);

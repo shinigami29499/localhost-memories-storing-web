@@ -1,314 +1,148 @@
-import { ApiError } from "../../../services/api";
-import { showToast } from "../../../components/ui";
-import { showBrowserNotification } from "../../notifications/browserNotifications";
-import { useUploadNotificationStore } from "../../notifications/uploadNotificationStore";
-import { uploadMessage } from "../../notifications/uploadMessage";
-import { getUploadFile, removeUploadFile } from "./uploadFileStore";
+import { measureUpload, forgetUpload, trackUpload, updateUpload, useUploadProgress, type AlbumTransfer } from "../uploadProgress";
+import { readUploadHistory, removeUploadRecord, saveUploadRecord } from "./uploadFileStore";
 import { uploadService } from "./uploadService";
-import type { UploadBatch, UploadItem } from "../types";
 
-const activeRequests = new Map<string, AbortController>();
-const notifiedBatches = new Set<string>();
-const wakeRunners = new Set<() => void>();
-const ITEM_INACTIVITY_TIMEOUT_MS = 30_000;
-const batchStartAttempts = new Map<string, number>();
-export function wakeUploadRuntime(): void {
-  for (const wake of wakeRunners) wake();
+const MAX_ACTIVE_UPLOADS = 3;
+const INACTIVITY_TIMEOUT_MS = 30_000;
+const runners = new Map<string, () => void>();
+const requests = new Map<string, AbortController>();
+const cacheWrites = new Map<string, Promise<void>>();
+
+function persist(transfer: AlbumTransfer) {
+  const previous = cacheWrites.get(transfer.id) ?? Promise.resolve();
+  const write = previous.then(() => saveUploadRecord(transfer))
+    .catch((error: unknown) => console.error("Could not save local upload history.", error));
+  cacheWrites.set(transfer.id, write);
+  void write.then(() => { if (cacheWrites.get(transfer.id) === write) cacheWrites.delete(transfer.id); });
 }
 
-export async function setUploadPaused(batchId: string, itemId: string | undefined, paused: boolean): Promise<void> {
-  const batch = await uploadService.setPaused(batchId, itemId, paused);
-  if (paused) for (const item of batch.items) {
-    if ((!itemId || item.id === itemId) && item.status === "Paused") activeRequests.get(item.id)?.abort();
+function currentUpload(id: string) {
+  return useUploadProgress.getState().transfers[id];
+}
+
+function saveState(id: string, update: Partial<AlbumTransfer>) {
+  updateUpload(id, update);
+  const transfer = currentUpload(id);
+  if (transfer) persist(transfer);
+}
+
+export function queueAlbumUploads(albumId: string, files: File[], userId: string) {
+  for (const file of files) {
+    const transfer: AlbumTransfer = {
+      id: crypto.randomUUID(), albumId, userId, file, name: file.name,
+      createdAt: new Date().toISOString(), status: "queued", loaded: 0, total: file.size,
+    };
+    trackUpload(transfer);
+    persist(transfer);
   }
-  wakeUploadRuntime();
+  runners.get(userId)?.();
 }
 
-export function stopUploadLocally(itemId: string): void {
-  activeRequests.get(itemId)?.abort();
-  wakeUploadRuntime();
+export function cancelUpload(id: string) {
+  const transfer = currentUpload(id);
+  if (!transfer || !["queued", "uploading", "processing"].includes(transfer.status)) return;
+  saveState(id, { status: "cancelled", speed: undefined, remaining: undefined });
+  requests.get(id)?.abort();
 }
 
-export function startUploadRuntime(
-  userId: string,
-  translate: (key: string, values?: Record<string, string | number>) => string,
-  onBatchCompleted: () => void,
-): () => void {
-  const controller = new AbortController();
-  let wake: (() => void) | undefined;
-  let changeVersion = 0;
+export function retryUpload(id: string) {
+  const transfer = currentUpload(id);
+  if (!transfer || !["failed", "cancelled"].includes(transfer.status)) return;
+  if (!transfer.file) {
+    saveState(id, { error: "The file is no longer available on this device." });
+    return;
+  }
+  saveState(id, { status: "queued", loaded: 0, error: undefined, speed: undefined, remaining: undefined });
+  runners.get(transfer.userId)?.();
+}
 
-  const wait = (milliseconds?: number, observedVersion = changeVersion) => new Promise<void>((resolve) => {
-    if (controller.signal.aborted || observedVersion !== changeVersion) {
-      resolve();
-      return;
-    }
-    const timer = milliseconds === undefined ? undefined : window.setTimeout(done, milliseconds);
-    function done() {
-      if (timer !== undefined) window.clearTimeout(timer);
-      controller.signal.removeEventListener("abort", done);
-      wake = undefined;
-      resolve();
-    }
-    wake = done;
-    controller.signal.addEventListener("abort", done, { once: true });
-  });
+export async function deleteUploadHistory(id: string) {
+  await cacheWrites.get(id);
+  await removeUploadRecord(id);
+  forgetUpload(id);
+}
 
-  const reportBatch = async (batch: UploadBatch) => {
-    const key = `shinigacim.upload-notified.${userId}.${batch.id}`;
-    if (notifiedBatches.has(key) || localStorage.getItem(key)) return;
-    notifiedBatches.add(key);
-    localStorage.setItem(key, "1");
-    onBatchCompleted();
-    showToast.dismiss(`upload-start:${batch.id}`);
-
-    const summary = translate("{success} success, {failed} failed.", {
-      success: batch.successfulFiles,
-      failed: batch.failedFiles,
-    });
-    useUploadNotificationStore.getState().add(userId, batch);
-    if (batch.status === "Completed") {
-      const images = batch.items.filter((item) => item.status === "Success" && item.contentType.startsWith("image/")).length;
-      const videos = batch.items.filter((item) => item.status === "Success" && item.contentType.startsWith("video/")).length;
-      const title = uploadMessage(translate, images, videos);
-      const destination = batch.albumId ? "/album/" + batch.albumId : "/sync/upload";
-      void showBrowserNotification(title, summary, destination).catch((error: unknown) => {
-        console.error("Could not show upload notification.", error);
+export function startUploadRuntime(userId: string, onStored: (transfer: AlbumTransfer) => void, enabled = true): () => void {
+  const active = new Map<string, AbortController>();
+  let stopped = false;
+  const pump = () => {
+    if (stopped || !enabled) return;
+    for (const transfer of Object.values(useUploadProgress.getState().transfers)) {
+      if (active.size >= MAX_ACTIVE_UPLOADS) break;
+      if (transfer.userId !== userId || transfer.status !== "queued" || active.has(transfer.id)) continue;
+      const controller = new AbortController();
+      active.set(transfer.id, controller);
+      requests.set(transfer.id, controller);
+      void send(transfer, controller).finally(() => {
+        active.delete(transfer.id);
+        requests.delete(transfer.id);
+        pump();
       });
-      showToast.success(title, {
-        id: `upload-completed:${batch.id}`,
-        description: translate(batch.albumId ? "Click to open the album." : "Click to view uploads."),
-        onClick: () => { if (window.location.pathname !== destination) window.location.assign(destination); },
-      });
-    } else if (batch.status === "Cancelled") {
-      showToast.info(translate("Upload batch cancelled"), summary);
-    } else {
-      showToast.error(translate("Upload batch finished with issues"), summary);
     }
   };
 
-  const run = async () => {
-    const observedBatches = new Set<string>();
-    let hasLoadedActive = false;
-
-    let recovered = false;
-    while (!recovered && !controller.signal.aborted) {
-      try {
-        await uploadService.recover();
-        recovered = true;
-      } catch (error) {
-        console.error("Could not recover interrupted uploads.", error);
-        await wait(3000);
+  runners.set(userId, pump);
+  void readUploadHistory(userId).then((history) => {
+    if (stopped) return;
+    for (const transfer of history) {
+      if (currentUpload(transfer.id)) continue;
+      if (transfer.status === "uploading" || transfer.status === "processing") {
+        trackUpload({ ...transfer, status: "failed", error: "Upload was interrupted. Try again." });
+      } else {
+        trackUpload(transfer);
       }
     }
-
-    while (!controller.signal.aborted) {
-      const observedVersion = changeVersion;
-      try {
-        const activeBatches = await uploadService.active();
-        const activeIds = new Set(activeBatches.map((batch) => batch.id));
-
-        if (hasLoadedActive) {
-          for (const batchId of observedBatches) {
-            if (activeIds.has(batchId)) continue;
-            const batch = await uploadService.get(batchId);
-            if (batch.completedAt) await reportBatch(batch);
-            observedBatches.delete(batchId);
-          }
-        }
-
-        for (const batch of activeBatches) observedBatches.add(batch.id);
-        hasLoadedActive = true;
-
-        const pending = await uploadService.queue();
-        const next = pending[0];
-        if (next) {
-          observedBatches.add(next.uploadBatchId);
-          const processed = await processItem(next.uploadBatchId, next.id, controller.signal);
-          if (!processed) await wait(1500, observedVersion);
-          continue;
-        }
-
-        await wait(undefined, observedVersion);
-      } catch (error) {
-        if (!controller.signal.aborted) {
-          console.error("Upload watcher could not refresh upload state.", error);
-          await wait(3000, observedVersion);
-        }
-      }
-    }
-  };
-
-  const runWithLock = async () => {
-    if (navigator.locks) {
-      while (!controller.signal.aborted) {
-        let acquired = false;
-        try {
-          await navigator.locks.request(
-            `shinigacim.upload-runtime.${userId}`,
-            { ifAvailable: true },
-            async (lock) => {
-              if (!lock || controller.signal.aborted) return;
-              acquired = true;
-              await run();
-            },
-          );
-        } catch (error) {
-          if (!controller.signal.aborted) console.error("Upload watcher could not acquire its browser lock.", error);
-        }
-        if (acquired || controller.signal.aborted) return;
-        await wait(3000);
-      }
-    } else {
-      await run();
-    }
-  };
-
-  const handleChange = () => {
-    changeVersion++;
-    wake?.();
-  };
-  wakeRunners.add(handleChange);
-  void runWithLock();
+    pump();
+  }).catch((error: unknown) => console.error("Could not read local upload history.", error));
+  pump();
 
   return () => {
-    controller.abort();
-    for (const active of activeRequests.values()) active.abort();
-    activeRequests.clear();
-    batchStartAttempts.clear();
-    wake?.();
-    wakeRunners.delete(handleChange);
+    stopped = true;
+    if (runners.get(userId) === pump) runners.delete(userId);
+    for (const controller of active.values()) controller.abort();
   };
 
-  async function processItem(batchId: string, itemId: string, signal: AbortSignal): Promise<boolean> {
-    if (signal.aborted) return false;
-    const firstAttemptAt = batchStartAttempts.get(batchId) ?? Date.now();
-    batchStartAttempts.set(batchId, firstAttemptAt);
-    if (Date.now() - firstAttemptAt >= ITEM_INACTIVITY_TIMEOUT_MS) {
-      await failBatch(batchId, itemId, "Upload batch did not start within 30 seconds.");
-      batchStartAttempts.delete(batchId);
-      return true;
+  async function send(transfer: AlbumTransfer, controller: AbortController) {
+    const { id, file, albumId } = transfer;
+    if (!file) {
+      saveState(id, { status: "failed", error: "The file is no longer available on this device." });
+      return;
     }
-
-    const itemController = new AbortController();
-    const abortFromRuntime = () => itemController.abort();
-    signal.addEventListener("abort", abortFromRuntime, { once: true });
-    activeRequests.set(itemId, itemController);
-    let timedOut = false;
     let timeout: number | undefined;
+    let timedOut = false;
     const resetTimeout = () => {
-      if (timeout !== undefined) window.clearTimeout(timeout);
+      window.clearTimeout(timeout);
       timeout = window.setTimeout(() => {
         timedOut = true;
-        itemController.abort();
-      }, ITEM_INACTIVITY_TIMEOUT_MS);
+        controller.abort();
+      }, INACTIVITY_TIMEOUT_MS);
     };
+
+    saveState(id, { status: "uploading" });
     resetTimeout();
-
-    let lastReportedPercent = -1;
-    let lastReportedAt = 0;
-    let uploadStarted = false;
     try {
-      await uploadService.start(batchId, itemId, itemController.signal);
-      uploadStarted = true;
-      batchStartAttempts.delete(batchId);
-      let file: File | undefined;
-      try {
-        file = await getUploadFile(itemId);
-      } catch (error) {
-        console.error("Could not read the file for upload.", error);
-      }
-
-      if (!file) {
-        await uploadService.fail(
-          batchId,
-          itemId,
-          "The file is no longer available on this device.",
-        );
-        return true;
-      }
-
-      await uploadService.upload(
-        batchId,
-        itemId,
-        file,
-        (loaded, total) => {
-          resetTimeout();
-          const percent = Math.min(99, Math.floor((loaded / total) * 100));
-          const now = Date.now();
-          if (percent === lastReportedPercent
-            || (percent - lastReportedPercent < 3 && now - lastReportedAt < 500)) return;
-          lastReportedPercent = percent;
-          lastReportedAt = now;
-          void uploadService.reportProgress(batchId, itemId, percent).catch((error: unknown) => {
-            if (error instanceof ApiError && error.status === 409) {
-              itemController.abort();
-              return;
-            }
-            console.error("Could not persist upload progress.", error);
-          });
-        },
-        itemController.signal,
-      );
-      try {
-        await removeUploadFile(itemId);
-      } catch (error) {
-        console.error("Uploaded file remains in local browser storage.", error);
-      }
-      return true;
+      const progress = measureUpload(file.size, (measurement) => {
+        if (controller.signal.aborted) return;
+        if (measurement.status === "processing") window.clearTimeout(timeout);
+        else resetTimeout();
+        updateUpload(id, measurement);
+      });
+      const result = await uploadService.upload(albumId, id, file, progress, controller.signal);
+      if (result?.mediaId !== id) throw new Error("The server did not confirm file storage.");
+      saveState(id, { status: "success", loaded: file.size, remaining: undefined, file: undefined,
+        completedAt: new Date().toISOString() });
+      if (!stopped) onStored(currentUpload(id));
     } catch (error) {
-      if (timedOut) {
-        if (!uploadStarted) {
-          await failBatch(batchId, itemId, "Upload batch did not start within 30 seconds.");
-          batchStartAttempts.delete(batchId);
-        } else {
-          try {
-            await uploadService.fail(batchId, itemId, "Upload timed out after 30 seconds without progress.");
-          } catch (failError) {
-            console.error("Could not mark the timed out upload item as failed.", failError);
-          }
-        }
-        return true;
+      if (currentUpload(id)?.status === "uploading" || currentUpload(id)?.status === "processing") {
+        saveState(id, {
+          status: "failed", speed: undefined, remaining: undefined,
+          error: timedOut ? "Upload timed out after 30 seconds without progress."
+            : stopped ? "Upload was interrupted. Try again."
+            : error instanceof Error ? error.message : "Upload failed.",
+        });
       }
-      if (itemController.signal.aborted || signal.aborted) return false;
-      if (!uploadStarted) {
-        if (!(error instanceof ApiError && error.status === 409)) {
-          console.error("Could not start the upload item.", error);
-        }
-        return false;
-      }
-
-      try {
-        const batch = await uploadService.get(batchId);
-        const item = batch.items.find((candidate) => candidate.id === itemId);
-        if (item?.status === "Success") {
-          await removeUploadFile(itemId);
-        } else if (item?.status === "Pending" || item?.status === "Uploading") {
-          const message = error instanceof Error ? error.message : "Upload failed.";
-          await uploadService.fail(batchId, itemId, message);
-        }
-      } catch (recordError) {
-        console.error("Could not reconcile the failed upload with the server.", recordError);
-      }
-      return true;
     } finally {
-      if (timeout !== undefined) window.clearTimeout(timeout);
-      signal.removeEventListener("abort", abortFromRuntime);
-      activeRequests.delete(itemId);
-    }
-  }
-
-  async function failBatch(batchId: string, processingItemId: string, message: string) {
-    try {
-      const batch = await uploadService.get(batchId);
-      const activeItems = batch.items.filter((item) => item.status === "Uploading");
-      const itemsToFail = activeItems.length > 0
-        ? activeItems.filter((item) => item.id === processingItemId)
-        : batch.items.filter((item) => item.status === "Pending");
-      await Promise.allSettled(itemsToFail
-        .map((item) => uploadService.fail(batchId, item.id, message)));
-    } catch (error) {
-      console.error("Could not fail the timed out upload batch.", error);
+      window.clearTimeout(timeout);
     }
   }
 }

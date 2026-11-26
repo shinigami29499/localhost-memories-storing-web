@@ -26,6 +26,89 @@ test.beforeEach(async ({ page }) => {
   }));
 });
 
+test("Profile reserves the avatar grid and expands the center action into Save avatar", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.addInitScript(() => localStorage.setItem("shinigacim.animations-enabled", "true"));
+  const user = { id: "u1", username: "viewer", role: "admin", status: "active", createdAt: "2026-01-01" };
+  const profile = holdResponse();
+  const save = holdResponse();
+  const requests: string[] = [];
+  await page.route("**/api/user/me", async (route) => {
+    await profile.pending;
+    await route.fulfill({ json: user });
+  });
+  await page.route("**/api/library/album/media/mine/count", async (route) => {
+    await profile.pending;
+    await route.fulfill({ json: { images: 32, videos: 4 } });
+  });
+  await page.route("**/api/user/me/avatar", async (route) => {
+    const { seed } = route.request().postDataJSON() as { seed: string };
+    requests.push(seed);
+    await save.pending;
+    await route.fulfill({ json: { ...user, avatarSeed: seed } });
+  });
+
+  await page.goto("/");
+  const center = page.locator(".mobile-menu-bar__add");
+  const menu = page.locator(".mobile-menu-bar");
+  await expect(center).toHaveCSS("border-radius", "50%");
+  const original = await center.elementHandle();
+  const transitions: string[] = [];
+  await page.exposeFunction("recordProfileTransition", (property: string) => { transitions.push(property); });
+  await page.evaluate(() => {
+    document.addEventListener("transitionrun", ({ target, propertyName }) => {
+      if (!(target instanceof Element)) return;
+      const records = Reflect.get(window, "recordProfileTransition");
+      if (target.matches(".mobile-menu-bar") && propertyName === "transform") records("menu slide");
+      if (target.matches(".mobile-menu-bar__add") && ["inline-size", "width"].includes(propertyName)) records("action expansion");
+    });
+  });
+  const profileLink = page.locator(".mobile-home-header__identity");
+  await profileLink.click();
+  const saveButton = page.getByRole("button", { name: "Save avatar", exact: true });
+  const grid = page.locator(".mobile-avatar-picker__options");
+
+  try {
+    await expect(saveButton).toBeVisible();
+    await expect(saveButton).toBeDisabled();
+    await expect(saveButton.locator("svg")).toHaveCount(0);
+    await expect(menu).toHaveAttribute("inert", "");
+    await expect.poll(() => transitions).toEqual(expect.arrayContaining(["action expansion", "menu slide"]));
+    await expect.poll(() => menu.evaluate((element) => element.getBoundingClientRect().top)).toBeGreaterThanOrEqual(844);
+    const menuWidth = (await menu.boundingBox())!.width;
+    await expect.poll(async () => (await center.boundingBox())?.width).toBeCloseTo(menuWidth, 0);
+    expect(await center.evaluate((element, initial) => element === initial, original)).toBe(true);
+    await expect(grid.locator(".mobile-avatar-picker__placeholder")).toHaveCount(8);
+    const placeholderBounds = await grid.boundingBox();
+
+    profile.release();
+    const candidate = grid.getByRole("radio", { name: "Avatar 1", exact: true });
+    await expect(candidate).toBeAttached();
+    expect(await grid.boundingBox()).toEqual(placeholderBounds);
+    await candidate.focus();
+    await page.keyboard.press("Space");
+    await expect(saveButton).toBeEnabled();
+    await page.getByRole("button", { name: "Next page" }).click();
+    await expect(page.getByRole("img", { name: "Selected avatar" })).toBeVisible();
+    await saveButton.click();
+    await expect(saveButton).toHaveAttribute("aria-busy", "true");
+    await expect(saveButton).toBeDisabled();
+    save.release();
+    await expect(page.locator(".mobile-profile__avatar img")).toHaveAttribute("src", /avatar%3A0%3A0/);
+    await expect(saveButton).toBeDisabled();
+    expect(requests).toEqual(["u1:avatar:0:0"]);
+  } finally {
+    profile.release();
+    save.release();
+  }
+
+  await page.getByRole("button", { name: "Back", exact: true }).click();
+  await expect(menu).not.toHaveAttribute("inert", "");
+  await expect(center).toHaveCSS("border-radius", "50%");
+  await expect(center.locator("svg")).toHaveCount(1);
+});
+
 test("mobile tab highlight previews a mouse drag and opens the released tab", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ colorScheme: "dark", reducedMotion: "no-preference" });
@@ -205,12 +288,13 @@ for (const width of [320, 390]) {
     await expect(indicator).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
     const notifications = page.getByRole("button", { name: "Notifications" });
     const more = page.getByRole("button", { name: "More", exact: true });
-    const add = navigation.getByRole("button", { name: "Add", exact: true });
+    const add = page.getByRole("button", { name: "Add", exact: true });
     for (const control of [notifications, more]) {
       await expect(control.locator("svg")).toHaveCSS("width", "20px");
       await expect(control.locator("svg")).toHaveCSS("height", "20px");
     }
-    const menuControls = await navigation.locator("a, button").all();
+    const tabs = await navigation.getByRole("link").all();
+    const menuControls = [...tabs.slice(0, 2), add, ...tabs.slice(2)];
     let previousRight = 0;
     for (const control of menuControls) {
       const icon = control.locator("svg");
@@ -695,8 +779,237 @@ test("Album loading fills, fades, and slides the title with Interface motion off
   expect(values.every((value) => Number.isInteger(value) && value < 100)).toBe(true);
 });
 
+test("album detail loops photos and muted video, with hold and volume controls", async ({ page }) => {
+  test.setTimeout(45_000);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.addInitScript(() => localStorage.setItem("shinigacim.animations-enabled", "true"));
+  const clip = await page.evaluate(async () => {
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = 32;
+    const context = canvas.getContext("2d")!;
+    const stream = canvas.captureStream(20);
+    const recorder = new MediaRecorder(stream, { mimeType: "video/webm;codecs=vp8" });
+    const recorded = new Promise<Blob>((resolve) => { recorder.ondataavailable = ({ data }) => resolve(data); });
+    recorder.start();
+    const paint = window.setInterval(() => {
+      context.fillStyle = performance.now() % 200 < 100 ? "#123456" : "#654321";
+      context.fillRect(0, 0, 32, 32);
+    }, 50);
+    await new Promise((resolve) => window.setTimeout(resolve, 1800));
+    recorder.stop();
+    window.clearInterval(paint);
+    stream.getTracks().forEach((track) => track.stop());
+    return Array.from(new Uint8Array(await (await recorded).arrayBuffer()));
+  });
+  const photo = { id: "still", mediaKind: "image", originalFilename: "Still.jpg", isFavorited: false };
+  const video = { id: "clip", mediaKind: "video", originalFilename: "Clip.webm", isFavorited: false };
+  const nextVideo = { ...video, id: "next-clip", originalFilename: "Next clip.webm" };
+  const album = {
+    id: "slideshow", name: "Slideshow", owner: { id: "u1", username: "viewer" },
+    isPublic: true, imageCount: 1, videoCount: 2, mediaCount: 3, createdAt: new Date().toISOString(),
+  };
+  await page.route("**/api/library/album/slideshow", (route) => route.fulfill({ json: album }));
+  await page.route("**/api/library/album/page*", (route) => route.fulfill({ json: { items: [album], hasMore: false } }));
+  await page.route("**/api/library/album/slideshow/media?*", (route) => route.fulfill({
+    json: { items: [photo, video, nextVideo], total: 3, offset: 0 },
+  }));
+  await page.route("**/api/library/album/media/*/file?*", (route) => {
+    const url = new URL(route.request().url());
+    if (url.pathname.endsWith("clip/file") && !url.searchParams.has("preview")) {
+      return route.fulfill({ contentType: "video/webm", body: Buffer.from(clip) });
+    }
+    return route.fulfill({
+      contentType: "image/svg+xml",
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="24"><rect width="32" height="24" fill="#123456"/></svg>',
+    });
+  });
+  await page.goto("/album/slideshow");
+  const carousel = page.getByRole("region", { name: "Album media" });
+  const imageFrame = carousel.getByRole("button", { name: photo.originalFilename });
+  const unmute = carousel.getByRole("button", { name: "Unmute video" });
+  const mute = carousel.getByRole("button", { name: "Mute video" });
+  await expect(imageFrame).toBeVisible();
+  await imageFrame.hover();
+  await page.mouse.down();
+  await page.waitForTimeout(4200);
+  await expect(imageFrame).toBeVisible();
+  await expect(imageFrame).toHaveCSS("scale", "none");
+  await page.mouse.up();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+
+  const player = carousel.locator("video:not([hidden])");
+  await expect(player).toHaveJSProperty("paused", false, { timeout: 6500 });
+  await expect(player).toHaveJSProperty("muted", true);
+
+  const track = carousel.locator(".mobile-album-carousel__track");
+  await expect.poll(() => track.evaluate((element) => element.scrollLeft - element.clientWidth)).toBe(0);
+  const bounds = (await track.boundingBox())!;
+  const touch = await page.context().newCDPSession(page);
+  const y = bounds.y + bounds.height / 2;
+  await touch.send("Input.dispatchTouchEvent", {
+    type: "touchStart",
+    touchPoints: [{ x: bounds.x + bounds.width * 0.15, y }],
+  });
+  await expect(player).toHaveJSProperty("paused", true);
+  await page.waitForTimeout(400);
+  for (const fraction of [0.25, 0.4, 0.6, 0.8, 0.95]) {
+    await touch.send("Input.dispatchTouchEvent", {
+      type: "touchMove", touchPoints: [{ x: bounds.x + bounds.width * fraction, y }],
+    });
+    await page.waitForTimeout(30);
+  }
+  await touch.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  await expect(track).toHaveJSProperty("scrollLeft", 0);
+  await expect(imageFrame).toBeVisible();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+
+  await page.mouse.move(bounds.x + bounds.width * 0.9, y);
+  await page.mouse.down();
+  await page.waitForTimeout(400);
+  await page.mouse.move(bounds.x + bounds.width * 0.15, y, { steps: 6 });
+  await page.mouse.up();
+  await expect.poll(() => track.evaluate((element) => element.scrollLeft - element.clientWidth)).toBe(0);
+  await expect(player).toHaveJSProperty("paused", false);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+
+  await expect(unmute.locator(".lucide-volume-x")).toBeVisible();
+  const collapsed = (await unmute.boundingBox())!;
+  await unmute.click();
+  await expect(player).toHaveJSProperty("muted", false);
+  const slider = carousel.getByRole("slider", { name: "Video volume" });
+  await expect(slider).toHaveValue("75");
+  const sliderControl = carousel.locator(".mobile-album-carousel__volume-control");
+  const reveal = carousel.locator(".mobile-album-carousel__volume-reveal");
+  await expect(reveal).toHaveCSS("width", "104px");
+  const sliderBounds = (await sliderControl.boundingBox())!;
+  const expanded = (await mute.boundingBox())!;
+  expect(expanded.x).toBeLessThan(collapsed.x);
+  expect(sliderBounds.x).toBeGreaterThanOrEqual(expanded.x + expanded.width);
+  expect(expanded.y + expanded.height / 2).toBeCloseTo(sliderBounds.y + sliderBounds.height / 2, 0);
+  await sliderControl.click({ position: { x: 25, y: 24 } });
+  await expect(mute.locator(".lucide-volume-1")).toBeVisible();
+  await slider.press("End");
+  await expect(player).toHaveJSProperty("volume", 1);
+  await expect(mute.locator(".lucide-volume-2")).toBeVisible();
+  await mute.click();
+  await expect(player).toHaveJSProperty("muted", true);
+  await expect(slider).toHaveCount(0);
+  await expect(reveal).toHaveCSS("width", "0px");
+  await unmute.click();
+  await expect(slider).toHaveValue("100");
+
+  await track.press("ArrowRight");
+  await expect(player).toHaveAttribute("src", /\/next-clip\/file/);
+  await expect(player).toHaveJSProperty("muted", false);
+  await expect(player).toHaveJSProperty("volume", 1);
+  await expect(player).toHaveJSProperty("paused", false);
+  await expect(imageFrame).toBeVisible({ timeout: 6500 });
+  await expect(mute).toBeHidden();
+  await track.press("ArrowRight");
+  await expect(player).toHaveJSProperty("muted", false);
+  await expect(player).toHaveJSProperty("volume", 1);
+  await expect(player).toHaveJSProperty("paused", false);
+  await player.evaluate((element: HTMLVideoElement) => { element.currentTime = 0.65; });
+  await expect.poll(() => player.evaluate((element: HTMLVideoElement) => element.currentTime)).toBeGreaterThanOrEqual(0.65);
+  await carousel.getByRole("button", { name: video.originalFilename }).click();
+  const dialog = page.getByRole("dialog", { name: "Media viewer" });
+  const fullscreenVideo = dialog.locator("video");
+  await expect(fullscreenVideo).toHaveJSProperty("muted", false);
+  await expect(fullscreenVideo).toHaveJSProperty("volume", 1);
+  await expect(fullscreenVideo).toHaveJSProperty("paused", false);
+  await expect.poll(() => fullscreenVideo.evaluate((element: HTMLVideoElement) => element.currentTime)).toBeGreaterThanOrEqual(0.65);
+  const dock = dialog.locator(".mobile-video-player__controls");
+  await expect(dock.getByRole("slider", { name: "Video progress" })).toBeVisible();
+  await expect(dock.getByRole("button", { name: "Toggle fullscreen" })).toHaveCount(0);
+  const fullscreenVolume = dock.getByRole("slider", { name: "Video volume" });
+  await expect(fullscreenVolume).toHaveAttribute("aria-orientation", "vertical");
+  await fullscreenVolume.press("ArrowDown");
+  await expect(fullscreenVideo).toHaveJSProperty("volume", 0.99);
+  await fullscreenVideo.evaluate((element: HTMLVideoElement) => { element.loop = true; });
+  const videoBounds = await fullscreenVideo.boundingBox();
+  await page.clock.install();
+  const tapScreen = () => fullscreenVideo.click({ position: { x: 20, y: 100 } });
+  await tapScreen();
+  await expect(dock).toHaveAttribute("data-visible", "false");
+  await tapScreen();
+  await expect(dock).toHaveAttribute("data-visible", "true");
+  await page.clock.fastForward(2500);
+  await expect(dock).toHaveAttribute("data-visible", "true");
+  await page.clock.fastForward(600);
+  await expect(dock).toHaveAttribute("data-visible", "false");
+  await expect(dock).toBeHidden();
+  expect(await fullscreenVideo.boundingBox()).toEqual(videoBounds);
+  await tapScreen();
+  await expect(dock).toHaveAttribute("data-visible", "true");
+  expect(await fullscreenVideo.boundingBox()).toEqual(videoBounds);
+  await dock.getByRole("button", { name: "Pause video" }).click();
+  await expect(fullscreenVideo).toHaveJSProperty("paused", true);
+  await page.clock.fastForward(3100);
+  await expect(dock).toBeVisible();
+  await fullscreenVideo.evaluate(async (element: HTMLVideoElement) => {
+    if (element.currentTime >= 1) return;
+    const reachedOneSecond = new Promise<void>((resolve) => {
+      const pauseAtOneSecond = () => {
+        if (element.currentTime < 1) return;
+        element.removeEventListener("timeupdate", pauseAtOneSecond);
+        element.pause();
+        resolve();
+      };
+      element.addEventListener("timeupdate", pauseAtOneSecond);
+    });
+    await element.play();
+    await reachedOneSecond;
+  });
+  const counter = dock.locator(".mobile-video-player__time > .sr-only");
+  await expect(counter).toHaveText(/^0:01/);
+  const dockBounds = await dock.boundingBox();
+  await dock.evaluate((element) => {
+    element.setAttribute("data-test-dock", "original");
+    const observer = new MutationObserver(() => {
+      if (!element.hasAttribute("data-resetting-seek")) return;
+      element.setAttribute("data-test-reset", "animated");
+      observer.disconnect();
+    });
+    observer.observe(element, { attributes: true, attributeFilter: ["data-resetting-seek"] });
+  });
+  const stageY = videoBounds!.y + videoBounds!.height / 2;
+  await touch.send("Input.dispatchTouchEvent", {
+    type: "touchStart", touchPoints: [{ x: videoBounds!.x + videoBounds!.width * 0.9, y: stageY }],
+  });
+  for (const fraction of [0.75, 0.6, 0.45, 0.25, 0.1]) {
+    await touch.send("Input.dispatchTouchEvent", {
+      type: "touchMove", touchPoints: [{ x: videoBounds!.x + videoBounds!.width * fraction, y: stageY }],
+    });
+    await page.waitForTimeout(30);
+  }
+  await touch.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  await expect(fullscreenVideo).toHaveAttribute("src", /\/next-clip\/file/);
+  await expect(fullscreenVideo).toHaveJSProperty("paused", false);
+  await expect(counter).toHaveText(/^0:00/);
+  await expect(dock).toHaveAttribute("data-test-reset", "animated");
+  await expect(dock).toHaveAttribute("data-test-dock", "original");
+  expect(await dock.boundingBox()).toEqual(dockBounds);
+  await dock.getByRole("button", { name: "Mute video" }).click();
+  await expect(fullscreenVideo).toHaveJSProperty("muted", true);
+  await expect(fullscreenVolume).toHaveCount(0);
+  await dialog.getByRole("button", { name: "Close media preview" }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(player).toHaveJSProperty("muted", true);
+  await unmute.click();
+  await expect(player).toHaveJSProperty("muted", false);
+
+  await page.getByRole("banner").getByRole("button", { name: "Back", exact: true }).click();
+  await expect(page).toHaveURL(/\/album$/);
+  await page.getByRole("link", { name: "Open album Slideshow" }).click();
+  await expect(page).toHaveURL(/\/album\/slideshow$/);
+  await track.press("ArrowRight");
+  await expect(player).toHaveJSProperty("muted", true);
+});
+
 test("album list and detail skip the overlay both ways and share the header gradient", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.addInitScript(() => localStorage.setItem("shinigacim.animations-enabled", "true"));
   const item = {
     id: "weekend", name: "Weekend", owner: { id: "u1", username: "viewer" },
     createdAt: new Date().toISOString(), isPublic: false, mediaCount: 0,
@@ -714,7 +1027,7 @@ test("album list and detail skip the overlay both ways and share the header grad
   await title.evaluate((element) => { element.dataset.sharedTitle = "true"; });
   const gradient = await title.evaluateHandle((element) =>
     element.getAnimations().find((animation) =>
-      animation instanceof CSSAnimation && animation.animationName === "mobile-gradient-flow"));
+      animation instanceof CSSAnimation && animation.animationName === "ui-gradient-flow"));
   expect(await gradient.evaluate((animation) => animation?.currentTime)).toEqual(expect.any(Number));
   await page.evaluate(() => {
     const selector = ".mobile-page-loading";
@@ -811,7 +1124,6 @@ test("fast page data skips the loading placeholder", async ({ page }) => {
 
 for (const [path, endpoint, layout, empty, data] of [
   ["/user", "**/api/user", "users", "No users yet", []],
-  ["/uploads", "**/api/sync/upload/admin/batch?*", "cards", "No uploads yet", { items: [], totalItems: 0 }],
   ["/location/saved", "**/api/place/saved/page?*", "rows", "No saved places yet", { items: [], page: 1, limit: 30, total: 0 }],
   ["/location/history", "**/api/place/history/page?*", "rows", "No visits yet", { items: [], page: 1, limit: 30, total: 0 }],
 ] as const) {
@@ -883,8 +1195,8 @@ test(`Album navigation and the center Add button work in ${colorScheme} mode`, a
   await page.addInitScript(() => localStorage.setItem("shinigacim.animations-enabled", "true"));
   await page.goto("/");
   const nav = page.locator(".mobile-menu-bar");
-  await expect(nav.getByRole("button", { name: "Add", exact: true })).toBeDisabled();
-  const center = nav.locator(".mobile-menu-bar__add");
+  await expect(page.getByRole("button", { name: "Add", exact: true })).toBeDisabled();
+  const center = page.locator(".mobile-menu-bar__add");
   const borderColor = colorScheme === "dark" ? "rgb(245, 245, 245)" : "rgb(255, 255, 255)";
   await expect(center).toHaveCSS("border-top-color", borderColor);
   if (colorScheme === "light") {
@@ -892,27 +1204,40 @@ test(`Album navigation and the center Add button work in ${colorScheme} mode`, a
   }
   await expect(center).toHaveCSS("opacity", "1");
   await center.evaluate((button) => {
-    const gradient = button.getAnimations().find((animation) =>
-      animation instanceof CSSAnimation && animation.animationName === "mobile-gradient-flow");
-    if (!gradient) throw new Error("The center button gradient is missing");
-    Reflect.set(window, "originalMenuCenter", { button, gradient });
+    Reflect.set(window, "originalMenuCenter", button);
   });
-  const hasOriginalGradient = () => center.evaluate((button) => {
-    const original = Reflect.get(window, "originalMenuCenter");
-    return original.button === button && button.getAnimations().includes(original.gradient);
-  });
+  const hasOriginalButton = () => center.evaluate((button) => Reflect.get(window, "originalMenuCenter") === button);
   await nav.getByRole("link", { name: "Album" }).click();
   await expect(page.locator(".mobile-page-loading")).toHaveCount(0);
-  const create = nav.getByRole("button", { name: "Add album", exact: true });
+  const create = page.getByRole("button", { name: "Add album", exact: true });
   await expect(create).toBeVisible();
   await expect(create).toHaveCSS("transform", "none");
   await expect(create).toHaveCSS("opacity", "1");
-  expect(await hasOriginalGradient()).toBe(true);
+  expect(await hasOriginalButton()).toBe(true);
   await expect(nav).toBeVisible();
   await expect(nav.getByRole("link", { name: "Album" })).toHaveAttribute("aria-current", "page");
   await expect(create).toHaveCSS("border-radius", "50%");
   await expect(create).toHaveCSS("border-top-color", borderColor);
   await expect(create).toHaveText("");
+  for (const gradient of [create, page.getByRole("banner").locator(".mobile-page-title")]) {
+    await expect(gradient).toHaveCSS("animation-iteration-count", "infinite");
+    const colors = await gradient.evaluate((element) => {
+      const animation = element.getAnimations().find((entry) =>
+        entry instanceof CSSAnimation && entry.animationName === "ui-gradient-flow")!;
+      const startTime = animation.currentTime;
+      const frames = [0, 3000, 6000].map((time) => {
+        animation.currentTime = time;
+        return getComputedStyle(element).backgroundImage;
+      });
+      animation.currentTime = startTime;
+      return frames;
+    });
+    expect(colors[0]).not.toEqual(colors[1]);
+    expect(colors[0]).toEqual(colors[2]);
+  }
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect(create).toHaveCSS("animation-name", "none");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
   const back = page.getByRole("button", { name: "Back", exact: true });
   await expect(back).toHaveCount(0);
   await create.focus();
@@ -923,8 +1248,8 @@ test(`Album navigation and the center Add button work in ${colorScheme} mode`, a
   await nav.getByRole("link", { name: "Home" }).click();
   await expect(page).toHaveURL(/\/$/);
   await expect(nav).toBeVisible();
-  await expect(nav.getByRole("button", { name: "Add", exact: true })).toBeDisabled();
-  expect(await hasOriginalGradient()).toBe(true);
+  await expect(page.getByRole("button", { name: "Add", exact: true })).toBeDisabled();
+  expect(await hasOriginalButton()).toBe(true);
   await page.goto("/album");
   await nav.getByRole("link", { name: "Home" }).click();
   await expect(page).toHaveURL(/\/$/);
@@ -940,7 +1265,7 @@ test("the Home item returns Home after opening More pages and Album", async ({ p
   const menu = page.getByRole("dialog", { name: "More" });
   const back = page.getByRole("button", { name: "Back", exact: true });
 
-  for (const [label, path] of [["Settings", "/settings"], ["User profile", "/profile"], ["Upload", "/uploads"]]) {
+  for (const [label, path] of [["Settings", "/setting"], ["User profile", "/profile"], ["Upload", "/upload"]]) {
     await more.click();
     await menu.getByRole("link", { name: label, exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`${path}$`));
@@ -1000,9 +1325,8 @@ for (const preference of ["enabled", "disabled", "reduced"] as const) {
       expect(await steps()).toEqual([]);
     }
     await expect(page.locator(".page-action-bar .gallery-selection-bar")).toHaveCount(0);
-    await expect(page.locator(".album-hero").getByRole("button", { name: "Add media", exact: true })).toBeVisible();
-    await expect(page.locator(".mobile-menu-bar")).toBeVisible();
-    await expect(page.locator(".mobile-menu-bar").getByRole("button", { name: "Add", exact: true })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Add media", exact: true })).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "Main navigation" })).toHaveCount(0);
 
     await back.click();
     await expect(page).toHaveURL(/\/album$/);
@@ -1010,7 +1334,7 @@ for (const preference of ["enabled", "disabled", "reduced"] as const) {
     await expect(position).toHaveCSS("margin-inline-start", "0px");
     expect((await title.boundingBox())!.x).toBeCloseTo(listX, 0);
     await expect(page.locator(".mobile-menu-bar")).toBeVisible();
-    const create = page.locator(".mobile-menu-bar").getByRole("button", { name: "Add album" });
+    const create = page.getByRole("button", { name: "Add album", exact: true });
     await expect(create).toBeEnabled();
     if (preference !== "enabled") {
       await expect(page.locator(".mobile-menu-bar")).toHaveCSS("transition-duration", "0s");
@@ -1033,14 +1357,14 @@ test("More pages return Home after browser Back or direct entry", async ({ page 
   const menu = page.getByRole("dialog", { name: "More" });
   await more.click();
   await menu.getByRole("link", { name: "Settings", exact: true }).click();
-  await expect(page).toHaveURL(/\/settings$/);
+  await expect(page).toHaveURL(/\/setting$/);
   await more.click();
   await menu.getByRole("link", { name: "User profile", exact: true }).click();
   await expect(page).toHaveURL(/\/profile$/);
   await page.goBack();
   await expect(page).toHaveURL(/\/$/);
 
-  await page.goto("/settings");
+  await page.goto("/setting");
   await page.getByRole("button", { name: "Back", exact: true }).click();
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByRole("main", { name: "Home" })).toBeEmpty();

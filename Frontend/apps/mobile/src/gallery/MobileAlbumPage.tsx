@@ -4,8 +4,11 @@ import { EmptyState, ErrorState } from "@/components/ui";
 import { PageDataPlaceholder } from "@/components/ui/PageDataPlaceholder";
 import { useLocale } from "@/context/LocaleContext";
 import { useAlbum } from "@/features/albums/hooks/useAlbums";
+import { useAlbumUpload } from "@/features/albums/hooks/useAlbumUpload";
 import { ApiError } from "@/services/api";
+import { useCallback } from "react";
 import { useParams } from "react-router-dom";
+import { useMobileMenuAction } from "../layout/MobileMenuAction";
 import { MobileAlbumImageCarousel } from "./MobileAlbumImageCarousel";
 import "./mobile-album-detail.css";
 import "./mobile-gallery-shared.css";
@@ -14,9 +17,19 @@ export function MobileAlbumPage() {
   const { albumId } = useParams<{ albumId: string }>();
   const { t } = useLocale();
   const album = useAlbum(albumId);
+  const mediaCount = album.data?.imageCount !== undefined && album.data.videoCount !== undefined
+    ? album.data.imageCount + album.data.videoCount : undefined;
+  const { canUpload, uploadInput, uploadFiles } = useAlbumUpload(album.isSuccess ? album.data : undefined);
+  const openUploadPicker = useCallback(() => uploadInput.current?.click(), [uploadInput]);
+  useMobileMenuAction(t("Add media"), canUpload ? openUploadPicker : undefined);
 
   return (
     <div className="mobile-album-page">
+      {canUpload && <input ref={uploadInput} type="file" accept="image/*,video/*" multiple hidden onChange={(event) => {
+        const files = Array.from(event.currentTarget.files ?? []);
+        event.currentTarget.value = "";
+        void uploadFiles(files);
+      }} />}
       {album.isPending ? (
         <main className="gallery-page album-page mobile-content-placeholder--album-detail">
           <PageDataPlaceholder layout="cards" label={t("Loading album...")} count={1} />
@@ -44,7 +57,7 @@ export function MobileAlbumPage() {
                     {`${t(album.data.isPublic ? "Public" : "Private")} · ${album.data.owner.username}`}
                   </p>
                 </div>
-                <MobileAlbumImageCarousel key={album.data.id} albumId={album.data.id} imageCount={album.data.imageCount} />
+                <MobileAlbumImageCarousel key={album.data.id} albumId={album.data.id} mediaCount={mediaCount} />
                 {(album.data.imageCount !== undefined || album.data.videoCount !== undefined) && (
                   <div className="mobile-album-detail__counts">
                     {album.data.imageCount !== undefined && <span><ImageIcon aria-hidden="true" />{t("Images")} {album.data.imageCount}</span>}

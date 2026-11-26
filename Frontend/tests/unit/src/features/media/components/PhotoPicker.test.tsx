@@ -7,9 +7,7 @@ import { PhotoPicker as WebPhotoPicker } from "../../../../../../src/features/me
 import { MobilePhotoPicker } from "../../../../../../apps/mobile/src/media/MobilePhotoPicker";
 import { previewService } from "../../../../../../src/features/media/services/previewService";
 import { mediaService } from "../../../../../../src/features/media/services/mediaService";
-import { uploadService } from "../../../../../../src/features/uploads/services/uploadService";
 import type { MediaFile } from "../../../../../../src/features/media/types";
-import type { UploadBatch } from "../../../../../../src/features/uploads/types";
 import { useAnimationStore } from "../../../../../../src/store/animationStore";
 
 vi.mock("../../../../../../src/features/media/services/previewService", () => ({
@@ -17,9 +15,6 @@ vi.mock("../../../../../../src/features/media/services/previewService", () => ({
 }));
 vi.mock("../../../../../../src/features/media/services/mediaService", () => ({
   mediaService: { list: vi.fn() },
-}));
-vi.mock("../../../../../../src/features/uploads/services/uploadService", () => ({
-  uploadService: { submit: vi.fn(), get: vi.fn() },
 }));
 
 const galleryImage: MediaFile = {
@@ -156,7 +151,6 @@ describe.each([["web", WebPhotoPicker], ["mobile", MobilePhotoPicker]] as const)
     await click(tab("Preview"));
     await uploadFile();
     expect(previewService.upload).toHaveBeenCalledOnce();
-    expect(uploadService.submit).not.toHaveBeenCalled();
     expect(onUploadedPreview).toHaveBeenCalledWith(newPreview.id);
     expect(document.querySelector('[aria-label="new.jpg"]')?.getAttribute("aria-pressed")).toBe("true");
     await click(tab("Gallery"));
@@ -197,22 +191,12 @@ describe.each([["web", WebPhotoPicker], ["mobile", MobilePhotoPicker]] as const)
     expect(onConfirm).not.toHaveBeenCalled();
   });
 
-  it("keeps Gallery uploads on the tracked upload workflow", async () => {
-    const completed: UploadBatch = {
-      id: "gallery-batch", status: "Completed", username: "viewer", canManage: true,
-      createdAt: galleryImage.createdAt, completedAt: galleryImage.createdAt,
-      totalFiles: 1, successfulFiles: 1, failedFiles: 0, cancelledFiles: 0, items: [],
-    };
-    vi.mocked(uploadService.submit).mockResolvedValue(completed);
-    vi.mocked(uploadService.get).mockResolvedValue(completed);
+  it("ignores file selection on the Gallery tab", async () => {
     await render(null);
     await uploadFile();
-    await vi.waitFor(() => expect(uploadService.get).toHaveBeenCalledWith(completed.id));
-    expect(uploadService.submit).toHaveBeenCalledOnce();
     expect(previewService.upload).not.toHaveBeenCalled();
     expect(onUploadedPreview).not.toHaveBeenCalled();
   });
-
   it("reports upload failures without selecting a fake preview", async () => {
     vi.mocked(previewService.upload).mockRejectedValue(new Error("Storage unavailable"));
     await render(null);
@@ -221,6 +205,5 @@ describe.each([["web", WebPhotoPicker], ["mobile", MobilePhotoPicker]] as const)
     expect(onUploadedPreview).not.toHaveBeenCalled();
     expect(document.querySelector('[aria-label="new.jpg"]')).toBeNull();
     expect(done().disabled).toBe(false);
-    expect(uploadService.submit).not.toHaveBeenCalled();
   });
 });

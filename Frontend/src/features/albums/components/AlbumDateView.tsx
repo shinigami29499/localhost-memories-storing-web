@@ -1,8 +1,9 @@
 import { addDays, eachDayOfInterval, endOfMonth, format, min, startOfDay, startOfMonth } from "date-fns";
+import { AvatarGroup, AvatarGroupTooltip, AvatarGroupTooltipArrow } from "@animate-ui/react/primitives/avatar-group";
 import { SlidingNumber } from "@animate-ui/react/primitives/texts/sliding-number";
 import { SwappingText } from "@animate-ui/react/primitives/texts/swapping";
 import { ArrowUpToLine, CalendarDays, Image, SendHorizontal, Video } from "lucide-react";
-import { AnimatePresence, motion, usePresence, usePresenceData } from "motion/react";
+import { AnimatePresence, motion, useIsPresent, usePresence, usePresenceData } from "motion/react";
 import { forwardRef, useEffect, useId, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type ComponentType, type PointerEvent, type ReactNode } from "react";
 import type { LinkProps } from "react-router-dom";
 import { UserAvatar } from "../../../components/common/UserAvatar";
@@ -33,6 +34,7 @@ type AlbumDateViewProps = {
   favoriteBusyAlbumId: string | null;
   onFavorite: (albumId: string, isFavorited: boolean) => void;
   mobileNavigation?: boolean;
+  revealFeaturedText?: boolean;
   pending: boolean;
   failed: boolean;
   fetching: boolean;
@@ -251,76 +253,66 @@ function AlbumFrame({ animate, instant, className, frame, children }: {
   frame: "placeholder" | "album" | null;
   children: ReactNode;
 }) {
+  const wasAnimated = useRef(false);
+  useLayoutEffect(() => { wasAnimated.current = animate; }, [animate]);
   if (!animate) return frame && <div className={className}>{children}</div>;
 
   return (
-    <AnimatePresence initial={false} mode="popLayout" custom={instant}>
-      {frame && <AlbumFrameFade key={frame} className={className} instant={instant}>{children}</AlbumFrameFade>}
+    <AnimatePresence mode="popLayout" custom={instant}>
+      {/* Skip the first frame fade without suppressing later character animations inside it. */}
+      {frame && <AlbumFrameFade key={frame} className={className} instant={instant || !wasAnimated.current}>{children}</AlbumFrameFade>}
     </AnimatePresence>
   );
 }
 
-function DatedAlbumCard({ album, action, onAdvance, swapText, showCoverLoading }: {
+function DatedAlbumCard({ album, action, onAdvance, swapText, showCoverLoading, revealText, dateKey }: {
   album: Album;
   swapText: boolean;
   showCoverLoading?: boolean;
+  revealText?: boolean;
+  dateKey?: number;
   action?: {
     Link: AlbumDateViewProps["AlbumLink"];
     onOpen: () => void;
     onFavorite: () => void;
     favoriteBusy: boolean;
+    animateCounts: boolean;
+    expanded: boolean;
+    onToggleExpanded: () => void;
   };
   onAdvance?: () => void;
 }) {
   const { t } = useLocale();
   const imageRef = useRef<HTMLImageElement>(null);
-  const contributorsRef = useRef<HTMLDivElement>(null);
+  const isPresent = useIsPresent();
+  const touchTooltipWasOpen = useRef<boolean | null>(null);
   const previewClickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastPreviewClick = useRef(0);
-  const [expandedAlbumId, setExpandedAlbumId] = useState<string | null>(null);
+  const expanded = action?.expanded ?? false;
   const [result, setResult] = useState<{ src: string; status: "loaded" | "failed" }>();
-  const [selectedContributor, setSelectedContributor] = useState<{ albumId: string; userId: string } | null>(null);
-  const [hoveredContributor, setHoveredContributor] = useState<string | null>(null);
   const src = album.previewMediaId ? mediaPreviewUrl(album.previewMediaId) : undefined;
   const status = result?.src === src ? result?.status : undefined;
   const hasPreview = Boolean(src && status !== "failed");
   const waitingForCover = Boolean(showCoverLoading && hasPreview && status !== "loaded");
   const loading = useDelayedPlaceholder(waitingForCover, src);
   const hasShownText = useRef(false);
+  const previousDateKey = useRef(dateKey);
   const previousAlbumId = useRef(album.id);
-  const showText = !waitingForCover || hasShownText.current || (swapText && previousAlbumId.current !== album.id);
+  const showText = !waitingForCover || (hasShownText.current && previousDateKey.current === dateKey)
+    || (swapText && (revealText || previousAlbumId.current !== album.id));
   useLayoutEffect(() => {
+    previousDateKey.current = dateKey;
     previousAlbumId.current = album.id;
     hasShownText.current = showText;
-  }, [album.id, showText]);
+  }, [album.id, dateKey, showText]);
   const Title = action ? "h2" : "span";
   const ownerLabel = `${t(album.isPublic ? "Public" : "Private")} · ${album.owner.username}`;
   const contributors = [album.owner, ...(album.contributors ?? []).filter((user) => user.id !== album.owner.id)].slice(0, 5);
-  const selectedId = selectedContributor?.albumId === album.id ? selectedContributor.userId : null;
-  const activeId = hoveredContributor ?? selectedId;
-  const expanded = expandedAlbumId === album.id;
-
-  useEffect(() => () => { if (previewClickTimer.current) clearTimeout(previewClickTimer.current); }, []);
-
-  useEffect(() => {
-    if (!selectedId) return;
-    const dismiss = (event: globalThis.PointerEvent) => {
-      if (!(event.target instanceof Element) || !event.target.closest(".album-date-card__contributor")) {
-        setSelectedContributor(null);
-        setHoveredContributor(null);
-        if (contributorsRef.current?.contains(document.activeElement)) (document.activeElement as HTMLElement).blur();
-      }
-    };
-    const escape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setSelectedContributor(null);
-    };
-    document.addEventListener("pointerdown", dismiss);
-    document.addEventListener("keydown", escape);
-    return () => {
-      document.removeEventListener("pointerdown", dismiss);
-      document.removeEventListener("keydown", escape);
-    };
-  }, [selectedId]);
+  useLayoutEffect(() => () => {
+    if (previewClickTimer.current !== null) clearTimeout(previewClickTimer.current);
+    previewClickTimer.current = null;
+    lastPreviewClick.current = 0;
+  }, [album.id, dateKey, isPresent]);
 
   useLayoutEffect(() => {
     const image = imageRef.current;
@@ -378,7 +370,7 @@ function DatedAlbumCard({ album, action, onAdvance, swapText, showCoverLoading }
           role={action ? "button" : undefined} tabIndex={action ? 0 : undefined}
           aria-label={action ? t("Show contributors") : undefined} aria-expanded={action ? expanded : undefined}
           onKeyDown={action ? (event) => {
-            if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setExpandedAlbumId(expanded ? null : album.id); }
+            if (event.key === "Enter" || event.key === " ") { event.preventDefault(); action.onToggleExpanded(); }
           } : undefined}
           onClick={action ? () => {
             const now = Date.now();
@@ -391,7 +383,7 @@ function DatedAlbumCard({ album, action, onAdvance, swapText, showCoverLoading }
             }
             lastPreviewClick.current = now;
             previewClickTimer.current = setTimeout(() => {
-              setExpandedAlbumId((current) => current === album.id ? null : album.id);
+              action.onToggleExpanded();
               previewClickTimer.current = null;
             }, 350);
           } : undefined}
@@ -411,24 +403,51 @@ function DatedAlbumCard({ album, action, onAdvance, swapText, showCoverLoading }
       </div>
       {action && (
         <div className="album-date-card__contributors-wrap" data-expanded={expanded || undefined} inert={!expanded}>
-        <div ref={contributorsRef} className="album-date-card__contributors">
-          {album.imageCount != null && album.videoCount != null && <div className="album-date-card__media-counts">
-            <span aria-label={`${album.imageCount} ${t("Images")}`}><Image aria-hidden="true" /><strong>{album.imageCount}</strong> {t("Images")}</span>
-            <span aria-label={`${album.videoCount} ${t("Videos")}`}><Video aria-hidden="true" /><strong>{album.videoCount}</strong> {t("Videos")}</span>
-          </div>}
-          <div className="album-date-card__avatar-group">
-          {contributors.map((user) => (
-            <button key={user.id} type="button" className="album-date-card__contributor"
-              aria-label={user.username} aria-pressed={selectedId === user.id} data-active={activeId === user.id || undefined}
-              onPointerEnter={(event) => { if (event.pointerType === "mouse") setHoveredContributor(user.id); }}
-              onPointerLeave={() => setHoveredContributor(null)}
-              onClick={() => setSelectedContributor(selectedId === user.id ? null : { albumId: album.id, userId: user.id })}>
-              <UserAvatar user={user} className="album-date-card__contributor-avatar" />
-              {activeId === user.id && <span className="project-tooltip album-date-card__contributor-tooltip" aria-hidden="true">{user.username}</span>}
-            </button>
-          ))}
+          <div className="album-date-card__contributors">
+            {album.imageCount != null && album.videoCount != null && <div className="album-date-card__media-counts">
+              <span aria-label={`${album.imageCount} ${t("Images")}`}>
+                <Image aria-hidden="true" />
+                <strong>{expanded && action.animateCounts
+                  ? <SlidingNumber number={album.imageCount} fromNumber={album.imageCount === 0 ? 0 : undefined} initiallyStable />
+                  : album.imageCount}</strong>
+                {" "}{t("Images")}
+              </span>
+              <span aria-label={`${album.videoCount} ${t("Videos")}`}>
+                <Video aria-hidden="true" />
+                <strong>{expanded && action.animateCounts
+                  ? <SlidingNumber number={album.videoCount} fromNumber={album.videoCount === 0 ? 0 : undefined} initiallyStable />
+                  : album.videoCount}</strong>
+                {" "}{t("Videos")}
+              </span>
+            </div>}
+            <AvatarGroup key={`${album.id}:${expanded}`} className="album-date-card__avatar-group" invertOverlap sideOffset={19}>
+              {contributors.map((user) => (
+                <button key={user.id} type="button" className="album-date-card__contributor" aria-label={user.username}
+                  onPointerDown={(event) => {
+                    touchTooltipWasOpen.current = null;
+                    if (event.pointerType !== "touch") return;
+                    const trigger = event.currentTarget.closest('[data-slot="tooltip-trigger"]');
+                    touchTooltipWasOpen.current = trigger?.getAttribute("data-state") === "open";
+                    event.preventDefault();
+                  }}
+                  onPointerCancel={() => { touchTooltipWasOpen.current = null; }}
+                  onClick={(event) => {
+                    const wasOpen = touchTooltipWasOpen.current;
+                    touchTooltipWasOpen.current = null;
+                    if (wasOpen === null || event.detail === 0) return;
+                    const button = event.currentTarget;
+                    button.blur();
+                    if (!wasOpen) button.focus();
+                  }}>
+                  <UserAvatar user={user} className="album-date-card__contributor-avatar" />
+                  <AvatarGroupTooltip className="project-tooltip album-date-card__contributor-tooltip">
+                    <AvatarGroupTooltipArrow className="album-date-card__contributor-tooltip-arrow" />
+                    <motion.span layout="preserve-aspect">{user.username}</motion.span>
+                  </AvatarGroupTooltip>
+                </button>
+              ))}
+            </AvatarGroup>
           </div>
-        </div>
         </div>
       )}
     </>
@@ -511,7 +530,7 @@ function AlbumPositionButton({ position, total, dateKey, disabled, animate, onMo
 
 export function AlbumDateView({
   AlbumLink, today, selectedDate, onDateChange, albumDateCounts, albumHistory, albums, albumIndex, onAlbumIndexChange, onAlbumOpen,
-  favoriteBusyAlbumId, onFavorite, mobileNavigation,
+  favoriteBusyAlbumId, onFavorite, mobileNavigation, revealFeaturedText,
   pending, failed, fetching, onRetry,
 }: AlbumDateViewProps) {
   const { t } = useLocale();
@@ -520,7 +539,9 @@ export function AlbumDateView({
   const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
   const animate = motionEnabled && !reducedMotion;
   const swapText = Boolean(mobileNavigation && animate);
-  const cardKey = mobileNavigation ? undefined : selectedDate.getTime();
+  const dateKey = selectedDate.getTime();
+  const cardKey = mobileNavigation ? undefined : dateKey;
+  const [detailsExpanded, setDetailsExpanded] = useState(false);
   const stageRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const pendingMotion = useRef<AlbumCarouselMotion | null>(null);
@@ -625,11 +646,14 @@ export function AlbumDateView({
     if (date <= startOfDay(today)) changeDate(date);
   };
   const featuredCard = featured && (
-    <DatedAlbumCard key={cardKey} album={featured} swapText={swapText} showCoverLoading action={{
+    <DatedAlbumCard album={featured} swapText={swapText} showCoverLoading revealText={revealFeaturedText} dateKey={cardKey} action={{
       Link: AlbumLink,
       onOpen: () => onAlbumOpen(albumIndex),
       onFavorite: () => onFavorite(featured.id, featured.isFavorited),
       favoriteBusy: favoriteBusyAlbumId === featured.id,
+      animateCounts: animate,
+      expanded: detailsExpanded,
+      onToggleExpanded: () => setDetailsExpanded((current) => !current),
     }} />
   );
   const nextCard = next && (
@@ -721,7 +745,7 @@ export function AlbumDateView({
               </AlbumFrame>
             ) : pending ? showPlaceholders && <AlbumFramePlaceholder compact /> : nextCard}
             {mobileNavigation && <AlbumPositionButton position={featured ? albumIndex + 1 : 0} total={albums.length}
-              dateKey={selectedDate.getTime()} disabled={!featured || pending} animate={animate}
+              dateKey={dateKey} disabled={!featured || pending} animate={animate}
               onMoveUp={() => {
                 stageRef.current?.querySelector<HTMLElement>(".album-date-card__open")?.focus({ preventScroll: true });
                 moveTo(0);

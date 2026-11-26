@@ -10,7 +10,7 @@ export function installButtonPressMotion() {
   const targetButton = (target: EventTarget | null) => {
     if (!(target instanceof Element)) return null;
     const button = target.closest<HTMLElement>("button, [role='button']");
-    if (!button || button.matches(":disabled, [aria-disabled='true']")) return null;
+    if (!button || button.matches(":disabled, [aria-disabled='true'], [data-press-motion='off']")) return null;
     return button.querySelector<HTMLElement>("[data-press-motion-target]") ?? button;
   };
   const press = (button: HTMLElement) => {

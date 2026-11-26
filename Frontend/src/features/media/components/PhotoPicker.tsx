@@ -1,3 +1,4 @@
+import { FileUploadProgress } from "@/features/uploads/components/FileUploadProgress";
 import { CustomDialog as Dialog } from "../../../components/ui/CustomDialog";
 import * as Tabs from "@radix-ui/react-tabs";
 import { HighlightItem } from "@animate-ui/react/primitives/effects/highlight";
@@ -11,7 +12,7 @@ const sources = [{ value: "gallery", label: "Gallery" }, { value: "preview", lab
 
 export function PhotoPicker(props: PhotoPickerProps) {
   const { selectedIds = [], backdropClassName = "", viewportClassName = "" } = props;
-  const { t, inputRef, bodyRef, selectedRef, source, picked, setPicked, initialized, tabId, initialImage, query, busy, dialogProps, viewportStyle, full, images, upload, close, changeSource, handleScroll, confirm } = usePhotoPicker(props);
+  const { t, inputRef, bodyRef, selectedRef, source, picked, setPicked, initialized, tabId, initialImage, query, busy, dialogProps, viewportStyle, full, images, upload, previewTransfer, cancelPreviewUpload, dismissPreviewUpload, close, changeSource, handleScroll, confirm } = usePhotoPicker(props);
   return (
     <Dialog.Root {...dialogProps}>
       <Dialog.Portal>
@@ -79,6 +80,9 @@ export function PhotoPicker(props: PhotoPickerProps) {
               </div>
             </Tabs.Root>
             <footer className="place-picker__footer">
+              {previewTransfer && <FileUploadProgress name={previewTransfer.file.name} progress={previewTransfer.progress}
+                onCancel={cancelPreviewUpload} onRetry={source === "preview" && !full ? () => void upload(previewTransfer.file) : undefined}
+                onDismiss={dismissPreviewUpload} />}
               <div className="place-picker__actions dialog-actions">
                 <Button type="button" variant="danger" className="dialog-action dialog-action--danger place-picker__cancel" disabled={busy} onClick={() => close()}>{t("Cancel")}</Button>
                 <Button type="button" className="dialog-action dialog-action--normal" disabled={busy || !initialized || (!picked && selectedIds.length > 0)} onClick={confirm}>{t("Done")}</Button>

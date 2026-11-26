@@ -97,7 +97,7 @@ export function Sidebar({ collapsed = false, onToggle = () => {}, pendingPath }:
                 <Users size={18} aria-hidden="true" />
                 <span>{t("Users")}</span>
               </NavLink>
-              <NavLink to="/uploads" className={`sidebar__link${pathname.startsWith("/uploads") ? " sidebar__link--active" : ""}`} data-sidebar="menu-button" aria-label={t("Upload")} title={t("Upload")}>
+              <NavLink to="/upload" className={`sidebar__link${pathname.startsWith("/upload") ? " sidebar__link--active" : ""}`} data-sidebar="menu-button" aria-label={t("Upload")} title={t("Upload")}>
                 <Upload size={18} aria-hidden="true" /><span>{t("Upload")}</span>
               </NavLink>
             {
@@ -168,8 +168,8 @@ export function Sidebar({ collapsed = false, onToggle = () => {}, pendingPath }:
                       <span>{t("User profile")}</span>
                     </NavLink>
                                 <NavLink
-                      to="/settings"
-                      className={`sidebar__link${pathname === "/settings" ? " sidebar__link--active" : ""}`}
+                      to="/setting"
+                      className={`sidebar__link${pathname === "/setting" ? " sidebar__link--active" : ""}`}
                       onClick={() => setAccountMenuOpen(false)}
                       aria-label={t("Settings")}
                       title={t("Settings")}

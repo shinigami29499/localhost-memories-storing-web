@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState, type MouseEvent } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { useAlbumNotificationStore } from "./albumNotificationStore";
 import { useUploadNotificationStore } from "./uploadNotificationStore";
-import { uploadService } from "../uploads/services/uploadService";
 import { uploadMessage } from "./uploadMessage";
 import { useAuthStore } from "../../store/authStore";
 import { useLocale } from "../../context/LocaleContext";
@@ -12,7 +10,6 @@ export function useNotificationBell(navigateToGallery = () => window.location.as
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const queryClient = useQueryClient();
   const userId = useAuthStore((state) => state.user?.id);
   const uploadItems = useUploadNotificationStore((state) => state.items);
   const markUploadsRead = useUploadNotificationStore((state) => state.markRead);
@@ -60,21 +57,16 @@ export function useNotificationBell(navigateToGallery = () => window.location.as
   const markAllRead = () => {
     if (userId) {
       markUploadsRead(userId); markAlbumsRead(userId);
-      void uploadService.markAllBatchesViewed().then(() => queryClient.invalidateQueries({ queryKey: ["uploads"] })).catch(() => undefined);
     }
   };
   const openNotification = (event: MouseEvent<HTMLAnchorElement>, notification: Notification) => {
     setOpen(false);
     if (notification.kind === "upload") {
       event.preventDefault();
-      let markViewed = Promise.resolve();
       if (userId && !notification.readAt) {
         markUploadsRead(userId, notification.id);
-        if (!notification.username) {
-          markViewed = uploadService.markBatchViewed(notification.id.slice(notification.id.lastIndexOf(":") + 1));
-        }
       }
-      void markViewed.catch(() => undefined).finally(navigateToGallery);
+      navigateToGallery();
       return;
     }
     if (userId && !notification.readAt) markAlbumsRead(userId, notification.eventId);

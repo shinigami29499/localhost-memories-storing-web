@@ -87,6 +87,12 @@ public sealed class CollectionRepository(ApplicationDbContext db) : ICollectionR
         Guid collectionId, CancellationToken cancellationToken = default)
         => db.Collections.FirstOrDefaultAsync(collection => collection.Id == collectionId, cancellationToken);
 
+    public Task<Collection?> FindUploadDestinationAsync(
+        Guid collectionId, Guid contributorId, CancellationToken cancellationToken = default)
+        => db.Collections.AsNoTracking().FirstOrDefaultAsync(collection =>
+            collection.Id == collectionId && (collection.IsPublic || collection.OwnerId == contributorId),
+            cancellationToken);
+
     public async Task<CollectionFavorite?> FindCollectionFavoriteAsync(
         Guid userId, Guid collectionId, bool includeDeleted, CancellationToken cancellationToken = default)
     {

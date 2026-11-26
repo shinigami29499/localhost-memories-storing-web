@@ -14,22 +14,11 @@ for (const width of [390, 1280]) test(`creates albums and uses desktop media act
   let created = false;
   let albumDate: string | undefined;
   let hasMedia = false;
-  let uploaded = false;
   let deletionIds: string[] | undefined;
-  let uploadBody: { albumId: string; items: { id: string; originalFilename: string; contentType: string }[] } | undefined;
+  let uploadBody: string | null | undefined;
   const album = () => ({
     id: albumId, owner, createdAt, albumDate, name: "Weekend", caption: "", isPublic: false,
     mediaCount: hasMedia ? 1 : 0, previewMediaId: null,
-  });
-  const uploadPath = "/api/sync/upload";
-  const batchPath = uploadPath + "/batch/test-batch";
-  const uploadItem = () => uploadBody && {
-    ...uploadBody.items[0], uploadBatchId: "test-batch", status: uploaded ? "Success" : "Pending",
-  };
-  const batch = () => ({
-    id: "test-batch", albumId, status: uploaded ? "Completed" : "Pending",
-    completedAt: uploaded ? createdAt : null, successfulFiles: uploaded ? 1 : 0, failedFiles: 0,
-    items: [uploadItem()],
   });
 
   await page.addInitScript((user) => {
@@ -53,23 +42,11 @@ for (const width of [390, 1280]) test(`creates albums and uses desktop media act
       return route.fulfill({ json: album() });
     if (path === albumPath + "/media")
       return route.fulfill({ json: { offset: 0, total: hasMedia ? 1 : 0, items: hasMedia ? [file] : [] } });
-    if (path === "/api/sync/upload/batch" && request.method() === "POST") {
-      uploadBody = request.postDataJSON();
-      return route.fulfill({ status: 201, json: batch() });
-    }
-    if (path === uploadPath + "/active")
-      return route.fulfill({ json: uploadBody && !uploaded ? [batch()] : [] });
-    if (path === uploadPath + "/queue")
-      return route.fulfill({ json: uploadBody && !uploaded ? [uploadItem()] : [] });
-    if (path === batchPath)
-      return route.fulfill({ json: batch() });
-    if (path.startsWith(batchPath + "/item/") && path.endsWith("/file")) {
-      uploaded = true;
+    if (path.startsWith(albumPath + "/media/file/") && request.method() === "PUT") {
+      uploadBody = request.postData();
       hasMedia = true;
-      return route.fulfill({ json: uploadItem() });
+      return route.fulfill({ json: { mediaId: path.split("/").at(-1) } });
     }
-    if (path.startsWith(batchPath + "/item/"))
-      return route.fulfill({ json: uploadItem() });
     if (path === albumPath + "/media/batch/remove") {
       deletionIds = request.postDataJSON().mediaIds;
       hasMedia = false;
@@ -125,7 +102,7 @@ for (const width of [390, 1280]) test(`creates albums and uses desktop media act
   const chooser = page.waitForEvent("filechooser");
   await page.getByRole("button", { name: "Add media", exact: true }).click();
   await (await chooser).setFiles({ name: "test.png", mimeType: "image/png", buffer: Buffer.from("file") });
-  await expect.poll(() => uploadBody).toMatchObject({ albumId, items: [{ originalFilename: "test.png" }] });
+  await expect.poll(() => uploadBody).toContain('filename="test.png"');
 
   const tile = page.getByRole("button", { name: "Open test.png" });
   await expect(tile).toBeVisible();

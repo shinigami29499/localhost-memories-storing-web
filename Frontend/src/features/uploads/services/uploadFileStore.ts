@@ -1,49 +1,55 @@
-const DATABASE_NAME = "shinigacim-upload-files";
-const STORE_NAME = "files";
-const DATABASE_VERSION = 1;
+import type { AlbumTransfer } from "../uploadProgress";
+
+const DATABASE_NAME = "shinigacim-upload-history";
+const STORE_NAME = "transfers";
 
 let databasePromise: Promise<IDBDatabase> | undefined;
 
 function openDatabase(): Promise<IDBDatabase> {
-  databasePromise ??= new Promise((resolve, reject) => {
-    const request = indexedDB.open(DATABASE_NAME, DATABASE_VERSION);
+  databasePromise ??= new Promise<IDBDatabase>((resolve, reject) => {
+    const request = indexedDB.open(DATABASE_NAME, 1);
     request.onupgradeneeded = () => {
-      request.result.createObjectStore(STORE_NAME);
+      request.result.createObjectStore(STORE_NAME, { keyPath: "id" }).createIndex("userId", "userId");
     };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error ?? new Error("Could not open upload storage."));
-    request.onblocked = () => reject(new Error("Upload storage is blocked by another browser tab."));
+    request.onsuccess = () => {
+      const database = request.result;
+      database.onversionchange = () => {
+        database.close();
+        databasePromise = undefined;
+      };
+      resolve(database);
+    };
+    request.onerror = () => reject(request.error);
+  }).catch((error: unknown) => {
+    databasePromise = undefined;
+    throw error;
   });
   return databasePromise;
 }
 
-export async function saveUploadFile(id: string, file: File): Promise<void> {
+export async function readUploadHistory(userId: string): Promise<AlbumTransfer[]> {
   const database = await openDatabase();
-  await new Promise<void>((resolve, reject) => {
-    const transaction = database.transaction(STORE_NAME, "readwrite");
-    transaction.objectStore(STORE_NAME).put(file, id);
-    transaction.oncomplete = () => resolve();
-    transaction.onerror = () => reject(transaction.error ?? new Error("Could not save the selected file."));
-    transaction.onabort = () => reject(transaction.error ?? new Error("Saving the selected file was aborted."));
+  return new Promise((resolve, reject) => {
+    const request = database.transaction(STORE_NAME).objectStore(STORE_NAME).index("userId").getAll(userId);
+    request.onsuccess = () => resolve(request.result as AlbumTransfer[]);
+    request.onerror = () => reject(request.error);
   });
 }
 
-export async function getUploadFile(id: string): Promise<File | undefined> {
-  const database = await openDatabase();
-  return new Promise<File | undefined>((resolve, reject) => {
-    const request = database.transaction(STORE_NAME, "readonly").objectStore(STORE_NAME).get(id);
-    request.onsuccess = () => resolve(request.result as File | undefined);
-    request.onerror = () => reject(request.error ?? new Error("Could not read the selected file."));
-  });
-}
-
-export async function removeUploadFile(id: string): Promise<void> {
+async function changeHistory(change: (store: IDBObjectStore) => void): Promise<void> {
   const database = await openDatabase();
   await new Promise<void>((resolve, reject) => {
     const transaction = database.transaction(STORE_NAME, "readwrite");
-    transaction.objectStore(STORE_NAME).delete(id);
+    change(transaction.objectStore(STORE_NAME));
     transaction.oncomplete = () => resolve();
-    transaction.onerror = () => reject(transaction.error ?? new Error("Could not remove the stored file."));
-    transaction.onabort = () => reject(transaction.error ?? new Error("Removing the stored file was aborted."));
+    transaction.onabort = () => reject(transaction.error);
   });
+}
+
+export async function saveUploadRecord(transfer: AlbumTransfer): Promise<void> {
+  await changeHistory((store) => store.put(transfer));
+}
+
+export async function removeUploadRecord(id: string): Promise<void> {
+  await changeHistory((store) => store.delete(id));
 }

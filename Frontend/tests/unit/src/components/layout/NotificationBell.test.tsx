@@ -65,7 +65,7 @@ describe("NotificationBell", () => {
     });
   }
 
-  it("shows only the current user's upload notifications and marks them read when opened", async () => {
+  it("marks the current user's upload notifications read from the bell", async () => {
     useUploadNotificationStore.setState({
       items: ["viewer", "another-user"].map((userId) => ({
         id: `upload:${userId}:batch`,
@@ -83,7 +83,10 @@ describe("NotificationBell", () => {
     });
 
     expect(container.textContent).toContain("Upload batch completed");
-    expect(container.querySelector(".notification-bar__item")?.getAttribute("href")).toBe("/sync/upload");
+    expect(container.querySelector(".notification-bar__item")?.getAttribute("href")).toBe("/album");
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>(".notification-bar__mark-read")!.click();
+    });
     expect(container.querySelector(".notification-bar__badge")).toBeNull();
     expect(useUploadNotificationStore.getState().items.find((item) => item.userId === "viewer")?.readAt).toBeTruthy();
     expect(useUploadNotificationStore.getState().items.find((item) => item.userId === "another-user")?.readAt).toBeNull();

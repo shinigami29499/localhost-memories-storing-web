@@ -6,6 +6,7 @@ import { useLocale } from "../../../context/LocaleContext";
 import { useDialogViewportStyle } from "../../../hooks/useDialogViewportStyle";
 import { useThrottledCallback } from "../../../hooks/useThrottledCallback";
 import { UI_TIMING } from "../../../config/uiTiming";
+import { measureUpload, type TransferProgress } from "../../uploads/uploadProgress";
 import { mediaQueryOptions } from "../hooks/useMedia";
 import { previewService } from "../services/previewService";
 import type { MediaFile } from "../types";
@@ -34,7 +35,7 @@ export function usePhotoPicker({
   const inputRef = useRef<HTMLInputElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const selectedRef = useRef<HTMLButtonElement>(null);
-  const uploadInFlight = useRef(false);
+  const uploadRequest = useRef<AbortController | null>(null);
   const pickerDrafts = useRef(new Set<string>());
   const confirmedId = useRef<string | null>(null);
   const focusedSelection = useRef(false);
@@ -42,6 +43,7 @@ export function usePhotoPicker({
   const [picked, setPicked] = useState<MediaFile | null>(null);
   const [uploaded, setUploaded] = useState<MediaFile[]>([]);
   const [uploadingPreview, setUploadingPreview] = useState(false);
+  const [previewTransfer, setPreviewTransfer] = useState<{ file: File; progress: TransferProgress }>();
   const [initialized, setInitialized] = useState(!selectedId);
   const tabId = useId();
   const initialImage = useQuery({
@@ -96,6 +98,7 @@ export function usePhotoPicker({
   useEffect(() => {
     const drafts = pickerDrafts.current;
     return () => {
+      uploadRequest.current?.abort();
       for (const mediaId of drafts) {
         if (mediaId !== confirmedId.current) {
           void previewService.releaseDraft(mediaId)
@@ -109,24 +112,36 @@ export function usePhotoPicker({
   }, [queryClient]);
 
   const upload = async (file: File | undefined) => {
-    if (source !== "preview" || !file || uploadInFlight.current) return;
+    if (source !== "preview" || !file || uploadRequest.current) return;
     if (file.type && !file.type.startsWith("image/")) {
       showToast.error(t("Choose an image file."));
       return;
     }
-    uploadInFlight.current = true;
+    const controller = new AbortController();
+    uploadRequest.current = controller;
+    const initial: TransferProgress = { status: "uploading", loaded: 0, total: file.size };
+    setPreviewTransfer({ file, progress: initial });
     setUploadingPreview(true);
     try {
-      const image = await previewService.upload(file);
+      const image = await previewService.upload(file,
+        measureUpload(file.size, (progress) => setPreviewTransfer({ file, progress })), controller.signal);
+      setPreviewTransfer({ file, progress: { ...initial, status: "success", loaded: file.size } });
       pickerDrafts.current.add(image.id);
       onUploadedPreview(image.id);
       setUploaded((current) => [image, ...current]);
       setPicked(image);
       void queryClient.invalidateQueries({ queryKey: ["previews"] });
     } catch (error) {
-      showToast.error(t("Could not start this upload."), error instanceof Error ? error.message : undefined);
+      setPreviewTransfer((current) => ({
+        file,
+        progress: {
+          ...(current?.progress ?? initial),
+          status: controller.signal.aborted ? "cancelled" : "failed",
+          error: controller.signal.aborted ? undefined : error instanceof Error ? error.message : "Upload failed.",
+        },
+      }));
     } finally {
-      uploadInFlight.current = false;
+      uploadRequest.current = null;
       setUploadingPreview(false);
     }
   };
@@ -148,5 +163,7 @@ export function usePhotoPicker({
     onConfirm(picked, initialImage.data ?? null);
     close();
   };
-  return { t, inputRef, bodyRef, selectedRef, source, picked, setPicked, initialized, tabId, initialImage, query, busy, dialogProps, viewportStyle, full, images, upload, close, changeSource, handleScroll, confirm };
+  return { t, inputRef, bodyRef, selectedRef, source, picked, setPicked, initialized, tabId, initialImage, query, busy, dialogProps, viewportStyle, full, images, upload, previewTransfer,
+    cancelPreviewUpload: () => uploadRequest.current?.abort(), dismissPreviewUpload: () => setPreviewTransfer(undefined),
+    close, changeSource, handleScroll, confirm };
 }

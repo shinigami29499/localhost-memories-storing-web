@@ -7,34 +7,39 @@ import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { LoaderCircle } from "@/components/animate-ui/icons/loader-circle";
 import { MapPin } from "@/components/animate-ui/icons/map-pin";
 import { X } from "@/components/animate-ui/icons/x";
-import { ErrorState,Spinner } from "@/components/ui";
+import { ErrorState, IconButton, Spinner } from "@/components/ui";
 import { MobileMediaFavoriteButton } from "./MobileMediaFavoriteButton";
-import { MobileVideoPlayer } from "./MobileVideoPlayer";
+import { MobileVideoPlayer, type MobileVideoAudio } from "./MobileVideoPlayer";
 import type { MediaFile } from "@/features/media/types";
-import { mediaUrl } from "@/utils/media";
+import { mediaPreviewUrl, mediaUrl } from "@/utils/media";
 import { CopyButton,CopyButtonIcon } from "@animate-ui/react/primitives/buttons/copy";
 import {
 CarouselCounter,
 CarouselDots,
 } from "@animate-ui/react/primitives/carousel";
 import { Particles,ParticlesEffect } from "@animate-ui/react/primitives/effects/particles";
-import { lazy,Suspense } from "react";
+import { lazy, Suspense, useLayoutEffect, useState } from "react";
+import { useMobilePhotoZoom } from "./useMobilePhotoZoom";
+import "./mobile-media-tiles.css";
 
 const SaveToAlbumDialog = lazy(registerUiModule("Save to album dialog", () => import("./MobileSaveToAlbumDialog").then((module) => ({ default: module.MobileSaveToAlbumDialog }))));
 
 const MAX_DOTS = 20;
 
 
-function PreviewSlide(props: PreviewSlideProps) {
-  const { media, active, preloadOriginal, favoriteBurst, onFavoriteBurstEnd } = props;
+function PreviewSlide(props: PreviewSlideProps & { immersive: boolean }) {
+  const { media, active, preloadOriginal, favoriteBurst, onFavoriteBurstEnd, immersive } = props;
   const { t, stageRef, inView, previewUrl, originalUrl, failedUrls, setFailedUrls, loadedOriginalUrl, reduceMotion, handleOriginalLoad, handlePreviewError, handleOriginalError } = usePreviewSlide(props);
+  const immersiveVideo = immersive && media.mediaKind === "video";
 
 return (
-    <div ref={stageRef} className="media-preview-dialog__stage" data-active={active}>
+    <div ref={stageRef} className="media-preview-dialog__stage" data-active={active}
+      data-video-stage={immersiveVideo && active ? media.id : undefined}>
       {!active && !inView ? null : failedUrls.has(previewUrl) && !active ? (
         <p role={active ? "alert" : undefined}>{t("Could not load this media.")}</p>
-      ) : media.mediaKind === "video" && active ? (
-        <MobileVideoPlayer key={originalUrl} src={originalUrl} name={media.originalFilename} onError={() => setFailedUrls((current) => new Set(current).add(originalUrl))} />
+      ) : media.mediaKind === "video" && active && !immersive ? (
+        <MobileVideoPlayer key={originalUrl} src={originalUrl} poster={previewUrl} name={media.originalFilename}
+          onError={() => setFailedUrls((current) => new Set(current).add(originalUrl))} />
       ) : (
         <>
           <img
@@ -89,22 +94,57 @@ import { usePreviewSlide,type PreviewSlideProps } from "@/features/media/compone
 
 import { useMediaPreviewDialog,type MediaPreviewDialogProps } from "@/features/media/components/useMediaPreviewDialog";
 
-export function MobileMediaPreviewDialog(props: MediaPreviewDialogProps) {
-  const { media, initialMediaId, total = media.length, loadingMore = false, loadMoreError = false, onLoadMore, favoriteBusy = false, onToggleFavorite, onClose } = props;
-  const { t, navigate, queryClient, dialogRef, closeRef, albumButtonRef, selectedIndex, albumDialogOpen, setAlbumDialogOpen, copyingImage, favoriteBurst, setFavoriteBurst, hasMore, loop, slideCount, carouselRef, api, current, currentIndex, albums, inAlbum, imageCopied, close, toggleFavorite, copyImage, goToLocation, closeAlbum } = useMediaPreviewDialog(props);
+export function MobileMediaPreviewDialog(props: MediaPreviewDialogProps & {
+  immersive?: boolean; videoAudio?: MobileVideoAudio; initialVideoTime?: number;
+}) {
+  const { media, total = media.length, loadingMore = false, loadMoreError = false, onLoadMore, favoriteBusy = false, immersive = false, videoAudio } = props;
+  const { reset, canDrag, handlers } = useMobilePhotoZoom();
+  const { t, dialogRef, closeRef, albumButtonRef, albumDialogOpen, setAlbumDialogOpen, copyingImage, favoriteBurst, setFavoriteBurst, hasMore, loop, slideCount, carouselRef, api, current, currentIndex, albums, inAlbum, imageCopied, close, toggleFavorite, copyImage, goToLocation, closeAlbum } = useMediaPreviewDialog(props, immersive, immersive ? canDrag : undefined);
+  const photoZoom = immersive && current?.mediaKind === "image";
+  const immersiveVideo = immersive && current?.mediaKind === "video";
+  const [videoStage, setVideoStage] = useState<HTMLElement | null>(null);
+  const [entryVideoTime, setEntryVideoTime] = useState(props.initialVideoTime ?? 0);
+  const CloseButton = immersive ? IconButton : "button";
+  useLayoutEffect(reset, [current?.id, reset]);
+  useLayoutEffect(() => {
+    setVideoStage(immersiveVideo ? dialogRef.current?.querySelector<HTMLElement>("[data-video-stage]") ?? null : null);
+    if (current?.id !== props.initialMediaId) setEntryVideoTime(0);
+  }, [current?.id, dialogRef, immersiveVideo, props.initialMediaId]);
   if (media.length === 0) return null;
+
+  function dismissViewer() {
+    const dialog = dialogRef.current;
+    if (!immersive || !dialog?.open) {
+      close();
+      return;
+    }
+    if (dialog.hasAttribute("data-closing")) return;
+    dialog.style.setProperty("--viewer-exit-opacity", getComputedStyle(dialog).opacity);
+    dialog.dataset.closing = "";
+    const fade = dialog.getAnimations().find((entry) =>
+      entry instanceof CSSAnimation && entry.animationName === "mobile-viewer-exit");
+    if (!fade) {
+      close();
+      return;
+    }
+    const finish = () => { if (dialog.isConnected && dialog.open) close(); };
+    void fade.finished.then(finish, finish);
+  }
 
   return (
     <dialog
       ref={dialogRef}
       className="media-lightbox media-preview-dialog"
+      data-immersive={immersive || undefined}
+      data-immersive-video={immersiveVideo || undefined}
+      onClose={immersive ? (event) => { if (!event.currentTarget.open) close(); } : undefined}
       aria-label={t("Media viewer")}
       onCancel={(event) => {
         event.preventDefault();
-        if (!albumDialogOpen) close();
+        if (!albumDialogOpen) dismissViewer();
       }}
       onClick={(event) => {
-        if (albumDialogOpen) return;
+        if (immersive || albumDialogOpen) return;
         const target = event.target;
         if (target === event.currentTarget || (target instanceof Element && target.matches(
           ".media-preview-dialog__content, .media-preview-dialog__viewport, .media-preview-dialog__track, .media-preview-dialog__item, .media-preview-dialog__stage",
@@ -122,17 +162,17 @@ export function MobileMediaPreviewDialog(props: MediaPreviewDialogProps) {
         }
       }}
     >
-      <button
+      <CloseButton
         ref={closeRef}
         type="button"
         className="viewer-icon-btn media-lightbox__close"
-        aria-label={t("Close image preview")}
-        title={t("Close image preview")}
-        onClick={close}
+        aria-label={t(immersiveVideo ? "Close media preview" : "Close image preview")}
+        title={immersive ? undefined : t("Close image preview")}
+        onClick={dismissViewer}
       >
-        <X size={20} aria-hidden="true" />
-      </button>
-      {current ? <div className="media-preview-dialog__actions">
+        <X size={immersive ? 18 : 20} aria-hidden="true" />
+      </CloseButton>
+      {current && !immersive ? <div className="media-preview-dialog__actions">
         
         {current.mediaKind === "image" ? (
           <AnimateIcon animateOnHover completeOnStop asChild>
@@ -213,7 +253,8 @@ export function MobileMediaPreviewDialog(props: MediaPreviewDialogProps) {
         aria-roledescription="carousel"
         aria-label={t("Media viewer")}
       >
-        <div ref={carouselRef} className="media-preview-dialog__viewport" data-slot="carousel-content">
+        <div ref={carouselRef} className="media-preview-dialog__viewport" data-slot="carousel-content"
+          data-photo-zoom={photoZoom || undefined} {...(photoZoom ? handlers : undefined)}>
           <div className="media-preview-dialog__track">
             {media.map((item, index) => {
               const distance = Math.abs(index - currentIndex);
@@ -229,6 +270,7 @@ export function MobileMediaPreviewDialog(props: MediaPreviewDialogProps) {
               >
                 <PreviewSlide
                   media={item}
+                  immersive={immersive}
                   active={item.id === current?.id}
                   preloadOriginal={nearbyDistance <= 2}
                   includeDeleted={false}
@@ -256,7 +298,7 @@ export function MobileMediaPreviewDialog(props: MediaPreviewDialogProps) {
             ) : null}
           </div>
         </div>
-          <div className="media-preview-dialog__controls">
+          {!immersive && <div className="media-preview-dialog__controls">
             {!hasMore && total > 1 && total <= MAX_DOTS ? (
               <div className="media-preview-dialog__dots">
                 <CarouselDots />
@@ -266,8 +308,13 @@ export function MobileMediaPreviewDialog(props: MediaPreviewDialogProps) {
               className="media-preview-dialog__counter"
               format={(current) => <>{current} {t("of {total}", { total })}</>}
             />
-          </div>
+          </div>}
       </div>
+      {immersiveVideo && current && (
+        <MobileVideoPlayer immersive stage={videoStage?.dataset.videoStage === current.id ? videoStage : null}
+          src={mediaUrl(current.id)} poster={mediaPreviewUrl(current.id)} name={current.originalFilename}
+          audio={videoAudio} startTime={current.id === props.initialMediaId ? entryVideoTime : 0} />
+      )}
       {albumDialogOpen && current ? (
         <Suspense fallback={null}>
           <SaveToAlbumDialog

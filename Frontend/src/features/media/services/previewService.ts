@@ -1,4 +1,4 @@
-import { api } from "../../../services/api";
+import { api, uploadWithProgress } from "../../../services/api";
 import type { MediaFile, PagedMedia } from "../types";
 
 export const previewService = {
@@ -8,10 +8,8 @@ export const previewService = {
   getImage(mediaId: string, signal?: AbortSignal): Promise<MediaFile> {
     return api(`/api/preview/${mediaId}`, { signal });
   },
-  upload(file: File): Promise<MediaFile> {
-    const body = new FormData();
-    body.append("file", file, file.name);
-    return api("/api/preview", { method: "POST", body });
+  upload(file: File, onProgress: (loaded: number, transferred: boolean) => void, signal: AbortSignal): Promise<MediaFile> {
+    return uploadWithProgress("/api/preview", file, onProgress, signal);
   },
   releaseDraft(mediaId: string): Promise<void> {
     return api(`/api/preview/${mediaId}/draft`, { method: "DELETE" });

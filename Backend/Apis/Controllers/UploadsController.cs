@@ -185,10 +185,10 @@ public sealed class UploadsController(
             var username = User.FindFirstValue(Constants.Auth.UsernameClaim) ?? "User";
             var albumClients = result.IsPublic
                 ? notificationsHub.Clients.All
-                : notificationsHub.Clients.User(ownerId.ToString());
+                : notificationsHub.Clients.User(result.AlbumOwnerId.ToString());
             await albumClients.SendAsync("AlbumChanged", new
             {
-                albumId = result.AlbumId, albumName = result.AlbumName, ownerId,
+                albumId = result.AlbumId, albumName = result.AlbumName, ownerId = result.AlbumOwnerId,
                 actorId = ownerId, username, action = "media",
             }, CancellationToken.None);
             var batch = await _uploadService.GetBatchAsync(ownerId, false, batchId, CancellationToken.None);
@@ -207,6 +207,34 @@ public sealed class UploadsController(
             logger.LogWarning(exception, "Could not notify users about completed upload batch {BatchId}", batchId);
         }
         return Ok(result.Item);
+    }
+
+    [HttpPut("/api/library/album/{albumId:guid}/media/file/{mediaId:guid}")]
+    public async Task<IActionResult> StoreAlbumFileAsync(
+        Guid albumId, Guid mediaId, IFormFile file, CancellationToken cancellationToken)
+    {
+        var ownerId = _currentUser.RequireUserId();
+        var result = await _uploadService.StoreAlbumFileAsync(ownerId, albumId, mediaId, file, cancellationToken);
+        if (result.Created)
+        {
+            try
+            {
+                var clients = result.IsPublic
+                    ? notificationsHub.Clients.All
+                    : notificationsHub.Clients.User(result.AlbumOwnerId.ToString());
+                await clients.SendAsync("AlbumChanged", new
+                {
+                    albumId = result.AlbumId, albumName = result.AlbumName, ownerId = result.AlbumOwnerId,
+                    actorId = ownerId, username = User.FindFirstValue(Constants.Auth.UsernameClaim) ?? "User",
+                    action = "media",
+                }, CancellationToken.None);
+            }
+            catch (Exception exception)
+            {
+                logger.LogWarning(exception, "Could not notify users about stored album media {MediaId}", mediaId);
+            }
+        }
+        return Ok(new { mediaId = result.MediaId });
     }
 
     [HttpPost("batch/{batchId:guid}/item/delete")]

@@ -7,6 +7,6 @@ description: "Mobile settings and device permissions."
 
 Sources below are relative to `Frontend/apps/mobile/src/` unless marked shared, which is relative to `Frontend/src/`.
 
-settings/MobileSettingsPage.tsx uses SoundEffectsSettings.tsx and shared pages/settings/useSettingsState.ts. It controls theme, sound, toasts, motion, notifications, location and camera. Turning off toasts closes existing toasts. Location and camera can be requested; revocation uses device or browser settings. Photo access is managed by the picker. Push after app closure is unavailable.
+settings/MobileSettingsPage.tsx serves /setting and uses SoundEffectsSettings.tsx and shared pages/settings/useSettingsState.ts. It controls theme, sound, toasts, motion, notifications, location and camera. Turning off toasts closes existing toasts. Location and camera can be requested; revocation uses device or browser settings. Photo access is managed by the picker. Push after app closure is unavailable.
 
 Active superadmins in an ordinary browser tab can skip initial UI preloading for development. The setting applies after reload. Android and standalone PWA launches use packaged or cached UI files.

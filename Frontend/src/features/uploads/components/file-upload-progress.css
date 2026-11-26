@@ -1,0 +1,155 @@
+.file-upload-progress {
+  --upload-tone: var(--text-muted);
+  display: grid;
+  gap: 0.5rem;
+  min-width: 0;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-raised);
+  color: var(--text);
+}
+
+.file-upload-progress[data-status="uploading"] { --upload-tone: var(--info); }
+.file-upload-progress[data-status="processing"] { --upload-tone: var(--warning); }
+.file-upload-progress[data-status="success"] { --upload-tone: var(--success); }
+.file-upload-progress[data-status="failed"] { --upload-tone: var(--danger); }
+
+.file-upload-progress__header,
+.file-upload-progress__footer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.file-upload-progress__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-upload-progress__status {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.8125rem;
+  color: var(--text);
+}
+
+.file-upload-progress__status svg { flex: none; color: var(--upload-tone); }
+.file-upload-progress__track { height: 0.375rem; overflow: hidden; border-radius: 1rem; background: var(--surface-hover); }
+.file-upload-progress__indicator { height: 100%; background: var(--upload-tone); transition: width 150ms linear; }
+.file-upload-progress__footer { min-height: 3rem; grid-template-columns: minmax(0, 1fr) 6rem; }
+.file-upload-progress__metrics {
+  display: grid;
+  grid-column: 1;
+  grid-template-columns: 3.25em minmax(0, 1fr);
+  gap: 0 0.5rem;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
+.file-upload-progress__metrics span { min-height: 1.25em; overflow-wrap: anywhere; }
+.file-upload-progress__metrics span:nth-child(3) { grid-column: 1 / -1; grid-row: 2; max-width: 50%; }
+.file-upload-progress__metrics span:nth-child(4) { grid-column: 1 / -1; grid-row: 2; margin-inline-start: 50%; }
+.file-upload-progress__actions { display: flex; justify-content: flex-end; }
+.file-upload-progress__action.btn { min-width: 5rem; min-height: 3rem; }
+.file-upload-progress__error { margin: 0; font-size: 0.8125rem; overflow-wrap: anywhere; }
+.place-picker__footer > .file-upload-progress { flex: 0 0 100%; }
+
+.file-upload-progress--compact {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  padding: 0;
+  border: 0;
+  border-block-end: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+}
+
+.file-upload-progress__summary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 3rem;
+}
+
+.file-upload-progress__details-toggle {
+  display: flex;
+  align-items: center;
+  flex: 1 1 0;
+  gap: 0.25rem;
+  min-width: 0;
+  min-height: 3rem;
+  border: 0;
+  border-radius: var(--control-radius);
+  padding: 0 0.25rem;
+  background: transparent;
+  color: var(--text);
+  text-align: start;
+  cursor: pointer;
+}
+
+.file-upload-progress__details-toggle svg { flex: none; color: var(--text-muted); }
+.file-upload-progress__details-toggle .file-upload-progress__name { min-width: 0; }
+.file-upload-progress__details-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
+.file-upload-progress__details-toggle:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
+.file-upload-progress--compact .file-upload-progress__status { flex: none; }
+.file-upload-progress__percentage {
+  min-width: 3.25ch;
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+.file-upload-progress__history-meta { display: none; }
+.file-upload-progress--compact .file-upload-progress__action.btn { min-width: 3rem; padding: 0; }
+.file-upload-progress--compact .file-upload-progress__bar { margin: 0 0.25rem 0.375rem; }
+.file-upload-progress--compact .file-upload-progress__track { height: 0.25rem; }
+.file-upload-progress__rate,
+.file-upload-progress__detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 0.75rem;
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.file-upload-progress__rate { padding: 0 0.25rem 0.5rem; }
+.file-upload-progress__details,
+.file-upload-progress--compact .file-upload-progress__error { padding: 0.125rem 0.25rem 0.625rem; overflow-wrap: anywhere; }
+.file-upload-progress__details { font-size: 0.875rem; }
+.file-upload-progress__detail-meta { margin-block-start: 0.25rem; }
+
+.local-upload-history { min-height: 0; height: 100%; overflow: auto; padding: 0.5rem var(--page-gutter, 1rem); }
+.local-upload-history__list { display: grid; max-width: 76rem; margin-inline: auto; container-type: inline-size; }
+
+@container (min-width: 36rem) {
+  .file-upload-progress__history-meta {
+    display: grid;
+    grid-template-columns: minmax(6rem, 1fr) auto;
+    gap: 0.75rem;
+    color: var(--text-muted);
+    font-size: 0.8125rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .file-upload-progress--compact .file-upload-progress__status { margin-inline-start: 0.75rem; }
+}
+
+:root[data-motion="off"] .file-upload-progress__indicator { transition: none; }
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion="off"]) .file-upload-progress[data-status="processing"] .file-upload-progress__status svg {
+    animation: upload-processing 900ms linear infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .file-upload-progress__indicator { transition: none; }
+}
+
+@keyframes upload-processing { to { transform: rotate(360deg); } }

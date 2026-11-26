@@ -26,7 +26,7 @@ function pageTitle(pathname: string): string {
   if (pathname.startsWith("/location/history")) return "History";
   if (pathname.startsWith("/location/saved")) return "Saved";
   if (pathname.startsWith("/location")) return "Locations";
-  if (pathname.startsWith("/uploads")) return "Upload";
+  if (pathname.startsWith("/upload")) return "Upload";
   if (pathname.startsWith("/users")) return "Users";
   if (pathname.startsWith("/profile")) return "User profile";
   return "Settings";

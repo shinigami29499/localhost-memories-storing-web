@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
-import { useBlocker, useLocation, useNavigate } from "react-router-dom";
+import { useBlocker, useLocation, useNavigate, useViewTransitionState } from "react-router-dom";
 import { MobilePageLink as Link, useOpenMobilePage, type MobileAlbumCreateEntry } from "../layout/mobilePageNavigation";
 import { useLocale } from "@/context/LocaleContext";
 import { AlbumDateView } from "@/features/albums/components/AlbumDateView";
@@ -13,6 +13,7 @@ export function MobileAlbumsPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const openPage = useOpenMobilePage();
+  const transitioningWithDetail = useViewTransitionState("/album/:albumId");
   const { path: overlayPath, exiting } = useRouteLoadingOverlay();
   const createEntry = location.state?.mobileAlbumCreate as MobileAlbumCreateEntry | undefined;
   const creating = Boolean(createEntry);
@@ -53,7 +54,7 @@ export function MobileAlbumsPage() {
         albumDateCounts={albumDateCounts} albumHistory={albumsQuery} albums={items}
         albumIndex={albumIndex} onAlbumIndexChange={selectAlbumIndex} onAlbumOpen={rememberOpenedAlbum}
         favoriteBusyAlbumId={favoriteBusyAlbumId} onFavorite={(albumId, isFavorited) => void toggleFavorite(albumId, isFavorited)}
-        mobileNavigation
+        mobileNavigation revealFeaturedText={transitioningWithDetail}
         pending={albumsQuery.isPending} failed={albumsQuery.isError} fetching={albumsQuery.isFetching}
         onRetry={() => void albumsQuery.refetch()} />
       {createEntry && <MobileAlbumFormDialog

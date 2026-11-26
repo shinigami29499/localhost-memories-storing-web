@@ -3,7 +3,7 @@ name: web-album-page
 description: "Album media management on the web."
 ---
 
-The web album detail page uses Frontend/src/pages/albums/useAlbumDetail.ts. Owners queue selected images and videos into the current album. They can confirm permanent removal of selected media. Deletion refreshes album, media, and place queries. Viewers can browse and favorite media.
+The web album detail page uses Frontend/src/pages/albums/useAlbumDetail.ts. Active users can upload images and videos into public albums and private albums they own through the shared `useAlbumUpload` hook. Add media stays available during transfers. The Upload page at /upload shows per-file progress. Owners can confirm permanent removal of selected media. Deletion refreshes album, media, and place queries. Viewers can browse and favorite media.
 
 The album header and media grid use separate loading placeholders. The media grid keeps its placeholder until the media query settles.
 

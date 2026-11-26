@@ -1,252 +1,76 @@
 // @vitest-environment jsdom
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { showToast } from "../../../../../../src/components/ui";
-import { getUploadFile, removeUploadFile } from "../../../../../../src/features/uploads/services/uploadFileStore";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { readUploadHistory, saveUploadRecord } from "../../../../../../src/features/uploads/services/uploadFileStore";
+import { cancelUpload, queueAlbumUploads, retryUpload, startUploadRuntime } from "../../../../../../src/features/uploads/services/uploadRuntime";
 import { uploadService } from "../../../../../../src/features/uploads/services/uploadService";
-import { setUploadPaused, startUploadRuntime, wakeUploadRuntime } from "../../../../../../src/features/uploads/services/uploadRuntime";
-import type { UploadBatch, UploadItem } from "../../../../../../src/features/uploads/types";
-import { useUploadNotificationStore } from "../../../../../../src/features/notifications/uploadNotificationStore";
+import { useUploadProgress } from "../../../../../../src/features/uploads/uploadProgress";
 
-vi.mock("../../../../../../src/components/ui", () => ({
-  showToast: { success: vi.fn(), error: vi.fn(), info: vi.fn(), dismiss: vi.fn() },
-}));
 vi.mock("../../../../../../src/features/uploads/services/uploadFileStore", () => ({
-  getUploadFile: vi.fn(),
-  removeUploadFile: vi.fn(),
+  readUploadHistory: vi.fn(), saveUploadRecord: vi.fn(), removeUploadRecord: vi.fn(),
 }));
 vi.mock("../../../../../../src/features/uploads/services/uploadService", () => ({
-  uploadService: {
-    recover: vi.fn(), active: vi.fn(), queue: vi.fn(), get: vi.fn(),
-    start: vi.fn(), upload: vi.fn(), reportProgress: vi.fn(), fail: vi.fn(), setPaused: vi.fn(),
-  },
+  uploadService: { upload: vi.fn() },
 }));
 
-function item(id: string): UploadItem {
-  return {
-    id, uploadBatchId: "batch", originalFilename: `${id}.png`, contentType: "image/png",
-    fileSizeBytes: 10, status: "Pending", progressPercent: 0, errorDetails: null,
-    completedAt: null,
-  };
-}
+let stop: (() => void) | undefined;
+const current = () => Object.values(useUploadProgress.getState().transfers);
 
-function batch(items: UploadItem[], complete = false): UploadBatch {
-  return {
-    id: "batch",
-    status: complete ? "Completed" : "Pending", username: null, canManage: true,
-    createdAt: "2026-10-28T00:00:00Z",
-    completedAt: complete ? "2026-10-28T00:01:00Z" : null,
-    totalFiles: items.length, successfulFiles: complete ? items.length : 0,
-    failedFiles: 0, cancelledFiles: 0, items,
-  };
-}
+beforeEach(() => {
+  vi.resetAllMocks();
+  useUploadProgress.setState({ transfers: {} });
+  vi.mocked(readUploadHistory).mockResolvedValue([]);
+});
 
-describe("media upload runtime", () => {
-  let stop: (() => void) | undefined;
-  const originalLocks = Object.getOwnPropertyDescriptor(navigator, "locks");
+afterEach(() => stop?.());
 
-  beforeEach(() => {
-    vi.resetAllMocks();
-    vi.useFakeTimers();
-    localStorage.clear();
-    useUploadNotificationStore.setState({ items: [] });
-    window.history.replaceState(null, "", "/");
-    vi.mocked(uploadService.active).mockResolvedValue([]);
-    vi.mocked(uploadService.queue).mockResolvedValue([]);
-    vi.mocked(uploadService.reportProgress).mockResolvedValue(item("progress"));
-    vi.mocked(getUploadFile).mockResolvedValue(new File(["media"], "photo.png", { type: "image/png" }));
-    Object.defineProperty(navigator, "locks", { configurable: true, value: undefined });
+it("starts files immediately even while browser storage is pending", async () => {
+  vi.mocked(readUploadHistory).mockReturnValue(new Promise(() => {}));
+  vi.mocked(saveUploadRecord).mockReturnValue(new Promise(() => {}));
+  const confirmations: (() => void)[] = [];
+  vi.mocked(uploadService.upload).mockImplementation((_album, id, file, progress) => {
+    progress(file.size, true);
+    return new Promise((resolve) => confirmations.push(() => resolve({ mediaId: id })));
   });
+  const onStored = vi.fn();
+  stop = startUploadRuntime("user", onStored);
+  queueAlbumUploads("album", ["a", "b", "c", "d"].map((name) => new File(["123"], name)), "user");
+  expect(current().map(({ status }) => status)).toEqual(["processing", "processing", "processing", "queued"]);
+  expect(onStored).not.toHaveBeenCalled();
+  confirmations[0]();
+  await vi.waitFor(() => expect(uploadService.upload).toHaveBeenCalledTimes(4));
+  expect(current()[0]).toMatchObject({ status: "success", loaded: 3, file: undefined });
+  expect(onStored).toHaveBeenCalledTimes(1);
+  confirmations.slice(1).forEach((confirm) => confirm());
+  await vi.waitFor(() => expect(onStored).toHaveBeenCalledTimes(4));
+});
 
-  afterEach(async () => {
-    stop?.();
-    stop = undefined;
-    await vi.runOnlyPendingTimersAsync();
-    if (originalLocks) Object.defineProperty(navigator, "locks", originalLocks);
-    else Reflect.deleteProperty(navigator, "locks");
-    vi.useRealTimers();
+it("cancels and retries failure with the original media identifier", async () => {
+  const calls: string[] = [];
+  vi.mocked(uploadService.upload).mockImplementation((_album, id, _file, progress, signal) => {
+    calls.push(id);
+    progress(2, false);
+    if (calls.length === 2) return Promise.reject(new Error("Connection failed"));
+    if (calls.length === 3) return Promise.resolve({ mediaId: id });
+    return new Promise((_, reject) => signal.addEventListener("abort", () => reject(signal.reason), { once: true }));
   });
+  stop = startUploadRuntime("user", vi.fn());
+  queueAlbumUploads("album", [new File(["123"], "photo.png")], "user");
+  const [{ id }] = current();
+  cancelUpload(id);
+  expect(current()[0]).toMatchObject({ status: "cancelled", loaded: 2 });
+  retryUpload(id);
+  await vi.waitFor(() => expect(current()[0]).toMatchObject({ status: "failed", loaded: 2, error: "Connection failed" }));
+  retryUpload(id);
+  await vi.waitFor(() => expect(current()[0].status).toBe("success"));
+  expect(calls).toEqual([id, id, id]);
+});
 
-  function installBrowserLocks() {
-    const held = new Set<string>();
-    const request = vi.fn(async (name: string, options: LockOptions, callback: LockGrantedCallback<unknown>) => {
-      if (options.ifAvailable && options.signal) {
-        throw new DOMException(
-          "The 'signal' and 'ifAvailable' options cannot be used together.",
-          "NotSupportedError",
-        );
-      }
-      if (held.has(name)) return callback(null);
-      held.add(name);
-      try {
-        return await callback({ name, mode: "exclusive" });
-      } finally {
-        held.delete(name);
-      }
-    });
-    Object.defineProperty(navigator, "locks", { configurable: true, value: { request } });
-    return { request, held };
-  }
-
-  it("does not fetch active batches or the queue again while idle", async () => {
-    stop = startUploadRuntime("idle-user", (key) => key, vi.fn());
-    await vi.advanceTimersByTimeAsync(0);
-    expect(uploadService.active).toHaveBeenCalledOnce();
-    expect(uploadService.queue).toHaveBeenCalledOnce();
-
-    await vi.advanceTimersByTimeAsync(60_000);
-    expect(uploadService.active).toHaveBeenCalledOnce();
-    expect(uploadService.queue).toHaveBeenCalledOnce();
-    expect(vi.getTimerCount()).toBe(0);
-  });
-
-  it("wakes on upload changes, drains new work, then stays idle again", async () => {
-    stop = startUploadRuntime("event-user", (key) => key, vi.fn());
-    await vi.advanceTimersByTimeAsync(0);
-    const pending = item("new-file");
-    vi.mocked(uploadService.queue).mockResolvedValueOnce([pending]);
-    vi.mocked(uploadService.upload).mockResolvedValue({ ...pending, status: "Success" });
-    vi.mocked(uploadService.get).mockResolvedValue(batch([pending], true));
-
-    wakeUploadRuntime();
-    await vi.advanceTimersByTimeAsync(0);
-    expect(uploadService.start).toHaveBeenCalledExactlyOnceWith("batch", "new-file", expect.any(AbortSignal));
-    expect(uploadService.upload).toHaveBeenCalledOnce();
-    const activeCalls = vi.mocked(uploadService.active).mock.calls.length;
-    const queueCalls = vi.mocked(uploadService.queue).mock.calls.length;
-
-    await vi.advanceTimersByTimeAsync(60_000);
-    expect(uploadService.active).toHaveBeenCalledTimes(activeCalls);
-    expect(uploadService.queue).toHaveBeenCalledTimes(queueCalls);
-  });
-
-  it("does not lose an event received while a queue request is in flight", async () => {
-    let finishQueue: (items: UploadItem[]) => void = () => { throw new Error("Queue request has not started."); };
-    vi.mocked(uploadService.queue).mockImplementationOnce(() =>
-      new Promise<UploadItem[]>((resolve) => { finishQueue = resolve; }));
-    stop = startUploadRuntime("in-flight-user", (key) => key, vi.fn());
-    await vi.advanceTimersByTimeAsync(0);
-
-    wakeUploadRuntime();
-    finishQueue([]);
-    await vi.advanceTimersByTimeAsync(0);
-    expect(uploadService.queue).toHaveBeenCalledTimes(2);
-    expect(uploadService.active).toHaveBeenCalledTimes(2);
-  });
-
-  it("starts pending file uploads when the browser supports Web Locks", async () => {
-    const { request } = installBrowserLocks();
-    const pending = item("locked-file");
-    vi.mocked(uploadService.queue).mockResolvedValueOnce([pending]);
-    vi.mocked(uploadService.upload).mockResolvedValue({ ...pending, status: "Success", progressPercent: 100 });
-    vi.mocked(uploadService.get).mockResolvedValue(batch([pending], true));
-    stop = startUploadRuntime("browser-lock-user", (key) => key, vi.fn());
-    await vi.advanceTimersByTimeAsync(0);
-
-    expect(request).toHaveBeenCalledOnce();
-    expect(request).toHaveBeenCalledWith(
-      "shinigacim.upload-runtime.browser-lock-user",
-      { ifAvailable: true },
-      expect.any(Function),
-    );
-    expect(uploadService.recover).toHaveBeenCalledOnce();
-    expect(uploadService.start).toHaveBeenCalledExactlyOnceWith("batch", "locked-file", expect.any(AbortSignal));
-    expect(uploadService.upload).toHaveBeenCalledOnce();
-  });
-
-  it("keeps one lock owner and lets a waiting runtime take over after cleanup", async () => {
-    const { held } = installBrowserLocks();
-    stop = startUploadRuntime("shared-lock-user", (key) => key, vi.fn());
-    await vi.advanceTimersByTimeAsync(0);
-    const stopWaiting = startUploadRuntime("shared-lock-user", (key) => key, vi.fn());
-    try {
-      await vi.advanceTimersByTimeAsync(0);
-      expect(held.size).toBe(1);
-      expect(uploadService.recover).toHaveBeenCalledOnce();
-      stop();
-      stop = undefined;
-      await vi.advanceTimersByTimeAsync(3000);
-      expect(held.size).toBe(1);
-      expect(uploadService.recover).toHaveBeenCalledTimes(2);
-    } finally {
-      stopWaiting();
-    }
-    await vi.advanceTimersByTimeAsync(0);
-    expect(held.size).toBe(0);
-  });
-
-  it("uploads ten media files one at a time, invalidates media, and notifies once", async () => {
-    const files = Array.from({ length: 10 }, (_, index) => item(`file-${index}`));
-    const pending = [...files];
-    let active = 0;
-    let maximumActive = 0;
-    vi.mocked(uploadService.active).mockImplementation(async () => pending.length ? [batch(files)] : []);
-    vi.mocked(uploadService.queue).mockImplementation(async () => [...pending]);
-    vi.mocked(uploadService.get).mockResolvedValue(batch(files, true));
-    vi.mocked(uploadService.upload).mockImplementation(async (_batchId, id, _file, progress) => {
-      active++;
-      maximumActive = Math.max(maximumActive, active);
-      progress(10, 10);
-      await Promise.resolve();
-      active--;
-      pending.splice(pending.findIndex((file) => file.id === id), 1);
-      return { ...item(id), status: "Success", progressPercent: 100 };
-    });
-    const changed = vi.fn();
-    stop = startUploadRuntime("ten-files-user", (key) => key, changed);
-    await vi.advanceTimersByTimeAsync(0);
-
-    expect(uploadService.upload).toHaveBeenCalledTimes(10);
-    expect(maximumActive).toBe(1);
-    expect(vi.mocked(uploadService.start).mock.calls.map((call) => call.slice(0, 2)))
-      .toEqual(files.map((file) => ["batch", file.id]));
-    expect(uploadService.reportProgress).toHaveBeenCalledTimes(10);
-    expect(vi.mocked(uploadService.reportProgress).mock.calls.every((call) => call[2] === 99)).toBe(true);
-    expect(changed).toHaveBeenCalledOnce();
-    expect(removeUploadFile).toHaveBeenCalledTimes(10);
-    expect(showToast.success).toHaveBeenCalledOnce();
-    await vi.advanceTimersByTimeAsync(4500);
-    expect(showToast.success).toHaveBeenCalledOnce();
-  });
-
-  it("reports a failed batch instead of announcing a successful upload", async () => {
-    const pending = item("failed-file");
-    vi.mocked(uploadService.get).mockResolvedValue({
-      ...batch([item("success-file"), pending], true),
-      status: "Failed",
-      successfulFiles: 1,
-      failedFiles: 1,
-    });
-    vi.mocked(uploadService.upload).mockRejectedValue(new Error("Connection failed"));
-    vi.mocked(uploadService.queue).mockResolvedValueOnce([pending]);
-    stop = startUploadRuntime("partial-failure-user", (key) => key, vi.fn());
-    await vi.advanceTimersByTimeAsync(0);
-
-    expect(showToast.success).not.toHaveBeenCalled();
-    expect(showToast.error).toHaveBeenCalledExactlyOnceWith(
-      "Upload batch finished with issues", "{success} success, {failed} failed.",
-    );
-    expect(uploadService.upload).toHaveBeenCalledOnce();
-    expect(uploadService.fail).toHaveBeenCalledOnce();
-  });
-
-  it("records missing file failure after starting its upload", async () => {
-    vi.mocked(getUploadFile).mockResolvedValue(undefined);
-    vi.mocked(uploadService.get).mockResolvedValue(batch([], true));
-    vi.mocked(uploadService.queue).mockResolvedValueOnce([item("missing-file")]);
-    stop = startUploadRuntime("missing-file-user", (key) => key, vi.fn());
-    await vi.advanceTimersByTimeAsync(0);
-
-    expect(uploadService.start).toHaveBeenCalledExactlyOnceWith("batch", "missing-file", expect.any(AbortSignal));
-    expect(uploadService.fail).toHaveBeenCalledWith(
-      "batch", "missing-file", expect.stringContaining("no longer available"),
-    );
-    expect(uploadService.upload).not.toHaveBeenCalled();
-  });
-
-  it("pauses only the chosen item and retains its local file", async () => {
-    vi.mocked(uploadService.setPaused).mockResolvedValue(batch([{ ...item("selected"), status: "Paused" }]));
-    await setUploadPaused("batch", "selected", true);
-    expect(uploadService.setPaused).toHaveBeenCalledExactlyOnceWith("batch", "selected", true);
-    expect(removeUploadFile).not.toHaveBeenCalled();
-  });
+it("restores interrupted uploads for manual retry from browser history", async () => {
+  vi.mocked(readUploadHistory).mockResolvedValue([{
+    id: "restored", userId: "user", albumId: "album", name: "photo.png", file: new File(["a"], "photo.png"),
+    status: "processing", loaded: 1, total: 1, createdAt: "2026-10-28T00:00:00Z",
+  }]);
+  stop = startUploadRuntime("user", vi.fn());
+  await vi.waitFor(() => expect(current()[0]).toMatchObject({ id: "restored", status: "failed", loaded: 1 }));
+  expect(uploadService.upload).not.toHaveBeenCalled();
 });

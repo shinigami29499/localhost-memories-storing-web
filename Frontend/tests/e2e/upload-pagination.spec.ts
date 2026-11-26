@@ -27,7 +27,7 @@ for (const width of [390, 1280]) {
     });
     await profile.getByRole("button", { name: "Next page" }).click();
     await expect(profile.getByRole("button", { name: "Page 2", exact: true })).toHaveAttribute("aria-current", "page");
-    await page.goto("/uploads");
+    await page.goto("/upload");
     const uploads = page.getByRole("navigation", { name: "upload batches pagination" });
     await expect(uploads).toBeVisible();
     const uploadStyle = await uploads.getByRole("button", { name: "Page 1", exact: true }).evaluate((element) => {

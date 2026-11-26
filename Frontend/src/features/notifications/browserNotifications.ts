@@ -13,7 +13,7 @@ export async function requestBrowserNotificationPermission(): Promise<Notificati
   return Notification.requestPermission();
 }
 
-export async function showBrowserNotification(title: string, body: string, url = "/uploads"): Promise<void> {
+export async function showBrowserNotification(title: string, body: string, url = "/upload"): Promise<void> {
   if (
     !areBrowserNotificationsEnabled()
     || !("Notification" in window)

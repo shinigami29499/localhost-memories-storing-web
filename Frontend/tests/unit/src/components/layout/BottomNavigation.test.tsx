@@ -35,7 +35,7 @@ describe("mobile navigation", () => {
       const dialog = container.querySelector<HTMLDialogElement>("dialog")!;
       expect(dialog.open).toBe(true);
       expect([...dialog.querySelectorAll("a")].map((link) => link.getAttribute("href")))
-        .toEqual(["/profile", "/settings"]);
+        .toEqual(["/profile", "/setting"]);
       const logoutButton = [...dialog.querySelectorAll("button")].find((button) => button.textContent?.includes("Log out"))!;
       await act(async () => logoutButton.click());
       expect(logout).toHaveBeenCalledOnce();

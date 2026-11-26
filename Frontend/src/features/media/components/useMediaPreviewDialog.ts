@@ -19,13 +19,13 @@ export interface MediaPreviewDialogProps {
   onLoadMore?: () => void;
   favoriteBusy?: boolean;
   onClose: (mediaId: string) => void;
-  onToggleFavorite: (mediaId: string, isFavorited: boolean) => void;
+  onToggleFavorite?: (mediaId: string, isFavorited: boolean) => void;
 }
 
 export function useMediaPreviewDialog({
   media, initialMediaId, total = media.length, loadingMore = false, loadMoreError = false,
   onLoadMore, favoriteBusy = false, onToggleFavorite, onClose,
-}: MediaPreviewDialogProps) {
+}: MediaPreviewDialogProps, immersive = false, canDrag?: () => boolean) {
   const { t } = useLocale();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -54,13 +54,14 @@ export function useMediaPreviewDialog({
     loop,
     align: "center",
     containScroll: false,
-    scale: isMobile ? 1 : 0.8,
-    visible: isMobile || slideCount === 1 ? 1 : 3,
-    watchDrag: (_api, event) => !(event.target instanceof Element && event.target.closest(".video-player")),
+    scale: immersive || isMobile ? 1 : 0.8,
+    visible: immersive || isMobile || slideCount === 1 ? 1 : 3,
+    watchDrag: (_api, event) => (canDrag?.() ?? true)
+      && !(event.target instanceof Element && event.target.closest(".video-player:not([data-carousel-swipe]), [data-video-controls]")),
   });
   const current = media[selectedIndex];
   const currentIndex = selectedIndex;
-  const albums = useAlbums("mine", Boolean(current), current?.id);
+  const albums = useAlbums("mine", !immersive && Boolean(current), current?.id);
   const inAlbum = albums.data?.some((album) => album.containsMedia) ?? false;
   const imageCopied = copyResult !== null && copyResult.mediaId === current?.id;
 

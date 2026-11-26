@@ -130,7 +130,7 @@ describe("Sidebar navigation", () => {
     vi.unstubAllGlobals();
   });
 
-  it.each(["/", "/album", "/location", "/users", "/uploads"])("shows a stable icon and label for %s", async (href) => {
+  it.each(["/", "/album", "/location", "/users", "/upload"])("shows a stable icon and label for %s", async (href) => {
     const link = container.querySelector<HTMLAnchorElement>(`.sidebar__nav a[href="${href}"]`)!;
     const label = link.querySelector("span")!;
     expect(link.classList.contains("sidebar__link")).toBe(true);
@@ -147,7 +147,7 @@ describe("Sidebar navigation", () => {
       user: { id: "reader", username: "reader", role: "user", status: "active", createdAt: "2026-01-01T00:00:00Z" },
     }));
     expect(Array.from(container.querySelectorAll(".sidebar__nav > a"), (link) => link.getAttribute("href")))
-      .toEqual(["/", "/album", "/location", "/users", "/uploads"]);
+      .toEqual(["/", "/album", "/location", "/users", "/upload"]);
     expect(container.querySelector('[href="/users"]')?.textContent).toBe("Users");
     expect(container.querySelector('[href="/location"]')?.textContent).toBe("Locations");
     expect(container.querySelector('[href="/location/place"]')).toBeNull();
@@ -158,7 +158,7 @@ describe("Sidebar navigation", () => {
 
   it("shows Upload as a main navigation link", () => {
     const upload = container.querySelector<HTMLAnchorElement>('[aria-label="Upload"]');
-    expect(upload?.getAttribute("href")).toBe("/uploads");
+    expect(upload?.getAttribute("href")).toBe("/upload");
     expect(upload?.getAttribute("data-sidebar")).toBe("menu-button");
     expect(container.querySelector('[aria-label="Sync"]')).toBeNull();
     expect(container.querySelector('[aria-label="Download"]')).toBeNull();
@@ -173,7 +173,7 @@ describe("Sidebar navigation", () => {
     expect(trigger.getAttribute("aria-expanded")).toBe("false");
     const profileLink = account.querySelector<HTMLAnchorElement>('a[href="/profile"]');
     expect(profileLink?.textContent?.trim()).toBe("User profile");
-    const settingsLink = account.querySelector<HTMLAnchorElement>('a[href="/settings"]');
+    const settingsLink = account.querySelector<HTMLAnchorElement>('a[href="/setting"]');
     expect(settingsLink?.textContent?.trim()).toBe("Settings");
     expect(settingsLink?.classList.contains("sidebar__link")).toBe(true);
     expect(account.querySelector('[aria-label="Log out"]')).not.toBeNull();

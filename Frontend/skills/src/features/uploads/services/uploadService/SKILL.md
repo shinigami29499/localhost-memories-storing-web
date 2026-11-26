@@ -1,6 +1,8 @@
 ---
 name: upload-service
-description: "Client operations for upload batches and items."
+description: Upload album media directly and look up images from legacy batches.
 ---
 
-`src/features/uploads/services/uploadService.ts` manages upload submission, progress, records, and pause or resume through `/api/sync/upload`. Canonical routes use singular `batch`, `item`, and `image` segments. Submission saves files locally before creating the server batch and wakes the upload runtime; failures clean up saved files and propagate the error.
+`src/features/uploads/services/uploadService.ts` sends a single multipart file to `PUT /api/library/album/{albumId}/media/file/{mediaId}`. The caller generates a media ID once and reuses it for retry. A matching response confirms file storage. The old batch image lookup remains available to the location helper.
+
+`packages/api/src/index.ts` uses native XHR upload events with an abort signal and existing authentication. It measures the multipart header length and excludes framing from transferred file bytes. The upload load event confirms request-body completion.

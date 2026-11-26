@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState, type ChangeEvent, type SyntheticEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ChangeEvent, type SyntheticEvent } from "react";
 import { useLocale } from "../../../context/LocaleContext";
 
 export interface VideoPlayerProps {
   src: string;
   name: string;
-  onError: () => void;
+  onError?: () => void;
 }
 
 export function timeLabel(value: number) {
@@ -23,6 +23,11 @@ export function useVideoPlayer({ src, onError }: VideoPlayerProps) {
   const [current, setCurrent] = useState(0);
   const [duration, setDuration] = useState(0);
   const [aspect, setAspect] = useState(1);
+  useLayoutEffect(() => {
+    setPlaying(false);
+    setCurrent(0);
+    setDuration(0);
+  }, [src]);
   useEffect(() => {
     const element = video.current;
     if (!element) return;
@@ -33,6 +38,7 @@ export function useVideoPlayer({ src, onError }: VideoPlayerProps) {
     document.addEventListener("visibilitychange", pauseWhenHidden);
     return () => {
       document.removeEventListener("visibilitychange", pauseWhenHidden);
+      if (element.getAttribute("src") !== src) return;
       element.pause();
       element.removeAttribute("src");
       element.load();
@@ -44,7 +50,7 @@ export function useVideoPlayer({ src, onError }: VideoPlayerProps) {
     if (element.paused) void element.play().catch((error: unknown) => {
       if (video.current !== element) return;
       console.warn("Media playback failed", error);
-      onError();
+      onError?.();
     });
     else element.pause();
   };

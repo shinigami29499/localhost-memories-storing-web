@@ -25,7 +25,7 @@ export function BottomNavigation({ pendingPath }: { pendingPath?: string } = {})
   const library = pathname.startsWith("/album");
   const places = pathname.startsWith("/location");
   const users = pathname.startsWith("/users");
-  const more = ["/profile", "/settings"].includes(pathname);
+  const more = ["/profile", "/setting"].includes(pathname);
 
   useEffect(() => { setMoreOpen(false); }, [location.key]);
   useEffect(() => {
@@ -52,7 +52,7 @@ export function BottomNavigation({ pendingPath }: { pendingPath?: string } = {})
       </NavLink>
       <button ref={moreRef} type="button" className="bottom-navigation__item" aria-expanded={moreOpen}
         aria-haspopup="dialog" data-highlighted={more || undefined}
-        aria-current={["/profile", "/settings"].includes(location.pathname) ? "page" : undefined} onClick={() => setMoreOpen(true)}>
+        aria-current={["/profile", "/setting"].includes(location.pathname) ? "page" : undefined} onClick={() => setMoreOpen(true)}>
         <Ellipsis size={22} aria-hidden="true" /><span>{t("More")}</span>
       </button>
     </nav>
@@ -64,7 +64,7 @@ export function BottomNavigation({ pendingPath }: { pendingPath?: string } = {})
       </div>
       <nav aria-label={t("More")}>
         <NavLink to="/profile" onClick={() => dialogRef.current?.close()}><UserRound size={20} aria-hidden="true" />{t("User profile")}</NavLink>
-        <NavLink to="/settings" onClick={() => dialogRef.current?.close()}><Settings size={20} aria-hidden="true" />{t("Settings")}</NavLink>
+        <NavLink to="/setting" onClick={() => dialogRef.current?.close()}><Settings size={20} aria-hidden="true" />{t("Settings")}</NavLink>
         <Button type="button" variant="danger" className="dialog-action dialog-action--danger" onClick={() => { dialogRef.current?.close(); void logout(); }}>
           <LogOut size={20} aria-hidden="true" />{t("Log out")}
         </Button>

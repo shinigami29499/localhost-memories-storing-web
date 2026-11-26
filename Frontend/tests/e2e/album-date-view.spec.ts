@@ -1,4 +1,21 @@
-import { expect, test, type Locator } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
+
+function observeCaptionSwap(card: Locator) {
+  return card.evaluate((element) => new Promise<boolean>((resolve) => {
+    const deadline = performance.now() + 3000;
+    function sample() {
+      const captions = Array.from(element.querySelectorAll(".album-date-card__name, .album-date-card__owner"));
+      const swapping = captions.length === 2 && captions.every((caption) => {
+        const incoming = caption.querySelector('[data-slot="swapping-text-in"]');
+        return incoming && Number(getComputedStyle(caption).opacity) > 0
+          && getComputedStyle(incoming).transform !== "none";
+      });
+      if (swapping || performance.now() >= deadline) resolve(swapping);
+      else requestAnimationFrame(sample);
+    }
+    sample();
+  }));
+}
 
 test("mobile date push keeps frames adjacent and swipes from the cover", async ({ page, browserName }) => {
   test.skip(browserName !== "chromium");
@@ -36,23 +53,8 @@ test("mobile date push keeps frames adjacent and swipes from the cover", async (
   const bar = page.getByRole("group", { name: "Album dates" });
   const featuredCard = mobile.locator(".album-date-card--featured:not([inert] *)");
   const compactCard = mobile.locator(".album-date-card--compact:not([inert] *)");
-  const caption = ":is(.album-date-card__name, .album-date-card__owner)";
   await expect(compactCard.locator(".album-date-card__text")).toHaveAttribute("data-cover-pending", "true");
-  const swaps = [featuredCard, compactCard].map((card) => card.evaluate((element, selector) =>
-    new Promise<boolean>((resolve) => {
-      const deadline = performance.now() + 3000;
-      function sample() {
-        const captions = Array.from(element.querySelectorAll(selector));
-        const swapping = captions.length === 2 && captions.every((caption) => {
-          const incoming = caption.querySelector('[data-slot="swapping-text-in"]');
-          return incoming && Number(getComputedStyle(caption).opacity) > 0 &&
-            getComputedStyle(incoming).transform !== "none";
-        });
-        if (swapping || performance.now() >= deadline) resolve(swapping);
-        else requestAnimationFrame(sample);
-      }
-      sample();
-    }), caption));
+  const swaps = [featuredCard, compactCard].map(observeCaptionSwap);
   await featuredCard.evaluate((element) => element.setAttribute("data-test-card", "original"));
   await bar.getByRole("button", { name: "Thursday, November 19, 2026" }).click();
   expect(await Promise.all(swaps)).toEqual([true, true]);
@@ -149,6 +151,83 @@ test("mobile date push keeps frames adjacent and swipes from the cover", async (
 });
 
 test.use({ timezoneId: "Asia/Ho_Chi_Minh" });
+
+test("mobile album return preserves the title and byline handoff and populated-date swaps", async ({ page, browserName }) => {
+  test.skip(browserName !== "chromium");
+  await page.setViewportSize({ width: 390, height: 670 });
+  const createdAt = "2026-11-21T04:00:00Z";
+  await page.clock.setFixedTime(new Date(createdAt));
+  const owner = { id: "viewer", username: "Alex", role: "user", status: "active", createdAt };
+  const album = { id: "riverside", name: "Riverside", owner, createdAt, isPublic: true, previewMediaId: "cover", mediaCount: 0 };
+  const earlier = { ...album, id: "coast", name: "Coast", owner: { ...owner, username: "Jamie" },
+    createdAt: "2026-11-20T04:00:00Z", previewMediaId: null };
+  const albums = [album, { ...album, id: "forest", name: "Forest", previewMediaId: null }, earlier,
+    { ...earlier, id: "mountains", name: "Mountains" }];
+  await page.addInitScript((user) => {
+    localStorage.setItem("shinigacim-auth", JSON.stringify({ state: { user, accessToken: "test", refreshToken: "test" }, version: 0 }));
+    localStorage.setItem("shinigacim.animations-enabled", "true");
+    const start = document.startViewTransition.bind(document);
+    document.startViewTransition = (update) => {
+      const transition = start(update);
+      void transition.ready.then(() => {
+        if (location.pathname !== "/album") return;
+        const captions = [
+          [".album-date-card--featured .album-date-card__name", "mobile-album-title"],
+          [".album-date-card--featured .album-date-card__owner", "mobile-album-byline"],
+        ];
+        document.documentElement.dataset.returningAlbumText = JSON.stringify(captions.map(([selector, name]) => ({
+          opacity: getComputedStyle(document.querySelector(selector)!).opacity,
+          moving: document.getAnimations().some(({ effect }) => effect instanceof KeyframeEffect
+            && effect.pseudoElement === `::view-transition-group(${name})`
+            && effect.getKeyframes().some((frame) => frame.transform)),
+        })));
+        void transition.finished.then(() => { document.documentElement.dataset.albumReturnFinished = "true"; });
+      }, () => {});
+      return transition;
+    };
+  }, owner);
+  let releaseCover!: () => void;
+  const coverReady = new Promise<void>((resolve) => { releaseCover = resolve; });
+  await page.route(/^https?:\/\/[^/]+\/hubs\//, (route) => route.abort());
+  await page.route(/^https?:\/\/[^/]+\/api\//, async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (path === "/api/library/album/page") return route.fulfill({ json: { items: albums, hasMore: false } });
+    if (path === "/api/library/album/riverside") return route.fulfill({ json: album });
+    if (path.endsWith("/cover/file")) {
+      await coverReady;
+      return route.fulfill({ contentType: "image/png", body: Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=", "base64",
+      ) });
+    }
+    return route.fulfill({ json: { items: [], total: 0, hasMore: false } });
+  });
+  const list = page.locator(".mobile-albums-page");
+  const open = page.getByRole("link", { name: "Open album Riverside" });
+  try {
+    await page.goto("/album", { waitUntil: "domcontentloaded" });
+    await open.waitFor();
+    test.skip(await list.count() === 0, "Mobile app only");
+    const featured = list.locator(".album-date-card--featured");
+    await expect(featured.locator(".album-date-card__preview")).toHaveAttribute("data-cover-pending", "true");
+    await open.click();
+    await expect(page.getByRole("heading", { name: "Riverside", level: 1 })).toBeVisible();
+    await page.getByRole("button", { name: "Back", exact: true }).click();
+    await expect(page.locator("html")).toHaveAttribute("data-returning-album-text", JSON.stringify([
+      { opacity: "1", moving: true }, { opacity: "1", moving: true },
+    ]));
+    await expect(page.locator("html")).toHaveAttribute("data-album-return-finished", "true");
+    await expect(featured.locator(".album-date-card__preview")).toHaveAttribute("data-cover-pending", "true");
+    await expect(featured.locator(".album-date-card__name")).toHaveCSS("opacity", "1");
+
+    const swaps = [featured, list.locator(".album-date-card--compact")].map(observeCaptionSwap);
+    const dates = page.getByRole("group", { name: "Album dates" });
+    await dates.getByRole("button", { name: "Friday, November 20, 2026" }).click();
+    await expect(featured.getByRole("heading", { name: "Coast" })).toBeVisible();
+    expect(await Promise.all(swaps)).toEqual([true, true]);
+  } finally {
+    releaseCover();
+  }
+});
 
 for (const width of [390, 1280]) {
   const responsiveTest = test.extend({ hasTouch: width === 390 });
@@ -756,7 +835,7 @@ for (const width of [390, 1280]) {
     await mainSlot.getByRole("link", { name: "Open album Riverside" }).press("Enter");
     await expect(page).toHaveURL(/\/album\/yesterday-b$/);
     if (await navigation.count()) {
-      await expect(page.getByRole("button", { name: "Add media", exact: true })).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "Add media", exact: true })).toBeVisible();
       await page.getByRole("banner").getByRole("button", { name: "Back", exact: true }).click();
     } else {
       await expect(page.getByRole("button", { name: "Edit", exact: true })).toBeVisible();
@@ -786,13 +865,190 @@ for (const width of [390, 1280]) {
   });
 }
 
+async function openAlbumContributors(page: Page, includeNextAlbum = false) {
+  const createdAt = "2026-11-21T04:00:00Z";
+  await page.clock.setFixedTime(new Date(createdAt));
+  const owner = { id: "viewer", username: "Alex", role: "user", status: "active", createdAt };
+  const contributor = { ...owner, id: "jamie", username: "Jamie Alexander" };
+  await page.addInitScript((user) => {
+    localStorage.setItem("shinigacim-auth", JSON.stringify({
+      state: { user, accessToken: "test", refreshToken: "test" }, version: 0,
+    }));
+    localStorage.setItem("shinigacim.animations-enabled", "true");
+  }, owner);
+  await page.route(/^https?:\/\/[^/]+\/hubs\//, (route) => route.abort());
+  await page.route(/^https?:\/\/[^/]+\/api\//, (route) => {
+    if (new URL(route.request().url()).pathname === "/api/library/album/page") {
+      return route.fulfill({ json: { items: [
+        { id: "one", name: "Riverside", owner, contributors: [contributor], createdAt, isPublic: true, imageCount: 0, videoCount: 0 },
+        ...(includeNextAlbum ? [
+          { id: "two", name: "The coast", owner, createdAt: "2026-11-21T03:59:00Z", isPublic: true, imageCount: 3, videoCount: 2 },
+          { id: "previous", name: "The hills", owner, createdAt, albumDate: "2026-11-20", isPublic: true, imageCount: 10, videoCount: 20 },
+        ] : []),
+      ], hasMore: false } });
+    }
+    return route.fulfill({ json: [] });
+  });
+
+  await page.goto("/album");
+  const card = page.locator(".album-date-card--featured");
+  const preview = card.getByRole("button", { name: "Show contributors" });
+  await preview.press("Enter");
+  await expect(preview).toHaveAttribute("aria-expanded", "true");
+  await expect(card.locator(".album-date-card__contributors")).toHaveCSS("transform", "matrix(1, 0, 0, 1, 0, 0)");
+  return { card, preview, owner, contributor };
+}
+
+test("featured album data stays expanded as the index changes", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 800 });
+  const { card, preview, contributor } = await openAlbumContributors(page, true);
+  const counts = card.locator(".album-date-card__media-counts");
+  const images = counts.locator(":scope > span").nth(0);
+  const videos = counts.locator(":scope > span").nth(1);
+  const imageDigit = images.locator('[data-slot="sliding-number-display"]').getByText("3", { exact: true });
+  const videoDigit = videos.locator('[data-slot="sliding-number-display"]').getByText("2", { exact: true });
+  await expect(images).toHaveAttribute("aria-label", "0 Images");
+  await expect(imageDigit).toHaveCSS("transform", /^matrix\(1, 0, 0, 1, 0, [1-9]/);
+  await expect(videoDigit).toHaveCSS("transform", /^matrix\(1, 0, 0, 1, 0, [1-9]/);
+  await page.getByRole("button", { name: "Next album: The coast" }).click();
+  await expect(card.getByRole("heading", { name: "The coast" })).toBeVisible();
+  await expect(preview).toHaveAttribute("aria-expanded", "true");
+  await expect(images).toHaveAttribute("aria-label", "3 Images");
+  await expect(videos).toHaveAttribute("aria-label", "2 Videos");
+  await expect(imageDigit).toHaveCSS("transform", "matrix(1, 0, 0, 1, 0, 0)");
+  await expect(videoDigit).toHaveCSS("transform", "matrix(1, 0, 0, 1, 0, 0)");
+  await expect(card.getByRole("button", { name: contributor.username })).toHaveCount(0);
+
+  await preview.press("ArrowDown");
+  await expect(card.getByRole("heading", { name: "Riverside" })).toBeVisible();
+  await expect(preview).toHaveAttribute("aria-expanded", "true");
+  await expect(card.getByRole("button", { name: contributor.username })).toBeVisible();
+  await preview.press("Enter");
+  await expect(preview).toHaveAttribute("aria-expanded", "false");
+  await preview.press("ArrowUp");
+  await expect(card.getByRole("heading", { name: "The coast" })).toBeVisible();
+  await expect(preview).toHaveAttribute("aria-expanded", "false");
+});
+
+test("featured details stay open across dates and counts roll down to zero", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 800 });
+  const { card, preview } = await openAlbumContributors(page, true);
+  const day = (date: string) => page.locator(`.album-date-view__day[data-date="${date}"]`);
+  const counts = card.locator(".album-date-card__media-counts");
+  await day("2026-11-20").click();
+  await expect(card.getByRole("heading", { name: "The hills" })).toBeVisible();
+  await expect(preview).toHaveAttribute("aria-expanded", "true");
+  await expect(counts.locator(".sr-only")).toHaveText(["10", "20"]);
+  await expect(counts.locator('[data-slot="sliding-number-roller"]')).toHaveCount(4);
+
+  await day("2026-11-21").click();
+  await expect(preview).toHaveAttribute("aria-expanded", "true");
+  await expect(counts.locator(".sr-only")).toHaveText(["0", "0"]);
+  const zeroDigits = counts.locator('[data-slot="sliding-number-roller"]:last-child [data-slot="sliding-number-display"]').getByText("0", { exact: true });
+  const zeroOffsets = () => zeroDigits.evaluateAll((digits) => digits.map((digit) =>
+    new DOMMatrixReadOnly(getComputedStyle(digit).transform).m42,
+  ));
+  await expect.poll(async () => (await zeroOffsets()).filter((offset) => Math.abs(offset) > 0.5).length).toBe(2);
+  await expect.poll(zeroOffsets).toEqual([0, 0]);
+
+  await day("2026-11-19").click();
+  await expect(page.getByText("No albums yet")).toBeVisible();
+  await day("2026-11-21").click();
+  await expect(preview).toHaveAttribute("aria-expanded", "true");
+});
+
+test("featured album counts update without rolling when reduced motion is on", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 800 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const { card, preview } = await openAlbumContributors(page, true);
+  const counts = card.locator(".album-date-card__media-counts");
+  await expect(counts.locator("strong")).toHaveText(["0", "0"]);
+
+  await preview.press("ArrowUp");
+  await expect(preview).toHaveAttribute("aria-expanded", "true");
+  await expect(counts.locator("strong")).toHaveText(["3", "2"]);
+  await expect(counts.locator('[data-slot="sliding-number"]')).toHaveCount(0);
+});
+
+test("album contributor lift clears its neighbor and the tooltip escapes the album clip", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 670 });
+  const { card, preview, owner, contributor } = await openAlbumContributors(page);
+  const avatar = card.getByRole("button", { name: contributor.username });
+  const trigger = card.locator('[data-slot="tooltip-trigger"]').filter({
+    has: page.getByRole("button", { name: contributor.username }),
+  });
+  const ownerAvatar = card.getByRole("button", { name: owner.username, exact: true });
+  const tip = page.locator(".album-date-card__contributor-tooltip");
+  const avatarFace = avatar.locator(".album-date-card__contributor-avatar");
+  await expect(avatar).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await expect(avatar).toHaveCSS("border-top-width", "0px");
+  await expect(avatarFace).toHaveCSS("border-top-width", "2px");
+  await expect(avatarFace).toHaveCSS("border-top-color", await card.evaluate((frame) => getComputedStyle(frame).backgroundColor));
+  await expect(avatarFace).toHaveCSS("border-radius", "50%");
+  const resting = (await avatar.boundingBox())!;
+  const ownerBounds = (await ownerAvatar.boundingBox())!;
+  expect(ownerBounds.x + ownerBounds.width - resting.x).toBeCloseTo(8, 0);
+  await expect(trigger).toHaveCSS("z-index", "1");
+  await trigger.hover({ position: { x: resting.width / 2, y: resting.height - 3 } });
+  await expect.poll(async () => (await avatar.boundingBox())!.y).toBeCloseTo(resting.y - resting.height * .3, 0);
+  await expect(trigger).toHaveCSS("z-index", "7");
+  await expect(tip).toHaveText(contributor.username);
+  const tipBounds = (await tip.boundingBox())!;
+  expect(tipBounds.x).toBeGreaterThanOrEqual(0);
+  expect(tipBounds.x + tipBounds.width).toBeLessThanOrEqual(320);
+  expect(await tip.evaluate((element) => {
+    if (element.closest(".album-date-view__viewport")) return false;
+    const tipBounds = element.getBoundingClientRect();
+    const cover = document.querySelector(".album-date-card--featured .album-date-card__preview")!;
+    const coverBounds = cover.getBoundingClientRect();
+    const left = Math.max(tipBounds.left, coverBounds.left);
+    const right = Math.min(tipBounds.right, coverBounds.right);
+    const top = Math.max(tipBounds.top, coverBounds.top);
+    const bottom = Math.min(tipBounds.bottom, coverBounds.bottom);
+    if (left >= right || top >= bottom) return false;
+    (element as HTMLElement).style.pointerEvents = "auto";
+    const topmost = document.elementFromPoint((left + right) / 2, (top + bottom) / 2);
+    (element as HTMLElement).style.removeProperty("pointer-events");
+    return element.contains(topmost);
+  })).toBe(true);
+
+  await ownerAvatar.hover();
+  await expect(tip).toHaveText(owner.username);
+  await page.mouse.move(0, 0);
+  await expect(tip).toHaveCount(0);
+  await avatar.evaluate((button) => button.focus({ preventScroll: true }));
+  await expect(tip).toHaveText(contributor.username);
+  await expect(tip).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(tip).toHaveCount(0);
+  await ownerAvatar.evaluate((button) => button.focus({ preventScroll: true }));
+  await expect(tip).toHaveText(owner.username);
+  await preview.press("Enter");
+  await expect(tip).toHaveCount(0);
+});
+
+test.describe("touch album contributors", () => {
+  test.use({ hasTouch: true, viewport: { width: 320, height: 670 } });
+
+  test("album contributor tap toggles the name tooltip", async ({ page }) => {
+    const { card, contributor } = await openAlbumContributors(page);
+    const avatar = card.getByRole("button", { name: contributor.username });
+    const tip = page.locator(".album-date-card__contributor-tooltip");
+    await avatar.tap();
+    await expect(tip).toHaveText(contributor.username);
+    await avatar.tap();
+    await expect(tip).toHaveCount(0);
+  });
+});
+
 test.describe("mobile album detail preview", () => {
   test.use({ hasTouch: true, viewport: { width: 390, height: 670 } });
 
-  test("hides the menu and swipes through album images", async ({ page }) => {
+  test("expands Add media and opens album images in a full-screen viewer", async ({ page }) => {
     const createdAt = "2026-11-21T04:00:00Z";
     await page.clock.setFixedTime(new Date(createdAt));
     const owner = { id: "viewer", username: "Alex", role: "user", status: "active", createdAt };
+    const contributor = { ...owner, id: "contributor", username: "Jamie" };
     const album = { id: "riverside", name: "Riverside", owner, createdAt, isPublic: true,
       previewMediaId: "custom-cover", caption: "Hidden album caption", imageCount: 24, videoCount: 1, mediaCount: 25 };
     const photos = Array.from({ length: 24 }, (_, index) => {
@@ -806,6 +1062,15 @@ test.describe("mobile album detail preview", () => {
         void transition.ready.then(() => {
           const root = document.documentElement;
           root.dataset.testAlbumTransitions = String(Number(root.dataset.testAlbumTransitions ?? 0) + 1);
+          const button = document.querySelector(".mobile-menu-bar__add")!;
+          const slot = button.parentElement!;
+          root.dataset.testAlbumControls = JSON.stringify({
+            border: getComputedStyle(button).borderTopColor,
+            buttonLayer: getComputedStyle(button).zIndex,
+            menuLayer: getComputedStyle(slot.querySelector(".mobile-menu-bar")!).zIndex,
+            layer: getComputedStyle(slot).viewTransitionName,
+            snapshot: getComputedStyle(root, "::view-transition-old(mobile-album-controls)").display,
+          });
         }, () => {});
         return transition;
       };
@@ -813,10 +1078,13 @@ test.describe("mobile album detail preview", () => {
         state: { user, accessToken: "test", refreshToken: "test" }, version: 0,
       }));
       localStorage.setItem("shinigacim.animations-enabled", "true");
-    }, owner);
+    }, contributor);
     await page.route(/^https?:\/\/[^/]+\/hubs\//, (route) => route.abort());
     await page.route(/^https?:\/\/[^/]+\/api\//, (route) => {
       const url = new URL(route.request().url());
+      if (url.pathname.startsWith("/api/library/album/riverside/media/file/") && route.request().method() === "PUT") {
+        return route.fulfill({ json: { mediaId: url.pathname.split("/").at(-1) } });
+      }
       if (url.pathname === "/api/library/album/page") return route.fulfill({ json: { items: [album], hasMore: false } });
       if (url.pathname === "/api/library/album/riverside") return route.fulfill({ json: album });
       if (url.pathname === "/api/library/album/riverside/media") {
@@ -831,22 +1099,55 @@ test.describe("mobile album detail preview", () => {
     });
 
     await page.goto("/album");
-    const menu = page.locator(".mobile-bottom-slot");
+    const menu = page.locator(".mobile-menu-bar");
     const open = page.getByRole("link", { name: "Open album Riverside" });
     await open.waitFor();
     test.skip(await menu.count() === 0, "Mobile app only");
+    const add = page.locator(".mobile-menu-bar__add");
+    const collapsed = (await add.boundingBox())!;
+    const menuBounds = (await menu.boundingBox())!;
+    const menuRadius = await menu.evaluate((element) => getComputedStyle(element).borderTopLeftRadius);
+    const collapsedBorder = await add.evaluate((element) => getComputedStyle(element).borderTopColor);
+    const controlsDuringTransition = {
+      border: "rgba(0, 0, 0, 0)", buttonLayer: "1", menuLayer: "auto", layer: "mobile-album-controls", snapshot: "none",
+    };
     await open.click();
     await expect(page.getByRole("heading", { name: "Riverside", exact: true })).toBeVisible();
     await expect(page.locator("html")).toHaveAttribute("data-test-album-transitions", "1");
+    await expect(page.locator("html")).toHaveAttribute("data-test-album-controls", JSON.stringify(controlsDuringTransition));
     await expect(page.locator(".mobile-album-detail__byline")).toHaveText("Public · Alex");
     await expect(page.locator(".mobile-album-detail__counts")).toContainText("Images 24");
     await expect(page.locator(".mobile-album-detail__counts")).toContainText("Videos 1");
     await expect(page.getByRole("button", { name: "Edit", exact: true })).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "Add media", exact: true })).toHaveCount(0);
+    await expect(add).toHaveAccessibleName("Add media");
+    await expect(add).toBeEnabled();
+    await expect(add.locator('.mobile-menu-bar__add-label [aria-hidden="true"]').first()).toContainText("Add media");
+    await expect.poll(() => add.boundingBox()).toEqual(menuBounds);
+    await expect(add).toHaveCSS("border-radius", menuRadius);
+    await expect(add).toHaveCSS("border-top-color", "rgba(0, 0, 0, 0)");
+    await expect(add).not.toHaveCSS("box-shadow", /inset/);
+    const picker = page.waitForEvent("filechooser");
+    await add.click();
+    const files = await picker;
+    expect(files.isMultiple()).toBe(true);
+    const contribution = page.waitForRequest((request) =>
+      new URL(request.url()).pathname.startsWith("/api/library/album/riverside/media/file/") && request.method() === "PUT");
+    await files.setFiles({ name: "contribution.png", mimeType: "image/png", buffer: Buffer.from("test image") });
+    expect((await contribution).postData()).toContain('filename="contribution.png"');
     await expect(page.getByText("Hidden album caption")).toHaveCount(0);
     await expect(page.locator(".album-page__grid")).toHaveCount(0);
     await expect(menu).toHaveAttribute("inert", "");
     await expect.poll(() => menu.evaluate((node) => node.getBoundingClientRect().top >= innerHeight)).toBe(true);
+    await page.mouse.move(195, 220);
+    await page.mouse.wheel(0, 600);
+    await expect(menu).toHaveAttribute("inert", "");
+    expect(await page.evaluate(() => window.scrollY)).toBe(0);
+    await expect.poll(() => menu.evaluate((node) => node.getBoundingClientRect().top >= innerHeight)).toBe(true);
+    await page.setViewportSize({ width: 390, height: 420 });
+    await expect(page.locator(".mobile-album-detail__counts")).toBeInViewport();
+    await expect.poll(() => page.locator(".mobile-album-page .gallery-page__content")
+      .evaluate((node) => node.scrollHeight - node.clientHeight)).toBeLessThanOrEqual(1);
+    await page.setViewportSize({ width: 390, height: 670 });
 
     const carousel = page.locator(".mobile-album-carousel");
     const dots = carousel.locator(".mobile-album-carousel__dots");
@@ -863,15 +1164,89 @@ test.describe("mobile album detail preview", () => {
     await expect(slots.nth(0)).toHaveCSS("background-color", "rgb(245, 245, 245)");
     const first = carousel.getByRole("img", { name: "river.png" });
     await expect(first).toBeVisible();
-    await first.dblclick();
-    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await page.evaluate(() => {
+      document.addEventListener("animationstart", (event) => {
+        if (!(event.target instanceof HTMLDialogElement) || !event.animationName.startsWith("mobile-viewer-")) return;
+        const root = document.documentElement;
+        root.dataset.viewerFades = [root.dataset.viewerFades, event.animationName].filter(Boolean).join(" ");
+      });
+    });
+    await first.tap();
+    const viewer = page.getByRole("dialog", { name: "Media viewer" });
+    await expect(viewer).toBeVisible();
+    await expect(viewer).toHaveCSS("background-color", "rgb(0, 0, 0)");
+    expect(await viewer.boundingBox()).toEqual({ x: 0, y: 0, width: 390, height: 670 });
+    const closeViewer = viewer.getByRole("button", { name: "Close image preview" });
+    const viewerFades = page.locator("html");
+    await expect(viewerFades).toHaveAttribute("data-viewer-fades", "mobile-viewer-enter");
+    await expect(closeViewer).toBeInViewport();
+    expect(await closeViewer.boundingBox()).toEqual({ x: 342, y: 8, width: 40, height: 40 });
+    await expect(closeViewer.locator("svg")).toHaveCSS("stroke", "rgb(255, 255, 255)");
+    await expect(closeViewer).toHaveCSS("background-color", "rgb(48, 48, 48)");
+    await closeViewer.hover();
+    await expect(closeViewer).toHaveCSS("background-color", "rgb(48, 48, 48)");
+    await expect(closeViewer).not.toHaveAttribute("title", /./);
+    await expect(viewer.locator(".project-tooltip")).toHaveCount(0);
+    const photoStage = viewer.locator('[data-active="true"]');
+    const activePhoto = photoStage.locator("img").first();
+    await expect(activePhoto).toHaveAttribute("alt", "river.png");
+    const scale = () => activePhoto.evaluate((image) => {
+      const transform = getComputedStyle(image).transform;
+      return transform === "none" ? 1 : new DOMMatrixReadOnly(transform).a;
+    });
+    await photoStage.dblclick();
+    await expect.poll(scale).toBe(2.5);
+    await photoStage.dblclick();
+    await expect.poll(scale).toBe(1);
+
+    const touch = await page.context().newCDPSession(page);
+    const pinchPoints = (radius: number) => [{ x: 195 - radius, y: 335, id: 1 }, { x: 195 + radius, y: 335, id: 2 }];
+    await touch.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: pinchPoints(40) });
+    await touch.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: pinchPoints(100) });
+    await expect.poll(scale).toBeCloseTo(2.5);
+    await touch.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: pinchPoints(40) });
+    await expect.poll(scale).toBe(1);
+    await touch.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    await photoStage.tap();
+    await photoStage.tap();
+    await expect.poll(scale).toBe(2.5);
+    await touch.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: 195, y: 335 }] });
+    await touch.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: 255, y: 335 }] });
+    await touch.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    await expect.poll(() => activePhoto.evaluate((image) => new DOMMatrixReadOnly(getComputedStyle(image).transform).e))
+      .toBeGreaterThan(40);
+
+    await page.keyboard.press("ArrowRight");
+    await expect(activePhoto).toHaveAttribute("alt", "bridge.png");
+    await expect.poll(scale).toBe(1);
+    await touch.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: 65, y: 330 }] });
+    for (const x of [100, 155, 210, 285, 330]) {
+      await touch.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x, y: 330 }] });
+    }
+    await touch.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    await expect(viewer.locator('[data-active="true"] img').first()).toHaveAttribute("alt", "river.png");
+    await page.keyboard.press("Escape");
+    await expect(viewer).toHaveCount(0);
+    await expect(viewerFades).toHaveAttribute("data-viewer-fades", "mobile-viewer-enter mobile-viewer-exit");
+    await first.click();
+    await expect(viewerFades).toHaveAttribute("data-viewer-fades", "mobile-viewer-enter mobile-viewer-exit mobile-viewer-enter");
+    await closeViewer.click();
+    await expect(viewer).toHaveCount(0);
+    const completedFades = "mobile-viewer-enter mobile-viewer-exit mobile-viewer-enter mobile-viewer-exit";
+    await expect(viewerFades).toHaveAttribute("data-viewer-fades", completedFades);
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await first.click();
+    await expect(viewer).toHaveCSS("animation-name", "none");
+    await viewer.dispatchEvent("cancel", { cancelable: true });
+    await expect(viewer).toHaveCount(0);
+    await expect(viewerFades).toHaveAttribute("data-viewer-fades", completedFades);
+    await page.emulateMedia({ reducedMotion: "no-preference" });
     const track = carousel.locator(".mobile-album-carousel__track");
     await track.press("ArrowRight");
     await expect(carousel.getByRole("img", { name: "bridge.png" })).toBeVisible();
     await expect(carousel.locator(".mobile-album-carousel__dots span").nth(1)).toHaveAttribute("data-active", "true");
     await expect.poll(() => track.evaluate((node) => Math.abs(node.clientWidth - node.scrollLeft))).toBeLessThan(2);
     const bounds = (await track.boundingBox())!;
-    const touch = await page.context().newCDPSession(page);
     const x = bounds.x + bounds.width * .1;
     const y = bounds.y + bounds.height / 2;
     await touch.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
@@ -899,11 +1274,14 @@ test.describe("mobile album detail preview", () => {
       }
     }
     await expect(carousel.getByRole("img", { name: "photo-24.png" })).toBeVisible();
-    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await page.emulateMedia({ colorScheme: null, reducedMotion: "no-preference" });
     await page.getByRole("button", { name: "Back", exact: true }).click();
     await expect(open).toBeVisible();
     await expect(page.locator("html")).toHaveAttribute("data-test-album-transitions", "2");
+    await expect(page.locator("html")).toHaveAttribute("data-test-album-controls", JSON.stringify(controlsDuringTransition));
     await expect.poll(() => menu.evaluate((node) => node.getBoundingClientRect().bottom <= innerHeight)).toBe(true);
+    await expect.poll(() => add.boundingBox()).toEqual(collapsed);
+    await expect(add).toHaveCSS("border-top-color", collapsedBorder);
   });
 });
 
@@ -936,7 +1314,7 @@ test("mobile album center Add button preserves the queue and Move up returns to 
   const create = page.getByRole("button", { name: "Add album", exact: true });
   const pageTitle = page.getByRole("banner").getByRole("heading", { name: "Album" }).locator(".mobile-page-title");
   const navigation = page.getByRole("navigation", { name: "Main navigation" });
-  await expect(navigation.getByRole("button", { name: "Add album" })).toHaveCount(1);
+  await expect(create).toHaveCount(1);
   const moveUp = page.locator(".album-date-view__move-up");
   const arrow = moveUp.locator(".album-date-view__move-up-arrow");
   const progress = moveUp.locator(".album-date-view__move-up-progress");
@@ -948,38 +1326,19 @@ test("mobile album center Add button preserves the queue and Move up returns to 
   await expect(create).toBeVisible();
   await expect(create.locator("svg")).toHaveCSS("width", "24px");
   await expect(create.locator("svg line")).toHaveCount(2);
-  for (const gradient of [pageTitle, create]) {
-    await expect(gradient).toHaveCSS("animation-name", "mobile-gradient-flow");
-    await expect(gradient).toHaveCSS("animation-timing-function", "linear");
-    await expect(gradient).toHaveCSS("background-size", "200% 100%");
-    await expect(gradient).toHaveCSS("background-repeat", "repeat-x");
-    const samples = await gradient.evaluate((element) => {
-      const flow = element.getAnimations().find((animation) =>
-        animation instanceof CSSAnimation && animation.animationName === "mobile-gradient-flow")!;
-      const sample = (time: number) => {
-        flow.currentTime = time;
-        return parseFloat(getComputedStyle(element).backgroundPositionX);
-      };
-      return [sample(0), sample(1000), sample(2000), sample(4000)];
-    });
-    expect(samples).toEqual([0, 50, 100, 0]);
-  }
-  await expect(create).toHaveCSS("background-origin", "border-box");
-  const buttonGradient = await create.evaluate((element) => getComputedStyle(element).backgroundImage);
+  await expect(pageTitle).toHaveCSS("background-image", /radial-gradient/);
+  await expect(create).toHaveCSS("background-image", /radial-gradient/);
+  await expect(create).toHaveCSS("background-origin", /^border-box(?:, border-box)*$/);
   const plusLine = create.locator("svg line").last();
   const transform = () => plusLine.evaluate((line) => getComputedStyle(line).transform);
   const initialTransform = await transform();
   await create.hover({ position: { x: 6, y: 28 } });
   await expect.poll(transform).not.toBe(initialTransform);
-  await expect(create).toHaveCSS("background-image", buttonGradient);
-  await expect(create).toHaveCSS("animation-name", "mobile-gradient-flow");
+  await expect(create).toHaveCSS("animation-name", "ui-gradient-flow");
   await page.mouse.move(1, 1);
   await expect.poll(transform).toBe(initialTransform);
   await page.evaluate(() => { document.documentElement.dataset.motion = "off"; });
-  for (const gradient of [pageTitle, create]) {
-    await expect(gradient).toHaveCSS("animation-name", "mobile-gradient-flow");
-    await expect(gradient).toHaveCSS("animation-duration", "4s");
-  }
+  await expect(create).toHaveCSS("transition-duration", "0s");
   await page.evaluate(() => { document.documentElement.dataset.motion = "on"; });
   await expect(moveUp).toBeVisible();
   await expect(animatedCount).toHaveText(["1", "of 3"]);
@@ -1001,14 +1360,11 @@ test("mobile album center Add button preserves the queue and Move up returns to 
   for (const colorScheme of ["dark", "light"] as const) {
     await page.emulateMedia({ colorScheme });
     await expect(page.locator("html")).toHaveAttribute("data-mobile-theme", colorScheme);
-    await expect(pageTitle).toHaveCSS("background-image", /linear-gradient.*rgb\(59, 130, 246\).*rgb\(236, 72, 153\)/);
-    await expect(create).toHaveCSS("background-image", /linear-gradient.*rgb\(147, 51, 234\).*rgb\(190, 24, 93\)/);
+    await expect(pageTitle).toHaveCSS("background-image", /radial-gradient/);
+    await expect(create).toHaveCSS("background-image", /radial-gradient/);
     await expect(create).toHaveCSS("color", "rgb(255, 255, 255)");
     await expect(create).toHaveCSS("border-radius", "50%");
-    const buttonShadow = colorScheme === "light"
-      ? /rgba\(0, 0, 0, 0\.1\).*rgba\(0, 0, 0, 0\.2\)/
-      : await navigation.evaluate((element) => getComputedStyle(element).boxShadow);
-    await expect(create).toHaveCSS("box-shadow", buttonShadow);
+    await expect(create).not.toHaveCSS("box-shadow", /inset/);
   }
   await page.getByRole("button", { name: "Next album: Second" }).click();
   await expect(animatedCount).toHaveText(["2", "of 3"]);
@@ -1065,7 +1421,6 @@ test("mobile album center Add button preserves the queue and Move up returns to 
   await page.emulateMedia({ reducedMotion: "reduce" });
   await expect(pageTitle).toHaveCSS("animation-name", "none");
   await expect(create).toHaveCSS("animation-name", "none");
-  await expect(create).toHaveCSS("background-image", buttonGradient);
   await create.hover({ position: { x: 6, y: 28 } });
   await expect.poll(transform).toBe(initialTransform);
   await expect(progress).toHaveCSS("transition-duration", "0s");
@@ -1092,7 +1447,7 @@ test("mobile album center Add button preserves the queue and Move up returns to 
   await page.setViewportSize({ width: 390, height: 800 });
   await create.hover();
   await page.mouse.down();
-  await expect(create).toHaveCSS("background-image", buttonGradient);
+  await expect(create).toHaveCSS("animation-name", "ui-gradient-flow");
   await expect.poll(() => create.evaluate((element) =>
     element.getAnimations().some((animation) => animation.effect instanceof KeyframeEffect && animation.effect.getKeyframes().some((frame) => Number(frame.scale) === 0.97)))).toBe(true);
   await expect.poll(() => create.evaluate((element) => getComputedStyle(element).scale)).toBe("0.97");

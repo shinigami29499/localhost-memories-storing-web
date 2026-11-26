@@ -3,6 +3,8 @@ import { useContext, useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import * as PaginationPrimitive from "@animate-ui/react/primitives/pagination";
 import { Select } from "@animate-ui/react/primitives/base-ui/select";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { IconButton } from "./IconButton";
 import "./Pagination.css";
 import { useLocale } from "../../context/LocaleContext";
 import { ActionBarContext } from "../layout/PageActionBarContext";
@@ -15,6 +17,7 @@ interface PaginationProps {
   pageSize: number;
   total: number;
   itemLabel?: string;
+  arrowControls?: boolean;
   isFetching?: boolean;
   inActionBar?: boolean;
   revealBeforeTransitionEndMs?: number;
@@ -27,6 +30,7 @@ export function Pagination({
   pageSize,
   total,
   itemLabel = "items",
+  arrowControls = false,
   isFetching = false,
   inActionBar = false,
   revealBeforeTransitionEndMs,
@@ -64,17 +68,24 @@ export function Pagination({
     <PaginationPrimitive.Root className="pagination" aria-label={t("{label} pagination", { label: t(itemLabel) })}>
       <ul className="pagination__controls" data-slot="pagination-content">
         <li data-slot="pagination-item">
-          <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
-            <button
-              type="button"
-              className="pagination-btn"
-              onClick={() => onPageChange(page - 1)}
-              disabled={page === 1 || isFetching}
-              aria-label={t("Previous page")}
-            >
-              <span>{t("Previous")}</span>
-            </button>
-          </AnimateIcon>
+          {arrowControls ? (
+            <IconButton className="pagination-btn" shape="rounded-square" aria-label={t("Previous page")}
+              disabled={page === 1 || isFetching} onClick={() => onPageChange(page - 1)}>
+              <ChevronLeft />
+            </IconButton>
+          ) : (
+            <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
+              <button
+                type="button"
+                className="pagination-btn"
+                onClick={() => onPageChange(page - 1)}
+                disabled={page === 1 || isFetching}
+                aria-label={t("Previous page")}
+              >
+                <span>{t("Previous")}</span>
+              </button>
+            </AnimateIcon>
+          )}
         </li>
         {pageNumbers.map((pageNumber, index) =>
           pageNumber === "ellipsis" ? (
@@ -101,17 +112,24 @@ export function Pagination({
           ),
         )}
         <li data-slot="pagination-item">
-          <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
-            <button
-              type="button"
-              className="pagination-btn"
-              onClick={() => onPageChange(page + 1)}
-              disabled={page === totalPages || isFetching}
-              aria-label={t("Next page")}
-            >
-              <span>{t("Next")}</span>
-            </button>
-          </AnimateIcon>
+          {arrowControls ? (
+            <IconButton className="pagination-btn" shape="rounded-square" aria-label={t("Next page")}
+              disabled={page === totalPages || isFetching} onClick={() => onPageChange(page + 1)}>
+              <ChevronRight />
+            </IconButton>
+          ) : (
+            <AnimateIcon animateOnHover animateOnTap completeOnStop asChild>
+              <button
+                type="button"
+                className="pagination-btn"
+                onClick={() => onPageChange(page + 1)}
+                disabled={page === totalPages || isFetching}
+                aria-label={t("Next page")}
+              >
+                <span>{t("Next")}</span>
+              </button>
+            </AnimateIcon>
+          )}
         </li>
       </ul>
       {onPageSizeChange ? <div className="pagination__page-size">

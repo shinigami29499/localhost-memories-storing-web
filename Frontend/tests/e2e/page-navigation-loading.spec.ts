@@ -67,7 +67,7 @@ const destinations = [
   { path: "/album", selector: ".album-page" },
   { path: "/album", selector: ".album-page" },
   { path: "/album/example", selector: ".album-page" },
-  { path: "/uploads", selector: ".upload-page" },
+  { path: "/upload", selector: ".upload-page" },
   { path: "/location", selector: ".place" },
   { path: "/location/saved", selector: ".place" },
   { path: "/location/history", selector: ".place" },
@@ -76,7 +76,7 @@ const destinations = [
   { path: "/users/pending", selector: ".admin-page--users" },
   { path: "/users/blocked", selector: ".admin-page--users" },
   { path: "/profile", selector: ".profile-page" },
-  { path: "/settings", selector: ".settings-page" },
+  { path: "/setting", selector: ".settings-page" },
 ];
 
 for (const width of [390, 1280]) {
@@ -106,9 +106,9 @@ for (const width of [390, 1280]) {
         await page.goBack();
         await expect(page).toHaveURL(new RegExp(`${destination.path}$`));
         await expect(page.locator(`#main-content ${destination.selector}`).first()).toBeVisible();
-        if (destination.path !== "/settings") await expect.poll(() => requests).toBeGreaterThan(0);
+        if (destination.path !== "/setting") await expect.poll(() => requests).toBeGreaterThan(0);
         await expect(page.locator('[data-push-transition="exit"], [data-highlight-bridge]')).toHaveCount(0);
-        if (!["/profile", "/settings", "/location"].includes(destination.path)) await expectCenteredLoader(page);
+        if (!["/profile", "/setting", "/location"].includes(destination.path)) await expectCenteredLoader(page);
       } finally {
         releaseResponses();
       }
